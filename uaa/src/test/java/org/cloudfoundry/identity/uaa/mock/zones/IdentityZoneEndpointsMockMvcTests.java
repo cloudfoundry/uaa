@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -1049,6 +1050,29 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateZoneWithConsentText() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        Consent consent = new Consent("some consent text", "http://localhost");
+        branding.setConsent(consent);
+        zone.getConfig().setBranding(branding);
+
+        String contentAsString = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andReturn().getResponse().getContentAsString();
+        IdentityZone createdZone = JsonUtils.readValue(contentAsString, IdentityZone.class);
+
+        Consent createdZoneConsent = createdZone.getConfig().getBranding().getConsent();
+        assertThat(createdZoneConsent.getText(), is("some consent text"));
+        assertThat(createdZoneConsent.getLink(), is("http://localhost"));
+    }
+
+    @Test
     public void testCreateZoneWithIncorrectBrandingBannerLink() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone zone = getIdentityZone(id);
@@ -1109,6 +1133,78 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(mvcResult.getContentAsString(), containsString("Invalid banner link: " + invalidUrl + ". Must be a properly formatted URI beginning with http:// or https://"));
     }
 
+    @Test
+    public void testUpdateZoneWithConsent() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("some text", "http://localhost"));
+        zone.getConfig().setBranding(branding);
+
+        String response = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        IdentityZone createdZone = JsonUtils.readValue(response, IdentityZone.class);
+
+        createdZone.getConfig().getBranding().getConsent().setText("some updated text");
+        createdZone.getConfig().getBranding().getConsent().setLink("http://localhost/some-updated-link");
+
+        MockHttpServletResponse mvcResult = getMockMvc().perform(
+                put("/identity-zones/" + createdZone.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(createdZone)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+
+        IdentityZone updatedZone = JsonUtils.readValue(mvcResult.getContentAsString(), IdentityZone.class);
+
+        Consent createdZoneConsent = updatedZone.getConfig().getBranding().getConsent();
+        assertThat(createdZoneConsent.getText(), is("some updated text"));
+        assertThat(createdZoneConsent.getLink(), is("http://localhost/some-updated-link"));
+    }
+
+    @Test
+    public void testUpdateZoneWithInvalidConsentLink() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("some text", "http://localhost"));
+        zone.getConfig().setBranding(branding);
+
+        String response = getMockMvc().perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        IdentityZone createdZone = JsonUtils.readValue(response, IdentityZone.class);
+
+        createdZone.getConfig().getBranding().getConsent().setText("some updated text");
+        String invalidConsentLink = "not a valid link";
+        createdZone.getConfig().getBranding().getConsent().setLink(invalidConsentLink);
+
+        MockHttpServletResponse mvcResult = getMockMvc().perform(
+                put("/identity-zones/" + createdZone.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(createdZone)))
+          .andExpect(status().isUnprocessableEntity())
+          .andReturn()
+                .getResponse();
+
+        assertThat(mvcResult.getContentAsString(), containsString("Invalid consent link: " + invalidConsentLink + ". Must be a properly formatted URI beginning with http:// or https://"));
+    }
 
     @Test
     public void testCreateZoneWithInvalidBannerBackgroundColor() throws Exception {

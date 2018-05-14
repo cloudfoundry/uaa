@@ -75,6 +75,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             }
         }
 
+        if(config.getBranding() != null && config.getBranding().getConsent() != null) {
+            ConsentValidator.validate(config.getBranding().getConsent());
+        }
+
         if(config.getBranding() != null && config.getBranding().getBanner() != null) {
            BannerValidator.validate(config.getBranding().getBanner());
         }
