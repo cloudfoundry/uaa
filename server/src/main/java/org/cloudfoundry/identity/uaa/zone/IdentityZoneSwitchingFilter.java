@@ -43,6 +43,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     }
 
     private final IdentityZoneProvisioning dao;
+    public static final String HEADER = "X-Identity-Zone-Id";
     public static final String SUBDOMAIN_HEADER = "X-Identity-Zone-Subdomain";
     public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
          Arrays.asList(
@@ -127,7 +128,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
 
-        String identityZoneIdFromHeader = request.getHeader(IdentityZoneResolvingFilter.HEADER);
+        String identityZoneIdFromHeader = request.getHeader(HEADER);
         String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
 
         if (!StringUtils.isEmpty(identityZoneIdFromHeader) || StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {

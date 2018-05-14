@@ -37,7 +37,6 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
     private IdentityZoneProvisioning dao;
-    public static final String HEADER = "X-Identity-Zone-Id";
     private Set<String> defaultZoneHostnames = new HashSet<>();
     private Log logger = LogFactory.getLog(getClass());
 
@@ -45,7 +44,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         IdentityZone identityZone = null;
-        String identityZoneIdFromHeader = request.getHeader(HEADER);
+        String identityZoneIdFromHeader = request.getHeader(IdentityZoneSwitchingFilter.HEADER);
         String hostname = request.getServerName();
         String subdomain = getSubdomain(hostname);
         try {
