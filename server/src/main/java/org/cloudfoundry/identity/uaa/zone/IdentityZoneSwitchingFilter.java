@@ -131,14 +131,14 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         String identityZoneIdFromHeader = request.getHeader(HEADER);
         String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
 
-        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
+        if (!StringUtils.isEmpty(identityZoneIdFromHeader) || StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        IdentityZone identityZone = validateIdentityZone(identityZoneIdFromHeader, identityZoneSubDomainFromHeader);
+        IdentityZone identityZone = validateIdentityZone(identityZoneSubDomainFromHeader);
         if (identityZone == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomainFromHeader + " does not exist");
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with subdomain " + identityZoneSubDomainFromHeader + " does not exist");
             return;
         }
 
@@ -160,15 +160,11 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
     }
 
-    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) throws IOException {
+    private IdentityZone validateIdentityZone(String identityZoneSubDomain) throws IOException {
         IdentityZone identityZone = null;
 
         try {
-            if (StringUtils.isEmpty(identityZoneId)) {
-                identityZone = dao.retrieveBySubdomain(identityZoneSubDomain);
-            } else {
-                identityZone = dao.retrieve(identityZoneId);
-            }
+            identityZone = dao.retrieveBySubdomain(identityZoneSubDomain);
         } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ex) {
         } catch (Exception ex) {
             throw ex;

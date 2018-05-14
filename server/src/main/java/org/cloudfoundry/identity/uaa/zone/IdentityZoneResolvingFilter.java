@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -43,19 +44,22 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         IdentityZone identityZone = null;
+        String identityZoneIdFromHeader = request.getHeader(IdentityZoneSwitchingFilter.HEADER);
         String hostname = request.getServerName();
         String subdomain = getSubdomain(hostname);
-        if (subdomain != null) {
-            try {
-                identityZone = dao.retrieveBySubdomain(subdomain);
-            } catch (EmptyResultDataAccessException ex) {
-                logger.debug("Cannot find identity zone for subdomain " + subdomain);
-            } catch (Exception ex) {
-                String message = "Internal server error while fetching identity zone for subdomain" + subdomain;
-                logger.warn(message, ex);
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-                return;
-            }
+        try {
+	        if (subdomain != null) {
+	            identityZone = dao.retrieveBySubdomain(subdomain);
+	        } else if (!StringUtils.isEmpty(identityZoneIdFromHeader)) {
+	        	identityZone = dao.retrieve(identityZoneIdFromHeader);
+	        }
+        } catch (EmptyResultDataAccessException ex) {
+            logger.debug("Cannot find identity zone for id " + identityZoneIdFromHeader + " or subdomain" + subdomain);
+        } catch (Exception ex) {
+            String message = "Internal server error while fetching identity zone for id" + identityZoneIdFromHeader + " or subdomain" + subdomain;
+            logger.warn(message, ex);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+            return;
         }
         if (identityZone == null) {
             request.setAttribute("error_message_code", "zone.not.found");
