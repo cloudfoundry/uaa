@@ -31,7 +31,7 @@
             <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
             <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
 
-            <label th:if="${consent_text}">
+            <label th:if="${consent_text}" style="margin-bottom: 20px">
                 <input name="does_user_consent" type="checkbox" style="display: inline">
                 <span>I agree to </span>
                 <span th:if="!${consent_link}" th:text="${consent_text}"></span>
