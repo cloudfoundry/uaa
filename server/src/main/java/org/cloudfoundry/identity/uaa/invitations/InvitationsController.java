@@ -273,13 +273,11 @@ public class InvitationsController {
         final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
         if (!validation.valid()) {
            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
-//           return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
             return processErrorReload(newCode, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
-//            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         AcceptedInvitation invitation;
         try {
@@ -298,14 +296,11 @@ public class InvitationsController {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         try {
-            String origin = codeData.get(ORIGIN);
-            IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             model.addAttribute(errorCode, error);
             model.addAttribute("code", newCode);
             return "redirect:accept";
-            //return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
@@ -357,7 +352,7 @@ public class InvitationsController {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
                 userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
-                Authentication ldapCompleteAuth = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
+                zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
                 return "redirect:" + "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(accept.getRedirectUri());
             } else {
