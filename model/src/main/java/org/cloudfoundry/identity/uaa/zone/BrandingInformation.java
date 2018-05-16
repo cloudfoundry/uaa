@@ -12,6 +12,7 @@ public class BrandingInformation implements BrandingInformationSource {
     private String footerLegalText;
     private Map<String, String> footerLinks;
     private Banner banner;
+    private Consent consent;
 
     public Banner getBanner() {
         return banner;
@@ -64,6 +65,14 @@ public class BrandingInformation implements BrandingInformationSource {
 
     public void setFooterLinks(Map<String, String> footerLinks) {
         this.footerLinks = footerLinks;
+    }
+
+    public void setConsent(Consent consent) {
+        this.consent = consent;
+    }
+
+    public Consent getConsent() {
+        return consent;
     }
 
     public static class Banner {

@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -509,6 +511,65 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(model().attribute("error_message_code", "code_expired"))
             .andExpect(view().name("accounts/link_prompt"))
             .andExpect(xpath("//a[text()='here']/@href").string(signUpLink));
+    }
+
+    @Test
+    public void testConsentIfConfigured_displaysConsentTextAndLink() throws Exception {
+        String randomZoneSubdomain = generator.generate();
+        String consentText = "Terms and Conditions";
+        String consentLink = "http://google.com";
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(
+            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+
+        zone.getConfig().setBranding(new BrandingInformation());
+        zone.getConfig().getBranding().setConsent(new Consent());
+        zone.getConfig().getBranding().getConsent().setText(consentText);
+        zone.getConfig().getBranding().getConsent().setLink(consentLink);
+        mockMvcUtils.updateZone(getMockMvc(), zone);
+
+        getMockMvc().perform(get("/create_account")
+            .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
+            .andExpect(content().string(containsString(consentText)))
+            .andExpect(content().string(containsString(consentLink)));
+    }
+
+    @Test
+    public void testConsentIfConfigured_displayConsentTextWhenNoLinkConfigured() throws Exception {
+        String randomZoneSubdomain = generator.generate();
+        String consentText = "Terms and Conditions";
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(
+            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+
+        zone.getConfig().setBranding(new BrandingInformation());
+        zone.getConfig().getBranding().setConsent(new Consent());
+        zone.getConfig().getBranding().getConsent().setText(consentText);
+        mockMvcUtils.updateZone(getMockMvc(), zone);
+
+        getMockMvc().perform(get("/create_account")
+            .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
+            .andExpect(content().string(containsString(consentText)));
+    }
+
+    @Test
+    public void testConsentIfConfigured_displaysMeaningfulErrorWhenConsentNotProvided() throws Exception {
+        String randomZoneSubdomain = generator.generate();
+        String consentText = "Terms and Conditions";
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(
+            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+
+        zone.getConfig().setBranding(new BrandingInformation());
+        zone.getConfig().getBranding().setConsent(new Consent());
+        zone.getConfig().getBranding().getConsent().setText(consentText);
+        mockMvcUtils.updateZone(getMockMvc(), zone);
+
+        getMockMvc().perform(post("/create_account.do")
+            .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
+            .with(cookieCsrf())
+            .param("email", userEmail)
+            .param("password", USER_PASSWORD)
+            .param("password_confirmation", USER_PASSWORD)
+            .param("does_user_consent", "false"))
+            .andExpect(content().string(containsString("Please agree before continuing.")));
     }
 
     private BaseClientDetails createTestClient() throws Exception {
