@@ -284,12 +284,14 @@ public class Saml2TokenGranterTest {
 
 
     protected void missing_parameter(String parameter) {
-        tokenRequest.setClientId(receivingClient.getClientId());
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         when(authentication.getUserAuthentication()).thenReturn(userAuthentication);
         when(userAuthentication.isAuthenticated()).thenReturn(true);
         requestParameters.remove(parameter);
+        tokenRequest = new PublicTokenRequest();
+        tokenRequest.setClientId(receivingClient.getClientId());
+        tokenRequest.setRequestParameters(requestParameters);
         tokenRequest.setGrantType(requestParameters.get(GRANT_TYPE));
         granter.validateRequest(tokenRequest);
     }
