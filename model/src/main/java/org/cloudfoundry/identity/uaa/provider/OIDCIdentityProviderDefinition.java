@@ -77,6 +77,7 @@ implements Cloneable {
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
         if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        if (relyingPartyGrantTypes != null ? !relyingPartyGrantTypes.equals(that.relyingPartyGrantTypes) : that.relyingPartyGrantTypes != null) return false;
         return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
 
     }
@@ -86,6 +87,7 @@ implements Cloneable {
         int result = super.hashCode();
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
+        result = 31 * result + (relyingPartyGrantTypes != null ? relyingPartyGrantTypes.hashCode() : 0);
         return result;
     }
 }

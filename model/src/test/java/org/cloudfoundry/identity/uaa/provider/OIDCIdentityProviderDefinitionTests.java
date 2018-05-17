@@ -78,4 +78,22 @@ public class OIDCIdentityProviderDefinitionTests {
             //NOTHING
         }
     }
+
+    @Test
+    public void clone_relying_party_grant_types() throws CloneNotSupportedException {
+        String jsonValue = "{\"relyingPartyGrantTypes\":[\"password\",\"authorization_code\",\"implicit\"]}";
+        OIDCIdentityProviderDefinition providerDefinition = JsonUtils.readValue(jsonValue, OIDCIdentityProviderDefinition.class);
+
+        assertNotNull(providerDefinition);
+        Object clone = providerDefinition.clone();
+        assertTrue(clone instanceof OIDCIdentityProviderDefinition);
+        OIDCIdentityProviderDefinition cloneDefinition = (OIDCIdentityProviderDefinition)clone;
+
+
+        assertNotNull(cloneDefinition.getRelyingPartyGrantTypes());
+        assertEquals(3, cloneDefinition.getRelyingPartyGrantTypes().size());
+        assertTrue(cloneDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.password));
+        assertTrue(cloneDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.authorization_code));
+        assertTrue(cloneDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.implicit));
+    }
 }
