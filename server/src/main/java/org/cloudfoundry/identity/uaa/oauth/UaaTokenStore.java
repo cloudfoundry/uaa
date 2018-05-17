@@ -216,7 +216,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         //check if we should expire again
         if ((System.currentTimeMillis()-last) > getExpirationTime()) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last+getExpirationTime())) {
+            if (lastClean.compareAndSet(last, System.currentTimeMillis())) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());

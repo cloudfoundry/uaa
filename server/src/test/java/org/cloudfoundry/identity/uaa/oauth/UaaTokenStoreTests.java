@@ -222,12 +222,50 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
 
         try {
+            store = new UaaTokenStore(dataSource, 0);  // force process expirations again
             store.consumeAuthorizationCode(lastCode);
             fail();
         } catch (InvalidGrantException e) {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
 
+    }
+    
+    @Test
+    public void testCleanUpExpiredTokens_happens_periodically() throws Exception {
+        int count = 10;
+        String firstCode = null;
+        String lastCode = null;
+
+        store = new UaaTokenStore(dataSource, 1000 * 5);  // force process expirations every 5 secs
+        
+        for (int i=0; i<count; i++) {
+            if (i == 0) {
+                firstCode = store.createAuthorizationCode(clientAuthentication);
+            }
+            else {
+                lastCode = store.createAuthorizationCode(clientAuthentication);
+            }
+        }
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
+
+        jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
+
+        try {
+            store.consumeAuthorizationCode(firstCode);
+            fail();
+        } catch (InvalidGrantException e) {
+        }
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(9));
+
+        Thread.sleep(1000 * 5);
+        
+        try {
+            store.consumeAuthorizationCode(lastCode);
+            fail();
+        } catch (InvalidGrantException e) {
+        }
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 
     @Test
@@ -237,6 +275,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         for (int i=0; i<count; i++) {
             legacyCodeServices.createAuthorizationCode(clientAuthentication);
         }
+        store = new UaaTokenStore(dataSource, 0);  // force process expirations every time
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
         try {
