@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -163,6 +165,8 @@ public class SamlServiceProviderConfigurator {
         byte[] metadata;
         try {
             metadata = fixedHttpMetaDataProvider.fetchMetadata(def.getMetaDataLocation(), def.isSkipSslValidation());
+        } catch (RestClientException e) {
+            throw new MetadataProviderException("Unavailable Metadata Provider", e);
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }

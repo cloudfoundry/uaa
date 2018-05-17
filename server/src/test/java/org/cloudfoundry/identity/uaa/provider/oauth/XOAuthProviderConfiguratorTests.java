@@ -21,16 +21,19 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -132,12 +135,16 @@ public class XOAuthProviderConfiguratorTests {
     private MockHttpServletRequest request;
     XOAuthProviderConfigurator configurator;
     private UrlContentCache cache;
-    private RestTemplateFactory factory;
+    private RestTemplate trustingRestTemplate;
+    private RestTemplate nonTrustingRestTemplate;
+
     private OIDCIdentityProviderDefinition config;
     private String discoveryUrl;
     private IdentityProviderProvisioning provisioning;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
     private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
+    private Runnable stopHttpServer;
+    private SlowHttpServer slowHttpServer;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -168,8 +175,10 @@ public class XOAuthProviderConfiguratorTests {
         provisioning = mock(IdentityProviderProvisioning.class);
         cache = mock(UrlContentCache.class);
         when(cache.getUrlContent(anyString(), anyObject())).thenReturn(jsonResponse.getBytes());
-        factory = mock(RestTemplateFactory.class);
-        configurator = spy(new XOAuthProviderConfigurator(provisioning, cache, factory));
+        trustingRestTemplate = mock(RestTemplate.class);
+        nonTrustingRestTemplate = mock(RestTemplate.class);
+
+        configurator = spy(new XOAuthProviderConfigurator(provisioning, cache, trustingRestTemplate, nonTrustingRestTemplate));
 
         config = new OIDCIdentityProviderDefinition();
         String discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
@@ -303,8 +312,7 @@ public class XOAuthProviderConfiguratorTests {
 
         assertNotSame(config, overlay);
         assertEquals(config, overlay);
-        verify(cache).getUrlContent(eq(discoveryUrl), any());
-        verify(factory).getRestTemplate(eq(true));
+        verify(cache).getUrlContent(eq(discoveryUrl), eq(trustingRestTemplate));
     }
 
     @Test
@@ -338,7 +346,6 @@ public class XOAuthProviderConfiguratorTests {
         assertEquals(new URL("https://www.googleapis.com/oauth2/v3/certs"), overlay.getTokenKeyUrl());
 
         verify(cache).getUrlContent(any(), any());
-        verify(factory).getRestTemplate(eq(false));
     }
 
 

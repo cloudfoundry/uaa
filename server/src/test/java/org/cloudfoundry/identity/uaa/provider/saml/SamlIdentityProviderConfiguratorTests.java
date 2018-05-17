@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -59,8 +60,9 @@ import static org.mockito.Mockito.when;
 
 public class SamlIdentityProviderConfiguratorTests {
 
-    private HttpServer httpServer;
+    private Runnable stopHttpServer;
     private FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+    private SlowHttpServer slowHttpServer;
 
     @BeforeClass
     public static void initializeOpenSAML() throws Exception {
@@ -267,34 +269,25 @@ public class SamlIdentityProviderConfiguratorTests {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @Before
+    public void setupHttp() {
+        slowHttpServer = new SlowHttpServer();
+    }
+
     @After
-    public void stopHttpServer() {
-        if (httpServer != null) {
-            httpServer.stop(0);
-        }
+    public void stopHttp() {
+        slowHttpServer.stop();
     }
 
     @Test(timeout = 1_000)
     public void shouldTimeoutWhenFetchingMetadataURL() throws Exception {
-        Runnable serverRunner = () -> {
-            try {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
-                httpServer = NetworkTestUtils.startHttpsServer(23439, keystore, NetworkTestUtils.keyPass, new NetworkTestUtils.SlowSimpleHttpResponseHandler());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        };
-
-        new Thread(serverRunner).run();
+        slowHttpServer.run();
 
         expectedException.expect(NullPointerException.class);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://localhost:23439");
         def.setSkipSslValidation(true);
-        int timeout = 100;
         configurator.configureURLMetadata(def);
     }
 }

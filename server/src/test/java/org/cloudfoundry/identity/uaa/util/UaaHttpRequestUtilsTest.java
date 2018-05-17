@@ -149,16 +149,16 @@ public class UaaHttpRequestUtilsTest {
 
     @Test
     public void skipSslValidation() {
-        RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, -1));
+        RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
-        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, -1));
+        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, 10_000));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
     }
 
 
     @Test
     public void trustedOnly() {
-        RestTemplate restTemplate = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, -1));
+        RestTemplate restTemplate = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, 10_000));
         try {
             restTemplate.getForEntity(httpsUrl, String.class);
             fail("We should not reach this step if the above URL is using a self signed certificate");

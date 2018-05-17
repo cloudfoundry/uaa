@@ -41,10 +41,6 @@ public abstract class UaaHttpRequestUtils {
 
     private static Log logger = LogFactory.getLog(UaaHttpRequestUtils.class);
 
-    public static ClientHttpRequestFactory createRequestFactory() {
-        return createRequestFactory(false, -1);
-    }
-
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
         return createRequestFactory(getClientBuilder(skipSslValidation), timeout);
     }

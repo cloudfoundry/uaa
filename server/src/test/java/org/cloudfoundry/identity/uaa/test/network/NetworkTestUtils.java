@@ -214,17 +214,5 @@ public class NetworkTestUtils {
         }
     }
 
-    public static class SlowSimpleHttpResponseHandler implements HttpHandler {
-        public SlowSimpleHttpResponseHandler() {
-        }
 
-        @Override
-        public void handle(HttpExchange httpExchange) throws IOException {
-            try {
-                Thread.sleep(Integer.MAX_VALUE);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

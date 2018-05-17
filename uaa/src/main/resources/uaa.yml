@@ -638,3 +638,25 @@ ldap:
     searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
 
+
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'
+
+
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'
+
