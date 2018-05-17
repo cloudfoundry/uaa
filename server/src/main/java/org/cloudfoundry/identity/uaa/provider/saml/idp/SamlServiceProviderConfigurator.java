@@ -236,7 +236,7 @@ public class SamlServiceProviderConfigurator {
             fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(
                 dummyTimer, getClientParams(),
                 adjustURIForPort(def.getMetaDataLocation()),
-                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation())),
+                new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation(), -1)),
                 this.contentCache
 
             );

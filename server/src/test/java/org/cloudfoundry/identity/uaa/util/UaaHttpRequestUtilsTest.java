@@ -136,7 +136,7 @@ public class UaaHttpRequestUtilsTest {
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
-        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder));
+        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url,String.class);
         } catch (Exception e) {
@@ -149,16 +149,16 @@ public class UaaHttpRequestUtilsTest {
 
     @Test
     public void skipSslValidation() {
-        RestTemplate restTemplate = new RestTemplate(createRequestFactory(true));
+        RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, -1));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
-        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true));
+        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, -1));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
     }
 
 
     @Test
     public void trustedOnly() {
-        RestTemplate restTemplate = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false));
+        RestTemplate restTemplate = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, -1));
         try {
             restTemplate.getForEntity(httpsUrl, String.class);
             fail("We should not reach this step if the above URL is using a self signed certificate");

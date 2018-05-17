@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 public class RestTemplateFactory {
 
     public RestTemplate getRestTemplate(boolean skipSslValidation) {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(skipSslValidation));
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(skipSslValidation, -1));
 
     }
 

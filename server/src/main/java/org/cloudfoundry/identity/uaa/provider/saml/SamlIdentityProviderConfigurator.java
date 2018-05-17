@@ -44,6 +44,7 @@ import java.util.TimerTask;
 import static org.springframework.util.StringUtils.hasText;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
+    public static final int CONFIGURE_URL_DEFAULT_TIMEOUT = 30_000;
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
@@ -174,7 +175,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
                 break;
             }
             case URL: {
-                metadata = configureURLMetadata(def);
+                metadata = configureURLMetadata(def, CONFIGURE_URL_DEFAULT_TIMEOUT);
                 break;
             }
             default: {
@@ -198,10 +199,10 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
 
     protected FixedHttpMetaDataProvider getFixedHttpMetaDataProvider(SamlIdentityProviderDefinition def,
                                                                      Timer dummyTimer,
-                                                                     HttpClientParams params) throws ClassNotFoundException, MetadataProviderException, URISyntaxException, InstantiationException, IllegalAccessException {
+                                                                     int timeout) throws ClassNotFoundException, MetadataProviderException, URISyntaxException, InstantiationException, IllegalAccessException {
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setAlias(def.getIdpEntityAlias());
-        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation()));
+        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(def.isSkipSslValidation(), timeout));
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider =
             FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(),
                                                     adjustURIForPort(def.getMetaDataLocation()),
@@ -225,12 +226,12 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         return uri;
     }
 
-    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def, int timeoutInMs) throws MetadataProviderException {
         try {
             def = def.clone();
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = getFixedHttpMetaDataProvider(def, dummyTimer, getClientParams());
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = getFixedHttpMetaDataProvider(def, dummyTimer, timeoutInMs);
             byte[] metadata = metadataFetcher.fetch(fixedHttpMetaDataProvider);
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);

@@ -79,18 +79,18 @@ public class NetworkTestUtils {
                                    Date issueDate,
                                    long validityDays) throws Exception {
         return getKeystore(directory,
-                           filename,
-                           1024,
-                           commonName,
-                           organizationalUnit,
-                           organization,
-                           city,
-                           state,
-                           country,
-                           issueDate,
-                           validityDays,
-                           alias,
-                           keyPass);
+          filename,
+          1024,
+          commonName,
+          organizationalUnit,
+          organization,
+          city,
+          state,
+          country,
+          issueDate,
+          validityDays,
+          alias,
+          keyPass);
 
     }
 
@@ -211,6 +211,20 @@ public class NetworkTestUtils {
             os.flush();
             os.close();
             httpExchange.close();
+        }
+    }
+
+    public static class SlowSimpleHttpResponseHandler implements HttpHandler {
+        public SlowSimpleHttpResponseHandler() {
+        }
+
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            try {
+                Thread.sleep(Integer.MAX_VALUE);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
