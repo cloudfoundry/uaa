@@ -13,16 +13,28 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.URL;
+import java.util.List;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
 
+    public enum OIDCGrantType {
+        @JsonProperty("password")
+        password,
+        @JsonProperty("authorization_code")
+        authorization_code,
+        @JsonProperty("implicit")
+        implicit
+    }
+
     private URL userInfoUrl;
     private URL discoveryUrl;
+    private List<OIDCGrantType> relyingPartyGrantTypes;
 
     public URL getUserInfoUrl() {
         return userInfoUrl;
@@ -39,6 +51,14 @@ implements Cloneable {
 
     public void setDiscoveryUrl(URL discoveryUrl) {
         this.discoveryUrl = discoveryUrl;
+    }
+
+    public List<OIDCGrantType> getRelyingPartyGrantTypes() {
+        return relyingPartyGrantTypes;
+    }
+
+    public void setRelyingPartyGrantTypes(List<OIDCGrantType> relyingPartyGrantTypes) {
+        this.relyingPartyGrantTypes = relyingPartyGrantTypes;
     }
 
     @Override

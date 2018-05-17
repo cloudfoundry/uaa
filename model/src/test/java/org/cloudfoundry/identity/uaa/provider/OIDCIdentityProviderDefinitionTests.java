@@ -15,14 +15,21 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 
 public class OIDCIdentityProviderDefinitionTests {
@@ -41,4 +48,34 @@ public class OIDCIdentityProviderDefinitionTests {
         assertEquals(url, def.getDiscoveryUrl().toString());
     }
 
+    @Test
+    public void serialize_relying_party_grant_types() {
+        String jsonValue = "{\"relyingPartyGrantTypes\":[\"password\",\"authorization_code\",\"implicit\"]}";
+
+        OIDCIdentityProviderDefinition providerDefinition = JsonUtils.readValue(jsonValue, OIDCIdentityProviderDefinition.class);
+        assertNotNull(providerDefinition);
+        assertNotNull(providerDefinition.getRelyingPartyGrantTypes());
+        assertEquals(3, providerDefinition.getRelyingPartyGrantTypes().size());
+        assertTrue(providerDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.password));
+        assertTrue(providerDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.authorization_code));
+        assertTrue(providerDefinition.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.implicit));
+
+        providerDefinition.setRelyingPartyGrantTypes(Collections.singletonList(OIDCIdentityProviderDefinition.OIDCGrantType.password));
+
+        String valueAsString = JsonUtils.writeValueAsString(providerDefinition);
+
+        assertThat(valueAsString, containsString("password"));
+        assertThat(valueAsString, not(containsString("implicit")));
+    }
+
+    @Test
+    public void serialize_invalid_relying_party_grant_types() {
+        String invalidJsonValue = "{\"relyingPartyGrantTypes\":[\"password\",\"authorization_code\",\"implicit\",\"client_credentials\"]}";
+        try {
+            JsonUtils.readValue(invalidJsonValue, OIDCIdentityProviderDefinition.class);
+            fail();
+        } catch (JsonUtils.JsonUtilException e) {
+            //NOTHING
+        }
+    }
 }
