@@ -1050,7 +1050,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreateZoneWithConsentText() throws Exception {
+    public void testCreateZoneWithConsentTextAndLink() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone zone = getIdentityZone(id);
 
@@ -1070,6 +1070,50 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         Consent createdZoneConsent = createdZone.getConfig().getBranding().getConsent();
         assertThat(createdZoneConsent.getText(), is("some consent text"));
         assertThat(createdZoneConsent.getLink(), is("http://localhost"));
+    }
+
+    @Test
+    public void testCreateZoneWithOnlyConsentText() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        Consent consent = new Consent("some consent text", null);
+        branding.setConsent(consent);
+        zone.getConfig().setBranding(branding);
+
+        String contentAsString = getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andReturn().getResponse().getContentAsString();
+        IdentityZone createdZone = JsonUtils.readValue(contentAsString, IdentityZone.class);
+
+        Consent createdZoneConsent = createdZone.getConfig().getBranding().getConsent();
+        assertThat(createdZoneConsent.getText(), is("some consent text"));
+        assertThat(createdZoneConsent.getLink(), is((Object) null));
+    }
+
+    @Test
+    public void testCreateZoneWithNoConsentText() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        Consent consent = new Consent(null, "http://localhost");
+        branding.setConsent(consent);
+        zone.getConfig().setBranding(branding);
+
+        String contentAsString = getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn().getResponse().getContentAsString();
+
+        assertThat(contentAsString, containsString("Consent text must be set if configuring consent"));
     }
 
     @Test
@@ -1169,6 +1213,76 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         Consent createdZoneConsent = updatedZone.getConfig().getBranding().getConsent();
         assertThat(createdZoneConsent.getText(), is("some updated text"));
         assertThat(createdZoneConsent.getLink(), is("http://localhost/some-updated-link"));
+    }
+
+    @Test
+    public void testUpdateZoneWithOnlyConsentText() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("some text", "http://localhost"));
+        zone.getConfig().setBranding(branding);
+
+        String response = getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString();
+
+        IdentityZone createdZone = JsonUtils.readValue(response, IdentityZone.class);
+
+        createdZone.getConfig().getBranding().getConsent().setLink(null);
+
+        MockHttpServletResponse mvcResult = getMockMvc().perform(
+            put("/identity-zones/" + createdZone.getId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(createdZone)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse();
+
+        IdentityZone updatedZone = JsonUtils.readValue(mvcResult.getContentAsString(), IdentityZone.class);
+
+        Consent createdZoneConsent = updatedZone.getConfig().getBranding().getConsent();
+        assertThat(createdZoneConsent.getText(), is("some text"));
+        assertThat(createdZoneConsent.getLink(), is((Object) null));
+    }
+
+    @Test
+    public void testUpdateZoneWithNoConsentText() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = getIdentityZone(id);
+
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("some text", "http://localhost"));
+        zone.getConfig().setBranding(branding);
+
+        String response = getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString();
+
+        IdentityZone createdZone = JsonUtils.readValue(response, IdentityZone.class);
+
+        createdZone.getConfig().getBranding().getConsent().setText(null);
+
+        MockHttpServletResponse mvcResult = getMockMvc().perform(
+            put("/identity-zones/" + createdZone.getId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(createdZone)))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn()
+            .getResponse();
+
+        assertThat(mvcResult.getContentAsString(), containsString("Consent text must be set if configuring consent"));
     }
 
     @Test

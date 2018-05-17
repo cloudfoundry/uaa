@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -102,6 +103,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String BRANDING_BANNER_TEXT_COLOR_DESC = "Hexadecimal color code for banner text color, does not allow color names";
     private static final String BRANDING_BANNER_BACKGROUND_COLOR_DESC = "Hexadecimal color code for banner background color, does not allow color names";
 
+    private static final String BRANDING_CONSENT_TEXT_DESC = "If set, a checkbox on the registration and invitation pages will appear with the phrase `I agree to` followed by this text. The checkbox must be selected before the user can continue.";
+    private static final String BRANDING_CONSENT_LINK_DESC = "If `config.branding.consent.text` is set, the text after `I agree to` will be hyperlinked to this location.";
 
     private static final String CORS_XHR_ORIGINS_DESC = "`Access-Control-Allow-Origin header`. Indicates whether a resource can be shared based by returning the value of the Origin request header, \"*\", or \"null\" in the response.";
     private static final String CORS_XHR_ORIGIN_PATTERNS_DESC = "Indicates whether a resource can be shared based by returning the value of the Origin patterns.";
@@ -269,6 +272,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
+
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedUris").description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
@@ -406,6 +412,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
             fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
 
+            fieldWithPath("[]config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("[]config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("[].config.prompts[]").type(OBJECT).description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
@@ -566,6 +574,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
 
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -744,6 +755,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC),
 
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC),
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC),
@@ -778,9 +791,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         branding.setProductLogo("VGVzdFByb2R1Y3RMb2dv");
         branding.setSquareLogo("VGVzdFNxdWFyZUxvZ28=");
         branding.setFooterLegalText("Test footer legal text");
+
         HashMap<String, String> footerLinks = new HashMap<>();
         footerLinks.put("Support", "http://support.example.com");
         branding.setFooterLinks(footerLinks);
+
         Banner banner = new Banner();
         banner.setText("Announcement");
         banner.setLink("http://announce.example.com");
@@ -788,6 +803,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         banner.setTextColor("#000000");
         banner.setBackgroundColor("#89cff0");
         branding.setBanner(banner);
+
+        branding.setConsent(new Consent("Some Policy", "http://policy.example.com"));
+
         config.setBranding(branding);
         config.getLinks().setHomeRedirect("http://my.hosted.homepage.com/");
         return config;

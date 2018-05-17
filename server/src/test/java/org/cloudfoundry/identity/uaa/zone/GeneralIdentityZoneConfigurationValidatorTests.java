@@ -258,6 +258,31 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     }
 
     @Test
+    public void validateConsent_withNotNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent("Terms and Conditions", null));
+
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNotNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent(null, "http://example.com"));
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent());
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
+        validator.validate(zone, mode);
+    }
+
+    @Test
     public void validate_without_legacy_key() throws InvalidIdentityZoneConfigurationException {
         samlConfig.setKeys(EMPTY_MAP);
         assertNull(samlConfig.getActiveKeyId());
