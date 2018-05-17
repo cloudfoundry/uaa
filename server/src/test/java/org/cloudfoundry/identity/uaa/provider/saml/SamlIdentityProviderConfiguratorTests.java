@@ -51,6 +51,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -59,6 +60,7 @@ import static org.mockito.Mockito.when;
 public class SamlIdentityProviderConfiguratorTests {
 
     private HttpServer httpServer;
+    private FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
 
     @BeforeClass
     public static void initializeOpenSAML() throws Exception {
@@ -151,8 +153,9 @@ public class SamlIdentityProviderConfiguratorTests {
           .setIconUrl("sample-icon-url")
           .setZoneId("uaa");
         configurator.setIdentityProviderProvisioning(provisioning);
-        UrlContentCache urlContentCache = spy(new ExpiringUrlCache(1000 * 60 * 10, new TimeServiceImpl(), 100));
-        configurator.setContentCache(urlContentCache);
+        fixedHttpMetaDataProvider = mock(FixedHttpMetaDataProvider.class);
+
+        configurator.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
     }
 
     @Test(expected = NullPointerException.class)
@@ -168,8 +171,6 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     public void testGetEntityID() throws Exception {
-        MetadataFetcher metadataFetcher = mock(MetadataFetcher.class);
-        configurator.setMetadataFetcher(metadataFetcher);
 
         Timer t = new Timer();
         bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
@@ -192,7 +193,7 @@ public class SamlIdentityProviderConfiguratorTests {
                     break;
                 }
                 case "simplesamlphp-url": {
-                    when(metadataFetcher.fetch(any())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
+                    when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
                     ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
                     assertEquals("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php", provider.getEntityID());
                     break;
@@ -293,8 +294,7 @@ public class SamlIdentityProviderConfiguratorTests {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://localhost:23439");
         def.setSkipSslValidation(true);
-        configurator.setMetadataFetcher(new MetadataFetcher());
         int timeout = 100;
-        configurator.configureURLMetadata(def, timeout);
+        configurator.configureURLMetadata(def);
     }
 }
