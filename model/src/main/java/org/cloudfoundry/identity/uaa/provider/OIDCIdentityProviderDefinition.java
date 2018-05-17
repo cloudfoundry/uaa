@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.URL;
@@ -34,6 +35,7 @@ implements Cloneable {
 
     private URL userInfoUrl;
     private URL discoveryUrl;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<OIDCGrantType> relyingPartyGrantTypes;
 
     public URL getUserInfoUrl() {
