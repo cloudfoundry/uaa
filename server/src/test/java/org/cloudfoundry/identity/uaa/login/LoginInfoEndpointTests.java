@@ -390,9 +390,20 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", model, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, model, session, request);
 
         assertEquals(model.get("email"), "testuser@fake.com");
+    }
+
+    @Test
+    public void discoverIdentityProviderCarriesLoginHintIfProvided() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, model, session, request);
+
+        assertEquals(loginHint, model.get("login_hint"));
     }
 
     @Test

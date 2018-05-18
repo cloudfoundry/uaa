@@ -368,6 +368,8 @@ public class LoginInfoEndpoint {
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
                     // in case of uaa/ldap, pass value to login page
                     model.addAttribute("login_hint",loginHint);
+                    samlIdps.clear();
+                    oauthIdentityProviderDefinitions.clear();
                 } else {
                     // for oidc/saml, trigger the redirect
                     List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
@@ -644,7 +646,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, Model model, HttpSession session, HttpServletRequest request) {
+    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint, Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
@@ -653,6 +655,9 @@ public class LoginInfoEndpoint {
                 clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
             } catch (NoSuchClientException e) {
             }
+        }
+        if (StringUtils.hasText(loginHint)) {
+            model.addAttribute("login_hint", loginHint);
         }
         List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email);
 
