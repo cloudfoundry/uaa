@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -70,7 +71,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
         OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
         if (!config.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.password)) {
-            return null;
+            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant");
         }
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
@@ -105,7 +106,6 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
                 idToken = body.get("id_token");
             }
         } catch (HttpClientErrorException e) {
-            // TODO handle client has no password grant_type
             throw new BadCredentialsException(e.getResponseBodyAsString(), e);
         }
 
