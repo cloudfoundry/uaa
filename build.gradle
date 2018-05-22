@@ -163,8 +163,10 @@ task manifests(dependsOn: assemble, type: Copy) {
     into 'build/sample-manifests'
 }
 
+
 subprojects {
     apply plugin: 'java'
+
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -333,10 +335,8 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
         }
 
         local {
-//      jvmArgs = jvmArgs + " -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
             systemProperties {
-                //property 'uaa.allowUnverifiedUsers', 'false'
                 property 'smtp.host', 'localhost'
                 property 'smtp.port', 2525
             }
@@ -528,8 +528,6 @@ class TimingsListener implements TaskExecutionListener, BuildListener, org.gradl
 
     @Override
     void settingsEvaluated(Settings settings) {}
-
-
 }
 
 gradle.addListener new TimingsListener()

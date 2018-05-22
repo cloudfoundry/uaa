@@ -352,6 +352,7 @@ public class OIDCLoginIT {
             "token id_token",
             cookie.getValue(),
             baseUrl,
+            null,
             false);
 
         //validate that we have an ID token, and that it contains costCenter and manager values
@@ -414,6 +415,7 @@ public class OIDCLoginIT {
                 null,
                 "token id_token",
                 cookie.getValue(),
+                null,
                 null,
                 false);
 

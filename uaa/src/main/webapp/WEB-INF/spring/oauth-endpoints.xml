@@ -395,7 +395,8 @@
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
-        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
+        <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
+        <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <property name="uaaTokenServices" ref="tokenServices"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>

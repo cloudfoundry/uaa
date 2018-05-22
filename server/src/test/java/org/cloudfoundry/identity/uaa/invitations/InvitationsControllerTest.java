@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -63,9 +65,11 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
@@ -648,6 +652,111 @@ public class InvitationsControllerTest {
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
+    @Test
+    public void testAcceptInvite_displaysConsentText() throws Exception {
+        IdentityZone defaultZone = IdentityZoneHolder.get();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
+        defaultZone.getConfig().setBranding(branding);
+
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
+
+        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
+        ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
+        when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId()))
+            .thenReturn(expiringCode, null);
+        when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+
+        mockMvc.perform(get("/invitations/accept")
+            .param("code", "thecode"))
+            .andExpect(content().string(containsString("Jaskanwal")));
+
+        // cleanup changes to default zone
+        defaultZone.getConfig().setBranding(null);
+    }
+
+    @Test
+    public void testAcceptInvite_doesNotDisplayConsentCheckboxWhenNotConfiguredForZone() throws Exception {
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
+
+        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
+        ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
+        when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId()))
+            .thenReturn(expiringCode, null);
+        when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+
+        mockMvc.perform(get("/invitations/accept")
+            .param("code", "thecode"))
+            .andExpect(content().string(not(containsString("I agree"))));
+    }
+
+    @Test
+    public void testAcceptInvite_displaysErrorMessageIfConsentNotChecked() throws Exception {
+        IdentityZone defaultZone = IdentityZoneHolder.get();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
+        defaultZone.getConfig().setBranding(branding);
+
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
+
+        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
+        ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
+        when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+        when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+
+        MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password"))
+            .andReturn();
+
+        mockMvc.perform(get("/invitations/" + mvcResult.getResponse().getHeader("Location")))
+            .andExpect(model().attribute("error_message_code", "missing_consent"));
+
+        // cleanup changes to default zone
+        defaultZone.getConfig().setBranding(null);
+    }
+
+    @Test
+    public void testAcceptInvite_worksWithConsentProvided() throws Exception {
+        IdentityZone defaultZone = IdentityZoneHolder.get();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
+        defaultZone.getConfig().setBranding(branding);
+
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(OriginKeys.UAA);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
+
+        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
+        ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
+        when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+        when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId())))
+            .thenReturn(expiringCode);
+
+        when(invitationsService.acceptInvitation(anyString(), anyString()))
+            .thenReturn(new InvitationsService.AcceptedInvitation(codeData.get("redirect_uri"), null));
+
+        MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password")
+            .param("does_user_consent", "true"))
+            .andReturn();
+        assertThat(mvcResult.getResponse().getHeader("Location"), containsString(codeData.get("redirect_uri")));
+
+        // cleanup changes to default zone
+        defaultZone.getConfig().setBranding(null);
+    }
 
     @Configuration
     @EnableWebMvc

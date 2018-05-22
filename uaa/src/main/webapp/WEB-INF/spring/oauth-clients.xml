@@ -175,7 +175,14 @@
                             <entry key="secret" value="secret" />
                         </map>
                     </entry>
-
+                    <entry key="some_client_that_contains_redirect_uri_matching_request_param">
+                        <map>
+                            <entry key="authorized-grant-types" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin" />
+                            <entry key="scope" value="openid" />
+                            <entry key="authorities" value="uaa.resource" />
+                            <entry key="redirect-uri" value="http://redirect.localhost" />
+                        </map>
+                    </entry>
                 </map>
             </property>
         </bean>

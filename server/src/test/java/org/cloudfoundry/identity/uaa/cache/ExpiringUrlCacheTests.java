@@ -15,14 +15,21 @@
 
 package org.cloudfoundry.identity.uaa.cache;
 
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -30,6 +37,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.same;
@@ -47,6 +56,7 @@ public class ExpiringUrlCacheTests {
     private RestTemplate template;
     private String uri;
     private byte[] content = new byte[1024];
+    private SlowHttpServer slowHttpServer;
 
     @Before
     public void setup() {
@@ -71,12 +81,11 @@ public class ExpiringUrlCacheTests {
         cache.getUrlContent(uri, template);
     }
 
-    @Test
-    public void rest_client_exception_returns_null() {
+    @Test(expected = RestClientException.class)
+    public void rest_client_exception_is_propagated() {
         template = mock(RestTemplate.class);
         when(template.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
         assertNull(cache.getUrlContent(uri, template));
-        assertEquals(0, cache.size());
     }
 
     @Test
@@ -133,5 +142,30 @@ public class ExpiringUrlCacheTests {
         assertEquals(2, cache.size());
     }
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Before
+    public void setupHttp() {
+        slowHttpServer = new SlowHttpServer();
+    }
+
+    @After
+    public void stopHttpServer() {
+        slowHttpServer.stop();
+    }
+
+    @Test(timeout = 5000)
+    public void throwUnavailableIdpWhenServerMetadataDoesNotReply() throws MalformedURLException {
+        slowHttpServer.run();
+
+        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        restTemplateConfig.timeout = 120;
+        RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
+
+        expectedException.expect(RestClientException.class);
+
+        cache.getUrlContent("https://localhost:" + SlowHttpServer.PORT, restTemplate);
+    }
 
 }

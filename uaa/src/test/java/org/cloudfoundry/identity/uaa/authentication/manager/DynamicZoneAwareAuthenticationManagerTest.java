@@ -220,7 +220,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
             manager.getChainedAuthenticationManager(IdentityZone.getUaa(), loginHint);
             fail();
         } catch (ProviderNotFoundException e) {
-            assertEquals("The passed login hint is invalid", e.getMessage());
+            assertEquals("The origin provided in the login hint is invalid.", e.getMessage());
         }
     }
 

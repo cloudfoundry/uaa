@@ -296,14 +296,11 @@
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
 
-    <bean id="metadataFetcher" class="org.cloudfoundry.identity.uaa.provider.saml.MetadataFetcher"></bean>
 
     <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
-        <property name="clientParams" ref="httpClientParams" />
         <property name="parserPool" ref="parserPool"/>
         <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-        <property name="contentCache" ref="urlCache"/>
-        <property name="metadataFetcher" ref="metadataFetcher" />
+        <property name="fixedHttpMetaDataProvider" ref="fixedHttpMetaDataProvider"/>
     </bean>
 
     <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData">
