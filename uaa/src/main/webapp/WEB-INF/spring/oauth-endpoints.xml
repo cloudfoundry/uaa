@@ -659,6 +659,9 @@
 
     <bean id="passwordGrantAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
         <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg name="identityProviderProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
+        <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
     </bean>
 
 </beans>
