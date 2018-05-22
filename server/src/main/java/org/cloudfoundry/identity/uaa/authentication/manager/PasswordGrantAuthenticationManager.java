@@ -67,18 +67,18 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
         }
         if (!idp.isActive() || !OriginKeys.OIDC10.equals(idp.getType()) || !(idp.getConfig() instanceof OIDCIdentityProviderDefinition)) {
-            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider");
+            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
         }
         OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
         if (!config.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.password)) {
-            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant");
+            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
         }
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
         String clientId = config.getRelyingPartyId();
         String clientSecret = config.getRelyingPartySecret();
         if (clientId == null || clientSecret == null) {
-            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartyId or relyingPartySecret");
+            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartyId or relyingPartySecret.");
         }
         String userName = authentication.getPrincipal() instanceof String ? (String)authentication.getPrincipal() : null;
         String password = authentication.getCredentials() instanceof String ? (String)authentication.getCredentials() : null;
@@ -113,7 +113,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
 
         if (idToken == null) {
-            throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider");
+            throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider.");
         }
         XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, idToken, null, null);
         Authentication authResult = xoAuthAuthenticationManager.authenticate(token);
