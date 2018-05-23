@@ -42,7 +42,7 @@ ext {
   springSecuritySamlVersion = '1.0.4.RELEASE'
   springRetryVersion = '1.2.1.RELEASE'
   thymeleafVersion = '3.0.6.RELEASE'
-  thymeleafDialectVersion = '2.2.2'
+  thymeleafDialectVersion = '2.3.0'
   thymeleafExtrasVersion = '3.0.2.RELEASE'
   tomcatVersion = '8.5.23'
   tomcatJdbcPoolVersion = '8.5.23'
