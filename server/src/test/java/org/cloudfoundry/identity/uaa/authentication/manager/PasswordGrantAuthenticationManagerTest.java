@@ -3,12 +3,12 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,14 +52,14 @@ public class PasswordGrantAuthenticationManagerTest {
 
     private DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
     private IdentityProviderProvisioning identityProviderProvisioning;
-    private RestTemplateFactory restTemplateFactory;
+    private RestTemplateConfig restTemplateConfig;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
 
     @Before
     public void setUp() throws Exception {
         zoneAwareAuthzAuthenticationManager = mock(DynamicZoneAwareAuthenticationManager.class);
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
-        restTemplateFactory = mock(RestTemplateFactory.class);
+        restTemplateConfig = mock(RestTemplateConfig.class);
         xoAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
 
         IdentityProvider idp = mock(IdentityProvider.class);
@@ -74,7 +74,7 @@ public class PasswordGrantAuthenticationManagerTest {
 
         when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(idp);
 
-        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateFactory, xoAuthAuthenticationManager);
+        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, xoAuthAuthenticationManager);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
         RestTemplate rt = mock(RestTemplate.class);
-        when(restTemplateFactory.getRestTemplate(false)).thenReturn(rt);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
 
         ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
         when(response.hasBody()).thenReturn(true);
@@ -275,7 +275,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
         RestTemplate rt = mock(RestTemplate.class);
-        when(restTemplateFactory.getRestTemplate(false)).thenReturn(rt);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
 
         ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
         when(response.hasBody()).thenReturn(false);
@@ -299,7 +299,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
         RestTemplate rt = mock(RestTemplate.class);
-        when(restTemplateFactory.getRestTemplate(false)).thenReturn(rt);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
 
         ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
         when(response.hasBody()).thenReturn(true);

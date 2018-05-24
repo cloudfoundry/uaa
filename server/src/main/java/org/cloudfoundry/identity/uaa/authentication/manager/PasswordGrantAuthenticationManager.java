@@ -3,12 +3,12 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.DataAccessException;
@@ -38,13 +38,13 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
 
     private DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
     private IdentityProviderProvisioning identityProviderProvisioning;
-    private RestTemplateFactory restTemplateFactory;
+    private RestTemplateConfig restTemplateConfig;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateFactory restTemplateFactory, XOAuthAuthenticationManager xoAuthAuthenticationManager) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
-        this.restTemplateFactory = restTemplateFactory;
+        this.restTemplateConfig = restTemplateConfig;
         this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
     }
 
@@ -85,7 +85,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (userName == null || password == null) {
             throw new BadCredentialsException("Request is missing username or password.");
         }
-        RestTemplate rt = restTemplateFactory.getRestTemplate(false);
+        RestTemplate rt = restTemplateConfig.nonTrustingRestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(APPLICATION_JSON));
