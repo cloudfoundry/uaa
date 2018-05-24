@@ -13,16 +13,30 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.URL;
+import java.util.List;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
 
+    public enum OIDCGrantType {
+        @JsonProperty("password")
+        password,
+        @JsonProperty("authorization_code")
+        authorization_code,
+        @JsonProperty("implicit")
+        implicit
+    }
+
     private URL userInfoUrl;
     private URL discoveryUrl;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<OIDCGrantType> relyingPartyGrantTypes;
 
     public URL getUserInfoUrl() {
         return userInfoUrl;
@@ -41,6 +55,14 @@ implements Cloneable {
         this.discoveryUrl = discoveryUrl;
     }
 
+    public List<OIDCGrantType> getRelyingPartyGrantTypes() {
+        return relyingPartyGrantTypes;
+    }
+
+    public void setRelyingPartyGrantTypes(List<OIDCGrantType> relyingPartyGrantTypes) {
+        this.relyingPartyGrantTypes = relyingPartyGrantTypes;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -55,6 +77,7 @@ implements Cloneable {
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
         if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        if (relyingPartyGrantTypes != null ? !relyingPartyGrantTypes.equals(that.relyingPartyGrantTypes) : that.relyingPartyGrantTypes != null) return false;
         return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
 
     }
@@ -64,6 +87,7 @@ implements Cloneable {
         int result = super.hashCode();
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
+        result = 31 * result + (relyingPartyGrantTypes != null ? relyingPartyGrantTypes.hashCode() : 0);
         return result;
     }
 }

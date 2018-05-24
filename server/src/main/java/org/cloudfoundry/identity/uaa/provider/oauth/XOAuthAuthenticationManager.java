@@ -147,21 +147,20 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
-
-            if (tokenServices.getTokenEndpoint().equals(issuer)) {
-                OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
-                uaaOidcProviderConfig.setTokenKeyUrl(new URL(contextPath + "/token_keys"));
-                uaaOidcProviderConfig.setIssuer(issuer);
-                IdentityProvider uaaIdp = new IdentityProvider();
-                uaaIdp.setOriginKey(OriginKeys.UAA);
-                uaaIdp.setConfig(uaaOidcProviderConfig);
-                return uaaIdp;
-            }
-
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
-                throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                if (tokenServices.getTokenEndpoint().equals(issuer)) {
+                    OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
+                    uaaOidcProviderConfig.setTokenKeyUrl(new URL(contextPath + "/token_keys"));
+                    uaaOidcProviderConfig.setIssuer(issuer);
+                    IdentityProvider uaaIdp = new IdentityProvider();
+                    uaaIdp.setOriginKey(OriginKeys.UAA);
+                    uaaIdp.setConfig(uaaOidcProviderConfig);
+                    return uaaIdp;
+                } else {
+                    throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                }
             }
         } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
