@@ -106,15 +106,15 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
         if (a instanceof UaaAuthentication) {
             UaaPrincipal principal = ((UaaAuthentication) a).getPrincipal();
             result
-                .append("Username:")
-                .append(principal.getName())
-                .append(" User-ID:")
-                .append(principal.getId());
+              .append("Username:")
+              .append(principal.getName())
+              .append(" User-ID:")
+              .append(principal.getId());
         } else {
             result
-                .append("Unknown Auth=")
-                .append(a)
-                .append(" Principal=" + a.getPrincipal());
+              .append("Unknown Auth=")
+              .append(a)
+              .append(" Principal=" + a.getPrincipal());
         }
         return result.toString();
     }
@@ -160,14 +160,14 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
 
     protected void sendRedirect(String redirectUrl, HttpServletRequest request, HttpServletResponse response) throws IOException {
         StringBuilder url = new StringBuilder(
-            redirectUrl.startsWith("/") ? request.getContextPath() : ""
+          redirectUrl.startsWith("/") ? request.getContextPath() : ""
         );
         url.append(redirectUrl);
         response.sendRedirect(url.toString());
     }
 
     protected boolean mfaRequired(String origin) {
-        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin);
+        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin) && checker.isRequired(IdentityZoneHolder.get(), origin);
     }
 
     private boolean logoutInProgress(HttpServletRequest request) {
