@@ -155,6 +155,14 @@ public class SamlLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4")) {
+            try {
+                IntegrationTestUtils.deleteZone(baseUrl, zoneId, adminToken);
+            } catch(Exception _){}
+        }
+
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
             webDriver.manage().deleteAllCookies();
