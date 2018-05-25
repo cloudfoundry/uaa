@@ -70,7 +70,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
         }
         OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
-        if (!config.getRelyingPartyGrantTypes().contains(OIDCIdentityProviderDefinition.OIDCGrantType.password)) {
+        if (!config.isPasswordGrantEnabled()) {
             throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
         }
         //Token per RestCall

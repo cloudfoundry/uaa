@@ -67,7 +67,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(idp.getConfig()).thenReturn(idpConfig);
         when(idp.isActive()).thenReturn(true);
         when(idp.getType()).thenReturn(OriginKeys.OIDC10);
-        when(idpConfig.getRelyingPartyGrantTypes()).thenReturn(Collections.singletonList(OIDCIdentityProviderDefinition.OIDCGrantType.password));
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
         when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
         when(idpConfig.getRelyingPartyId()).thenReturn("identity");
         when(idpConfig.getRelyingPartySecret()).thenReturn("identitysecret");
@@ -211,7 +211,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(localIdp.getConfig()).thenReturn(idpConfig);
         when(localIdp.isActive()).thenReturn(true);
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
-        when(idpConfig.getRelyingPartyGrantTypes()).thenReturn(Collections.singletonList(OIDCIdentityProviderDefinition.OIDCGrantType.authorization_code));
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(false);
 
         when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
@@ -234,7 +234,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(localIdp.getConfig()).thenReturn(idpConfig);
         when(localIdp.isActive()).thenReturn(true);
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
-        when(idpConfig.getRelyingPartyGrantTypes()).thenReturn(Collections.singletonList(OIDCIdentityProviderDefinition.OIDCGrantType.password));
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
 
         when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
