@@ -6,6 +6,7 @@ source $DIR/start_db_helper.sh
 source $DIR/start_ldap_helper.sh
 
 TESTENV="$1"
+UAA_DIR="$2"
 
 cat <<EOF >>/etc/hosts
 127.0.0.1 testzone1.localhost
