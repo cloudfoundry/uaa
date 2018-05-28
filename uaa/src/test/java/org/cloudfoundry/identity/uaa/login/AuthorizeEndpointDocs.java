@@ -51,6 +51,8 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
     private final ParameterDescriptor redirectParameter = parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor promptParameter = parameterWithName(ID_TOKEN_HINT_PROMPT).description("specifies whether to prompt for user authentication. Only value `"+ID_TOKEN_HINT_PROMPT_NONE+"` is supported.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).attributes(key("constraints").value("Required"), key("type").value(STRING));
+    private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider.");
+
 
     private UaaAuthentication principal;
 
@@ -83,7 +85,8 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code for an access token, as per OAuth spec"),
             clientIdParameter,
             scopesParameter,
-            redirectParameter
+            redirectParameter,
+            loginHintParameter
         );
 
         getMockMvc().perform(get)
