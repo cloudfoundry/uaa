@@ -142,7 +142,7 @@ public class PasswordGrantIT {
             config.setSkipSslValidation(true);
             config.setRelyingPartyId("identity");
             config.setRelyingPartySecret("identitysecret");
-            config.setRelyingPartyGrantTypes(Arrays.asList(OIDCIdentityProviderDefinition.OIDCGrantType.password, OIDCIdentityProviderDefinition.OIDCGrantType.authorization_code, OIDCIdentityProviderDefinition.OIDCGrantType.implicit));
+            config.setPasswordGrantEnabled(true);
             List<String> requestedScopes = new ArrayList<>();
             requestedScopes.add("openid");
             requestedScopes.add("cloud_controller.read");
