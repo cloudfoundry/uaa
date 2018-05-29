@@ -50,6 +50,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_BASE_USER_DN_PATTERN = LDAP_PREFIX + "base.userDnPattern";
     public static final String LDAP_BASE_USER_DN_PATTERN_DELIMITER = LDAP_PREFIX + "base.userDnPatternDelimiter";
     public static final String LDAP_EMAIL_DOMAIN = LDAP_PREFIX + EMAIL_DOMAIN_ATTR;
+    public static final String LDAP_ENFORCE_DOMAINS = LDAP_PREFIX + ENFORCE_DOMAINS;
     public static final String LDAP_STORE_CUSTOM_ATTRIBUTES = LDAP_PREFIX + STORE_CUSTOM_ATTRIBUTES_NAME;
     public static final String LDAP_EXTERNAL_GROUPS_WHITELIST = LDAP_PREFIX + "externalGroupsWhitelist";
     public static final String LDAP_GROUP_FILE_GROUPS_AS_SCOPES = "ldap/ldap-groups-as-scopes.xml";
@@ -109,6 +110,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             LDAP_BASE_USER_DN_PATTERN,
             LDAP_BASE_USER_DN_PATTERN_DELIMITER,
             LDAP_EMAIL_DOMAIN,
+            LDAP_ENFORCE_DOMAINS,
             LDAP_EXTERNAL_GROUPS_WHITELIST,
             LDAP_GROUPS_AUTO_ADD,
             LDAP_GROUPS_FILE,
@@ -143,6 +145,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN_PATTERN, String.class);
         LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN_PATTERN_DELIMITER, String.class);
         LDAP_PROPERTY_TYPES.put(LDAP_EMAIL_DOMAIN, List.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_ENFORCE_DOMAINS, Boolean.class);
         LDAP_PROPERTY_TYPES.put(LDAP_EXTERNAL_GROUPS_WHITELIST, List.class);
         LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_AUTO_ADD, Boolean.class);
         LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_FILE, String.class);

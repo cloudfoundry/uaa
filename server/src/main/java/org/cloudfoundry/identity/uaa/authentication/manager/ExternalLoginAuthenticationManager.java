@@ -15,10 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.*;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -35,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.user.VerifiableUser;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.apache.commons.lang.StringUtils;
@@ -57,11 +55,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
@@ -137,6 +134,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             return null;
         }
 
+        if (isEnforceDomains()) {
+            validateUserEmailDomain(userFromRequest);
+        }
+
         UaaUser userFromDb;
 
         try {
@@ -175,6 +176,23 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         return success;
     }
 
+    private void validateUserEmailDomain(UaaUser user) throws EmailDomainNotAllowedException {
+        String email = user.getEmail();
+        String domain = email.substring(email.indexOf('@') + 1);
+
+        List<String> emailDomains = getEmailDomains();
+        Set<Pattern> patterns = UaaStringUtils.constructWildcards(emailDomains);
+        if (!UaaStringUtils.matches(patterns, domain)) {
+            throw new EmailDomainNotAllowedException(String.format(
+                    "User '%s' cannot login because its email '%s' doesn't match any of the allowed domains on '%s'. Configured allowed domains are: %s",
+                    user.getUsername(),
+                    user.getEmail(),
+                    getOrigin(),
+                    emailDomains.stream().collect(Collectors.joining(", "))
+            ));
+        }
+    }
+
     protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, ExternalAuthenticationDetails authenticationData) {
         if (request.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) request.getPrincipal();
@@ -204,6 +222,14 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     protected boolean isAddNewShadowUser() {
         return true;
+    }
+
+    protected boolean isEnforceDomains() {
+        return getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId()).getConfig().isEnforceDomains();
+    }
+
+    private List<String> getEmailDomains() {
+        return getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId()).getConfig().getEmailDomain();
     }
 
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {

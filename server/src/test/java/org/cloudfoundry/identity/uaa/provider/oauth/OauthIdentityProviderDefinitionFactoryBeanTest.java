@@ -43,6 +43,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("tokenUrl", "http://token.url");
         idpDefinitionMap.put("tokenKeyUrl", "http://token-key.url");
         idpDefinitionMap.put("clientAuthInBody", false);
+        idpDefinitionMap.put("enforceDomains", false);
     }
 
     @Test

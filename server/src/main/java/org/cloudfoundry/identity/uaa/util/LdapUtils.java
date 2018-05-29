@@ -53,6 +53,7 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_BASE_USER_DN_PATTERN, definition.getUserDNPattern(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_BASE_USER_DN_PATTERN_DELIMITER, definition.getUserDNPatternDelimiter(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN, definition.getEmailDomain(), properties);
+        setIfNotNull(LdapIdentityProviderDefinition.LDAP_ENFORCE_DOMAINS, definition.isEnforceDomains(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST, definition.getExternalGroupsWhitelist(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_AUTO_ADD, definition.isAutoAddGroups(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_FILE, definition.getLdapGroupFile(), properties);
@@ -94,6 +95,10 @@ public final class LdapUtils {
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN)!=null) {
             definition.setEmailDomain((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN));
+        }
+
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ENFORCE_DOMAINS)!=null) {
+            definition.setEnforceDomains((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ENFORCE_DOMAINS));
         }
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST)!=null) {

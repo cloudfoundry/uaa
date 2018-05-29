@@ -1,21 +1,13 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
+import org.cloudfoundry.identity.uaa.authentication.EmailDomainNotAllowedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
-import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
-import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
@@ -23,304 +15,254 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.AuthenticationBuilder.aUaaAuthentication;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.AuthenticationBuilder.anAuthentication;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.ExtendedLdapUserImplBuilder.anExtendedLdapUserImpl;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.ExternalLoginAuthenticationManagerBuilder.aManager;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.LdapLoginAuthenticationManagerBuilder.anLdapManager;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.UaaAuthenticationDetailsBuilder.aUaaAuthenticationDetails;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.UaaPrincipalBuilder.aUaaPrincipal;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.UaaUserBuilder.aUaaUser;
+import static org.cloudfoundry.identity.uaa.authentication.manager.builders.UserDetailsBuilder.*;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.*;
 
-public class ExternalLoginAuthenticationManagerTest  {
-
-    private ApplicationEventPublisher applicationEventPublisher;
-    private UaaUserDatabase uaaUserDatabase;
-    private Authentication inputAuth;
-    private ExternalLoginAuthenticationManager manager;
-    private String origin = "test";
-    private String beanName = "ExternalLoginAuthenticationManagerTestBean";
-    private UserDetails userDetails;
-    private String userName="testUserName";
-    private String password = "";
-    private UaaUser user;
-    private String userId = new RandomValueStringGenerator().generate();
-    private ArgumentCaptor<ApplicationEvent> userArgumentCaptor;
-    private IdentityProviderProvisioning providerProvisioning;
-    private MultiValueMap<String, String> userAttributes;
-    private List<String> externalGroups;
-
-    private void mockUserDetails(UserDetails userDetails) {
-        when(userDetails.getUsername()).thenReturn(userName);
-        when(userDetails.getPassword()).thenReturn(password);
-        when(userDetails.getAuthorities()).thenReturn(null);
-        when(userDetails.isAccountNonExpired()).thenReturn(true);
-        when(userDetails.isAccountNonLocked()).thenReturn(true);
-        when(userDetails.isCredentialsNonExpired()).thenReturn(true);
-        when(userDetails.isEnabled()).thenReturn(true);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        userDetails = mock(UserDetails.class);
-        mockUserDetails(userDetails);
-        mockUaaWithUser();
-        userAttributes = new LinkedMultiValueMap<>();
-        userAttributes.put("1", Arrays.asList("1"));
-        userAttributes.put("2", Arrays.asList("2", "3"));
-        externalGroups = Arrays.asList("role1", "role2", "role3");
-    }
-
-    private void mockUaaWithUser() {
-        applicationEventPublisher = mock(ApplicationEventPublisher.class);
-
-        uaaUserDatabase = mock(UaaUserDatabase.class);
-
-        user = addUserToDb(userName, userId, origin, "test@email.org");
-
-        inputAuth = mock(Authentication.class);
-        when(inputAuth.getPrincipal()).thenReturn(userDetails);
-
-        manager = new ExternalLoginAuthenticationManager(null);
-        setupManager();
-    }
-
-    private UaaUser addUserToDb(String userName, String userId, String origin, String email) {
-        UaaUser user = mock(UaaUser.class);
-        when(user.getUsername()).thenReturn(userName);
-        when(user.getId()).thenReturn(userId);
-        when(user.getOrigin()).thenReturn(origin);
-        when(user.getEmail()).thenReturn(email);
-
-        when(this.uaaUserDatabase.retrieveUserById(eq(userId))).thenReturn(user);
-        when(this.uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin))).thenReturn(user);
-        return user;
-    }
-
-    private void setupManager() {
-        manager.setOrigin(origin);
-        manager.setBeanName(beanName);
-        manager.setApplicationEventPublisher(applicationEventPublisher);
-        manager.setUserDatabase(uaaUserDatabase);
-        providerProvisioning = mock(IdentityProviderProvisioning.class);
-        manager.setProviderProvisioning(providerProvisioning);
-    }
-
+public class ExternalLoginAuthenticationManagerTest {
     @Test
-    public void testAuthenticateNullPrincipal() throws Exception {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getPrincipal()).thenReturn(null);
-        Authentication result = manager.authenticate(auth);
+    public void testAuthenticateNullPrincipal() {
+        Authentication inputAuth = anAuthentication().withPrincipal((String) null).build();
+
+        Authentication result = aManager().build().authenticate(inputAuth);
+
         assertNull(result);
     }
 
     @Test
-    public void testAuthenticateUnknownPrincipal() throws Exception {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getPrincipal()).thenReturn(userName);
-        Authentication result = manager.authenticate(auth);
+    public void testAuthenticateUnknownPrincipal() {
+        Authentication inputAuth = anAuthentication().withPrincipal("username").build();
+
+        Authentication result = aManager().build().authenticate(inputAuth);
+
         assertNull(result);
     }
 
     @Test
-    public void testAuthenticateUsernamePasswordToken() throws Exception {
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userName,password);
+    public void testAuthenticateUsernamePasswordToken() {
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withUaaUser(aUaaUser().withId("userId").withUsername("my_username").withOrigin("origin"))
+                .build();
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken("my_username", "password");
+
         Authentication result = manager.authenticate(auth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals("my_username", uaaAuthentication.getPrincipal().getName());
+        assertEquals("origin", uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthentication.getPrincipal().getId());
     }
 
     @Test
-    public void testAuthenticateUserDetailsPrincipal() throws Exception {
-        Authentication result = manager.authenticate(inputAuth);
-        assertNotNull(result);
-        assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
-    }
+    public void testAuthenticateUserDetailsPrincipal() {
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withUaaUser(aUaaUser().withId("userId").withUsername("my_username").withOrigin("origin"))
+                .build();
 
-    @Test
-    public void testAuthenticateWithAuthDetails() throws Exception {
-        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
-        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
-        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
-        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
-        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername("my_username").withPassword("password"))
+                .build();
 
         Authentication result = manager.authenticate(inputAuth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals("my_username", uaaAuthentication.getPrincipal().getName());
+        assertEquals("origin", uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthentication.getPrincipal().getId());
     }
 
     @Test
-    public void testNoUsernameOnlyEmail() throws Exception {
+    public void testAuthenticateWithAuthDetails() {
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withUaaUser(aUaaUser().withId("userId").withUsername("my_username").withOrigin("origin"))
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername("my_username").withPassword("password"))
+                .withDetails(aUaaAuthenticationDetails().withOrigin("origin")).build();
+
+        Authentication result = manager.authenticate(inputAuth);
+
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals("my_username", uaaAuthentication.getPrincipal().getName());
+        assertEquals("origin", uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthentication.getPrincipal().getId());
+        UaaAuthenticationDetails details = (UaaAuthenticationDetails) uaaAuthentication.getDetails();
+        assertEquals("origin", details.getOrigin());
+    }
+
+    @Test
+    public void testNoUsernameOnlyEmail() {
         String email = "joe@test.org";
 
-        userDetails = mock(UserDetails.class, withSettings().extraInterfaces(Mailable.class));
-        when(((Mailable)userDetails).getEmailAddress()).thenReturn(email);
-        mockUserDetails(userDetails);
-        mockUaaWithUser();
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withUaaUser(aUaaUser().withUsername(email).withOrigin("origin").withId("userId"))
+                .build();
 
-        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
-        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
-        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
-        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
-        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
-        when(user.getUsername()).thenReturn(email);
-        when(uaaUserDatabase.retrieveUserByName(email, origin))
-            .thenReturn(user);
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aMailableUserDetails().withUsername(null).withEmailAddress(email))
+                .build();
 
-        when(userDetails.getUsername()).thenReturn(null);
-        Authentication result = manager.authenticate(inputAuth);
-        assertNotNull(result);
-        assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        Authentication authResult = manager.authenticate(inputAuth);
 
-        assertEquals(email,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+        assertNotNull(authResult);
+        assertEquals(UaaAuthentication.class, authResult.getClass());
+        UaaAuthentication uaaAuthResult = (UaaAuthentication) authResult;
+
+        assertEquals(email, uaaAuthResult.getPrincipal().getName());
+        assertEquals("origin", uaaAuthResult.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthResult.getPrincipal().getId());
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testNoUsernameNoEmail() throws Exception {
-        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
-        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
-        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
-        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
-        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
-        when(uaaUserDatabase.retrieveUserByName(anyString(), eq(origin))).thenReturn(null);
-        when(userDetails.getUsername()).thenReturn(null);
+    public void testNoUsernameNoEmail() {
+        ExternalLoginAuthenticationManager manager = aManager().withOrigin("origin").build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(null))
+                .build();
+
         manager.authenticate(inputAuth);
     }
 
     @Test
-    public void testAmpersandInName() throws Exception {
+    public void testAmpersatInName() {
         String name = "filip@hanik";
-        when(userDetails.getUsername()).thenReturn(name);
-        when(user.getUsername()).thenReturn(name);
-        when(uaaUserDatabase.retrieveUserByName(eq(name),eq(origin)))
-            .thenReturn(null)
-            .thenReturn(user);
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withUaaUser(aUaaUser().withId("userId").withUsername(name).withOrigin("origin"))
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(name))
+                .build();
 
         Authentication result = manager.authenticate(inputAuth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(name,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(name, uaaAuthentication.getPrincipal().getName());
+        assertEquals("origin", uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthentication.getPrincipal().getId());
     }
 
     @Test
-    public void testAmpersandInEndOfName() throws Exception {
+    public void testAmpersatInEndOfName() {
         String name = "filip@hanik@";
-        String actual = name.replaceAll("@","") +  "@user.from."+origin+".cf";
-        when(userDetails.getUsername()).thenReturn(name);
-        when(user.getUsername()).thenReturn(name);
-        when(uaaUserDatabase.retrieveUserByName(eq(name),eq(origin)))
-            .thenReturn(null)
-            .thenReturn(user);
+        String expectedTransformedName = "filiphanik@user.from.origin.cf";
+
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin("origin")
+                .withInitiallyMissingUaaUser(aUaaUser().withId("userId").withUsername(name).withOrigin("origin"))
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(name))
+                .build();
+
+
+        ApplicationEventPublisher applicationEventPublisher = mock(ApplicationEventPublisher.class);
+        manager.setApplicationEventPublisher(applicationEventPublisher);
 
         Authentication result = manager.authenticate(inputAuth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(name,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
-        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(name, uaaAuthentication.getPrincipal().getName());
+        assertEquals("origin", uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals("userId", uaaAuthentication.getPrincipal().getId());
 
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
-        assertEquals(origin, event.getUser().getOrigin());
-        assertEquals(actual, event.getUser().getEmail());
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
 
+        verify(applicationEventPublisher, times(2)).publishEvent(userArgumentCaptor.capture());
+
+        assertEquals(2, userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        assertEquals("origin", event.getUser().getOrigin());
+        assertEquals(expectedTransformedName, event.getUser().getEmail());
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testAuthenticateUserInsertFails() throws Exception {
-        when(uaaUserDatabase.retrieveUserByName(anyString(),anyString())).thenThrow(new UsernameNotFoundException(""));
+    public void testAuthenticateUserInsertFails() {
+        UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
+        when(uaaUserDatabase.retrieveUserByName(any(), any())).thenThrow(new UsernameNotFoundException(""));
+
+        ExternalLoginAuthenticationManager manager = aManager().withUaaUserDB(uaaUserDatabase).build();
+        Authentication inputAuth = anAuthentication().build();
+
         manager.authenticate(inputAuth);
     }
 
     @Test
-    public void testAuthenticateLdapUserDetailsPrincipal() throws Exception {
-        String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
-        String origin = LDAP;
-        LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
-        mockUserDetails(ldapUserDetails);
-        when(ldapUserDetails.getDn()).thenReturn(dn);
-        manager = new LdapLoginAuthenticationManager(null);
-        setupManager();
-        manager.setProviderProvisioning(null);
-        manager.setOrigin(origin);
-        when(user.getOrigin()).thenReturn(origin);
-        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin))).thenReturn(user);
-        when(inputAuth.getPrincipal()).thenReturn(ldapUserDetails);
+    public void testAuthenticateLdapUserDetailsPrincipal() {
+        String username = "user1";
+        String dn = "cn=" + username + ",ou=Users,dc=test,dc=com";
+
+        String origin = "ldap";
+        String userId = "userId";
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .withOrigin(origin)
+                .withUaaUser(aUaaUser().withId(userId).withUsername(username).withOrigin(origin))
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(anLdapUserDetails().withUsername(username).withDn(dn))
+                .build();
 
         Authentication result = manager.authenticate(inputAuth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(username, uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
     }
 
     @Test
-    public void testShadowUserCreationDisabled() throws Exception {
-        String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
-        String origin = LDAP;
-        LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
-        mockUserDetails(ldapUserDetails);
-        when(ldapUserDetails.getDn()).thenReturn(dn);
-        manager = new LdapLoginAuthenticationManager(null) {
-            @Override
-            protected boolean isAddNewShadowUser() {
-                return false;
-            }
-        };
+    public void testLdapShadowUserCreationDisabled() {
+        String username = "user1";
+        String dn = "cn=" + username + ",ou=Users,dc=test,dc=com";
 
-        setupManager();
-        manager.setOrigin(origin);
-        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin))).thenReturn(null);
-        when(inputAuth.getPrincipal()).thenReturn(ldapUserDetails);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .addShadowUser(false)
+                .withApplicationEventPublisher(publisher)
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(anLdapUserDetails().withUsername(username).withDn(dn))
+                .build();
 
         try {
             manager.authenticate(inputAuth);
@@ -329,202 +271,302 @@ public class ExternalLoginAuthenticationManagerTest  {
             assertThat(ex.getMessage(), containsString("user account must be pre-created"));
         }
 
-        verify(applicationEventPublisher, times(0)).publishEvent(any());
+        verify(publisher, times(0)).publishEvent(any());
     }
 
     @Test
-    public void testAuthenticateCreateUserWithLdapUserDetailsPrincipal() throws Exception {
-        String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
-        String origin = LDAP;
+    public void testAuthenticateCreateUserWithLdapUserDetailsPrincipal() {
+        String username = "user1";
+        String dn = "cn=" + username + ",ou=Users,dc=test,dc=com";
+        String origin = "ldap";
+        String userId = "userId";
         String email = "joe@test.org";
 
-        LdapUserDetails baseLdapUserDetails = mock(LdapUserDetails.class);
-        mockUserDetails(baseLdapUserDetails);
-        when(baseLdapUserDetails.getDn()).thenReturn(dn);
-        HashMap<String, String[]> ldapAttrs = new HashMap<>();
-        String ldapMailAttrName = "email";
-        ldapAttrs.put(ldapMailAttrName, new String[]{email});
-        ExtendedLdapUserImpl ldapUserDetails = new ExtendedLdapUserImpl(baseLdapUserDetails, ldapAttrs);
-        ldapUserDetails.setMailAttributeName(ldapMailAttrName);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .withOrigin(origin)
+                .withInitiallyMissingUaaUser(aUaaUser().withId(userId).withUsername(username).withOrigin(origin).withEmail(email))
+                .withApplicationEventPublisher(publisher)
+                .build();
 
-        manager = new LdapLoginAuthenticationManager(null);
-        setupManager();
-        manager.setProviderProvisioning(null);
-        manager.setOrigin(origin);
-        when(user.getEmail()).thenReturn(email);
-        when(user.getOrigin()).thenReturn(origin);
-        when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin)))
-            .thenReturn(null)
-            .thenReturn(user);
-        when(inputAuth.getPrincipal()).thenReturn(ldapUserDetails);
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(
+                        anExtendedLdapUserImpl()
+                                .withLdapUserDetails(anLdapUserDetails().withUsername(username).withDn(dn).build())
+                                .withMailAttribute("email", email)
+                                .build())
+                .build();
 
         Authentication result = manager.authenticate(inputAuth);
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(username, uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(3,userArgumentCaptor.getAllValues().size());
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         assertEquals(dn, event.getUser().getExternalId());
     }
 
     @Test
-    public void testAuthenticateCreateUserWithUserDetailsPrincipal() throws Exception {
-        String origin = LDAP;
+    public void testAuthenticateCreateUserWithUserDetailsPrincipal() {
+        String username = "user1";
+        String origin = "ldap";
+        String userId = "userId";
 
-        manager = new LdapLoginAuthenticationManager(null);
-        setupManager();
-        manager.setOrigin(origin);
-        manager.setProviderProvisioning(null);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .withOrigin(origin)
+                .withInitiallyMissingUaaUser(aUaaUser().withId(userId).withUsername(username).withOrigin(origin))
+                .withApplicationEventPublisher(publisher)
+                .build();
 
-        when(user.getOrigin()).thenReturn(origin);
-        when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin)))
-            .thenReturn(null)
-            .thenReturn(user);
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(username))
+                .build();
 
         Authentication result = manager.authenticate(inputAuth);
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
-        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(username, uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(3,userArgumentCaptor.getAllValues().size());
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
-        //incorrect user details - we wont be able to get the correct external ID
-        assertEquals(userName, event.getUser().getExternalId());
+        //incorrect default_user details - we wont be able to get the correct external ID
+        assertEquals(username, event.getUser().getExternalId());
     }
 
     @Test
-    public void testAuthenticateInvitedUserWithoutAcceptance() throws Exception {
+    public void testAuthenticateInvitedUserWithoutAcceptance() {
         String username = "guyWhoDoesNotAcceptInvites";
         String origin = LDAP;
         String email = "guy@ldap.org";
+        String userId = "userId";
 
-        UserDetails ldapUserDetails = mock(ExtendedLdapUserDetails.class, withSettings().extraInterfaces(Mailable.class));
-        when(ldapUserDetails.getUsername()).thenReturn(username);
-        when(ldapUserDetails.getPassword()).thenReturn(password);
-        when(ldapUserDetails.getAuthorities()).thenReturn(null);
-        when(ldapUserDetails.isAccountNonExpired()).thenReturn(true);
-        when(ldapUserDetails.isAccountNonLocked()).thenReturn(true);
-        when(ldapUserDetails.isCredentialsNonExpired()).thenReturn(true);
-        when(ldapUserDetails.isEnabled()).thenReturn(true);
-        when(((Mailable) ldapUserDetails).getEmailAddress()).thenReturn(email);
+        UaaUserDatabase userDb = mock(UaaUserDatabase.class);
 
         // Invited users are created with their email as their username.
-        UaaUser invitedUser = addUserToDb(email, userId, origin, email);
+        UaaUser invitedUser = aUaaUser().withUsername(email).withId(userId).withEmail(email).withOrigin(origin).build();
         when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
-        UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
+        UaaUser updatedUser = aUaaUser().withUsername(username).withId(userId).withEmail(email).withOrigin(origin).build();
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
-        manager = new LdapLoginAuthenticationManager(null);
-        setupManager();
-        manager.setProviderProvisioning(null);
-        manager.setOrigin(origin);
+        when(userDb.retrieveUserByName(eq(username), eq(origin))).thenThrow(new UsernameNotFoundException(""));
+        when(userDb.retrieveUserByEmail(eq(email), eq(origin))).thenReturn(invitedUser);
 
-        when(uaaUserDatabase.retrieveUserByName(eq(username),eq(origin)))
-                .thenThrow(new UsernameNotFoundException(""));
-        when(uaaUserDatabase.retrieveUserByEmail(eq(email), eq(origin)))
-                .thenReturn(invitedUser);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .withOrigin(origin)
+                .withUaaUserDB(userDb)
+                .withUaaUser(invitedUser)
+                .withApplicationEventPublisher(publisher)
+                .build();
 
-        Authentication ldapAuth = mock(Authentication.class);
-        when(ldapAuth.getPrincipal()).thenReturn(ldapUserDetails);
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(
+                        aMailableExtendedLdapUserDetails()
+                                .withUsername(username)
+                                .withEmailAddress(email))
+                .build();
 
-        manager.authenticate(ldapAuth);
 
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher, atLeastOnce()).publishEvent(userArgumentCaptor.capture());
+        manager.authenticate(inputAuth);
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, atLeastOnce()).publishEvent(userArgumentCaptor.capture());
 
-        for(ApplicationEvent event : userArgumentCaptor.getAllValues()) {
+        for (ApplicationEvent event : userArgumentCaptor.getAllValues()) {
             assertNotEquals(event.getClass(), NewUserAuthenticatedEvent.class);
         }
     }
 
     @Test
-    public void testPopulateAttributesStoresCustomAttributesAndRoles() {
-        manager = new LdapLoginAuthenticationManager(null);
-        setupManager();
-        manager.setOrigin(origin);
-        IdentityProvider provider = mock(IdentityProvider.class);
-        ExternalIdentityProviderDefinition providerDefinition = new ExternalIdentityProviderDefinition();
-        when(provider.getConfig()).thenReturn(providerDefinition);
-        when(providerProvisioning.retrieveByOrigin(eq(origin), anyString())).thenReturn(provider);
-        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
-        UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
-        when(uaaPrincipal.getId()).thenReturn("id");
-        when(uaaAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
-        when(uaaAuthentication.getUserAttributes()).thenReturn(userAttributes);
-        when(uaaAuthentication.getExternalGroups()).thenReturn(new HashSet<>(externalGroups));
+    public void storeCustomAttributesFalse_AttributesShouldNotBeStored() {
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .storeCustomAttributes(false)
+                .build();
 
-        providerDefinition.setStoreCustomAttributes(false);
-        manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        UaaAuthentication inputAuth = aUaaAuthentication()
+                .withPrincipal(aUaaPrincipal().withId("id"))
+                .build();
 
-        providerDefinition.setStoreCustomAttributes(true);
-        manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
+
+        manager.populateAuthenticationAttributes(inputAuth, mock(Authentication.class), null);
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
+    }
+
+    @Test
+    public void storeCustomAttributesTrue_AttributesShouldBeStored() {
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .storeCustomAttributes(true)
+                .build();
+
+        UaaAuthentication inputAuth = aUaaAuthentication()
+                .withPrincipal(aUaaPrincipal().withId("id"))
+                .build();
+
+
+        manager.populateAuthenticationAttributes(inputAuth, mock(Authentication.class), null);
         UserInfo userInfo = new UserInfo()
-            .setUserAttributes(userAttributes)
-            .setRoles(externalGroups);
+                .setUserAttributes(inputAuth.getUserAttributes())
+                .setRoles(new ArrayList<>(inputAuth.getExternalGroups()));
+
         verify(manager.getUserDatabase(), times(1)).storeUserInfo(eq("id"), eq(userInfo));
-
-        //null provider does not store it
-        reset(manager.getUserDatabase());
-        manager.setProviderProvisioning(null);
-        manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
-
-        manager.setProviderProvisioning(providerProvisioning);
-        //empty attributes does not store it
-        reset(manager.getUserDatabase());
-        userAttributes.clear();
-        manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
     }
 
     @Test
-    public void testAuthenticateUserExists() throws Exception {
-        Authentication result = manager.authenticate(inputAuth);
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(1)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(1,userArgumentCaptor.getAllValues().size());
-        IdentityProviderAuthenticationSuccessEvent userevent = (IdentityProviderAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
+    public void nullProvider_AttributesShouldNotBeStored() {
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .withIdProviderProvisioning(null)
+                .build();
+
+        UaaAuthentication inputAuth = aUaaAuthentication()
+                .withPrincipal(aUaaPrincipal().withId("id"))
+                .build();
+
+
+        manager.populateAuthenticationAttributes(inputAuth, mock(Authentication.class), null);
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
+    }
+
+    @Test
+    public void emptyAttributes_AttributesShouldNotBeStored() {
+        ExternalLoginAuthenticationManager manager = anLdapManager()
+                .storeCustomAttributes(true)
+                .build();
+
+        UaaAuthentication inputAuth = aUaaAuthentication()
+                .withPrincipal(aUaaPrincipal().withId("id"))
+                .withUserAttributes(new LinkedMultiValueMap<>())
+                .build();
+
+        manager.populateAuthenticationAttributes(inputAuth, mock(Authentication.class), null);
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
+    }
+
+    @Test
+    public void testAuthenticateUserExists() {
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        String origin = "origin";
+        String username = "my_username";
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin(origin)
+                .withUaaUser(aUaaUser().withUsername(username).withOrigin(origin))
+                .withApplicationEventPublisher(publisher)
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(username).withPassword("password"))
+                .build();
+
+
+        manager.authenticate(inputAuth);
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(1)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(1, userArgumentCaptor.getAllValues().size());
+        IdentityProviderAuthenticationSuccessEvent userevent = (IdentityProviderAuthenticationSuccessEvent) userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, userevent.getUser().getOrigin());
-        assertEquals(userName, userevent.getUser().getUsername());
+        assertEquals(username, userevent.getUser().getUsername());
     }
 
     @Test
-    public void testAuthenticateUserDoesNotExists() throws Exception {
+    public void testAuthenticateUserDoesNotExists() {
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
         String origin = "external";
-        manager.setOrigin(origin);
+        String username = "my_username";
+        String userId = "userId";
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withOrigin(origin)
+                .withInitiallyMissingUaaUser(aUaaUser().withId(userId).withUsername(username).withOrigin(origin))
+                .withApplicationEventPublisher(publisher)
+                .build();
 
-        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin)))
-            .thenReturn(null)
-            .thenReturn(user);
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aUserDetails().withUsername(username).withPassword("password"))
+                .build();
+
 
         Authentication result = manager.authenticate(inputAuth);
+
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
-        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+        assertEquals(username, uaaAuthentication.getPrincipal().getName());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
-        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2, userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
     }
 
+    @Test
+    public void enforceDomainsFalse_loginSuccess() {
+        String username = "username";
+        String email = "email@domain.com";
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withUaaUser(aUaaUser().withUsername(username))
+                .enforceDomains(false)
+                .build();
 
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aMailableUserDetails().withUsername(username).withEmailAddress(email))
+                .build();
+
+        Authentication authenticate = manager.authenticate(inputAuth);
+        assertTrue(authenticate.isAuthenticated());
+    }
+
+    @Test(expected = EmailDomainNotAllowedException.class)
+    public void enforceDomainsTrueWithUnconfiguredDomain_loginFail() {
+        String username = "username";
+        String email = "email@domain.com";
+        List<String> allowedDomains = asList("test.com", "pivotal.io");
+
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withUaaUser(aUaaUser().withUsername(username))
+                .enforceDomains(true)
+                .withEmailDomain(allowedDomains)
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aMailableUserDetails().withUsername(username).withEmailAddress(email))
+                .build();
+
+        manager.authenticate(inputAuth);
+    }
+
+    @Test
+    public void enforceDomainsTrueWithApprovedDomain_loginSuccess() {
+        String username = "username";
+        String email = "email@pivotal.io";
+        List<String> allowedDomains = asList("test.com", "pivotal.io");
+
+        ExternalLoginAuthenticationManager manager = aManager()
+                .withUaaUser(aUaaUser().withUsername(username))
+                .enforceDomains(true)
+                .withEmailDomain(allowedDomains)
+                .build();
+
+        Authentication inputAuth = anAuthentication()
+                .withPrincipal(aMailableUserDetails().withUsername(username).withEmailAddress(email))
+                .build();
+
+        manager.authenticate(inputAuth);
+    }
 
 }

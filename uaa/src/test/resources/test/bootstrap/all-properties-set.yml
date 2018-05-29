@@ -152,6 +152,7 @@ login:
         authUrl: http://my-auth.com
         emailDomain:
         - example.com
+        enforceDomains: false
         issuer: http://issuer-my-token.com
         linkText: My Oauth Provider
         relyingPartyId: uaa

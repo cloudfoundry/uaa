@@ -128,6 +128,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor EXTERNAL_GROUPS_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("List of external groups that will be included in the ID Token if the `roles` scope is requested.");
     private static final FieldDescriptor PROVIDER_DESC = fieldWithPath("config.providerDescription").optional(null).type(STRING).description("Human readable name/description of this provider");
     private static final FieldDescriptor EMAIL_DOMAIN = fieldWithPath("config.emailDomain").optional(null).type(ARRAY).description("List of email domains associated with the provider for the purpose of associating users to the correct origin upon invitation. If empty list, no invitations are accepted. Wildcards supported.");
+    private static final FieldDescriptor ENFORCE_DOMAINS = fieldWithPath("config.enforceDomains").optional(false).type(BOOLEAN).description("Only allow login for users having their email matching one of the domains specified by the `emailDomains` property. If `enforceDomains` is `true` and `emailDomains` is empty, no user will be able to login using this Identity Provider.");
     private static final FieldDescriptor ACTIVE = fieldWithPath("active").optional(null).description(ACTIVE_DESC);
     private static final FieldDescriptor NAME = fieldWithPath("name").required().description(NAME_DESC);
     private static final FieldDescriptor CONFIG = fieldWithPath("config").required().description("Various configuration properties for the identity provider.");
@@ -157,6 +158,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         NAME,
         PROVIDER_DESC,
         EMAIL_DOMAIN,
+        ENFORCE_DOMAINS,
         ACTIVE,
         ADD_SHADOW_USER,
         STORE_CUSTOM_ATTRIBUTES

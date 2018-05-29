@@ -100,6 +100,7 @@ public class OauthIDPWrapperFactoryBean {
         idpDefinition.setRelyingPartyId((String) idpDefinitionMap.get("relyingPartyId"));
         idpDefinition.setRelyingPartySecret((String) idpDefinitionMap.get("relyingPartySecret"));
         idpDefinition.setEmailDomain((List<String>) idpDefinitionMap.get("emailDomain"));
+        idpDefinition.setEnforceDomains((Boolean) idpDefinitionMap.get("enforceDomains"));
         idpDefinition.setShowLinkText(idpDefinitionMap.get("showLinkText") == null ? true : (boolean) idpDefinitionMap.get("showLinkText"));
         idpDefinition.setAddShadowUserOnLogin(idpDefinitionMap.get("addShadowUserOnLogin") == null ? true : (boolean) idpDefinitionMap.get("addShadowUserOnLogin"));
         idpDefinition.setStoreCustomAttributes(idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME) == null ? true : (boolean) idpDefinitionMap.get(STORE_CUSTOM_ATTRIBUTES_NAME));

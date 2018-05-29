@@ -23,10 +23,12 @@ import java.util.Map;
 public class AbstractIdentityProviderDefinition {
     public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
     public static final String PROVIDER_DESCRIPTION = "providerDescription";
+    public static final String ENFORCE_DOMAINS = "enforceDomains";
 
     private List<String> emailDomain;
     private Map<String,Object> additionalConfiguration;
     private String providerDescription;
+    private boolean enforceDomains;
 
     public List<String> getEmailDomain() {
         return emailDomain;
@@ -52,6 +54,14 @@ public class AbstractIdentityProviderDefinition {
 
     public void setProviderDescription(String description) {
         this.providerDescription = description;
+    }
+
+    public boolean isEnforceDomains() {
+        return enforceDomains;
+    }
+
+    public void setEnforceDomains(Boolean enforceDomains) {
+        this.enforceDomains = Boolean.TRUE.equals(enforceDomains);
     }
 
     @Override
