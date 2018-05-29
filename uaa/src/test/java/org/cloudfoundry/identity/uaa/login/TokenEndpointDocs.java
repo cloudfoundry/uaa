@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
@@ -32,8 +33,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -56,6 +55,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
@@ -273,7 +273,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param(REQUEST_TOKEN_FORMAT, OPAQUE)
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
@@ -314,7 +315,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("password", user.getPassword())
             .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
             .param(REQUEST_TOKEN_FORMAT, OPAQUE)
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,

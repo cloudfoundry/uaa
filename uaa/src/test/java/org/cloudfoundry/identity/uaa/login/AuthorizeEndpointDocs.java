@@ -21,6 +21,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.net.URLEncoder;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -79,6 +80,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(CLIENT_ID, "login")
             .param(SCOPE, "openid oauth.approvals")
             .param(REDIRECT_URI, "http://localhost/app")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"))
             .session(session);
 
         Snippet requestParameters = requestParameters(
