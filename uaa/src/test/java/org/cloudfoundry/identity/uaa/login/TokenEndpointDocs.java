@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
@@ -32,8 +33,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -56,6 +55,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
@@ -106,6 +106,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+ OPAQUE+"' to retrieve an opaque and revocable token.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
+    private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
 
     private final SnippetUtils.ConstrainableHeader authorizationHeader = SnippetUtils.headerWithName("Authorization");
 
@@ -272,7 +273,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param(REQUEST_TOKEN_FORMAT, OPAQUE)
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
@@ -281,7 +283,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             clientSecretParameter,
             parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
             parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
-            opaqueFormatParameter
+            opaqueFormatParameter,
+            loginHintParameter
         );
 
         Snippet responseFields = responseFields(
@@ -312,7 +315,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("password", user.getPassword())
             .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
             .param(REQUEST_TOKEN_FORMAT, OPAQUE)
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
@@ -322,7 +326,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
             parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
             parameterWithName("mfaCode").required().type(NUMBER).description("A one time passcode from a registered multi-factor generator"),
-            opaqueFormatParameter
+            opaqueFormatParameter,
+            loginHintParameter
         );
 
         Snippet responseFields = responseFields(
