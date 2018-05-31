@@ -15,7 +15,19 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.Consent;
+import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
+import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,6 +51,7 @@ import static org.springframework.http.HttpMethod.POST;
 public class IdentityZoneConfigurationTests {
 
     private IdentityZoneConfiguration definition;
+
     @Before
     public void configure() {
         definition = new IdentityZoneConfiguration();
@@ -64,6 +77,84 @@ public class IdentityZoneConfigurationTests {
         s = JsonUtils.writeValueAsString(definition);
         assertThat(s, containsString("userConfig"));
         assertThat(s, containsString("uaa.offline_token"));
+    }
+
+    @Test
+    public void deserializeIdentityZoneJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, IdentityZone.class);
+    }
+
+    @Test
+    public void deserializeJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, IdentityZoneConfiguration.class);
+    }
+
+    @Test
+    public void deserializeBrandingJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, BrandingInformation.class);
+    }
+
+    @Test
+    public void deserializeClientSecretPolicyJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, ClientSecretPolicy.class);
+    }
+
+    @Test
+    public void deserializeMfaConfigJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, MfaConfig.class);
+    }
+
+    @Test
+    public void deserializeLinksJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, Links.class);
+    }
+
+    @Test
+    public void deserializeConsentJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, Consent.class);
+    }
+
+    @Test
+    public void deserializeCorsConfigurationJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, CorsConfiguration.class);
+    }
+
+    @Test
+    public void deserializeCorsPolicyJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, CorsPolicy.class);
+    }
+
+    @Test
+    public void deserializeSamlConfigJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, SamlConfig.class);
+    }
+
+    @Test
+    public void deserializeTokenPolicyJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, TokenPolicy.class);
+    }
+
+    @Test
+    public void deserializeUserConfigJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, UserConfig.class);
+    }
+
+    @Test
+    public void deserializeZmsJSON_withUnknownProperties_doesNotFail() {
+        String config = "{ \"unknown-property\": \"unknown-value\"}";
+        JsonUtils.readValue(config, ZoneManagementScopes.class);
     }
 
     @Test
