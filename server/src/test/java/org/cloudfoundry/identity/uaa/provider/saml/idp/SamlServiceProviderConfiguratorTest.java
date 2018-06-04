@@ -14,7 +14,12 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
+import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -35,6 +40,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZoneWithoutSPSSOInMetadata;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderMetadatauriForZone;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -52,6 +58,8 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
+    private SlowHttpServer slowHttpServer;
+    private RestTemplateConfig restTemplateConfig;
 
     @Before
     public void setup() throws Exception {
@@ -138,12 +146,12 @@ public class SamlServiceProviderConfiguratorTest {
 
         conf.validateSamlServiceProvider(sp);
         SamlServiceProviderDefinition duplicateDef = SamlServiceProviderDefinition.Builder.get()
-            .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                                               new RandomValueStringGenerator().generate()))
-            .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-            .setMetadataTrustCheck(true).build();
+          .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
+            new RandomValueStringGenerator().generate()))
+          .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
+          .setMetadataTrustCheck(true).build();
         SamlServiceProvider duplicate = new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID + "_2").setIdentityZoneId("uaa")
-            .setConfig(duplicateDef);
+          .setConfig(duplicateDef);
         conf.validateSamlServiceProvider(duplicate);
     }
 
@@ -167,7 +175,7 @@ public class SamlServiceProviderConfiguratorTest {
             switch (provider.getEntityId()) {
                 case "cloudfoundry-saml-login": {
                     ComparableProvider compProvider = (ComparableProvider) conf.getExtendedMetadataDelegate(provider)
-                        .getDelegate();
+                      .getDelegate();
                     assertEquals("cloudfoundry-saml-login", compProvider.getEntityID());
                     break;
                 }
@@ -175,6 +183,40 @@ public class SamlServiceProviderConfiguratorTest {
                     fail(String.format("Unknown provider %s", provider.getEntityId()));
             }
         }
+    }
+
+    @Before
+    public void init() {
+        slowHttpServer = new SlowHttpServer();
+        ticker = mock(TimeService.class);
+        when(ticker.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
+        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        restTemplateConfig.timeout = 120;
+        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider();
+        fixedHttpMetaDataProvider.setNonTrustingRestTemplate(restTemplateConfig.nonTrustingRestTemplate());
+        fixedHttpMetaDataProvider.setTrustingRestTemplate(restTemplateConfig.trustingRestTemplate());
+
+        fixedHttpMetaDataProvider.setCache(new ExpiringUrlCache(EXPIRING_TIME_MILLIS, ticker, 2));
+
+        conf.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
+    }
+
+    @After
+    public void tearDown() {
+        slowHttpServer.stop();
+    }
+    public static final int EXPIRING_TIME_MILLIS = 10 * 60 * 1000;
+    private TimeService ticker;
+
+    @Test
+    public void testGetExtendedMetadataDelegateUrl() throws MetadataProviderException {
+        slowHttpServer.run();
+        expectedEx.expect(MetadataProviderException.class);
+        expectedEx.expectMessage("Unavailable Metadata Provider");
+
+        SamlServiceProvider provider = mockSamlServiceProviderMetadatauriForZone("https://localhost:" + SlowHttpServer.PORT);
+
+        conf.getExtendedMetadataDelegate(provider);
     }
 
     @Test

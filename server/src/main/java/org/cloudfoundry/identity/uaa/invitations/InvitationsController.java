@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -181,10 +182,19 @@ public class InvitationsController {
                 model.addAttribute("email", codeData.get("email"));
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
+            updateModelWithConsentAttributes(model);
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+    }
+
+    private void updateModelWithConsentAttributes(Model model) {
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null) {
+            model.addAttribute("consent_text", zoneBranding.getConsent().getText());
+            model.addAttribute("consent_link", zoneBranding.getConsent().getLink());
         }
     }
 
@@ -248,6 +258,7 @@ public class InvitationsController {
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("code") String code,
+                                   @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
                                    Model model,
                                    HttpServletRequest request,
                                    HttpServletResponse response) throws IOException {
@@ -271,15 +282,17 @@ public class InvitationsController {
         }
 
         final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
+            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", "missing_consent");
+        }
         if (!validation.valid()) {
            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
-//           return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
             return processErrorReload(newCode, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
-//            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         AcceptedInvitation invitation;
         try {
@@ -298,14 +311,11 @@ public class InvitationsController {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         try {
-            String origin = codeData.get(ORIGIN);
-            IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             model.addAttribute(errorCode, error);
             model.addAttribute("code", newCode);
             return "redirect:accept";
-            //return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
@@ -357,7 +367,7 @@ public class InvitationsController {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
                 userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
-                Authentication ldapCompleteAuth = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
+                zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
                 return "redirect:" + "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(accept.getRedirectUri());
             } else {

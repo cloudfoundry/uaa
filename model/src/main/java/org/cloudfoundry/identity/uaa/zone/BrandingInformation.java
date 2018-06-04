@@ -1,10 +1,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BrandingInformation implements BrandingInformationSource {
     private String companyName;
     private String productLogo;
@@ -12,6 +14,7 @@ public class BrandingInformation implements BrandingInformationSource {
     private String footerLegalText;
     private Map<String, String> footerLinks;
     private Banner banner;
+    private Consent consent;
 
     public Banner getBanner() {
         return banner;
@@ -64,6 +67,14 @@ public class BrandingInformation implements BrandingInformationSource {
 
     public void setFooterLinks(Map<String, String> footerLinks) {
         this.footerLinks = footerLinks;
+    }
+
+    public void setConsent(Consent consent) {
+        this.consent = consent;
+    }
+
+    public Consent getConsent() {
+        return consent;
     }
 
     public static class Banner {

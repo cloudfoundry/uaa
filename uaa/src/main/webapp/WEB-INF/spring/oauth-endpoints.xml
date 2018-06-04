@@ -252,7 +252,7 @@
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg ref="passwordGrantAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <constructor-arg ref="xOauthAuthenticationManager"/>
@@ -395,7 +395,8 @@
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
-        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
+        <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
+        <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <property name="uaaTokenServices" ref="tokenServices"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
@@ -655,6 +656,13 @@
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
+    </bean>
+
+    <bean id="passwordGrantAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
+        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg name="identityProviderProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
+        <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
     </bean>
 
 </beans>

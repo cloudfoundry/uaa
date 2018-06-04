@@ -170,7 +170,7 @@ public class IntegrationTestUtils {
 
 
     public static UserInfoResponse getUserInfo(String url, String token) throws URISyntaxException {
-        RestTemplate rest = new RestTemplate(createRequestFactory(true));
+        RestTemplate rest = new RestTemplate(createRequestFactory(true, 60_000));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add(AUTHORIZATION, "Bearer "+token);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
@@ -179,7 +179,7 @@ public class IntegrationTestUtils {
     }
 
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
-        RestTemplate rest = new RestTemplate(createRequestFactory(true));
+        RestTemplate rest = new RestTemplate(createRequestFactory(true, 60_000));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add(AUTHORIZATION, "Bearer "+adminToken);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);

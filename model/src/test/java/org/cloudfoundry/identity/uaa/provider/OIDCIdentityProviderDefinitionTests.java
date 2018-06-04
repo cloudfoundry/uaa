@@ -15,11 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -40,5 +40,4 @@ public class OIDCIdentityProviderDefinitionTests {
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(url, def.getDiscoveryUrl().toString());
     }
-
 }

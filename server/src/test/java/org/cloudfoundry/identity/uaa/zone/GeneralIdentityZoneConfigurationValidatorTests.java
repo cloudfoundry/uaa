@@ -221,6 +221,8 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         validator = new GeneralIdentityZoneConfigurationValidator();
         validator.setMfaConfigValidator(mock(MfaConfigValidator.class));
         zoneConfiguration = new IdentityZoneConfiguration();
+        BrandingInformation brandingInformation = new BrandingInformation();
+        zoneConfiguration.setBranding(brandingInformation);
         zoneConfiguration.setSamlConfig(samlConfig);
 
         zone = new IdentityZone();
@@ -243,6 +245,40 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         samlConfig.setActiveKeyId("wrong");
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid SAML active key ID: 'wrong'. Couldn't find any matching keys.");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_with_invalid_consent_link() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent("some text", "some-invalid-link"));
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid consent link: some-invalid-link. Must be a properly formatted URI beginning with http:// or https://");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNotNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent("Terms and Conditions", null));
+
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNotNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent(null, "http://example.com"));
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent());
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
         validator.validate(zone, mode);
     }
 

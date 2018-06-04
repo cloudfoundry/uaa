@@ -41,16 +41,17 @@ public abstract class UaaHttpRequestUtils {
 
     private static Log logger = LogFactory.getLog(UaaHttpRequestUtils.class);
 
-    public static ClientHttpRequestFactory createRequestFactory() {
-        return createRequestFactory(false);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
+        return createRequestFactory(getClientBuilder(skipSslValidation), timeout);
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation) {
-        return createRequestFactory(getClientBuilder(skipSslValidation));
-    }
+    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs) {
+        HttpComponentsClientHttpRequestFactory httpComponentsClientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory(builder.build());
 
-    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder) {
-        return new HttpComponentsClientHttpRequestFactory(builder.build());
+        httpComponentsClientHttpRequestFactory.setReadTimeout(timeoutInMs);
+        httpComponentsClientHttpRequestFactory.setConnectionRequestTimeout(timeoutInMs);
+        httpComponentsClientHttpRequestFactory.setConnectTimeout(timeoutInMs);
+        return httpComponentsClientHttpRequestFactory;
     }
 
     protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation) {

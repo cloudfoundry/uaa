@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -eu
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function bootDB {
   db=$1
@@ -16,7 +17,7 @@ function bootDB {
   elif [ "$db" = "sqlserver" ]; then
     launchDB="(/opt/mssql/bin/sqlservr &> /var/log/sqlserver-boot.log) &"
     testConnection="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'changemeCHANGEME1234!' -d master -Q \"select 'hello'\""
-    initDB="pushd $UAA_DIR; ./gradlew -b mssql.gradle createSQLServerUAA; popd"
+    initDB="pushd $script_dir/..; ./gradlew -b mssql.gradle createSQLServerUAA; popd"
   else
     echo "skipping database"
     return 0
