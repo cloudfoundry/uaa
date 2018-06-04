@@ -20,9 +20,9 @@ import java.net.URL;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
-
     private URL userInfoUrl;
     private URL discoveryUrl;
+    private boolean passwordGrantEnabled = false;
 
     public URL getUserInfoUrl() {
         return userInfoUrl;
@@ -41,6 +41,14 @@ implements Cloneable {
         this.discoveryUrl = discoveryUrl;
     }
 
+    public boolean isPasswordGrantEnabled() {
+        return passwordGrantEnabled;
+    }
+
+    public void setPasswordGrantEnabled(boolean passwordGrantEnabled) {
+        this.passwordGrantEnabled = passwordGrantEnabled;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -55,6 +63,7 @@ implements Cloneable {
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
         if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
 
     }
@@ -64,6 +73,7 @@ implements Cloneable {
         int result = super.hashCode();
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
+        result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         return result;
     }
 }

@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthentic
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -42,7 +43,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -179,6 +179,8 @@ public class XOAuthAuthenticationManagerIT {
         "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
         "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
         "-----END RSA PRIVATE KEY-----";
+    private RestTemplate trustingRestTemplate;
+    private RestTemplate nonTrustingRestTemplate;
 
 
     @After
@@ -190,6 +192,9 @@ public class XOAuthAuthenticationManagerIT {
 
     @Before
     public void setUp() throws Exception {
+        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        nonTrustingRestTemplate = restTemplateConfig.nonTrustingRestTemplate();
+        trustingRestTemplate = restTemplateConfig.trustingRestTemplate();
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         header = map(
@@ -212,18 +217,17 @@ public class XOAuthAuthenticationManagerIT {
 
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
-        RestTemplateFactory restTemplateFactory = mock(RestTemplateFactory.class);
         uaaTokenServices = mock(UaaTokenServices.class);
         when(uaaTokenServices.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
-        when(restTemplateFactory.getRestTemplate(anyBoolean())).thenReturn(new RestTemplate());
         xoAuthProviderConfigurator = spy(
             new XOAuthProviderConfigurator(
                 provisioning,
                 new ExpiringUrlCache(10000, new TimeServiceImpl(), 10),
-                restTemplateFactory
+              trustingRestTemplate,
+              nonTrustingRestTemplate
             )
         );
-        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, restTemplateFactory));
+        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
@@ -272,7 +276,7 @@ public class XOAuthAuthenticationManagerIT {
             )
         );
 
-        mockUaaServer = MockRestServiceServer.createServer(restTemplateFactory.getRestTemplate(config.isSkipSslValidation()));
+        mockUaaServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
         reset(xoAuthAuthenticationManager);
 
         invalidRsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +

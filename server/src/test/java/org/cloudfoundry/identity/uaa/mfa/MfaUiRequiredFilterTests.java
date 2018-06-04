@@ -21,9 +21,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.junit.After;
@@ -48,6 +50,7 @@ import static org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter.MfaNextStep.
 import static org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter.MfaNextStep.MFA_REQUIRED;
 import static org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter.MfaNextStep.NOT_AUTHENTICATED;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -74,6 +77,7 @@ public class MfaUiRequiredFilterTests {
     private MfaUiRequiredFilter filter;
     private IdentityProviderProvisioning providerProvisioning;
     private AntPathRequestMatcher logoutMatcher;
+    private IdentityZone mfaEnabledZone;
 
     @Before
     public void setup() throws Exception {
@@ -98,6 +102,9 @@ public class MfaUiRequiredFilterTests {
         authentication.setAuthenticationMethods(new HashSet<>());
         response = mock(HttpServletResponse.class);
         chain = mock(FilterChain.class);
+        mfaEnabledZone = new IdentityZone();
+        mfaEnabledZone.getConfig().getMfaConfig().setEnabled(true);
+        mfaEnabledZone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("origin"));
     }
 
     @After
@@ -131,6 +138,33 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
+    public void next_step_mfa_not_needed_when_origin_key_does_not_match_valid_identity_provider() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("uaa", "ldap"));
+        zone.getConfig().getMfaConfig().setEnabled(true);
+        IdentityZoneHolder.set(zone);
+        assertThat(spyFilter.getNextStep(request), is(MFA_NOT_REQUIRED));
+    }
+
+    @Test
+    public void next_step_mfa_needed_when_origin_key_matches_valid_identity_provider() throws Exception {
+        UaaAuthentication auth = new UaaAuthentication(
+          new UaaPrincipal("fake-id", "fake-username", "email@email.com", "ldap", "", "uaa"),
+          emptyList(),
+          null
+        );
+        auth.setAuthenticationMethods(new HashSet<>());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        IdentityZone zone = new IdentityZone();
+        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("uaa", "ldap"));
+        zone.getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(zone);
+        assertThat(spyFilter.getNextStep(request), is(MFA_REQUIRED));
+    }
+
+    @Test
     public void next_step_anonymous() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(anonymous);
         assertSame(NOT_AUTHENTICATED, spyFilter.getNextStep(request));
@@ -152,7 +186,9 @@ public class MfaUiRequiredFilterTests {
     public void next_step_mfa_required() throws Exception {
         request.setServletPath("/");
         request.setPathInfo("oauth/authorize");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(mfaEnabledZone);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_REQUIRED, spyFilter.getNextStep(request));
     }
@@ -161,7 +197,9 @@ public class MfaUiRequiredFilterTests {
     public void next_step_mfa_in_progress() throws Exception {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/register");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(mfaEnabledZone);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_IN_PROGRESS, spyFilter.getNextStep(request));
     }
@@ -170,7 +208,9 @@ public class MfaUiRequiredFilterTests {
     public void next_step_mfa_in_progress_when_completed_invoked() throws Exception {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/completed");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(mfaEnabledZone);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_IN_PROGRESS, spyFilter.getNextStep(request));
     }
@@ -179,7 +219,9 @@ public class MfaUiRequiredFilterTests {
     public void next_step_mfa_completed() throws Exception {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/completed");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(mfaEnabledZone);
+
         authentication.getAuthenticationMethods().addAll(Arrays.asList("pwd", "mfa"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_COMPLETED, spyFilter.getNextStep(request));
@@ -189,7 +231,9 @@ public class MfaUiRequiredFilterTests {
     public void next_step_mfa_in_play() throws Exception {
         request.setServletPath("/");
         request.setPathInfo("oauth/authorize");
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
+
+        IdentityZoneHolder.set(mfaEnabledZone);
+
         authentication.getAuthenticationMethods().addAll(Arrays.asList("pwd", "mfa"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_OK, spyFilter.getNextStep(request));

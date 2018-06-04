@@ -53,6 +53,6 @@ public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
         ClientHttpRequest request = (ClientHttpRequest)createRequest.invoke(restTemplate, new URI("http://localhost/oauth/token"), HttpMethod.POST);
         assertEquals("authorization bearer header should be present", 1, request.getHeaders().get("Authorization").size());
         assertNotNull("authorization bearer header should be present", request.getHeaders().get("Authorization").get(0));
-        assertEquals("bearer "+token.getValue(), request.getHeaders().get("Authorization").get(0));
+        assertEquals("Bearer "+token.getValue(), request.getHeaders().get("Authorization").get(0));
     }
 }

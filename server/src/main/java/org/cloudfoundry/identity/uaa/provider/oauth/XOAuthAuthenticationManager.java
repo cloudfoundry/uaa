@@ -13,6 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -38,15 +42,9 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpEntity;
@@ -90,6 +88,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
@@ -104,23 +104,26 @@ import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
     public static Log logger = LogFactory.getLog(XOAuthAuthenticationManager.class);
 
-    private final RestTemplateFactory restTemplateFactory;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
+
 
     private UaaTokenServices tokenServices;
 
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
 
-    public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning, RestTemplateFactory restTemplateFactory) {
+    public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
+                                       RestTemplate trustingRestTemplate,
+                                       RestTemplate nonTrustingRestTemplate) {
         super(providerProvisioning);
-        this.restTemplateFactory = restTemplateFactory;
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
     }
 
     @Override
@@ -144,21 +147,20 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
-
-            if (tokenServices.getTokenEndpoint().equals(issuer)) {
-                OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
-                uaaOidcProviderConfig.setTokenKeyUrl(new URL(contextPath + "/token_keys"));
-                uaaOidcProviderConfig.setIssuer(issuer);
-                IdentityProvider uaaIdp = new IdentityProvider();
-                uaaIdp.setOriginKey(OriginKeys.UAA);
-                uaaIdp.setConfig(uaaOidcProviderConfig);
-                return uaaIdp;
-            }
-
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
-                throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                if (tokenServices.getTokenEndpoint().equals(issuer)) {
+                    OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
+                    uaaOidcProviderConfig.setTokenKeyUrl(new URL(contextPath + "/token_keys"));
+                    uaaOidcProviderConfig.setIssuer(issuer);
+                    IdentityProvider uaaIdp = new IdentityProvider();
+                    uaaIdp.setOriginKey(OriginKeys.UAA);
+                    uaaIdp.setConfig(uaaOidcProviderConfig);
+                    return uaaIdp;
+                } else {
+                    throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                }
             }
         } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
@@ -420,7 +422,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
-        return restTemplateFactory.getRestTemplate(config.isSkipSslValidation());
+        if (config.isSkipSslValidation()) {
+            return trustingRestTemplate;
+        } else {
+            return nonTrustingRestTemplate;
+        }
     }
 
     protected String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {

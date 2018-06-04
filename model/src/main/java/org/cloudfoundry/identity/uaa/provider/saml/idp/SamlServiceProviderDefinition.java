@@ -229,6 +229,7 @@ public class SamlServiceProviderDefinition {
         private int singleSignOnServiceIndex;
         private boolean metadataTrustCheck;
         private boolean enableIdpInitiatedSso = false;
+        private boolean skipSslValidation = true;
 
         private Builder(){}
 
@@ -243,6 +244,7 @@ public class SamlServiceProviderDefinition {
             def.setSingleSignOnServiceIndex(singleSignOnServiceIndex);
             def.setMetadataTrustCheck(metadataTrustCheck);
             def.setEnableIdpInitiatedSso(enableIdpInitiatedSso);
+            def.setSkipSslValidation(skipSslValidation);
             return def;
         }
 
@@ -253,6 +255,11 @@ public class SamlServiceProviderDefinition {
 
         public Builder setNameID(String nameID) {
             this.nameID = nameID;
+            return this;
+        }
+
+        public Builder setSkipSSLValidation(boolean skipSslValidation) {
+            this.skipSslValidation = skipSslValidation;
             return this;
         }
 

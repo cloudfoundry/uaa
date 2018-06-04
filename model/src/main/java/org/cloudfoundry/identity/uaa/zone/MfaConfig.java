@@ -3,18 +3,26 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MfaConfig {
 
     private boolean enabled = false;
     private String providerName;
+    private List<String> identityProviders = new ArrayList<>();
+    private List<String> DEFAULT_MFA_IDENTITY_PROVIDERS = Arrays.asList("uaa", "ldap");
+
 
     @Override
     public String toString() {
         return "MfaConfig: {" +
                 "enabled:" + enabled +
                 ", providerName:\"" + providerName + '\"' +
+                ", identityProviders:" + Arrays.toString(identityProviders.stream().toArray()) +
                 '}';
     }
 
@@ -53,4 +61,17 @@ public class MfaConfig {
         this.providerName = providerName;
         return this;
     }
+
+    public List<String> getIdentityProviders() {
+        if (identityProviders == null || identityProviders.isEmpty()) {
+            return DEFAULT_MFA_IDENTITY_PROVIDERS;
+        }
+
+        return identityProviders;
+    }
+
+    public void setIdentityProviders(List<String> identityProviders) {
+        this.identityProviders = identityProviders;
+    }
+
 }

@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -102,6 +103,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String BRANDING_BANNER_TEXT_COLOR_DESC = "Hexadecimal color code for banner text color, does not allow color names";
     private static final String BRANDING_BANNER_BACKGROUND_COLOR_DESC = "Hexadecimal color code for banner background color, does not allow color names";
 
+    private static final String BRANDING_CONSENT_TEXT_DESC = "If set, a checkbox on the registration and invitation pages will appear with the phrase `I agree to` followed by this text. The checkbox must be selected before the user can continue.";
+    private static final String BRANDING_CONSENT_LINK_DESC = "If `config.branding.consent.text` is set, the text after `I agree to` will be hyperlinked to this location.";
 
     private static final String CORS_XHR_ORIGINS_DESC = "`Access-Control-Allow-Origin header`. Indicates whether a resource can be shared based by returning the value of the Origin request header, \"*\", or \"null\" in the response.";
     private static final String CORS_XHR_ORIGIN_PATTERNS_DESC = "Indicates whether a resource can be shared based by returning the value of the Origin patterns.";
@@ -153,6 +156,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
+    private static final String MFA_CONFIG_IDENTITY_PROVIDER_DESC = "Only trigger MFA when user is using an identity provider whose origin key matches one of these values";
     private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
     private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
 
@@ -269,6 +273,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
+
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedUris").description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
@@ -291,6 +298,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -406,6 +414,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
             fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
 
+            fieldWithPath("[]config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("[]config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("[].config.prompts[]").type(OBJECT).description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
@@ -451,8 +461,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("[].config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("[].config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
-                fieldWithPath("[].created").ignored(),
+            fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
         );
 
@@ -567,6 +578,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
+
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedUris").description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
@@ -589,6 +603,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -744,6 +759,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC),
             fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC),
 
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC),
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC),
@@ -767,6 +784,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC),
             fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).optional().type(ARRAY),
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         );
@@ -778,9 +796,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         branding.setProductLogo("VGVzdFByb2R1Y3RMb2dv");
         branding.setSquareLogo("VGVzdFNxdWFyZUxvZ28=");
         branding.setFooterLegalText("Test footer legal text");
+
         HashMap<String, String> footerLinks = new HashMap<>();
         footerLinks.put("Support", "http://support.example.com");
         branding.setFooterLinks(footerLinks);
+
         Banner banner = new Banner();
         banner.setText("Announcement");
         banner.setLink("http://announce.example.com");
@@ -788,6 +808,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         banner.setTextColor("#000000");
         banner.setBackgroundColor("#89cff0");
         branding.setBanner(banner);
+
+        branding.setConsent(new Consent("Some Policy", "http://policy.example.com"));
+
         config.setBranding(branding);
         config.getLinks().setHomeRedirect("http://my.hosted.homepage.com/");
         return config;
