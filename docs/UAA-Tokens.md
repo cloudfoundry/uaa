@@ -116,7 +116,7 @@ The resource server must differentiate between a client only token, and read 'au
 token to read the 'scope' field.
 
 The name of the scope, such as ```password.write``` are arbitrary strings. They don't mean anything to any component except 
-the resource server that uses them for authorization. For example, ```password.write``` is a scope that the must be present
+the resource server that uses them for authorization. For example, ```password.write``` is a scope that must be present
 in the token when a request to the UAA is made for a password change. 
 
 Scopes, are arbitrary strings, defined by the client itself. The UAA does use the base name of a scope and adds it to the 
