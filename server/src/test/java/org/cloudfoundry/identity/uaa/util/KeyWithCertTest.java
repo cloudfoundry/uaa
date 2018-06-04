@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -182,7 +183,7 @@ public class KeyWithCertTest {
         "y9mayfAcKPti4MbPR6ADAo9NxKbdsZjA138=\n" +
         "-----END PRIVATE KEY-----\n";
 
-    @Test(expected = CertificateException.class)
+    @Test(expected = DecoderException.class)
     public void testInvalidCert() throws Exception {
         new KeyWithCert(key, password, invalidCert);
     }
