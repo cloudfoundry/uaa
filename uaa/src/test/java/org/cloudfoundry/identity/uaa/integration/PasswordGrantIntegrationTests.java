@@ -19,6 +19,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -50,7 +51,7 @@ public class PasswordGrantIntegrationTests {
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
         assertEquals("application/json;charset=UTF-8", responseEntity.getHeaders().get("Content-Type").get(0));
         Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
-        assertEquals("User does not meet the client's required group criteria.", errors.get("error_description"));
+        assertEquals(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1"), errors.get("error_description"));
         assertEquals("invalid_scope", errors.get("error"));
     }
 
