@@ -13,8 +13,11 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
+import java.util.List;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -23,6 +26,8 @@ implements Cloneable {
     private URL userInfoUrl;
     private URL discoveryUrl;
     private boolean passwordGrantEnabled = false;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<Prompt> prompts = null;
 
     public URL getUserInfoUrl() {
         return userInfoUrl;
@@ -47,6 +52,14 @@ implements Cloneable {
 
     public void setPasswordGrantEnabled(boolean passwordGrantEnabled) {
         this.passwordGrantEnabled = passwordGrantEnabled;
+    }
+
+    public List<Prompt> getPrompts() {
+        return prompts;
+    }
+
+    public void setPrompts(List<Prompt> prompts) {
+        this.prompts = prompts;
     }
 
     @Override
