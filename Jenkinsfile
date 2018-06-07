@@ -384,7 +384,7 @@ pipeline {
                         unstash 'uaa-war'
                 }
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'clz_jenkins'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
                 script {
                     APP_VERSION = sh (returnStdout: true, script: '''
