@@ -143,13 +143,15 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(CLIENT_ID, "app")
             .param(SCOPE, "openid")
             .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"))
             .session(session);
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter.description("Space-delimited list of response types. Here, `token`, i.e. an access token"),
             clientIdParameter,
             scopesParameter,
-            redirectParameter
+            redirectParameter,
+            loginHintParameter
         );
 
         Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token in the reply fragment if successful"));
@@ -205,13 +207,15 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(CLIENT_ID, "app")
             .param(SCOPE, "openid")
             .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"))
             .session(session);
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter.description("Space-delimited list of response types. Here, `id_token`"),
             clientIdParameter,
             scopesParameter,
-            redirectParameter
+            redirectParameter,
+            loginHintParameter
         );
 
         Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes id_token in the reply fragment if successful"));
@@ -240,13 +244,15 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(CLIENT_ID, "app")
             .param(SCOPE, "openid")
             .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"))
             .session(session);
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter.description("Space-delimited list of response types. Here, `token id_token`, indicating both an access token and an ID token."),
             clientIdParameter,
             scopesParameter,
-            redirectParameter
+            redirectParameter,
+            loginHintParameter
         );
 
         Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token and id_token in the reply fragment if successful"));
@@ -276,13 +282,15 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .param(CLIENT_ID, "app")
             .param(SCOPE, "openid")
             .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"))
             .session(session);
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter.description("Space-delimited list of response types. Here, `id_token code`, indicating a request for an ID token and an authorization code."),
             clientIdParameter,
             scopesParameter,
-            redirectParameter
+            redirectParameter,
+            loginHintParameter
         );
 
         Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes code and id_token in the reply fragment if successful"));
