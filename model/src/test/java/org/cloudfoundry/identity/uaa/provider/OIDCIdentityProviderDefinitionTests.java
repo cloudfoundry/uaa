@@ -15,11 +15,14 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -39,5 +42,18 @@ public class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(url, def.getDiscoveryUrl().toString());
+    }
+
+    @Test
+    public void serialize_prompts() {
+        OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        assertNull(def.getPrompts());
+        List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
+                new Prompt("password", "password", "Password"),
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
+        def.setPrompts(prompts);
+        String json = JsonUtils.writeValueAsString(def);
+        def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
+        assertEquals(prompts, def.getPrompts());
     }
 }
