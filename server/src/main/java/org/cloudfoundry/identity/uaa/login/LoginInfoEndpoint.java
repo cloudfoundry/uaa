@@ -491,7 +491,7 @@ public class LoginInfoEndpoint {
             boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
             boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
-            if (discoveryEnabled && !loginHintParam.isPresent()) {
+            if (discoveryEnabled && !model.containsAttribute("login_hint")) {
                 boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
                     && !discoveryPerformed;
