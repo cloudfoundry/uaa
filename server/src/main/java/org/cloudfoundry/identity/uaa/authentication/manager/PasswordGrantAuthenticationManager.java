@@ -85,7 +85,12 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (userName == null || password == null) {
             throw new BadCredentialsException("Request is missing username or password.");
         }
-        RestTemplate rt = restTemplateConfig.nonTrustingRestTemplate();
+        RestTemplate rt;
+        if (config.isSkipSslValidation()) {
+            rt = restTemplateConfig.trustingRestTemplate();
+        } else {
+            rt = restTemplateConfig.nonTrustingRestTemplate();
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(APPLICATION_JSON));
