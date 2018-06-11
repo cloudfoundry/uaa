@@ -12,17 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,11 +22,20 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class UaaUrlUtilsTest {
@@ -420,6 +421,19 @@ public class UaaUrlUtilsTest {
         IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2. "));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone2.localhost:8080", url2);
+    }
+
+    @Test
+    public void testUriHasMatchingHost() {
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
+
+        assertFalse(UaaUrlUtils.uriHasMatchingHost(null, "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not-test.com/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("not-valid-url", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
     }
 
     private void validateRedirectUri(List<String> urls, boolean result) {
