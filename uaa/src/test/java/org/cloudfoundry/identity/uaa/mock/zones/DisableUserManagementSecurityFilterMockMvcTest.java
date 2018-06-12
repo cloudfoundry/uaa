@@ -233,7 +233,8 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("client_id", "login")
             .param("email", "another@example.com")
             .param("password", "foobar")
-            .param("password_confirmation", "foobar"))
+            .param("password_confirmation", "foobar")
+            .with(cookieCsrf()))
             .andExpect(status().isForbidden())
             .andExpect(content()
                            .string(JsonObjectMatcherUtils.matchesJsonObject(
