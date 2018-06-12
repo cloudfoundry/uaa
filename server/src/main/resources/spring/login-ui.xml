@@ -59,6 +59,11 @@
         <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>
     </http>
 
+    <http name="secFilterCreateAccount" pattern="/create_account*" entry-point-ref="loginEntryPoint" use-expressions="false" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/create_account*" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiCookeCsrfRequestMatcher"/>
+    </http>
+
     <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" method="GET"/>
@@ -192,6 +197,9 @@
             <list>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
                     <constructor-arg value="/login.do"/>
+                </bean>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/create_account.do"/>
                 </bean>
                 <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
                     <constructor-arg value="/oauth/authorize"/>

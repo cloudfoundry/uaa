@@ -90,7 +90,6 @@
     <!--<sec:http pattern="/login" security="none" />-->
     <sec:http name="secFilterOpen08" pattern="/error" security="none" />
     <sec:http name="secFilterOpen11" pattern="/email_sent" security="none" />
-    <sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />
     <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none" />
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
