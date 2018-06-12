@@ -58,11 +58,6 @@ public class HttpsIntegrationTest {
     }
 
     @Test
-    public void test_ignore_self_signed_cert_happy_path() throws Exception {
-        test_self_signed_cert(true);
-    }
-
-    @Test
     public void test_self_signed_cert_should_fail() throws Exception {
         try {
             test_self_signed_cert(false);
