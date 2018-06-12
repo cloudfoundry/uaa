@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,18 +29,31 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
@@ -196,4 +210,43 @@ public class CreateAccountIT {
             IntegrationTestUtils.deleteProvider(adminToken, baseUrl, OriginKeys.UAA, OriginKeys.OIDC10);
         }
     }
+
+    @Test
+    public void check_CSRF() throws Exception {
+        RestTemplate template = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        List<String> cookies = Collections.EMPTY_LIST;
+        LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("email", "someemail@email.com");
+        String password = testAccounts.getPassword();
+        requestBody.add("password", password);
+        requestBody.add("password_confirmation", password);
+
+        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> getCreateAccountResponse = template.exchange(baseUrl + "/create_account",
+          HttpMethod.GET,
+          new HttpEntity<>(null, headers),
+          String.class);
+
+        cookies = getCreateAccountResponse.getHeaders().get("Set-Cookie");
+        assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
+
+        if (getCreateAccountResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : getCreateAccountResponse.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+        String csrf = IntegrationTestUtils.extractCookieCsrf(getCreateAccountResponse.getBody());
+        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        getCreateAccountResponse = template.exchange(baseUrl + "/create_account.do",
+          HttpMethod.POST,
+          new HttpEntity<>(requestBody, headers),
+          String.class);
+        headers.clear();
+
+        assertThat(getCreateAccountResponse.getStatusCode(), is(HttpStatus.FOUND));
+    }
+
 }

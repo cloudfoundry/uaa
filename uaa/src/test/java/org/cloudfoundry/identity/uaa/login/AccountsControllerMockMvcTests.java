@@ -36,11 +36,16 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultHandler;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
+import javax.servlet.http.Cookie;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -51,6 +56,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -191,6 +197,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .with(cookieCsrf())
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
@@ -226,6 +233,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+            .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T"))
@@ -257,6 +265,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         store.setGenerator(generator);
 
         getMockMvc().perform(post("/create_account.do")
+            .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T")
@@ -297,7 +306,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post("/create_account.do")
             .param("email", userEmail)
             .param("password", "secr3T")
-            .param("password_confirmation", "secr3T"))
+            .param("password_confirmation", "secr3T")
+            .with(cookieCsrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -341,6 +351,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .with(cookieCsrf())
+
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T"))
@@ -388,6 +400,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
             .param("password_confirmation", "secr3T")
@@ -436,6 +449,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
                 .session(session)
+                .with(cookieCsrf())
                 .param("email", "testuser@test.org")
                 .param("password", "test-password")
                 .param("password_confirmation", "test-password"))
@@ -498,7 +512,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T")
                 .param("client_id", clientDetails.getClientId())
-                .param("redirect_uri", redirectUri))
+                .param("redirect_uri", redirectUri)
+
+                .with(cookieCsrf()))
+
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
