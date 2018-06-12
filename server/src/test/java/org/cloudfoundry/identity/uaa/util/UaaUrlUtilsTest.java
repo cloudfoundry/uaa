@@ -434,6 +434,7 @@ public class UaaUrlUtilsTest {
         assertFalse(UaaUrlUtils.uriHasMatchingHost("not-valid-url", "test.com"));
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not.test.com/test", "test.com"));
     }
 
     private void validateRedirectUri(List<String> urls, boolean result) {

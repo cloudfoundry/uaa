@@ -217,8 +217,8 @@ public class LdapMockMvcTests  {
     @Before
     public void createTestZone() throws Exception {
 
-        String clientId = new RandomValueStringGenerator().generate().toLowerCase();
-        zone = utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
+        String userId = new RandomValueStringGenerator().generate().toLowerCase();
+        zone = utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setLdapProfileFile("ldap/" + ldapProfile);
@@ -264,6 +264,7 @@ public class LdapMockMvcTests  {
         LdapIdentityProviderDefinition definition = provider.getConfig();
         definition.setEmailDomain(Arrays.asList("test.com"));
         updateLdapProvider();
+        String redirectUri = "http://" + host;
 
         URL url = utils().inviteUser(
             getWebApplicationContext(),
@@ -273,7 +274,7 @@ public class LdapMockMvcTests  {
             zone.getZone().getIdentityZone().getSubdomain(),
             zone.getScimInviteClient().getClientId(),
             LDAP,
-            REDIRECT_URI
+            redirectUri
         );
 
 
@@ -300,7 +301,7 @@ public class LdapMockMvcTests  {
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
-        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri="+ URLEncoder.encode(REDIRECT_URI);
+        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri="+ URLEncoder.encode(redirectUri);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                                  .session(session)
                                  .param("enterprise_username", "marissa2")
@@ -322,7 +323,7 @@ public class LdapMockMvcTests  {
         )
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("form_redirect_uri")))
-            .andExpect(content().string(containsString(URLEncoder.encode(REDIRECT_URI))));
+            .andExpect(content().string(containsString(URLEncoder.encode(redirectUri))));
 
 
         getMockMvc().perform(
@@ -332,11 +333,11 @@ public class LdapMockMvcTests  {
                 .param("password", LDAP)
                 .session(session)
                 .header(HOST, host)
-                .param("form_redirect_uri", REDIRECT_URI)
+                .param("form_redirect_uri", redirectUri)
         )
             .andExpect(authenticated())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI));
+            .andExpect(redirectedUrl(redirectUri));
 
 
 
@@ -1113,37 +1114,6 @@ public class LdapMockMvcTests  {
         assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
         assertEquals(LDAP, getOrigin(username));
         assertEquals("marissa7@user.from.ldap.cf", getEmail(username));
-    }
-
-    @Test
-    @Ignore("This test was previously not run and does not pass")
-    public void validateLoginAsInvitedUserWithoutClickingInviteLink() throws Exception {
-        UaaUserDatabase userDatabase = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        ScimUser createdUser;
-        try {
-            IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            assertNull(userDatabase.retrieveUserByEmail("marissa7@user.from.ldap.cf", LDAP));
-            ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
-            user.setPrimaryEmail("marissa7@user.from.ldap.cf");
-            user.setOrigin(LDAP);
-            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "", IdentityZoneHolder.get().getId());
-        } finally {
-            IdentityZoneHolder.clear();
-        }
-
-
-        performUiAuthentication("marissa7", "ldap7", HttpStatus.FOUND, true);
-
-        UaaUser authedUser = retrieveUserInZone(userDatabase, "marissa7@createdUser.from.ldap.cf", LDAP);
-        assertEquals(createdUser.getId(), authedUser.getId());
-        assertEquals("marissa7", authedUser.getUsername());
-        try {
-            IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP), IdentityZoneHolder.get().getId());
-            assertEquals(1, scimUserList.size());
-        } finally {
-            IdentityZoneHolder.clear();
-        }
     }
 
     public UaaUser retrieveUserInZone(UaaUserDatabase userDatabase, String email, String origin) {
