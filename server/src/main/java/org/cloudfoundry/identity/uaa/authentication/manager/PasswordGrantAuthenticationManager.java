@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -25,11 +27,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -103,6 +108,28 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         params.add("response_type","id_token");
         params.add("username", userName);
         params.add("password", password);
+
+        List<Prompt> prompts = config.getPrompts();
+        List<String> promptsToInclude = new ArrayList<>();
+        if (prompts != null) {
+            for (Prompt prompt : prompts) {
+                if ("username".equals(prompt.getName()) || "password".equals(prompt.getName()) || "passcode".equals(prompt.getName()))
+                    continue;
+                promptsToInclude.add(prompt.getName());
+            }
+        }
+        if (authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails details = (UaaAuthenticationDetails)authentication.getDetails();
+            for (String prompt : promptsToInclude) {
+                String[] values = details.getParameterMap().get(prompt);
+                if (values == null || values.length != 1 || !StringUtils.hasText(values[0])) {
+                    continue; //No single value given, skip this parameter
+                }
+                params.add(prompt, values[0]);
+            }
+        }
+
+
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         String idToken = null;
