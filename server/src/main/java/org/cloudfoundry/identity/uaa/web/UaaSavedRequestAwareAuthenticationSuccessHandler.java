@@ -21,6 +21,8 @@ import org.springframework.security.web.authentication.SavedRequestAwareAuthenti
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
     public static final String SAVED_REQUEST_SESSION_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
@@ -38,10 +40,23 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
         if (redirectAttribute !=null) {
             logger.debug("Returning redirectAttribute saved URI:"+redirectAttribute);
             return (String) redirectAttribute;
-        } else if (redirectFormParam != null) {
+        } else if (isApprovedFormRedirectUri(request, redirectFormParam)) {
             return redirectFormParam;
         } else {
             return super.determineTargetUrl(request, response);
+        }
+    }
+
+    private boolean isApprovedFormRedirectUri(HttpServletRequest request, String redirectUri) {
+        if (redirectUri == null) {
+            return false;
+        }
+
+        try {
+            URL url = new URL(redirectUri);
+            return request.getServerName().equals(url.getHost());
+        } catch (MalformedURLException e) {
+            return false;
         }
     }
 }
