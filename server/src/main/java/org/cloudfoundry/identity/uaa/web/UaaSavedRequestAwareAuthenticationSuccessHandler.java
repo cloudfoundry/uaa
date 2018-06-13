@@ -17,12 +17,11 @@ package org.cloudfoundry.identity.uaa.web;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
     public static final String SAVED_REQUEST_SESSION_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
@@ -40,23 +39,10 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
         if (redirectAttribute !=null) {
             logger.debug("Returning redirectAttribute saved URI:"+redirectAttribute);
             return (String) redirectAttribute;
-        } else if (isApprovedFormRedirectUri(request, redirectFormParam)) {
+        } else if (UaaUrlUtils.uriHasMatchingHost(redirectFormParam, request.getServerName())) {
             return redirectFormParam;
         } else {
             return super.determineTargetUrl(request, response);
-        }
-    }
-
-    private boolean isApprovedFormRedirectUri(HttpServletRequest request, String redirectUri) {
-        if (redirectUri == null) {
-            return false;
-        }
-
-        try {
-            URL url = new URL(redirectUri);
-            return request.getServerName().equals(url.getHost());
-        } catch (MalformedURLException e) {
-            return false;
         }
     }
 }
