@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Consent {
     private String text;
     private String link;

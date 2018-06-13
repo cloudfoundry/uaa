@@ -252,7 +252,7 @@
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg ref="passwordGrantAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <constructor-arg ref="xOauthAuthenticationManager"/>
@@ -656,6 +656,13 @@
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
+    </bean>
+
+    <bean id="passwordGrantAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
+        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg name="identityProviderProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
+        <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
     </bean>
 
 </beans>

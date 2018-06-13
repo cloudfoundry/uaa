@@ -563,11 +563,14 @@ public final class MockMvcUtils {
         return provider;
     }
 
-    public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
+    public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String userId, String redirectUri) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
-        BaseClientDetails appClient = new BaseClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
+
+        List<String> redirectUris = Arrays.asList(redirectUri, "http://" + zone.getIdentityZone().getSubdomain() + ".localhost");
+        BaseClientDetails appClient = new BaseClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", String.join(",", redirectUris));
+
         appClient.setClientSecret("secret");
         appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
           status().isCreated());
@@ -582,7 +585,7 @@ public final class MockMvcUtils {
 
 
         String username = new RandomValueStringGenerator().generate().toLowerCase() + "@example.com";
-        ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
+        ScimUser user = new ScimUser(userId, username, "given-name", "family-name");
         user.setPrimaryEmail(username);
         user.setPassword("password");
         user = createUserInZone(mockMvc, adminToken, user, zone.getIdentityZone().getSubdomain());

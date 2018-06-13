@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
@@ -48,6 +49,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -476,7 +478,8 @@ public class LoginInfoEndpoint {
             excludedPrompts.add("password");
         }
 
-        populatePrompts(model, excludedPrompts);
+        String origin = request != null ? request.getParameter("origin") : null;
+        populatePrompts(model, excludedPrompts, origin);
 
         if (principal == null) {
 
@@ -491,7 +494,7 @@ public class LoginInfoEndpoint {
             boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
             boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
-            if (discoveryEnabled) {
+            if (discoveryEnabled && !model.containsAttribute("login_hint")) {
                 boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
                     && !discoveryPerformed;
@@ -595,13 +598,30 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude) {
+    private void populatePrompts(Model model, List<String> exclude, String origin) {
+        List<Prompt> prompts;
         IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
         if (isNull(zoneConfiguration)) {
             zoneConfiguration = new IdentityZoneConfiguration();
         }
+        prompts = zoneConfiguration.getPrompts();
+        if (origin != null) {
+            IdentityProvider providerForOrigin = null;
+            try {
+                providerForOrigin = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
+            } catch (DataAccessException e) {}
+            if (providerForOrigin != null) {
+                if (providerForOrigin.getConfig() instanceof OIDCIdentityProviderDefinition) {
+                    OIDCIdentityProviderDefinition oidcConfig = (OIDCIdentityProviderDefinition) providerForOrigin.getConfig();
+                    List<Prompt> providerPrompts = oidcConfig.getPrompts();
+                    if (providerPrompts != null) {
+                        prompts = providerPrompts;
+                    }
+                }
+            }
+        }
         Map<String, String[]> map = new LinkedHashMap<>();
-        for (Prompt prompt : zoneConfiguration.getPrompts()) {
+        for (Prompt prompt : prompts) {
             String[] details = prompt.getDetails();
             if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
                 String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);

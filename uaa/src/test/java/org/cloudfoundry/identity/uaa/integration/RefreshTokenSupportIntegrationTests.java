@@ -149,6 +149,7 @@ public class RefreshTokenSupportIntegrationTests {
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
                         testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        tokenHeaders.set("Cache-Control", "no-store");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -162,7 +163,7 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("refresh_token", accessToken.getRefreshToken().getValue());
         tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertEquals("no-cache, no-store, max-age=0, must-revalidate", tokenResponse.getHeaders().getFirst("Cache-Control"));
+        assertEquals("no-store", tokenResponse.getHeaders().getFirst("Cache-Control"));
         @SuppressWarnings("unchecked")
         OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
         try {

@@ -12,20 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -57,6 +58,8 @@ public class OauthIDPWrapperFactoryBean {
                         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
                         setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
                         oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
+                        oidcIdentityProviderDefinition.setPasswordGrantEnabled(idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
+                        oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
                         rawDef = oidcIdentityProviderDefinition;
                         provider.setType(OriginKeys.OIDC10);

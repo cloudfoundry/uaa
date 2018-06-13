@@ -43,6 +43,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -1003,6 +1004,59 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testLoginHintOriginUaaSkipAccountChooser() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+        assertEquals("login", redirect);
+    }
+
+    @Test
+    public void testInvalidLoginHintErrorOnDiscoveryPage() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"invalidorigin\"}"});
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(false);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/email", redirect);
+    }
+
+    @Test
     public void testLoginHintOriginOidc() throws  Exception{
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -1060,6 +1114,145 @@ public class LoginInfoEndpointTests {
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
         assertTrue(model.get("error").equals("invalid_login_hint"));
+    }
+
+    @Test
+    public void testGetPromptsFromOIDCProvider() throws  Exception{
+        List<Prompt> customPrompts = new ArrayList<>();
+        customPrompts.add(new Prompt("username", "text", "MyEmail"));
+        customPrompts.add(new Prompt("password", "password", "MyPassword"));
+        customPrompts.add(new Prompt("passcode", "text", "MyTemporary Authentication Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
+
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        mockHttpServletRequest.setParameter("origin", "OIDC-without-prompts");
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityProvider provider = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition oidcConfig = mock(OIDCIdentityProviderDefinition.class);
+
+        when(oidcConfig.getPrompts()).thenReturn(customPrompts);
+        when(provider.getConfig()).thenReturn(oidcConfig);
+        when(identityProviderProvisioning.retrieveByOrigin("OIDC-without-prompts", "uaa")).thenReturn(provider);
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(2, returnedPrompts.size());
+
+        assertNotNull(returnedPrompts.get("username"));
+        assertEquals("MyEmail", returnedPrompts.get("username")[1]);
+        assertNotNull(returnedPrompts.get("password"));
+        assertEquals("MyPassword", returnedPrompts.get("password")[1]);
+    }
+
+    @Test
+    public void testGetPromptsFromNonOIDCProvider() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        mockHttpServletRequest.setParameter("origin", "non-OIDC");
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityProvider provider = mock(IdentityProvider.class);
+        SamlIdentityProviderDefinition samlConfig = mock(SamlIdentityProviderDefinition.class);
+        when(provider.getConfig()).thenReturn(samlConfig);
+        when(identityProviderProvisioning.retrieveByOrigin("non-OIDC", "uaa")).thenReturn(provider);
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(2, returnedPrompts.size());
+        assertNotNull(returnedPrompts.get("username"));
+        assertEquals("Email", returnedPrompts.get("username")[1]);
+        assertNotNull(returnedPrompts.get("password"));
+        assertEquals("Password", returnedPrompts.get("password")[1]);
+    }
+
+    @Test
+    public void testGetPromptsFromNonExistentProvider() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        mockHttpServletRequest.setParameter("origin", "non-OIDC");
+        LoginInfoEndpoint endpoint = getEndpoint();
+        when(identityProviderProvisioning.retrieveByOrigin("non-OIDC", "uaa")).thenThrow(mock(DataAccessException.class));
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(2, returnedPrompts.size());
+        assertNotNull(returnedPrompts.get("username"));
+        assertEquals("Email", returnedPrompts.get("username")[1]);
+        assertNotNull(returnedPrompts.get("password"));
+        assertEquals("Password", returnedPrompts.get("password")[1]);
+    }
+
+    @Test
+    public void testGetPromptsFromOIDCProviderWithoutPrompts() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        mockHttpServletRequest.setParameter("origin", "OIDC-without-prompts");
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityProvider provider = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition oidcConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(oidcConfig.getPrompts()).thenReturn(null);
+        when(provider.getConfig()).thenReturn(oidcConfig);
+        when(identityProviderProvisioning.retrieveByOrigin("OIDC-without-prompts", "uaa")).thenReturn(provider);
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(2, returnedPrompts.size());
+
+        assertNotNull(returnedPrompts.get("username"));
+        assertEquals("Email", returnedPrompts.get("username")[1]);
+        assertNotNull(returnedPrompts.get("password"));
+        assertEquals("Password", returnedPrompts.get("password")[1]);
     }
 
 

@@ -92,7 +92,9 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         if (StringUtils.isEmpty(formRedirect)) {
             return false;
         }
-
+        if (!UaaUrlUtils.uriHasMatchingHost(formRedirect, request.getServerName())) {
+            return false;
+        }
         if (hasSavedRequest(request)) {
             return false;
         }

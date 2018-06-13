@@ -11,6 +11,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.web.util.HtmlUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -97,6 +98,6 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             .andDo(log())
             .andExpect(status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
     }
 }

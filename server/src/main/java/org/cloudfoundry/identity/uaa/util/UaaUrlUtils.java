@@ -14,6 +14,15 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -24,16 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriUtils;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -227,5 +226,18 @@ public abstract class UaaUrlUtils {
 
         String path = String.format("%s%s", servletPath, pathInfo);
         return path;
+    }
+
+    public static boolean uriHasMatchingHost(String uri, String hostname) {
+        if (uri == null) {
+            return false;
+        }
+
+        try {
+            URL url = new URL(uri);
+            return hostname.equals(url.getHost());
+        } catch (MalformedURLException e) {
+            return false;
+        }
     }
 }

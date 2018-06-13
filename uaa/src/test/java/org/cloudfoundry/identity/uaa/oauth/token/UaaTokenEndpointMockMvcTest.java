@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.web.util.HtmlUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -32,7 +33,7 @@ public class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED))
             .andExpect(status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'PUT' not supported", "ISO-8859-1")));
     }
 
     @Test
@@ -51,6 +52,6 @@ public class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED))
             .andExpect(status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
     }
 }

@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -64,7 +63,9 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void info_endpoint_for_json() throws Exception {
-        Snippet requestParameters = requestParameters();
+        Snippet requestParameters = requestParameters(
+                parameterWithName("origin").optional(null).type(STRING).description("Use the configured prompts of the OpenID Connect Provider with the given origin key in the response. Fallback to zone values if no prompts are configured or origin is invalid.")
+        );
 
         Snippet responseFields = responseFields(
             fieldWithPath("app.version").type(STRING).description("The UAA version"),
@@ -91,6 +92,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(get("/info")
+            .param("origin","oidc-provider")
             .header(ACCEPT, APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
             .andDo(
