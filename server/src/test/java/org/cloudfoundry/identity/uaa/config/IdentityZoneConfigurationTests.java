@@ -247,4 +247,17 @@ public class IdentityZoneConfigurationTests {
         assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns());
         assertEquals(1728000, definition.getCorsPolicy().getDefaultConfiguration().getMaxAge());
     }
+
+    @Test
+    public void testSerializeDefaultIdentityProvider() {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setDefaultIdentityProvider("originkey");
+
+        String configString = JsonUtils.writeValueAsString(config);
+        assertThat(configString, containsString("\"defaultIdentityProvider\""));
+        assertThat(configString, containsString("\"originkey\""));
+
+        IdentityZoneConfiguration deserializedConfig = JsonUtils.readValue(configString, IdentityZoneConfiguration.class);
+        assertEquals(config.getDefaultIdentityProvider(), deserializedConfig.getDefaultIdentityProvider());
+    }
 }
