@@ -158,6 +158,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
     private static final String MFA_CONFIG_IDENTITY_PROVIDER_DESC = "Only trigger MFA when user is using an identity provider whose origin key matches one of these values";
     private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
+    private static final String DEFAULT_IDP_DESC = "This value can be set to the origin key of an identity provider. If set, the user will be directed to this identity provider automatically if no other identity provider is discovered or selected via login_hint.";
     private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
@@ -260,6 +261,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.defaultIdentityProvider").type(STRING).description(DEFAULT_IDP_DESC).optional().attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
