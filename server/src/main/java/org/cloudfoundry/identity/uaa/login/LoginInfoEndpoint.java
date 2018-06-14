@@ -394,6 +394,22 @@ public class LoginInfoEndpoint {
             }
         }
 
+        boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
+        boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
+        String defaultIdentityProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
+
+        if (idpForRedirect == null && (discoveryPerformed || !discoveryEnabled) && defaultIdentityProvider != null) {
+            if (!OriginKeys.UAA.equals(defaultIdentityProvider) && !OriginKeys.LDAP.equals(defaultIdentityProvider)) {
+                if (combinedIdps.containsKey(defaultIdentityProvider)) {
+                    idpForRedirect = combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);
+                }
+            } else {
+                model.addAttribute("login_hint", defaultIdentityProvider);
+                samlIdps.clear();
+                oauthIdentityProviderDefinitions.clear();
+            }
+        }
+
         if(idpForRedirect == null && !jsonResponse && !fieldUsernameShow && combinedIdps.size() == 1) {
             idpForRedirect = combinedIdps.entrySet().stream().findAny().get();
         }
@@ -488,9 +504,7 @@ public class LoginInfoEndpoint {
                 model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
             }
 
-            boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
             boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
-            boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
             boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
             boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
