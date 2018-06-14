@@ -407,6 +407,28 @@ login:
 #          external_groups:
 #            - scopes_example_group
 #            - roles_example_group
+#      my-oidc-provider:
+#        type: oidc1.0
+#        discoveryUrl: http://my-auth.com
+#        tokenKey: my-token-key
+#        issuer: token issuer (iss)
+#        scopes:
+#          - openid
+#          - scope.example
+#        linkText: My OIDC Provider
+#        showLinkText: true
+#        relyingPartyId: identity
+#        relyingPartySecret: identitysecret
+#        prompts:
+#          - name: username
+#            type: text
+#            text: MyEmail
+#          - name: password
+#            type: password
+#            text: MyPassword
+#          - name: passcode
+#            type: password
+#            text: MyTemporary Authentication Code (Get on at /passcode)
   url: http://localhost:8080/uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
