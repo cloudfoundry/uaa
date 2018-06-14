@@ -82,16 +82,43 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
                     EnumerablePropertySource enumerable = (EnumerablePropertySource) source;
                     for (String name : enumerable.getPropertyNames()) {
                         Object value = source.getProperty(name);
-                        if (value instanceof String) {
-                            // Unresolved placeholders are legal.
-                            value = environment.resolvePlaceholders((String) value);
-                        }
-                        result.put(name, value);
+                        result.put(name, resolvePlaceHolders(value));
                     }
                 }
             }
         }
         return result;
+    }
+    
+    /**
+     * Try to resolves the place-holders in the given object. In case of any
+     * exception, returns the object as is.
+     * 
+     * @param value
+     *            Any value in which the object need to be resolved.
+     * @return The given Object instance with the values resolved.
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private Object resolvePlaceHolders(Object value){
+        if (value instanceof String){
+            // Unresolved placeholders are legal.
+            return environment.resolvePlaceholders((String) value);
+        }
+        try{
+
+            if (value instanceof Map){
+                for (Object key : ((Map) value).keySet()){
+                    ((Map) value).put(key, resolvePlaceHolders(((Map) value).get(key)));
+                }
+            } else if (value instanceof List){
+                for (int i = 0; i < ((List) value).size(); i++){
+                    ((List) value).set(i, resolvePlaceHolders(((List) value).get(i)));
+                }
+            }
+        } catch (Exception e){
+            // Giveup resolving the value
+        }
+        return value;
     }
 
     @Override
