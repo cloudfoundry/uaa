@@ -404,7 +404,8 @@ public class LoginInfoEndpoint {
                     idpForRedirect = combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);
                 }
             } else {
-                model.addAttribute("login_hint", defaultIdentityProvider);
+                UaaLoginHint loginHint = new UaaLoginHint(defaultIdentityProvider);
+                model.addAttribute("login_hint", loginHint.toString());
                 samlIdps.clear();
                 oauthIdentityProviderDefinitions.clear();
             }

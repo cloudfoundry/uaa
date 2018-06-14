@@ -947,13 +947,7 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         IdentityProvider mockProvider = mock(IdentityProvider.class);
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
@@ -984,13 +978,7 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1008,13 +996,7 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1035,13 +1017,7 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1061,23 +1037,9 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
-        IdentityProvider mockProvider = mock(IdentityProvider.class);
-        when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
-        when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
-        AbstractXOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
-        when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
-        when(mockOidcConfig.getResponseType()).thenReturn("token");
-        when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
-        when(identityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(Collections.singletonList(mockProvider));
+        mockOidcProvider();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1097,13 +1059,7 @@ public class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1133,13 +1089,7 @@ public class LoginInfoEndpointTests {
         when(provider.getConfig()).thenReturn(oidcConfig);
         when(identityProviderProvisioning.retrieveByOrigin("OIDC-without-prompts", "uaa")).thenReturn(provider);
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1167,13 +1117,7 @@ public class LoginInfoEndpointTests {
         when(provider.getConfig()).thenReturn(samlConfig);
         when(identityProviderProvisioning.retrieveByOrigin("non-OIDC", "uaa")).thenReturn(provider);
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1197,13 +1141,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         when(identityProviderProvisioning.retrieveByOrigin("non-OIDC", "uaa")).thenThrow(mock(DataAccessException.class));
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1231,13 +1169,7 @@ public class LoginInfoEndpointTests {
         when(provider.getConfig()).thenReturn(oidcConfig);
         when(identityProviderProvisioning.retrieveByOrigin("OIDC-without-prompts", "uaa")).thenReturn(provider);
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
-        // mock Client service
-        BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
 
@@ -1255,7 +1187,97 @@ public class LoginInfoEndpointTests {
         assertEquals("Password", returnedPrompts.get("password")[1]);
     }
 
+    @Test
+    public void testDefaultProviderUaa() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
 
+        ClientServicesExtension clientDetailsService = mockClientService();
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("login", redirect);
+        assertEquals("{\"origin\":\"uaa\"}",model.get("login_hint"));
+    }
+
+    @Test
+    public void testDefaultProviderOIDC() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        mockOidcProvider();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+
+        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, containsString("my-OIDC-idp1"));
+    }
+
+    @Test
+    public void testDefaultProviderAfterDiscovery() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        mockOidcProvider();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        mockHttpServletRequest.setParameter("discoveryPerformed", "true");
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, containsString("my-OIDC-idp1"));
+    }
+
+    @Test
+    public void testLoginHintOverridesDefaultProvider() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        mockOidcProvider();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
+
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+
+        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, containsString("my-OIDC-idp1"));
+        assertNull(model.get("login_hint"));
+    }
+
+    @Test
+    public void testDefaultProviderInvalidFallback() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("invalid");
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("login", redirect);
+    }
 
     private MockHttpServletRequest getMockHttpServletRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1315,5 +1337,29 @@ public class LoginInfoEndpointTests {
 
         return oidcIdentityProvider;
 
+    }
+
+    private ClientServicesExtension mockClientService() {
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        return clientDetailsService;
+    }
+
+
+    private void mockOidcProvider() throws MalformedURLException {
+        IdentityProvider mockProvider = mock(IdentityProvider.class);
+        when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
+        when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
+        AbstractXOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
+        when(mockOidcConfig.getResponseType()).thenReturn("token");
+        when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
+        when(identityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(Collections.singletonList(mockProvider));
     }
 }
