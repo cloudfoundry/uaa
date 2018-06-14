@@ -239,6 +239,8 @@ public class CreateAccountIT {
         String csrf = IntegrationTestUtils.extractCookieCsrf(getCreateAccountResponse.getBody());
         requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
+
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         getCreateAccountResponse = template.exchange(baseUrl + "/create_account.do",
           HttpMethod.POST,
@@ -247,6 +249,11 @@ public class CreateAccountIT {
         headers.clear();
 
         assertThat(getCreateAccountResponse.getStatusCode(), is(HttpStatus.FOUND));
+
+        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        receivedEmail.next();
+        receivedEmail.remove();
     }
 
 }
