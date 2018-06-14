@@ -32,8 +32,10 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class UaaUrlUtilsTest {
@@ -358,6 +360,19 @@ public class UaaUrlUtilsTest {
         validateRedirectUri(invalidWildCardUrls, false);
         validateRedirectUri(invalidHttpWildCardUrls, false);
         validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
+    }
+
+    @Test
+    public void testUriHasMatchingHost() {
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
+
+        assertFalse(UaaUrlUtils.uriHasMatchingHost(null, "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not-test.com/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("not-valid-url", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
     }
 
     private void validateRedirectUri(List<String> urls, boolean result) {
