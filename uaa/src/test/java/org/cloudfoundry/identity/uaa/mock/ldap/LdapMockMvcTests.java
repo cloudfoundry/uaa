@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -44,7 +43,6 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -215,8 +213,8 @@ public class LdapMockMvcTests  {
     @Before
     public void createTestZone() throws Exception {
 
-        String clientId = new RandomValueStringGenerator().generate().toLowerCase();
-        zone = utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
+        String userId = new RandomValueStringGenerator().generate().toLowerCase();
+        zone = utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setLdapProfileFile("ldap/" + ldapProfile);
@@ -258,6 +256,7 @@ public class LdapMockMvcTests  {
         LdapIdentityProviderDefinition definition = provider.getConfig();
         definition.setEmailDomain(Arrays.asList("test.com"));
         updateLdapProvider();
+        String redirectUri = "http://" + host;
 
         URL url = utils().inviteUser(
             getWebApplicationContext(),
@@ -267,7 +266,7 @@ public class LdapMockMvcTests  {
             zone.getZone().getIdentityZone().getSubdomain(),
             zone.getScimInviteClient().getClientId(),
             LDAP,
-            REDIRECT_URI
+            redirectUri
         );
 
 
@@ -303,7 +302,7 @@ public class LdapMockMvcTests  {
                                  .header(HOST, host)
                                  .with(csrf()))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI))
+            .andExpect(redirectedUrl(redirectUri))
             .andReturn();
 
         String newUserInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
@@ -1026,37 +1025,6 @@ public class LdapMockMvcTests  {
         assertEquals("marissa7@user.from.ldap.cf", getEmail(username));
     }
 
-    @Test
-    @Ignore("This test was previously not run and does not pass")
-    public void validateLoginAsInvitedUserWithoutClickingInviteLink() throws Exception {
-        UaaUserDatabase userDatabase = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        ScimUser createdUser;
-        try {
-            IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            assertNull(userDatabase.retrieveUserByEmail("marissa7@user.from.ldap.cf", LDAP));
-            ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
-            user.setPrimaryEmail("marissa7@user.from.ldap.cf");
-            user.setOrigin(LDAP);
-            createdUser = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, "", IdentityZoneHolder.get().getId());
-        } finally {
-            IdentityZoneHolder.clear();
-        }
-
-
-        performUiAuthentication("marissa7", "ldap7", HttpStatus.FOUND, true);
-
-        UaaUser authedUser = retrieveUserInZone(userDatabase, "marissa7@createdUser.from.ldap.cf", LDAP);
-        assertEquals(createdUser.getId(), authedUser.getId());
-        assertEquals("marissa7", authedUser.getUsername());
-        try {
-            IdentityZoneHolder.set(zone.getZone().getIdentityZone());
-            List<ScimUser> scimUserList = getWebApplicationContext().getBean(ScimUserProvisioning.class).query(String.format("origin eq \"%s\"", LDAP), IdentityZoneHolder.get().getId());
-            assertEquals(1, scimUserList.size());
-        } finally {
-            IdentityZoneHolder.clear();
-        }
-    }
-
     public UaaUser retrieveUserInZone(UaaUserDatabase userDatabase, String email, String origin) {
         try {
             IdentityZoneHolder.set(zone.getZone().getIdentityZone());
@@ -1179,7 +1147,6 @@ public class LdapMockMvcTests  {
             .andExpect(authenticated ? authenticated() : unauthenticated())
             .andReturn();
     }
-
 
     @Test
     public void testLdapScopes() throws Exception {

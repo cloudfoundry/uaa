@@ -1797,7 +1797,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
         String state = generator.generate();
 
-        String url = UriComponentsBuilder
+        String authUrl = "http://localhost" + UriComponentsBuilder
             .fromUriString("/oauth/authorize?response_type=code&scope=openid&state={state}&client_id={clientId}&redirect_uri={redirectUri}")
             .buildAndExpand(state,clientId,redirectUri)
             .encode()
@@ -1807,7 +1807,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String encodedRedirectUri = UriUtils.encodeQueryParam(redirectUri, "ISO-8859-1");
 
         MvcResult result = getMockMvc()
-            .perform(get(new URI(url)))
+            .perform(get(new URI(authUrl)))
             .andExpect(status().is3xxRedirection())
             .andReturn();
         String location = result.getResponse().getHeader("Location");
@@ -1817,7 +1817,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(session);
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         assertNotNull(savedRequest);
-        assertEquals("http://localhost"+url, savedRequest.getRedirectUrl());
+        assertEquals(authUrl, savedRequest.getRedirectUrl());
 
         getMockMvc().perform(
             get("/login")
@@ -1833,7 +1833,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         result = getMockMvc().perform(
             post("/login.do")
                 .with(cookieCsrf())
-                .param("form_redirect_uri", url)
+                .param("form_redirect_uri", authUrl)
                 .param("username", username)
                 .param("password", "invalid")
         )
@@ -1859,12 +1859,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(
             post("/login.do")
                 .with(cookieCsrf())
-                .param("form_redirect_uri", url)
+                .param("form_redirect_uri", authUrl)
                 .param("username", username)
                 .param("password", SECRET)
         )
             .andExpect(status().isFound())
-            .andExpect(header().string("Location", url));
+            .andExpect(header().string("Location", authUrl));
     }
 
     @Test
