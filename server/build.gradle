@@ -88,6 +88,8 @@ dependencies {
   testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
   testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
 
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-el-api', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jasper-el', version:parent.tomcatJdbcPoolVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
