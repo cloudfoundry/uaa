@@ -419,6 +419,7 @@ login:
 #        showLinkText: true
 #        relyingPartyId: identity
 #        relyingPartySecret: identitysecret
+#        passwordGrantEnabled: true
 #        prompts:
 #          - name: username
 #            type: text

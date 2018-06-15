@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -24,11 +25,24 @@ public class UaaLoginHint {
     private UaaLoginHint() {
     }
 
+    public UaaLoginHint(String origin) {
+        this.origin = origin;
+    }
+
     public String getOrigin() {
         return origin;
     }
 
     public void setOrigin(String origin) {
         this.origin = origin;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            return super.toString();
+        }
     }
 }

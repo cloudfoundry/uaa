@@ -2308,6 +2308,18 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         );
     }
 
+    @Test
+    public void testCreateZoneWithDefaultIdp() throws Exception {
+        IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
+        identityZoneConfiguration.setDefaultIdentityProvider("originkey");
+        IdentityZone zone = createZone(generator.generate().toLowerCase(),
+                HttpStatus.CREATED,
+                uaaAdminClientToken,
+                identityZoneConfiguration
+        );
+        assertEquals("originkey", zone.getConfig().getDefaultIdentityProvider());
+    }
+
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
