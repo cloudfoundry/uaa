@@ -431,6 +431,7 @@ login:
 #            type: password
 #            text: MyTemporary Authentication Code (Get on at /passcode)
   url: http://localhost:8080/uaa
+#  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
 
