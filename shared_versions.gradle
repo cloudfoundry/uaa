@@ -16,7 +16,7 @@ ext {
   hamcrestVersion = '1.3'
   hibernateValidatorVersion = '4.3.2.Final'
   hsqldbVersion = '2.3.1'
-  jacksonVersion = '2.9.5'
+  jacksonVersion = '2.9.6'
   javamailVersion = '1.4.7'
   jsonPathVersion = '2.4.0'
   junitVersion = '4.12'
