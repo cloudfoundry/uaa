@@ -566,6 +566,7 @@
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
+        <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
