@@ -6,7 +6,8 @@ applications:
   instances: 1
   random-route: false
   path: ../../uaa/build/libs/cloudfoundry-identity-uaa-@version@.war
-  host: @app@
+  routes:
+  - route: @app@.@appdomain@
   env:
     UAA_URL: http://@app@.@appdomain@
     LOGIN_URL: http://@app@.@appdomain@
