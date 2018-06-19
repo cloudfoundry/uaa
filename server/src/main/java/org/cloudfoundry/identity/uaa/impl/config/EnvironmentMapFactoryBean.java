@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
+
 
 /**
  * Factory for Maps that reads from the Spring context {@link Environment} where
