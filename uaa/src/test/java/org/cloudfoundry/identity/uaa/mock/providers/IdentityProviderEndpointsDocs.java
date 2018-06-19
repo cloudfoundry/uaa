@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -57,6 +58,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -560,6 +562,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
         definition.setExternalGroupsWhitelist(Arrays.asList("uaa.user"));
+        List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
+                new Prompt("password", "password", "Password"),
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
+        definition.setPrompts(prompts);
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
