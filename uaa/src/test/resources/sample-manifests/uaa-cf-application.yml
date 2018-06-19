@@ -66,3 +66,9 @@ applications:
         maxactive: 15
         maxidle: 5
         minidle: 1
+
+      encryption:
+        active_key_label: some-random-value
+        encryption_keys:
+        - label: some-random-label
+          passphrase: some-random-passphrase
