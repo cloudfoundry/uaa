@@ -80,6 +80,15 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         return loginHint;
     }
 
+    protected boolean setLoginHint(Authentication authentication, UaaLoginHint loginHint) {
+        if (authentication != null && authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails) authentication.getDetails();
+            uaaAuthenticationDetails.setLoginHint(loginHint);
+            return true;
+        }
+        return false;
+    }
+
     protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone, UaaLoginHint loginHint) {
         IdentityProvider ldapProvider = getProvider(OriginKeys.LDAP, zone);
         IdentityProvider uaaProvider = getProvider(OriginKeys.UAA, zone);
