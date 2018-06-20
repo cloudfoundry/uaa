@@ -367,6 +367,9 @@ pipeline {
             }
         }
         stage('Upload Build Artifact') {
+            environment {
+                BINTRAY_CREDS = credentials("BINTRAY_CREDS")
+            }
             agent {
                 label 'dind'
             }
@@ -387,17 +390,31 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
-                    def uploadSpec = """{
-                        "files": [
-                            {
-                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
-                            }
-                        ]
-                    }"""
-                    def buildInfo = devcloudArtServer.upload(uploadSpec)
-                    devcloudArtServer.publishBuildInfo(buildInfo)
+                   echo "Uploading UAA ${APP_VERSION} build to Artifactory"
+                   def uploadSpec = """{
+                       "files": [
+                           {
+                               "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                               "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
+                           }
+                       ]
+                   }"""
+                   def buildInfo = devcloudArtServer.upload(uploadSpec)
+                   devcloudArtServer.publishBuildInfo(buildInfo)
+
+
+                    echo 'package offline install files to CLZ'
+                    sh """#!/bin/bash -ex
+                        # currently only pulls config for rosneft PPC, maybe parameterize per PPC later
+                        # TODO: compose .toml file and push along with tar and war
+                        tar -zcf ppc-sr-labs-uaa-deploy-${APP_VERSION}.tgz uaa-cf-release/config-rosneft uaa-cf-release/config-sr-lab uaa-cf-release/*.sh
+
+                        curl -T "build/cloudfoundry-identity-uaa-${APP_VERSION}.war" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/predix-uaa/cloudfoundry-identity-uaa-${APP_VERSION}.war?override=1
+                        curl -T "ppc-sr-labs-uaa-deploy-${APP_VERSION}.tgz" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/predix-uaa/ppc-sr-labs-uaa-deploy-${APP_VERSION}.tgz?override=1
+                        curl -T "uaa/PPCDeployJenkinsfile" -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/predix-uaa/PPCDeployJenkinsfile?override=1
+                        echo 'publish file in bintray'
+                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}/predix-uaa/publish
+                    """
                 }
             }
         }

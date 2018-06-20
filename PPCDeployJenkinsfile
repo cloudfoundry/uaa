@@ -1,0 +1,83 @@
+#!/usr/bin/env groovy
+def devcloudArtServer = Artifactory.server('ppc-artifactory')
+
+pipeline {
+    agent none
+    environment {
+        COMPLIANCEENABLED = true
+    }
+    options {
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+    }
+    parameters  {
+        choice(name: 'DEPLOYMENT_TYPE', choices:'ppc,rosneft', description: 'This specifies which point of presence to deploy to')
+        booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
+        booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
+        string(name: 'APP_VERSION', defaultValue: '4.10.0', description: 'app version to pull from bintray')
+    }
+    stages{
+        stage('Deploy') {
+            agent{
+                label "master"
+            }
+            environment {
+                CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+            }
+            steps {
+                script {                    
+                    echo "Downloading UAA ${APP_VERSION} Artifact Artifactory"
+                    def downloadSpec = """{
+                        "files": [
+                            {
+                                "target": "deploy-workspace/",
+                                "flat": "true",
+                                "pattern": "Rosneft/uaa/${APP_VERSION}/*"
+                            }
+                        ]
+                    }"""
+                    sh 'pwd && ls -ltr'
+                    devcloudArtServer.download(downloadSpec)
+                    sh "ls -ltr deploy-workspace/"
+                }
+                sh '''
+                    tar -xf deploy-workspace/ppc-sr-labs-uaa-deploy-${APP_VERSION}.tgz
+                '''
+
+                sh '''#!/bin/bash -ex
+                export CF_USERNAME=$CF_CREDENTIALS_USR
+                export CF_PASSWORD=$CF_CREDENTIALS_PSW
+                export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
+                source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
+                unset HTTPS_PROXY
+                unset HTTP_PROXY
+                unset http_proxy
+                unset https_proxy
+                unset GRADLE_OPTS
+
+                pushd uaa-cf-release
+                    source combine-inline-config.sh
+                    echo "$UAA_CONFIG_YAML"
+                    echo "$APP_NAME" 
+                    cf -v
+                    ./ci_deploy.sh
+                popd
+                touch uaa-release.properties
+                echo "DEPLOYMENT_TYPE:$DEPLOYMENT_TYPE" >> uaa-release.properties
+                echo "UAA_CF_RELEASE_COMMIT_HASH:$UAA_CONFIG_COMMIT" >> uaa-release.properties
+                echo "UAA_APP_VERSION:$APP_VERSION" >> uaa-release.properties
+                '''
+                stash includes: 'uaa-release.properties', name:'uaa-release.properties'
+            }
+            post{
+                success {
+                    echo "Deployment stage completed"
+                }
+                failure {
+                    echo "Deployment stage failed"
+                }
+            }
+        }
+    }
+}
