@@ -173,6 +173,9 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
 
     private List<String> getAllowedProviders() {
         Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
+        if (clientAuth == null) {
+            throw new BadCredentialsException("No client authentication found.");
+        }
         String clientId = clientAuth.getName();
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
