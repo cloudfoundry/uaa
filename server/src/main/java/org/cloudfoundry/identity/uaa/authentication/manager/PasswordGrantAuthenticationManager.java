@@ -42,7 +42,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Optional.ofNullable;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 public class PasswordGrantAuthenticationManager implements AuthenticationManager {
@@ -73,10 +72,8 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else if (allowedProviders.contains("ldap")) {
             internalLoginHint = new UaaLoginHint("ldap");
         }
-
         UaaLoginHint loginHintToUse = compareLoginHints(uaaLoginHint, internalLoginHint);
         zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
-
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
@@ -175,16 +172,11 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
 
 
     private List<String> getAllowedProviders() {
-        String clientId = (String) ofNullable(SecurityContextHolder.getContext())
-                .flatMap(ctx -> ofNullable(ctx.getAuthentication()))
-                .flatMap(auth -> ofNullable(auth.getPrincipal())).orElse(null);
-        if (clientId != null)
-        {
-            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            return (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        } else {
-            return Collections.emptyList();
-        }
+        Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
+        String clientId = clientAuth.getName();
+        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        return allowedProviders != null ? allowedProviders : Collections.emptyList();
     }
 
 
