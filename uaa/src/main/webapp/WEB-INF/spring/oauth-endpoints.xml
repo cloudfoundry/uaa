@@ -663,6 +663,7 @@
         <constructor-arg name="identityProviderProvisioning" ref="xoauthProviderConfigurator"/>
         <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
         <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService" />
     </bean>
 
 </beans>
