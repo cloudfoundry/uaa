@@ -232,18 +232,13 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
-    public String loginForJson(Model model, Principal principal, HttpServletRequest request) {
+    public String infoForLoginJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, Collections.emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, Collections.emptyList(), true, request);
-    }
-
-    @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
-    public String infoForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
@@ -256,12 +251,14 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
-    public String loginForHtml(
-        Model model, Principal principal, HttpServletRequest request,
-        @RequestHeader(value = "Accept", required = false) List<MediaType> headers)
-        throws HttpMediaTypeNotAcceptableException
-    {
-        boolean match = headers == null || headers.stream().anyMatch(mediaType -> mediaType.isCompatibleWith(MediaType.TEXT_HTML));
+    public String loginForHtml(Model model,
+                               Principal principal,
+                               HttpServletRequest request,
+                               @RequestHeader(value = "Accept", required = false) List<MediaType> headers)
+            throws HttpMediaTypeNotAcceptableException {
+
+        boolean match =
+            headers == null || headers.stream().anyMatch(mediaType -> mediaType.isCompatibleWith(MediaType.TEXT_HTML));
         if (!match) {
             throw new HttpMediaTypeNotAcceptableException(request.getHeader(HttpHeaders.ACCEPT));
         }
@@ -275,7 +272,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return infoForHtml(model, principal, request);
+        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
@@ -311,7 +308,9 @@ public class LoginInfoEndpoint {
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
-        if(principal instanceof UaaAuthentication && ((UaaAuthentication)principal).isAuthenticated()) { return "redirect:/home"; }
+        if(principal instanceof UaaAuthentication && ((UaaAuthentication)principal).isAuthenticated()) {
+            return "redirect:/home";
+        }
 
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = null;
@@ -374,7 +373,8 @@ public class LoginInfoEndpoint {
                     oauthIdentityProviderDefinitions.clear();
                 } else {
                     // for oidc/saml, trigger the redirect
-                    List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
+                    List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps =
+                        combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
                     if(hintIdps.size() > 1) {
                         throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
                     } else if(hintIdps.size() == 1) {
@@ -385,7 +385,8 @@ public class LoginInfoEndpoint {
                 }
             } else {
                 // login_hint in JSON format was not available, try old format (email domain)
-                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)).collect(Collectors.toList());
+                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps =
+                    combinedIdps.entrySet().stream().filter(idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)).collect(Collectors.toList());
                 if (matchingIdps.size() > 1) {
                     throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
                 } else if (matchingIdps.size() == 1) {
@@ -401,7 +402,8 @@ public class LoginInfoEndpoint {
         if (idpForRedirect == null && (discoveryPerformed || !discoveryEnabled) && defaultIdentityProvider != null) {
             if (!OriginKeys.UAA.equals(defaultIdentityProvider) && !OriginKeys.LDAP.equals(defaultIdentityProvider)) {
                 if (combinedIdps.containsKey(defaultIdentityProvider)) {
-                    idpForRedirect = combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);
+                    idpForRedirect =
+                        combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);
                 }
             } else if (allowedIdps == null || allowedIdps.contains(defaultIdentityProvider)) {
                 UaaLoginHint loginHint = new UaaLoginHint(defaultIdentityProvider);
