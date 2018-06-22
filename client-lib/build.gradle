@@ -8,6 +8,10 @@ dependencies {
   testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 }
 
+configurations.all {
+  exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
+
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
