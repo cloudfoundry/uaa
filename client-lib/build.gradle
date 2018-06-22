@@ -24,3 +24,14 @@ integrationTest {
   }
 }
 
+publishing {
+  publications {
+    lib(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-client-lib'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}
