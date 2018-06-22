@@ -71,6 +71,8 @@ dependencies {
 
   compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
 
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')

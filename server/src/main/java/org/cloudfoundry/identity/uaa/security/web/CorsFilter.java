@@ -13,9 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -78,7 +78,7 @@ import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
  */
 public class CorsFilter extends OncePerRequestFilter {
 
-    static final Log logger = LogFactory.getLog(CorsFilter.class);
+    static final Logger logger = LoggerFactory.getLogger(CorsFilter.class);
     public static final String X_REQUESTED_WITH = "X-Requested-With";
     public static final String WILDCARD = "*";
 
