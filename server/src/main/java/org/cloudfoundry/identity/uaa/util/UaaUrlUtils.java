@@ -227,4 +227,17 @@ public abstract class UaaUrlUtils {
         String path = String.format("%s%s", servletPath, pathInfo);
         return path;
     }
+
+    public static boolean uriHasMatchingHost(String uri, String hostname) {
+        if (uri == null) {
+            return false;
+        }
+
+        try {
+            URL url = new URL(uri);
+            return hostname.equals(url.getHost());
+        } catch (MalformedURLException e) {
+            return false;
+        }
+    }
 }

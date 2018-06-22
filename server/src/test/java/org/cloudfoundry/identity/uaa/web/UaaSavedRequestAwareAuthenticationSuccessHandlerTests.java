@@ -42,15 +42,25 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    public void form_parameter_works() {
-        request.setParameter(FORM_REDIRECT_PARAMETER, "http://test.com");
-        assertEquals("http://test.com", handler.determineTargetUrl(request, new MockHttpServletResponse()));
-    }
-
-    @Test
     public void form_parameter_is_overridden() {
         request.setParameter(FORM_REDIRECT_PARAMETER, "http://test.com");
         request.setAttribute(URI_OVERRIDE_ATTRIBUTE, "http://override.test.com");
         assertEquals("http://override.test.com", handler.determineTargetUrl(request, new MockHttpServletResponse()));
+    }
+
+    @Test
+    public void validFormRedirectIsReturned() {
+        String redirectUri = request.getScheme() + "://" + request.getServerName() + "/test";
+
+        request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
+        assertEquals(redirectUri, handler.determineTargetUrl(request, new MockHttpServletResponse()));
+    }
+
+    @Test
+    public void invalidFormRedirectIsNotReturned() {
+        String redirectUri = "http://test.com/test";
+
+        request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
+        assertEquals("/", handler.determineTargetUrl(request, new MockHttpServletResponse()));
     }
 }

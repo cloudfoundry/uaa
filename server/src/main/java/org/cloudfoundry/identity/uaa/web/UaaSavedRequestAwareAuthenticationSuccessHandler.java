@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.web;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,7 +39,7 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
         if (redirectAttribute !=null) {
             logger.debug("Returning redirectAttribute saved URI:"+redirectAttribute);
             return (String) redirectAttribute;
-        } else if (redirectFormParam != null) {
+        } else if (UaaUrlUtils.uriHasMatchingHost(redirectFormParam, request.getServerName())) {
             return redirectFormParam;
         } else {
             return super.determineTargetUrl(request, response);

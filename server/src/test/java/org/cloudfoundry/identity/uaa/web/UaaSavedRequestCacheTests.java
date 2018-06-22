@@ -28,8 +28,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -38,6 +43,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -103,6 +109,7 @@ public class UaaSavedRequestCacheTests {
         request.setPathInfo("/login.do");
         request.setRequestURI("/login.do");
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
+        request.setServerName(new URL(redirectUri).getHost());
         assertTrue(cache.shouldSaveFormRedirectParameter(request));
         ServletResponse response = new MockHttpServletResponse();
 
@@ -145,8 +152,11 @@ public class UaaSavedRequestCacheTests {
 
     @Test
     public void saveFormRedirectRequest() throws Exception {
+        String redirectUri = "http://login";
         request.setSession(session);
-        request.setParameter(FORM_REDIRECT_PARAMETER, "http://login");
+        request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
+        request.setServerName(new URL(redirectUri).getHost());
+
         spy.saveRequest(request, new MockHttpServletResponse());
         verify(spy).saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));
     }
@@ -169,14 +179,19 @@ public class UaaSavedRequestCacheTests {
     }
 
     @Test
-    public void should_save_condition_works() {
+    public void should_save_condition_works() throws MalformedURLException {
         assertFalse(cache.shouldSaveFormRedirectParameter(request));
+
         request.setPathInfo("/login.do");
         assertFalse(cache.shouldSaveFormRedirectParameter(request));
+
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
+        request.setServerName(new URL(redirectUri).getHost());
         assertTrue(cache.shouldSaveFormRedirectParameter(request));
+
         request.setSession(session);
         assertTrue(cache.shouldSaveFormRedirectParameter(request));
+
         ClientRedirectSavedRequest savedRequest = new ClientRedirectSavedRequest(request, redirectUri);
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         assertFalse(cache.shouldSaveFormRedirectParameter(request));
@@ -215,5 +230,16 @@ public class UaaSavedRequestCacheTests {
 
     }
 
+    @Test
+    public void unapprovedFormRedirectRequestDoesNotSave() throws IOException, ServletException {
+        request.setPathInfo("/login.do");
+        request.setRequestURI("/login.do");
+        request.setMethod(HttpMethod.POST.name());
+        request.setParameter(FORM_REDIRECT_PARAMETER, "http://test.com");
+        request.setServerName("not-test.com");
 
+        spy.doFilter(request, new MockHttpServletResponse(), mock(FilterChain.class));
+
+        verify(spy, never()).saveClientRedirect(any(HttpServletRequest.class), anyString());
+    }
 }

@@ -1,0 +1,15 @@
+---
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: cfidentity/uaa-mysql
+inputs:
+  - name: uaa
+
+run:
+  path: uaa/ci/tasks/publish-oss-nexus/task.sh
+
+params:
+  NEXUS_USERNAME: ~
+  NEXUS_PASSWORD: ~

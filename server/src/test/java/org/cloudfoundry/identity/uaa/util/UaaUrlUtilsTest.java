@@ -422,6 +422,20 @@ public class UaaUrlUtilsTest {
         assertEquals("http://somezone2.localhost:8080", url2);
     }
 
+    @Test
+    public void testUriHasMatchingHost() {
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
+
+        assertFalse(UaaUrlUtils.uriHasMatchingHost(null, "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not-test.com/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("not-valid-url", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not.test.com/test", "test.com"));
+    }
+
     private void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getFailedUrls(urls, result);
         if (!failed.isEmpty()) {
