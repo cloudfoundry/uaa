@@ -403,7 +403,7 @@ public class LoginInfoEndpoint {
                 if (combinedIdps.containsKey(defaultIdentityProvider)) {
                     idpForRedirect = combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);
                 }
-            } else {
+            } else if (allowedIdps == null || allowedIdps.contains(defaultIdentityProvider)) {
                 UaaLoginHint loginHint = new UaaLoginHint(defaultIdentityProvider);
                 model.addAttribute("login_hint", loginHint.toString());
                 samlIdps.clear();
