@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -104,6 +105,7 @@ public class PasswordGrantAuthenticationManagerTest {
     @After
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -461,8 +463,7 @@ public class PasswordGrantAuthenticationManagerTest {
 
         verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
         ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
-        verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
-        assertNull(captor.getValue());
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
     }
 
     @Test
@@ -474,7 +475,204 @@ public class PasswordGrantAuthenticationManagerTest {
 
         verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
         ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
+    }
+
+    @Test
+    public void testPasswordGrant_NoLoginHintWithDefaultUaa() {
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
         verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
-        assertNull(captor.getValue());
+        assertNotNull(captor.getValue());
+        assertEquals("uaa", captor.getValue().getOrigin());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintWithDefaultOIDC() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+
+        ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(),any(HttpMethod.class),any(HttpEntity.class),any(ParameterizedTypeReference.class))).thenReturn(response);
+
+        instance.authenticate(auth);
+
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        ArgumentCaptor<XOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(XOAuthCodeToken.class);
+        verify(xoAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
+
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        assertNotNull(httpEntity);
+        assertTrue(httpEntity.hasBody());
+        assertTrue(httpEntity.getBody() instanceof MultiValueMap);
+        MultiValueMap<String,String> body = (MultiValueMap<String, String>)httpEntity.getBody();
+        assertEquals(4, body.size());
+        assertEquals(Collections.singletonList("password"), body.get("grant_type"));
+        assertEquals(Collections.singletonList("id_token"), body.get("response_type"));
+        assertEquals(Collections.singletonList("marissa"), body.get("username"));
+        assertEquals(Collections.singletonList("koala"), body.get("password"));
+
+        HttpHeaders headers = httpEntity.getHeaders();
+        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
+        assertNotNull(headers.get("Authorization"));
+        assertEquals(1, headers.get("Authorization").size());
+        assertThat(headers.get("Authorization").get(0), startsWith("Basic "));
+
+        assertEquals("mytoken", tokenArgumentCaptor.getValue().getIdToken());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_LoginHintOidcOverridesDefaultUaa() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+
+        ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(),any(HttpMethod.class),any(HttpEntity.class),any(ParameterizedTypeReference.class))).thenReturn(response);
+
+        instance.authenticate(auth);
+
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(xoAuthAuthenticationManager, times(1)).authenticate(any(XOAuthCodeToken.class));
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_LoginHintUaaOverridesDefaultOidc() {
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("uaa");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
+        assertNotNull(captor.getValue());
+        assertEquals("uaa", captor.getValue().getOrigin());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedSingleIdpOIDC() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("oidcprovider"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+
+        ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(),any(HttpMethod.class),any(HttpEntity.class),any(ParameterizedTypeReference.class))).thenReturn(response);
+
+        instance.authenticate(auth);
+
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(xoAuthAuthenticationManager, times(1)).authenticate(any(XOAuthCodeToken.class));
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedSingleIdpUAA() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
+        assertNotNull(captor.getValue());
+        assertEquals("uaa", captor.getValue().getOrigin());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedChainedAuth() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa", "ldap"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedMultipleIdps() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider2");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa", "oidcprovider"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+        try {
+            instance.authenticate(auth);
+            fail();
+        } catch (BadCredentialsException e) {
+            assertEquals("Multiple allowed identity providers were found. No single identity provider could be selected.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPasswordGrant_NoLoginHintNoDefaultTriesChainedAuth() {
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
     }
 }

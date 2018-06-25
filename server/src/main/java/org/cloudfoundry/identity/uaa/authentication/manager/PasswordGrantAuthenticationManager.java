@@ -38,7 +38,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -64,38 +63,42 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         UaaLoginHint uaaLoginHint = zoneAwareAuthzAuthenticationManager.extractLoginHint(authentication);
         List<String> allowedProviders = getAllowedProviders();
-        UaaLoginHint internalLoginHint = null;
-        if (allowedProviders.contains("uaa")) {
-            if (!allowedProviders.contains("ldap")){
-                internalLoginHint = new UaaLoginHint("uaa");
+        String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
+        UaaLoginHint loginHintToUse = null;
+        if (uaaLoginHint == null) {
+            if (defaultProvider == null) {
+                if (allowedProviders != null) {
+                    if (allowedProviders.size() == 1) {
+                        loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
+                    } else if (!(allowedProviders.size() == 2 && allowedProviders.contains(OriginKeys.UAA) && allowedProviders.contains(OriginKeys.LDAP))) {
+                        throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
+                    }
+                }
+            } else {
+                if (allowedProviders == null || allowedProviders.contains(defaultProvider)) {
+                    loginHintToUse = new UaaLoginHint(defaultProvider);
+                } else {
+                    if (allowedProviders.size() == 1) {
+                        loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
+                    } else if (!(allowedProviders.size() == 2 && allowedProviders.contains(OriginKeys.UAA) && allowedProviders.contains(OriginKeys.LDAP))) {
+                        throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
+                    }
+                }
             }
-        } else if (allowedProviders.contains("ldap")) {
-            internalLoginHint = new UaaLoginHint("ldap");
+        } else {
+            loginHintToUse = uaaLoginHint;
         }
-        UaaLoginHint loginHintToUse = compareLoginHints(uaaLoginHint, internalLoginHint);
-        zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
+        if (loginHintToUse != null) {
+            zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
+        }
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, uaaLoginHint);
+            return oidcPasswordGrant(authentication, getOidcIdentityProviderDefinitionForPasswordGrant(loginHintToUse));
         }
     }
 
-    private Authentication oidcPasswordGrant(Authentication authentication, UaaLoginHint uaaLoginHint) {
-        //Get IDP
-        IdentityProvider idp = null;
-        try {
-            idp = identityProviderProvisioning.retrieveByOrigin(uaaLoginHint.getOrigin(), IdentityZoneHolder.get().getId());
-        } catch (DataAccessException e) {
-            throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
-        }
-        if (!idp.isActive() || !OriginKeys.OIDC10.equals(idp.getType()) || !(idp.getConfig() instanceof OIDCIdentityProviderDefinition)) {
-            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
-        }
-        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
-        if (!config.isPasswordGrantEnabled()) {
-            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
-        }
+    private Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
         String clientId = config.getRelyingPartyId();
@@ -170,6 +173,24 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return authResult;
     }
 
+    private OIDCIdentityProviderDefinition getOidcIdentityProviderDefinitionForPasswordGrant(UaaLoginHint uaaLoginHint) {
+        //Get IDP
+        IdentityProvider idp = null;
+        try {
+            idp = identityProviderProvisioning.retrieveByOrigin(uaaLoginHint.getOrigin(), IdentityZoneHolder.get().getId());
+        } catch (DataAccessException e) {
+            throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
+        }
+        if (!idp.isActive() || !OriginKeys.OIDC10.equals(idp.getType()) || !(idp.getConfig() instanceof OIDCIdentityProviderDefinition)) {
+            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
+        }
+        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
+        if (!config.isPasswordGrantEnabled()) {
+            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
+        }
+        return config;
+    }
+
 
     private List<String> getAllowedProviders() {
         Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
@@ -179,15 +200,6 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         String clientId = clientAuth.getName();
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        return allowedProviders != null ? allowedProviders : Collections.emptyList();
-    }
-
-
-    private UaaLoginHint compareLoginHints(UaaLoginHint givenLoginHint, UaaLoginHint internalLoginHint) {
-        if (givenLoginHint == null || !StringUtils.hasText(givenLoginHint.getOrigin())) {
-            return internalLoginHint;
-        } else {
-            return givenLoginHint;
-        }
+        return allowedProviders;
     }
 }
