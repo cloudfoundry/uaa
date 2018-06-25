@@ -1279,6 +1279,31 @@ public class LoginInfoEndpointTests {
         assertEquals("login", redirect);
     }
 
+    @Test
+    public void testDefaultProviderLdapWithAllowedOnlyOIDC() throws  Exception{
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        List<String> allowedProviders = Collections.singletonList("my-OIDC-idp1");
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+
+        mockOidcProvider();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("ldap");
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+
+        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, containsString("my-OIDC-idp1"));
+        assertFalse(model.containsKey("login_hint"));
+    }
+
     private MockHttpServletRequest getMockHttpServletRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
