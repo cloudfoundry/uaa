@@ -377,6 +377,7 @@ public class LoginInfoEndpoint {
                 idpForRedirect.getValue(), idpForRedirect.getKey(), request
             );
             if (externalRedirect != null && !jsonResponse) {
+                logger.debug("Following external redirect : " + externalRedirect);
                 return externalRedirect;
             }
         }
@@ -549,6 +550,8 @@ public class LoginInfoEndpoint {
             // parse login_hint in JSON format
             UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
             if (uaaLoginHint != null) {
+                logger.debug("Received login hint: " + loginHint);
+                logger.debug("Received login hint with origin: " + uaaLoginHint.getOrigin());
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
                     if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin())) {
                         // in case of uaa/ldap, pass value to login page
@@ -570,7 +573,10 @@ public class LoginInfoEndpoint {
                         );
                     } else if(hintIdentityProviders.size() == 1) {
                         idpForRedirect = hintIdentityProviders.get(0);
+                        logger.debug("Setting redirect from origin login_hint to: " + idpForRedirect);
                     } else {
+                        logger.debug("Client does not allow provider for login_hint with origin key: "
+                            + uaaLoginHint.getOrigin());
                         model.addAttribute("error", "invalid_login_hint");
                     }
                 }
@@ -586,6 +592,7 @@ public class LoginInfoEndpoint {
                     );
                 } else if (matchingIdentityProviders.size() == 1) {
                     idpForRedirect = matchingIdentityProviders.get(0);
+                    logger.debug("Setting redirect from email domain login hint to: " + idpForRedirect);
                 }
             }
         }
