@@ -1226,17 +1226,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testInfoWithRemoteUaaHtmlPrompts() throws Exception {
-        getMockMvc().perform(get("/info")
-            .accept(TEXT_HTML))
-            .andExpect(status().isOk())
-            .andExpect(view().name("login"))
-            .andExpect(model().attribute("prompts", hasKey("username")))
-            .andExpect(model().attribute("prompts", hasKey("password")));
-    }
-
-
-    @Test
     public void testDefaultAndCustomSignupLink() throws Exception {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
