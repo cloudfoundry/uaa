@@ -535,7 +535,7 @@ public class LoginInfoEndpointTests {
     public void saml_links_for_html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.infoForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertEquals("http://someurl", links.get("login"));
@@ -574,7 +574,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
 
-        endpoint.infoForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
         assertFalse((Boolean) model.get("fieldUsernameShow"));
     }
 
@@ -607,21 +607,10 @@ public class LoginInfoEndpointTests {
     public void test_PromptLogic() throws Exception {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.infoForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
-        assertNotNull("prompts attribute should be present", model.get("prompts"));
-        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof Map);
-        Map mapPrompts = (Map)model.get("prompts");
-        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
-        assertNotNull(mapPrompts.get("username"));
-        assertNotNull(mapPrompts.get("password"));
-        assertNull(mapPrompts.get("passcode"));
-        assertNull(mapPrompts.get("mfaCode"));
-
-        model.clear();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), singletonList(MediaType.TEXT_HTML));
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof Map);
-        mapPrompts = (Map)model.get("prompts");
+        Map mapPrompts = (Map)model.get("prompts");
         assertEquals("there should be two prompts for html", 2, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
@@ -881,7 +870,7 @@ public class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.loginForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForLoginJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
 
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
@@ -1187,7 +1176,7 @@ public class LoginInfoEndpointTests {
         endpoint.setClientDetailsService(clientDetailsService);
 
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);
@@ -1215,7 +1204,7 @@ public class LoginInfoEndpointTests {
         endpoint.setClientDetailsService(clientDetailsService);
 
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);
@@ -1239,7 +1228,7 @@ public class LoginInfoEndpointTests {
         endpoint.setClientDetailsService(clientDetailsService);
 
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);
@@ -1267,7 +1256,7 @@ public class LoginInfoEndpointTests {
         endpoint.setClientDetailsService(clientDetailsService);
 
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);
