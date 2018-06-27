@@ -205,6 +205,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().setTokenPolicy(tokenPolicy);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
+        identityZone.getConfig().setDefaultIdentityProvider("uaa");
         FieldDescriptor[] fieldDescriptors = {
             fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
@@ -746,6 +747,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
+            fieldWithPath("config.defaultIdentityProvider").type(STRING).description(DEFAULT_IDP_DESC).optional().attributes(key("constraints").value("Optional")),
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
             fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC),
