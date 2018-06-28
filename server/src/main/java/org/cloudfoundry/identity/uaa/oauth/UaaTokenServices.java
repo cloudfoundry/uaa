@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -439,8 +440,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
-
-        if (forceIdTokenCreation || (requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
+        if (shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, forceIdTokenCreation)) {
             UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
                 authenticationMethods,
                 authNContextClassRef,
@@ -464,6 +464,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
+    }
+
+    private boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String grantType, Set<String> responseTypes, boolean forceIdTokenCreation) {
+        boolean clientHasOpenIdScope = false;
+        if(null != clientScopes && !"client_credentials".equals(grantType)) {
+            for (GrantedAuthority scope : clientScopes) {
+                if (scope.getAuthority().equals("openid")) {
+                    clientHasOpenIdScope = true;
+                    break;
+                }
+            }
+        }
+
+        boolean idTokenExplicitlyRequested = requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN);
+        return forceIdTokenCreation || idTokenExplicitlyRequested || clientHasOpenIdScope;
     }
 
     private KeyInfo getActiveKeyInfo() {
@@ -495,7 +510,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(SUB, clientId);
-        if (null != clientScopes) {
+        if ("client_credentials".equals(grantType)) {
             claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
 
@@ -569,6 +584,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (authentication.isClientOnly()) {
             clientScopes = client.getAuthorities();
         } else {
+            clientScopes = new ArrayList<GrantedAuthority>();
+            for(String scope : client.getScope()) {
+                clientScopes.add(new XOAuthUserAuthority(scope));
+            }
             userId = getUserId(authentication);
             user = userDatabase.retrieveUserById(userId);
             if (authentication.getUserAuthentication() instanceof UaaAuthentication) {

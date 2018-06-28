@@ -121,6 +121,7 @@ import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -138,6 +139,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -577,10 +579,12 @@ public class UaaTokenServicesTests {
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
-
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
+        CompositeAccessToken castAccessToken = (CompositeAccessToken)accessToken;
+        assertThat(castAccessToken.getIdTokenValue(), is(notNullValue()));
         validateAccessAndRefreshToken(accessToken);
     }
 
