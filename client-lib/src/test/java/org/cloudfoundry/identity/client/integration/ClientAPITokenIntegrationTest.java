@@ -95,7 +95,6 @@ public class ClientAPITokenIntegrationTest {
         UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
-        assertFalse(context.hasIdToken());
         assertTrue(context.hasRefreshToken());
         return context;
     }
@@ -160,7 +159,7 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_fetch_token_from_authorization_code() throws Exception {
-        test_fetch_token_from_authorization_code(factory, uaaURI, false, false, "login", "loginsecret", "http://localhost/redirect");
+        test_fetch_token_from_authorization_code(factory, uaaURI, true, false, "login", "loginsecret", "http://localhost/redirect");
     }
 
     @Test
@@ -170,7 +169,7 @@ public class ClientAPITokenIntegrationTest {
 
     public static void test_fetch_token_from_authorization_code(UaaContextFactory factory,
                                                                 String uaaURI,
-                                                                boolean idToken,
+                                                                boolean shouldHaveIdToken,
                                                                 boolean skipSslValidation,
                                                                 String clientId,
                                                                 String clientSecret,
@@ -188,7 +187,7 @@ public class ClientAPITokenIntegrationTest {
             .setClientId(clientId)
             .setClientSecret(clientSecret)
             .setAuthorizationCode(code);
-        if (idToken) {
+        if (shouldHaveIdToken) {
             fetchTokenRequest.withIdToken();
         }
         if (skipSslValidation) {
@@ -198,7 +197,7 @@ public class ClientAPITokenIntegrationTest {
         UaaContext context = factory.authenticate(fetchTokenRequest);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
-        assertEquals(idToken, context.hasIdToken());
+        assertEquals(shouldHaveIdToken, context.hasIdToken());
         assertTrue(context.hasRefreshToken());
         assertTrue(context.getToken().getScope().contains("openid"));
 
