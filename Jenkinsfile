@@ -434,7 +434,7 @@ pipeline {
                 }
             }
         }
-        stage('Updating manifest for ${BINTRAY_ARTIFACT1}'') {
+        stage('Updating manifest for ${BINTRAY_ARTIFACT1}') {
             steps {
                 PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT1}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
             }
