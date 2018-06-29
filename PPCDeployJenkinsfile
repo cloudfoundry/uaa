@@ -11,7 +11,7 @@ pipeline {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     parameters  {
-        choice(name: 'DEPLOYMENT_TYPE', choices:'ppc,rosneft', description: 'This specifies which point of presence to deploy to')
+        choice(name: 'DEPLOYMENT_TYPE', choices:'sr-lab,rosneft-jv-stg,rosneft-jv-dev', description: 'This specifies which point of presence to deploy to')
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
         booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
         string(name: 'APP_VERSION', defaultValue: '4.10.0', description: 'app version to pull from bintray')
@@ -42,7 +42,7 @@ pipeline {
                     sh "ls -ltr deploy-workspace/"
                 }
                 sh '''
-                    tar -xf deploy-workspace/ppc-sr-labs-uaa-deploy-${APP_VERSION}.tgz
+                    tar -xf deploy-workspace/ppc-uaa-deploy-${APP_VERSION}.tgz
                 '''
 
                 sh '''#!/bin/bash -ex
