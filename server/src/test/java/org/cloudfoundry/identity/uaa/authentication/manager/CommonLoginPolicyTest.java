@@ -66,7 +66,7 @@ public class CommonLoginPolicyTest {
     @Test
     public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyFailedRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
-        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null);
+        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
         String zoneId = IdentityZoneHolder.get().getId();
         when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);
@@ -80,7 +80,7 @@ public class CommonLoginPolicyTest {
     @Test
     public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyFailedRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 2, 300));
-        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null);
+        AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
         String zoneId = IdentityZoneHolder.get().getId();
         when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);

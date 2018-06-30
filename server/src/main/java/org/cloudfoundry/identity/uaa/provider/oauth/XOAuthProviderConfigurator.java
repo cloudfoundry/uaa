@@ -24,9 +24,9 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
@@ -49,14 +50,17 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final UrlContentCache contentCache;
-    private final RestTemplateFactory restTemplateFactory;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
 
     public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning,
                                       UrlContentCache contentCache,
-                                      RestTemplateFactory restTemplateFactory) {
+                                      RestTemplate trustingRestTemplate,
+                                      RestTemplate nonTrustingRestTemplate) {
         this.providerProvisioning = providerProvisioning;
         this.contentCache = contentCache;
-        this.restTemplateFactory = restTemplateFactory;
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
     }
 
     protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
@@ -64,8 +68,16 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
             return definition;
         }
 
-        byte[] oidcJson = contentCache.getUrlContent(definition.getDiscoveryUrl().toString(), restTemplateFactory.getRestTemplate(definition.isSkipSslValidation()));
-        Map<String,Object> oidcConfig = JsonUtils.readValue(oidcJson, new TypeReference<Map<String, Object>>() {});
+        boolean skipSslValidation = definition.isSkipSslValidation();
+        byte[] oidcJson;
+        if (skipSslValidation) {
+            oidcJson = contentCache.getUrlContent(definition.getDiscoveryUrl().toString(), trustingRestTemplate);
+        } else {
+            oidcJson = contentCache.getUrlContent(definition.getDiscoveryUrl().toString(), nonTrustingRestTemplate);
+        }
+
+        Map<String, Object> oidcConfig = JsonUtils.readValue(oidcJson, new TypeReference<Map<String, Object>>() {
+        });
 
         OIDCIdentityProviderDefinition overlayedDefinition = null;
         try {
@@ -80,9 +92,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
             overlayedDefinition.setTokenUrl(ofNullable(overlayedDefinition.getTokenUrl()).orElse(tokenEndpoint));
             overlayedDefinition.setIssuer(ofNullable(overlayedDefinition.getIssuer()).orElse(issuer));
             overlayedDefinition.setTokenKeyUrl(ofNullable(overlayedDefinition.getTokenKeyUrl()).orElse(tokenKeyUrl));
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        } catch (CloneNotSupportedException e) {
+        } catch (MalformedURLException | CloneNotSupportedException e) {
             throw new IllegalStateException(e);
         }
 
@@ -92,7 +102,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
         try {
             String authUrlBase;
-            if(definition instanceof OIDCIdentityProviderDefinition) {
+            if (definition instanceof OIDCIdentityProviderDefinition) {
                 authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
             } else {
                 authUrlBase = definition.getAuthUrl().toString();
@@ -100,7 +110,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
             String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
             List<String> query = new ArrayList<>();
             query.add("client_id=" + definition.getRelyingPartyId());
-            query.add("response_type="+ URLEncoder.encode(definition.getResponseType(), "UTF-8"));
+            query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), "UTF-8"));
             query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, "UTF-8"));
             if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
                 query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
@@ -117,18 +127,18 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     }
 
     @Override
-    public IdentityProvider create(IdentityProvider identityProvider) {
-        return providerProvisioning.create(identityProvider);
+    public IdentityProvider create(IdentityProvider identityProvider, String zoneId) {
+        return providerProvisioning.create(identityProvider, zoneId);
     }
 
     @Override
-    public IdentityProvider update(IdentityProvider identityProvider) {
-        return providerProvisioning.update(identityProvider);
+    public IdentityProvider update(IdentityProvider identityProvider, String zoneId) {
+        return providerProvisioning.update(identityProvider, zoneId);
     }
 
     @Override
-    public IdentityProvider retrieve(String id) {
-        IdentityProvider p = providerProvisioning.retrieve(id);
+    public IdentityProvider retrieve(String id, String zoneId) {
+        IdentityProvider p = providerProvisioning.retrieve(id, zoneId);
         if (p!=null && p.getType().equals(OIDC10)) {
             p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
         }
@@ -142,10 +152,10 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
         List<IdentityProvider> providers = retrieveAll(true, zoneId)
-            .stream()
-            .filter(p -> OIDC10.equals(p.getType()) &&
-                    issuer.equals(((OIDCIdentityProviderDefinition)p.getConfig()).getIssuer()))
-            .collect(Collectors.toList());
+          .stream()
+          .filter(p -> OIDC10.equals(p.getType()) &&
+            issuer.equals(((OIDCIdentityProviderDefinition) p.getConfig()).getIssuer()))
+          .collect(Collectors.toList());
         if (providers.isEmpty()) {
             throw new IncorrectResultSizeDataAccessException(String.format("Active provider with issuer[%s] not found", issuer), 1);
         } else if (providers.size() > 1) {
@@ -160,19 +170,19 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
         List<IdentityProvider> overlayedProviders = new ArrayList<>();
         ofNullable(providers).orElse(emptyList()).stream()
-            .filter(p -> types.contains(p.getType()))
-            .forEach(p -> {
-                if (p.getType().equals(OIDC10)) {
-                    try {
-                        OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
-                        p.setConfig(overlayedDefinition);
-                    } catch (Exception e) {
-                        log.error("Identity provider excluded from login page due to a problem.", e);
-                        return;
-                    }
-                }
-                overlayedProviders.add(p);
-            });
+          .filter(p -> types.contains(p.getType()))
+          .forEach(p -> {
+              if (p.getType().equals(OIDC10)) {
+                  try {
+                      OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
+                      p.setConfig(overlayedDefinition);
+                  } catch (Exception e) {
+                      log.error("Identity provider excluded from login page due to a problem.", e);
+                      return;
+                  }
+              }
+              overlayedProviders.add(p);
+          });
         return overlayedProviders;
     }
 

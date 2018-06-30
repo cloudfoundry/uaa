@@ -1,3 +1,12 @@
+issuer:
+  uri: http://localhost:8080/uaa
+
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
+
 login:
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----

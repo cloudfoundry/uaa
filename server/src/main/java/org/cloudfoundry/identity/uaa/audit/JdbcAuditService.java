@@ -63,7 +63,7 @@ public class JdbcAuditService implements UaaAuditService {
             long time = rs.getTimestamp(5).getTime();
             String identityZoneId = nullSafeTrim(rs.getString(6));
             return new AuditEvent(eventType, principalId, origin,
-                            data, time, identityZoneId);
+                            data, time, identityZoneId, null, null);
         }
     }
 

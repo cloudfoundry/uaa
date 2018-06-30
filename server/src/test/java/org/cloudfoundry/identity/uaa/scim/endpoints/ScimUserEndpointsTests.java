@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -50,6 +51,7 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.hamcrest.Matcher;
@@ -134,6 +136,8 @@ public class ScimUserEndpointsTests {
 
     private JdbcScimUserProvisioning dao;
 
+    private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
+
     private JdbcIdentityProviderProvisioning identityProviderProvisioning;
 
     private JdbcScimGroupMembershipManager mm;
@@ -163,6 +167,7 @@ public class ScimUserEndpointsTests {
     @Before
     public void setUp() {
         endpoints = new ScimUserEndpoints();
+        endpoints.setUserMaxCount(5);
 
         IdentityZoneHolder.clear();
         jdbcTemplate = new JdbcTemplate(database);
@@ -179,6 +184,9 @@ public class ScimUserEndpointsTests {
         dao.setQueryConverter(filterConverter);
 
         identityProviderProvisioning = Mockito.mock(JdbcIdentityProviderProvisioning.class);
+
+        mfaCredentialsProvisioning = Mockito.mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
+        endpoints.setMfaCredentialsProvisioning(mfaCredentialsProvisioning);
 
         endpoints.setScimUserProvisioning(dao);
         endpoints.setIdentityProviderProvisioning(identityProviderProvisioning);
@@ -198,6 +206,7 @@ public class ScimUserEndpointsTests {
         gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
+        groupEndpoints.setGroupMaxCount(5);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
@@ -583,6 +592,30 @@ public class ScimUserEndpointsTests {
         validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
     }
 
+
+    @Test
+    public void deleteUserInZoneUpdatesGroupMembership() {
+        IdentityZone zone = new IdentityZone();
+        zone.setId("not-uaa");
+        zone.setSubdomain("not-uaa");
+        zone.setName("not-uaa");
+        zone.setDescription("not-uaa");
+        IdentityZoneHolder.set(zone);
+
+        ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+        exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
+        exGuy = dao.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        assertEquals(IdentityZoneHolder.get().getId(), exGuy.getZoneId());
+
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
+        g.setMembers(asList(new ScimGroupMember(exGuy.getId())));
+        g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
+        validateGroupMembers(g, exGuy.getId(), true);
+
+        endpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
+        validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
+    }
+
     private void validateGroupMembers(ScimGroup g, String mId, boolean expected) {
         boolean isMember = false;
         for (ScimGroupMember m : g.getMembers()) {
@@ -598,6 +631,15 @@ public class ScimUserEndpointsTests {
     public void testFindAllIds() {
         SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
+    }
+
+    @Test
+    public void testFindGroupsAndApprovals() {
+        ScimUserEndpoints spy = spy(endpoints);
+        SearchResults<?> results = spy.findUsers("id,groups,approvals", "id pr", null, "ascending", 1, 100);
+        assertEquals(2, results.getTotalResults());
+        verify(spy, times(2)).syncGroups(any(ScimUser.class));
+        verify(spy, times(2)).syncApprovals(any(ScimUser.class));
     }
 
     @Test
@@ -750,6 +792,24 @@ public class ScimUserEndpointsTests {
         verifyZeroInteractions(mockApprovalStore);
 
         endpoints.setApprovalStore(am);
+    }
+
+    @Test
+    public void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"userMaxCount\" value (got 0). Should be positive number."
+        ));
+        endpoints.setUserMaxCount(0);
+    }
+
+    @Test
+    public void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"userMaxCount\" value (got -1). Should be positive number."
+        ));
+        endpoints.setUserMaxCount(-1);
     }
 
     @Test
@@ -1169,5 +1229,30 @@ public class ScimUserEndpointsTests {
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         assertEquals(OriginKeys.UAA, createdUser.getOrigin());
+    }
+
+    @Test
+    public void testDeleteMfaRegistration() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        endpoints.deleteMfaRegistration(dale.getId());
+
+        verify(mfaCredentialsProvisioning).delete(dale.getId());
+    }
+
+    @Test(expected = ScimResourceNotFoundException.class)
+    public void testDeleteMfaRegistrationUserDoesNotExist() {
+        endpoints.deleteMfaRegistration("invalidUserId");
+    }
+
+    @Test
+    public void testDeleteMfaRegistrationNoMfaConfigured() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        endpoints.deleteMfaRegistration(dale.getId());
+    }
+
+    @Test
+    public void testDeleteMfaRegistrationMfaNotEnabledInZone() {
+        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
+        endpoints.deleteMfaRegistration(dale.getId());
     }
 }

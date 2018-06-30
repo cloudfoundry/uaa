@@ -1,0 +1,43 @@
+/*
+ * ****************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ * ****************************************************************************
+ */
+
+description = 'CloudFoundry Identity Metrics Data Jar'
+
+dependencies {
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
+  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
+}
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
+}
+
+
+publishing {
+  publications {
+    metrics(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-metrics-data'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}
+

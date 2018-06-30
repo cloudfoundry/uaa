@@ -14,10 +14,12 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.DecodePathInfoPostProcessor;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -58,8 +60,8 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     private final String EXTERNAL_GROUP_DESCRIPTION = "The identifier for the group in external identity provider that needs to be mapped to internal UAA groups";
 
     private static final HeaderDescriptor AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token with authorization for `scim.write` scope");
-    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
-    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
 
     private final ParameterDescriptor externalGroup = parameterWithName("externalGroup").required().description(EXTERNAL_GROUP_DESCRIPTION);
 
@@ -130,9 +132,15 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
-        MockHttpServletRequestBuilder delete = delete("/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getId(), scimGroupExternalMember.getExternalGroup(), scimGroupExternalMember.getOrigin())
-                .header("Authorization", "Bearer " + scimWriteToken);
+        MockHttpServletRequestBuilder delete =
+            delete(
+                "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
+                group.getId(),
+                scimGroupExternalMember.getExternalGroup(),
+                scimGroupExternalMember.getOrigin()
+            )
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .with(new DecodePathInfoPostProcessor());
 
         getMockMvc().perform(delete)
                 .andExpect(status().isOk())
@@ -160,9 +168,15 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
-        MockHttpServletRequestBuilder delete = delete("/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getDisplayName(), scimGroupExternalMember.getExternalGroup(), scimGroupExternalMember.getOrigin())
-                .header("Authorization", "Bearer " + scimWriteToken);
+        MockHttpServletRequestBuilder delete =
+            delete(
+                "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
+                group.getDisplayName(),
+                scimGroupExternalMember.getExternalGroup(),
+                scimGroupExternalMember.getOrigin()
+            )
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .with(new DecodePathInfoPostProcessor());
 
         getMockMvc().perform(delete)
                 .andExpect(status().isOk())

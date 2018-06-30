@@ -8,68 +8,77 @@
     LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:security="http://www.springframework.org/schema/security"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
               http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd">
 
     <bean id="samlIdpLoginFilter" class="org.springframework.security.web.FilterChainProxy">
         <security:filter-chain-map
-            request-matcher="ant">
+                request-matcher="ant">
             <security:filter-chain pattern="/saml/idp/SSO/**"
-                filters="samlSecurityContextPersistenceFilter,samlIdpWebSsoProcessingFilter" />
+                                   filters="samlSecurityContextPersistenceFilter,samlIdpWebSsoProcessingFilter"/>
         </security:filter-chain-map>
     </bean>
 
     <security:authentication-manager id="samlIdpAuthenticationManager">
         <security:authentication-provider
-            ref="samlIdpAuthenticationProvider" />
+                ref="samlIdpAuthenticationProvider"/>
     </security:authentication-manager>
 
     <bean id="samlIdpAuthenticationProvider"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthenticationProvider" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthenticationProvider"/>
 
     <!-- SAML IdP processing filter for Web SSO profile messages. -->
     <bean id="samlIdpWebSsoProcessingFilter"
-        class="org.springframework.security.saml.SAMLProcessingFilter">
-        <constructor-arg value="/saml/idp/SSO" />
-        <property name="authenticationManager" ref="samlIdpAuthenticationManager" />
-        <property name="authenticationSuccessHandler" ref="samlIdpSuccessHandler" />
+          class="org.springframework.security.saml.SAMLProcessingFilter">
+        <constructor-arg value="/saml/idp/SSO"/>
+        <property name="authenticationManager" ref="samlIdpAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="samlIdpSuccessHandler"/>
         <!-- <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" /> -->
-        <property name="contextProvider" ref="idpContextProvider" />
-        <property name="SAMLProcessor" ref="idpSamlProcessor" />
+        <property name="contextProvider" ref="idpContextProvider"/>
+        <property name="SAMLProcessor" ref="idpSamlProcessor"/>
         <property name="sessionAuthenticationStrategy" ref="sessionFixationProtectionStrategy"/>
     </bean>
 
     <bean id="samlIdpSuccessHandler"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthenticationSuccessHandler">
-        <property name="idpWebSsoProfile" ref="idpWebSsoProfileImpl" />
-        <property name="metadataManager" ref="idpMetadataManager" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthenticationSuccessHandler">
+        <property name="idpWebSsoProfile" ref="idpWebSsoProfileImpl"/>
+        <property name="metadataManager" ref="idpMetadataManager"/>
     </bean>
 
     <bean id="idpMetadataManager"
           class="org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager"
           depends-on="spMetaDataProviders" destroy-method="destroy">
-        <constructor-arg name="configurator" ref="spMetaDataProviders" />
-        <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:0}" />
+        <constructor-arg name="configurator" ref="spMetaDataProviders"/>
+        <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:0}"/>
         <property name="generator" ref="zoneAwareIdpMetadataGenerator"/>
 
     </bean>
 
+    <bean id="idpInitiatedLogin"
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpInitiatedLoginController">
+        <property name="idpWebSsoProfile" ref="idpWebSsoProfileImpl"/>
+        <property name="metadataManager" ref="idpMetadataManager"/>
+        <property name="configurator" ref="spMetaDataProviders"/>
+        <property name="contextProvider" ref="idpContextProvider"/>
+        <property name="idpSamlAuthenticationSuccessHandler" ref="samlIdpSuccessHandler"/>
+    </bean>
+
     <bean id="idpWebSsoProfileImpl"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
-        <property name="metadata" ref="idpMetadataManager" />
-        <property name="processor" ref="idpSamlProcessor" />
-        <property name="samlServiceProviderProvisioning" ref="serviceProviderProvisioning" />
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
+        <property name="metadata" ref="idpMetadataManager"/>
+        <property name="processor" ref="idpSamlProcessor"/>
+        <property name="samlServiceProviderProvisioning" ref="serviceProviderProvisioning"/>
+        <property name="scimUserProvisioning" ref="scimUserProvisioning"/>
     </bean>
 
     <!-- Class loading incoming SAML messages from httpRequest stream -->
     <bean id="idpSamlProcessor" class="org.springframework.security.saml.processor.SAMLProcessorImpl">
         <constructor-arg>
             <list>
-                <ref bean="redirectBinding" />
-                <ref bean="postBinding" />
+                <ref bean="redirectBinding"/>
+                <ref bean="postBinding"/>
             </list>
         </constructor-arg>
     </bean>
@@ -82,69 +91,75 @@
     </bean>
 
     <bean id="idpContextProvider"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlContextProviderImpl">
-        <property name="metadata" ref="idpMetadataManager" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlContextProviderImpl">
+        <property name="metadata" ref="idpMetadataManager"/>
         <property name="metadataResolver" ref="idpNonCachingMetadataCredentialsResolver"/>
         <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <!-- Filter automatically generates default IdP metadata -->
     <bean id="idpMetadataGeneratorFilter"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataGeneratorFilter">
-        <constructor-arg ref="zoneAwareIdpMetadataGenerator" />
-        <property name="displayFilter" ref="idpMetadataDisplayFilter" />
-        <property name="manager" ref="idpMetadataManager" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataGeneratorFilter">
+        <constructor-arg ref="zoneAwareIdpMetadataGenerator"/>
+        <property name="displayFilter" ref="idpMetadataDisplayFilter"/>
+        <property name="manager" ref="idpMetadataManager"/>
     </bean>
 
     <bean id="idpMetadataDisplayFilter"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataDisplayFilter">
-        <property name="contextProvider" ref="idpContextProvider" />
-        <property name="manager" ref="idpMetadataManager" />
-        <property name="filterProcessesUrl" value="/saml/idp/metadata" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpMetadataDisplayFilter">
+        <property name="contextProvider" ref="idpContextProvider"/>
+        <property name="manager" ref="idpMetadataManager"/>
+        <property name="filterProcessesUrl" value="/saml/idp/metadata"/>
         <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <bean id="zoneAwareIdpMetadataGenerator"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataGenerator">
-        <property name="extendedMetadata" ref="idpExtendedMetaData" />
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.ZoneAwareIdpMetadataGenerator">
+        <property name="extendedMetadata" ref="idpExtendedMetaData"/>
         <property name="wantAuthnRequestSigned"
-            value="${login.saml.wantAuthnRequestSigned:false}" />
+                  value="${login.saml.wantAuthnRequestSigned:false}"/>
         <property name="entityBaseURL"
-            value="${login.entityBaseURL:http://localhost:8080/uaa}" />
-        <property name="entityId" ref="samlIdpEntityID" />
-        <property name="samlWebSSOFilter" ref="samlIdpWebSsoProcessingFilter" />
+                  value="${login.entityBaseURL:http://localhost:8080/uaa}"/>
+        <property name="entityId" ref="samlIdpEntityID"/>
+        <property name="samlWebSSOFilter" ref="samlIdpWebSsoProcessingFilter"/>
         <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
 
     <bean id="idpExtendedMetaData"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpExtendedMetadata">
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpExtendedMetadata">
         <property name="alias"
-            value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlIdpAlias)}" />
-        <property name="signMetadata" value="${login.saml.signMetaData:true}" />
-        <property name="assertionsSigned" value="${login.saml.idp.assertionSigned:true}" />
-        <property name="assertionTimeToLiveSeconds" value="${login.saml.idp.assertionTimeToLiveSeconds:600}" />
+                  value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlIdpAlias)}"/>
+        <property name="signMetadata" value="${login.saml.signMetaData:true}"/>
+        <property name="assertionsSigned" value="${login.saml.idp.assertionSigned:true}"/>
+        <property name="assertionTimeToLiveSeconds" value="${login.saml.idp.assertionTimeToLiveSeconds:600}"/>
     </bean>
 
     <!--  Use same entity id as SP, if not explicitly configured. -->
     <bean id="samlIdpAlias" class="java.lang.String">
         <constructor-arg
-            value="${login.saml.idp.entityIDAlias:${login.idp.entityID:${login.saml.entityIDAlias:${login.entityID:unit-test-idp}}}}" />
+                value="${login.saml.idp.entityIDAlias:${login.idp.entityID:${login.saml.entityIDAlias:${login.entityID:unit-test-idp}}}}"/>
     </bean>
 
     <bean id="samlIdpEntityID" class="java.lang.String">
-        <constructor-arg value="${login.idp.entityID:${login.entityID:unit-test-idp}}" />
+        <constructor-arg value="${login.idp.entityID:${login.entityID:unit-test-idp}}"/>
     </bean>
 
-    <bean id="spMetaDataProviders"
-        class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
-        <property name="clientParams" ref="httpClientParams" />
-        <property name="parserPool" ref="parserPool"/>
-        <property name="contentCache" ref="urlCache"/>
-        <property name="providerProvisioning" ref="serviceProviderProvisioning" />
+    <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig" />
 
+    <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider">
+        <property name="trustingRestTemplate" ref="trustingRestTemplate"/>
+        <property name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
+        <property name="cache" ref="urlCache"/>
+
+    </bean>
+    <bean id="spMetaDataProviders"
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
+        <property name="parserPool" ref="parserPool"/>
+        <property name="providerProvisioning" ref="serviceProviderProvisioning"/>
+        <property name="fixedHttpMetaDataProvider" ref="fixedHttpMetaDataProvider"/>
     </bean>
 
     <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
-        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}" />
+        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}"/>
     </bean>
 </beans>

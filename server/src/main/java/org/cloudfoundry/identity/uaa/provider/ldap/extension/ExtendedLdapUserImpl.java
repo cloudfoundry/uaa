@@ -30,6 +30,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private String givenNameAttributeName;
     private String familyNameAttributeName;
     private String phoneNumberAttributeName;
+    private String emailVerifiedAttributeName;
     private String dn;
     private String password;
     private String username;
@@ -199,6 +200,15 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     @Override
     public String getExternalId() {
         return getDn();
+    }
+
+    public void setEmailVerifiedAttributeName(String emailVerifiedAttributeName) {
+        this.emailVerifiedAttributeName = emailVerifiedAttributeName;
+    }
+
+    @Override
+    public boolean isVerified() {
+        return Boolean.valueOf(getFirst(emailVerifiedAttributeName, false));
     }
 
     protected String getFirst(String attributeName, boolean caseSensitive) {

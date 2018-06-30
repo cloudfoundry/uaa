@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.integration.util;
 
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.CookieStore;
@@ -22,8 +24,12 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -39,11 +45,13 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.hamcrest.Description;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -84,10 +92,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -108,9 +120,25 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
+import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
+    public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId) {
+        updateUserToForcePasswordChange(restTemplate, baseUrl, adminToken, userId, null);
+    }
+
+    public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId, String zoneId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer "+ adminToken);
+        if (StringUtils.hasText(zoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        UserAccountStatus userAccountStatus = new UserAccountStatus();
+        userAccountStatus.setPasswordChangeRequired(true);
+        ResponseEntity<UserAccountStatus> response = restTemplate.exchange(baseUrl + "/Users/{user-id}/status", HttpMethod.PATCH, new HttpEntity<UserAccountStatus>(userAccountStatus, headers), UserAccountStatus.class, userId);
+        response.toString();
+    }
 
     public static ScimUser createUnapprovedUser(ServerRunning serverRunning) throws Exception {
         String userName = "bob-" + new RandomValueStringGenerator().generate();
@@ -131,8 +159,18 @@ public class IntegrationTestUtils {
         return user;
     }
 
+    public static boolean isMember(String userId, ScimGroup group) {
+        for (ScimGroupMember member : group.getMembers()) {
+            if(userId.equals(member.getMemberId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public static UserInfoResponse getUserInfo(String url, String token) throws URISyntaxException {
-        RestTemplate rest = new RestTemplate(createRequestFactory(true));
+        RestTemplate rest = new RestTemplate(createRequestFactory(true, 60_000));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add(AUTHORIZATION, "Bearer "+token);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
@@ -141,12 +179,35 @@ public class IntegrationTestUtils {
     }
 
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
-        RestTemplate rest = new RestTemplate(createRequestFactory(true));
+        RestTemplate rest = new RestTemplate(createRequestFactory(true, 60_000));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add(AUTHORIZATION, "Bearer "+adminToken);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl+"/identity-zones/"+id));
         rest.exchange(request, Void.class);
+    }
+
+    public static MfaProvider createGoogleMfaProvider(String url, String token, MfaProvider<GoogleMfaProviderConfig> provider, String zoneSwitchId) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+        if (hasText(zoneSwitchId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneSwitchId);
+        }
+        HttpEntity getHeaders = new HttpEntity(provider,headers);
+        ResponseEntity<MfaProvider> providerResponse = template.exchange(
+                url+"/mfa-providers",
+                HttpMethod.POST,
+                getHeaders,
+                MfaProvider.class
+        );
+        if (providerResponse.getStatusCode() == HttpStatus.CREATED) {
+            return providerResponse.getBody();
+        }
+        throw new RuntimeException("Invalid return code:"+providerResponse.getStatusCode());
+
     }
 
     public static class RegexMatcher extends TypeSafeMatcher<String> {
@@ -251,6 +312,29 @@ public class IntegrationTestUtils {
         user.setPassword("secr3T");
         user.setPhoneNumbers(Collections.singletonList(new PhoneNumber(phoneNumber)));
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
+    }
+
+    public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+        headers.add("If-Match", String.valueOf(user.getVersion()));
+        if (hasText(zoneSwitchId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneSwitchId);
+        }
+        HttpEntity getHeaders = new HttpEntity(user,headers);
+        ResponseEntity<ScimUser> userInfoGet = template.exchange(
+            url+"/Users",
+            HttpMethod.POST,
+            getHeaders,
+            ScimUser.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.CREATED) {
+            return userInfoGet.getBody();
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
     }
 
     public static ScimUser updateUser(String token, String url, ScimUser user) {
@@ -450,7 +534,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<SearchResults<ScimGroup>> findGroup = template.exchange(
@@ -477,7 +561,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroup> createGroup = template.exchange(
@@ -500,7 +584,7 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + token);
         headers.add("If-Match", "*");
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroup> updateGroup = template.exchange(
@@ -539,7 +623,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         ResponseEntity<ScimGroupExternalMember> mapGroup = template.exchange(
@@ -594,8 +678,10 @@ public class IntegrationTestUtils {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
-            client.put(url + "/identity-zones/{id}", existing, id);
-            return existing;
+            HttpEntity<IdentityZone> updateZoneRequest = new HttpEntity<>(existing);
+            ResponseEntity<String> getUpdatedZone = client.exchange(url + "/identity-zones/{id}", HttpMethod.PUT, updateZoneRequest, String.class, id);
+            IdentityZone updatedZone = JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
+            return updatedZone;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
@@ -614,10 +700,24 @@ public class IntegrationTestUtils {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
-    public static BaseClientDetails getClient(RestTemplate template,
+    public static BaseClientDetails getClient(String token,
                                               String url,
                                               String clientId) throws Exception {
-        ResponseEntity<BaseClientDetails> response = template.getForEntity(url+"/oauth/clients/{clientId}", BaseClientDetails.class, clientId);
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+ token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+
+        HttpEntity getHeaders = new HttpEntity(null, headers);
+
+        ResponseEntity<BaseClientDetails> response = template.exchange(
+                url+"/oauth/clients/" + clientId,
+                HttpMethod.GET,
+                getHeaders,
+                BaseClientDetails.class
+        );
+
         return response.getBody();
     }
 
@@ -666,7 +766,7 @@ public class IntegrationTestUtils {
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer "+ adminToken);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (StringUtils.hasText(switchToZoneId)) {
+        if (hasText(switchToZoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, switchToZoneId);
         }
         HttpEntity getHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
@@ -692,19 +792,27 @@ public class IntegrationTestUtils {
                 throw new RuntimeException("Invalid update return code:"+clientUpdate.getStatusCode());
             }
         }
-        throw new RuntimeException("Invalid crete return code:"+clientCreate.getStatusCode());
+        throw new RuntimeException("Invalid create return code:"+clientCreate.getStatusCode());
     }
 
-    public static BaseClientDetails updateClient(RestTemplate template,
-                                                 String url,
+    public static BaseClientDetails updateClient(String url,
+                                                 String token,
                                                  BaseClientDetails client) throws Exception {
 
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+ token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+
+        HttpEntity getHeaders = new HttpEntity(client, headers);
+
         ResponseEntity<BaseClientDetails> response = template.exchange(
-            url + "/oauth/clients/{clientId}",
-            HttpMethod.PUT,
-            new HttpEntity<>(client),
-            BaseClientDetails.class,
-            client.getClientId());
+                url+"/oauth/clients/" + client.getClientId(),
+                HttpMethod.PUT,
+                getHeaders,
+                BaseClientDetails.class
+        );
 
         return response.getBody();
     }
@@ -805,9 +913,9 @@ public class IntegrationTestUtils {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_key"));
+        config.setAuthUrl(new URL("https://oidc10.oms.identity.team/oauth/authorize"));
+        config.setTokenUrl(new URL("https://oidc10.oms.identity.team/oauth/token"));
+        config.setTokenKeyUrl(new URL("https://oidc10.oms.identity.team/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
@@ -997,7 +1105,7 @@ public class IntegrationTestUtils {
         formData.add("username", username);
         formData.add("password", password);
         formData.add("response_type", "token id_token");
-        if (StringUtils.hasText(scopes)) {
+        if (hasText(scopes)) {
             formData.add("scope", scopes);
         }
         HttpHeaders headers = new HttpHeaders();
@@ -1066,6 +1174,7 @@ public class IntegrationTestUtils {
                                             null,
                                             null,
                                             resource.getPreEstablishedRedirectUri(),
+                                            null,
                                             true);
     }
 
@@ -1090,10 +1199,11 @@ public class IntegrationTestUtils {
                                                                   String tokenResponseType,
                                                                   String jSessionId,
                                                                   String redirectUri,
+                                                                  String loginHint,
                                                                   boolean callCheckToken) throws Exception {
         BasicCookieStore cookies = new BasicCookieStore();
         // TODO Fix to use json API rather than HTML
-        if (StringUtils.hasText(jSessionId)) {
+        if (hasText(jSessionId)) {
             cookies.addCookie(new BasicClientCookie("JSESSIONID", jSessionId));
         }
 
@@ -1102,8 +1212,11 @@ public class IntegrationTestUtils {
                 .queryParam("response_type", "code")
                 .queryParam("state", mystateid)
                 .queryParam("client_id", clientId);
-        if( StringUtils.hasText(redirectUri)) {
+        if( hasText(redirectUri)) {
             builder = builder.queryParam("redirect_uri", redirectUri);
+        }
+        if (hasText(loginHint)) {
+            builder = builder.queryParam("login_hint", loginHint);
         }
         URI uri = builder.build();
 
@@ -1135,7 +1248,7 @@ public class IntegrationTestUtils {
         }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        if (!StringUtils.hasText(jSessionId)) {
+        if (!hasText(jSessionId)) {
             // should be directed to the login screen...
             assertTrue(response.getBody().contains("/login.do"));
             assertTrue(response.getBody().contains("username"));
@@ -1185,17 +1298,17 @@ public class IntegrationTestUtils {
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
-        if (StringUtils.hasText(redirectUri)) {
+        if (hasText(redirectUri)) {
             assertTrue("Wrong location: " + location, location.matches(redirectUri + ".*code=.+"));
         }
 
         formData.clear();
         formData.add("client_id", clientId);
         formData.add("grant_type", "authorization_code");
-        if (StringUtils.hasText(redirectUri)) {
+        if (hasText(redirectUri)) {
             formData.add("redirect_uri", redirectUri);
         }
-        if (StringUtils.hasText(tokenResponseType)) {
+        if (hasText(tokenResponseType)) {
             formData.add("response_type", tokenResponseType);
         }
         formData.add("code", location.split("code=")[1].split("&")[0]);
@@ -1244,9 +1357,14 @@ public class IntegrationTestUtils {
     }
 
     public static void takeScreenShot(WebDriver webDriver) {
+        takeScreenShot("testscreenshot-", webDriver);
+    }
+    public static void takeScreenShot(String prefix, WebDriver webDriver) {
         File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
         try {
-            FileUtils.copyFile(scrFile, new File("testscreenshot-" + System.currentTimeMillis() + ".png"));
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
+            String now = format.format(new Date(System.currentTimeMillis()));
+            FileUtils.copyFile(scrFile, new File("build/reports/", prefix + now + ".png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1270,8 +1388,10 @@ public class IntegrationTestUtils {
     }
 
     public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver) {
-        List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
-        assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+        if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
+            List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
+            assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+        }
     }
 
     public static void validateUserLastLogon(ScimUser user, Long beforeTestTime, Long afterTestTime) {
@@ -1307,6 +1427,23 @@ public class IntegrationTestUtils {
             }
             return  builder.build();
         }
+    }
+
+    public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+
+        webDriver.get(url + "/create_account");
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        webDriver.get(testClient.extractLink(message.getBody()));
+
+        return userEmail;
     }
 
 

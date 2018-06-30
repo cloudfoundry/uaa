@@ -23,7 +23,6 @@ import org.springframework.restdocs.headers.HeaderDocumentation;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
 
-import java.util.Calendar;
 import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -69,9 +68,12 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
         "-----END RSA PRIVATE KEY-----";
     public static final String ETAG_HEADER_DESCRIPTION = "The ETag version of the resource - used to decide if the client's version of the resource is already up to date. The UAA will set the ETag value to the epoch time in milliseconds of the last zone configuration change.";
-    public static final String IF_NONE_MATCH_DESCRIPTION = "See [Ref: RFC 2616](https://tools.ietf.org/html/rfc2616#section-14.26) ";
-    public static final RequestHeadersSnippet TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
-        headerWithName("Authorization").description("No authorization is required for requesting public keys.").optional(),
+    public static final String IF_NONE_MATCH_DESCRIPTION = "Optional. See [Ref: RFC 2616](https://tools.ietf.org/html/rfc2616#section-14.26) ";
+    public static final RequestHeadersSnippet SYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
+        headerWithName("Authorization").description("No authorization is required for requesting public keys."),
+        headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
+    );
+    public static final RequestHeadersSnippet ASYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
         headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
     );
     public static final Snippet TOKEN_KEY_RESPONSE_HEADERS = HeaderDocumentation.responseHeaders(headerWithName("ETag").description(ETAG_HEADER_DESCRIPTION));
@@ -92,8 +94,6 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void getTokenAsymmetricAuthenticated() throws Exception {
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
 
         Snippet responseFields = responseFields(
             fieldWithPath("kid").type(STRING).description("Key ID of key to be used for verification of the token."),
@@ -108,14 +108,13 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(
             get("/token_key")
                 .accept(APPLICATION_JSON)
-                .header("Authorization", basicDigestHeaderValue)
                 .header("If-None-Match", "1501570800000"))
 
             .andExpect(status().isOk())
             .andDo(document(
                 "{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
-                TOKEN_KEY_REQUEST_HEADERS,
+                    ASYMM_TOKEN_KEY_REQUEST_HEADERS,
                 responseFields,
                 TOKEN_KEY_RESPONSE_HEADERS
             )
@@ -178,7 +177,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
                 document(
                     "{ClassName}/{methodName}",
                     preprocessResponse(prettyPrint()),
-                    TOKEN_KEY_REQUEST_HEADERS,
+                        SYMM_TOKEN_KEY_REQUEST_HEADERS,
                     responseFields,
                     TOKEN_KEY_RESPONSE_HEADERS
                 )

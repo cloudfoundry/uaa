@@ -42,7 +42,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.CLIENT_ID)
     private String clientId;
     @JsonProperty(ClaimConstants.EXP)
-    private Integer exp;
+    private Long exp;
     @JsonProperty(ClaimConstants.AUTHORITIES)
     private List<String> authorities;
     @JsonProperty(ClaimConstants.SCOPE)
@@ -62,7 +62,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.GRANT_TYPE)
     private String grantType;
     @JsonProperty(ClaimConstants.ADDITIONAL_AZ_ATTR)
-    private String azAttr;
+    private Map<String,String> azAttr;
     @JsonProperty(ClaimConstants.AZP)
     private String azp;
     @JsonProperty(ClaimConstants.AUTH_TIME)
@@ -154,11 +154,11 @@ public class Claims {
         this.clientId = clientId;
     }
 
-    public Integer getExp() {
+    public Long getExp() {
         return exp;
     }
 
-    public void setExp(Integer exp) {
+    public void setExp(Long exp) {
         this.exp = exp;
     }
 
@@ -232,11 +232,11 @@ public class Claims {
         this.grantType = grantType;
     }
 
-    public String getAzAttr() {
+    public Map<String,String> getAzAttr() {
         return azAttr;
     }
 
-    public void setAzAttr(String azAttr) {
+    public void setAzAttr(Map<String,String> azAttr) {
         this.azAttr = azAttr;
     }
 

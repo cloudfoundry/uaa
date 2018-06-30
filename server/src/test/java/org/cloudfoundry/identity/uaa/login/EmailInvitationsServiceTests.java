@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
@@ -147,6 +148,24 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
+    public void acceptInvitation_onlyMarksInternalUsersAsVerified() {
+        ScimUser user = new ScimUser("ldap-user-id", "ldapuser", "Charlie", "Brown");
+        user.setOrigin(LDAP);
+
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("ldap-user-id"), eq(zoneId))).thenReturn(user);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(USER_ID, "ldap-user-id");
+        userData.put(EMAIL, "ldapuser");
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+
+        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), anyString());
+    }
+
+    @Test
     public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
@@ -178,7 +197,7 @@ public class EmailInvitationsServiceTests {
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
-        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
+        when(clientDetailsService.loadClientByClientId("acmeClientId", "uaa")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
@@ -216,44 +235,6 @@ public class EmailInvitationsServiceTests {
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
         verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("/home", redirectLocation);
-    }
-
-    // TODO: add cases for username no existing external user with username not email
-    @Test
-    public void accept_invitation_with_external_user_that_does_not_have_email_as_their_username() {
-        String userId = "user-id-001";
-        String email = "user@example.com";
-        String actualUsername = "actual_username";
-        ScimUser userBeforeAccept = new ScimUser(userId, email, "first", "last");
-        userBeforeAccept.setPrimaryEmail(email);
-        userBeforeAccept.setOrigin(OriginKeys.SAML);
-
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userBeforeAccept);
-        when(scimUserProvisioning.retrieve(eq(userId), eq(zoneId))).thenReturn(userBeforeAccept);
-
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
-        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
-
-        Map<String,String> userData = new HashMap<>();
-        userData.put(USER_ID, userBeforeAccept.getId());
-        userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
-        userData.put(REDIRECT_URI, "http://someother/redirect");
-        userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
-
-        ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
-        userAfterAccept.setPrimaryEmail(email);
-
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userAfterAccept);
-
-        ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
-        assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
-        assertEquals(userAfterAccept.getName(), acceptedUser.getName());
-        assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
-
-        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt(), eq(zoneId));
-
     }
 
     @Configuration

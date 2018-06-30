@@ -2,7 +2,7 @@
  
 Google can be setup as an OIDC provider for UAA. 
 
-1. Establish OAuth client in Google. Add following URI to the authorized redirect URIs section: http://{UAA_HOST}/login/callback/{origin}
+1. Establish OAuth client in Google. Add following URI to the authorized redirect URIs section: http://{UAA_HOST}/login/callback/{origin}. Additional Google documentation for achieving this can be found here: https://developers.google.com/identity/protocols/OAuth2
 
 2. Make sure you have `Client ID` and `Client secret`.
 
@@ -25,8 +25,8 @@ Please refer to 'https://accounts.google.com/.well-known/openid-configuration' f
           linkText: Login with google
           showLinkText: true
           addShadowUserOnLogin: true
-          relyingPartyId: `Client ID`
-          relyingPartySecret: `Client secret`
+          relyingPartyId: REPLACE_WITH_CLIENT_ID
+          relyingPartySecret: REPLACE_WITH_CLIENT_SECRET
           skipSslValidation: false
           attributeMappings:
             user_name: email

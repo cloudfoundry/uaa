@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
@@ -31,17 +32,15 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.Cookie;
-import org.openqa.selenium.By;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +64,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,11 +74,13 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryT
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -122,6 +122,7 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.manage().deleteAllCookies();
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
     }
 
     /**
@@ -131,8 +132,8 @@ public class SamlLoginWithLocalIdpIT {
     public void testDownloadSamlIdpMetadata() {
         String entityId = IDP_ENTITY_ID;
         SamlIdentityProviderDefinition idpDefinition = createLocalSamlIdpDefinition(entityId, "uaa");
-        Assert.assertTrue(idpDefinition.getMetaDataLocation().contains(IDPSSODescriptor.DEFAULT_ELEMENT_LOCAL_NAME));
-        Assert.assertTrue(idpDefinition.getMetaDataLocation().contains("entityID=\"" + entityId + "\""));
+        assertTrue(idpDefinition.getMetaDataLocation().contains(IDPSSODescriptor.DEFAULT_ELEMENT_LOCAL_NAME));
+        assertTrue(idpDefinition.getMetaDataLocation().contains("entityID=\"" + entityId + "\""));
     }
 
     /**
@@ -152,15 +153,18 @@ public class SamlLoginWithLocalIdpIT {
         } else {
             url = "http://localhost:8080/uaa/saml/idp/metadata";
         }
+        String idpMetaData = getIdpMetadata(url);
+        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
+    }
+
+    public static String getIdpMetadata(String url) {
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", "application/samlmetadata+xml");
-        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
+        HttpEntity<String> getHeaders = new HttpEntity<>(headers);
         ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
 
-        String idpMetaData = metadataResponse.getBody();
-        return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
+        return metadataResponse.getBody();
     }
 
     @Test
@@ -178,19 +182,13 @@ public class SamlLoginWithLocalIdpIT {
             url = "http://localhost:8080/uaa/saml/metadata/alias/" + alias;
         }
 
-        RestTemplate client = new RestTemplate();
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Accept", "application/samlmetadata+xml");
-        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
-        ResponseEntity<String> metadataResponse = client.exchange(url, HttpMethod.GET, getHeaders, String.class);
-
-        String spMetaData = metadataResponse.getBody();
+        String spMetaData = getIdpMetadata(url);
         SamlServiceProviderDefinition def = new SamlServiceProviderDefinition();
         def.setMetaDataLocation(spMetaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setSingleSignOnServiceIndex(0);
         def.setMetadataTrustCheck(false);
+        def.setEnableIdpInitiatedSso(true);
         return def;
     }
 
@@ -278,6 +276,34 @@ public class SamlLoginWithLocalIdpIT {
         }
         return null;
     }
+    private void deleteSamlServiceProviders(String zoneAdminToken, String url, String zoneId) {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
+        ResponseEntity<String> providerGet = client.exchange(url + "/saml/service-providers", HttpMethod.GET, getHeaders,
+                String.class);
+        if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
+            List<SamlServiceProvider> samlServiceProviders = JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<SamlServiceProvider>>() {
+            });
+            for(SamlServiceProvider sp : samlServiceProviders) {
+                deleteSamlServiceProvider(sp.getId(), zoneAdminToken, url, zoneId);
+            }
+        }
+    }
+
+    private void deleteSamlServiceProvider(String id, String zoneAdminToken, String url, String zoneId) {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity<String> deleteHeaders = new HttpEntity<String>(headers);
+        client.exchange(url + "/saml/service-providers/" + id , HttpMethod.DELETE, deleteHeaders, String.class);
+    }
 
     @Test
     public void testInvalidSaml2Bearer() throws Exception {
@@ -290,7 +316,7 @@ public class SamlLoginWithLocalIdpIT {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        postBody.add("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER);
         postBody.add("client_id", "oauth_showcase_saml2_bearer");
         postBody.add("client_secret", "secret");
         postBody.add("assertion",
@@ -356,7 +382,7 @@ public class SamlLoginWithLocalIdpIT {
                                                                              CompositeAccessToken.class);
 
         assertEquals(HttpStatus.OK, token.getStatusCode());
-        Assert.assertTrue(token.hasBody());
+        assertTrue(token.hasBody());
         provider.setActive(false);
         IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
     }
@@ -377,27 +403,121 @@ public class SamlLoginWithLocalIdpIT {
         SamlServiceProviderDefinition spDef = createLocalSamlSpDefinition("cloudfoundry-saml-login", "uaa");
         createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef);
 
-        // tells us that we are on travis
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-
         webDriver.get(baseUrl + firstUrl);
+        IntegrationTestUtils.takeScreenShot(webDriver);
         assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome!')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString(lookfor));
 
         provider.setActive(false);
         IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
     }
 
+    @Test
+    public void idp_initiated_login_invalid_sp() throws Exception {
+        //zone1 is IDP (create SP config and user here)
+        //zone2 is SP (create IDP config here)
+        //start at zone_1_url
+        //should land on zone_2_url
+
+        String zoneId1 = "testzone1";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
+
+        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@samltesting.org";
+        ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+
+        IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, zoneId1);
+
+        webDriver.get(testZone1Url + "/logout.do");
+        webDriver.get(testZone1Url + "/login");
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(email);
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        webDriver.get(testZone1Url + "/saml/idp/initiate");
+        assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Missing sp request parameter')]")));
+        webDriver.get(testZone1Url + "/saml/idp/initiate?sp=invalid_entity_id");
+        assertNotNull(webDriver.findElement(By.xpath("//h2[contains(text(), 'Invalid sp entity ID')]")));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void idp_initiated_login() throws Exception {
+        //zone1 is IDP (create SP config and user here)
+        //zone2 is SP (create IDP config here)
+        //start at zone_1_url
+        //should land on zone_2_url
+
+        String zoneId1 = "testzone1";
+        String zoneId2 = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        RestTemplate adminClient = getAdminClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2);
+
+        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+
+        ScimUser user = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, zoneId1);
+
+        String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
+        String testZone2Url = baseUrl.replace("localhost", zoneId2 + ".localhost");
+
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition("cloudfoundry-saml-login");
+        getSamlServiceProvider(zoneId1,
+                               adminToken,
+                               samlServiceProviderDefinition,
+                               "testzone2.cloudfoundry-saml-login",
+                               "SP for Zone 2",
+                               baseUrl
+        );
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition("cloudfoundry-saml-login");
+        getSamlIdentityProvider(zoneId2,
+                                adminToken,
+                                samlIdentityProviderDefinition);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(testZone1Url + "/logout.do");
+        webDriver.get(testZone2Url + "/logout.do");
+        webDriver.get(testZone1Url + "/saml/idp/initiate?sp=testzone2.cloudfoundry-saml-login");
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome to The Twiglet Zone[" + zoneId1 + "]!')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(email);
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.getCurrentUrl(), containsString(testZone2Url));
+        for (String logout : Arrays.asList(baseUrl, testZone1Url, testZone2Url)) {
+            webDriver.get(logout + "/logout.do");
+        }
+
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testLocalSamlIdpLoginInTestZone1Works() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         RestTemplate identityClient = getIdentityClient();
@@ -448,7 +568,7 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.findElement(By.name("username")).sendKeys(zoneUserEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
@@ -486,7 +606,6 @@ public class SamlLoginWithLocalIdpIT {
     @SuppressWarnings("unchecked")
     @Test
     public void testWebSSOProfileWithArtifactInMetadataSamlIntegration() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String idpZoneId = "testzone1";
         String spZoneId = "testzone2";
 
@@ -564,7 +683,6 @@ public class SamlLoginWithLocalIdpIT {
     @SuppressWarnings("unchecked")
     @Test
     public void testWebSSOProfileWithRedirectPostSamlIntegration() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String idpZoneId = "testzone1";
         String spZoneId = "testzone2";
 
@@ -635,8 +753,67 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     @Test
+    public void testEntityIdFromZoneConfig() throws Exception{
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate adminClient = getAdminClient();
+
+        RestTemplate identityClient = getIdentityClient();
+
+        IdentityZone idpIdentityZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId);
+        String entityId = "testID1";
+        idpIdentityZone.getConfig().getSamlConfig().setEntityID(entityId);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, idpIdentityZone.getConfig());
+
+        String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        createZoneUser(idpZoneId, idpZoneAdminToken, idpZoneUserEmail, idpZoneUrl);
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
+
+        String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
+        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        //Add IDP definition to the SP zone
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = getSamlIdentityProvider(spZoneId, spZoneAdminToken, samlIdentityProviderDefinition);
+        //Assert that the metadata being sent to SP contains the entityID from zone config
+        assertThat(idp.getConfig().getMetaDataLocation(), containsString("entityID=\""+entityId+"\""));
+
+        //Add SP definition to the IDP zone
+        deleteSamlServiceProviders(idpZoneAdminToken, baseUrl, idpZoneId);
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition(IDP_ENTITY_ID);
+        SamlServiceProvider sp = new SamlServiceProvider();
+        sp.setIdentityZoneId(idpZoneId);
+        sp.setActive(true);
+        sp.setConfig(samlServiceProviderDefinition);
+        sp.setEntityId("testzone2.cloudfoundry-saml-login");
+        sp.setName("Local SAML SP for testzone2");
+        createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
+
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(spZoneUrl + "/logout.do");
+
+        //Reset Zone Configuration
+        idpIdentityZone.getConfig().getSamlConfig().setEntityID(null);
+        IdentityZone updatedIdpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, idpIdentityZone.getConfig());
+        assertNull(updatedIdpZone.getConfig().getSamlConfig().getEntityID());
+    }
+
+    @Test
     public void testSamlServiceProviderAttributeMappings() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String idpZoneId = "testzone1";
         String spZoneId = "testzone2";
         Map<String, Object> attributeMappings = new HashMap<>();
@@ -696,8 +873,6 @@ public class SamlLoginWithLocalIdpIT {
     @SuppressWarnings("unchecked")
     @Test
     public void testCrossZoneSamlIntegration() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-
         String idpZoneId = "testzone1";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
 
@@ -845,13 +1020,12 @@ public class SamlLoginWithLocalIdpIT {
             webDriver.findElement(By.name("username")).sendKeys(idpZoneUserEmail);
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+            assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
             Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
             assertNotNull(afterLogin);
             assertNotNull(afterLogin.getValue());
             assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
         } catch (Exception e) {
-            Assert.
             assertTrue("Http-Artifact binding is not supported",e instanceof NoSuchElementException);
 
         }

@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -30,8 +31,6 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -55,6 +54,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
@@ -73,6 +73,8 @@ public class InvitationsIT {
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Autowired
     WebDriver webDriver;
@@ -96,12 +98,15 @@ public class InvitationsIT {
 
     private String scimToken;
     private String loginToken;
+    private String testInviteEmail;
 
     @Before
     public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
+
+        testInviteEmail = "testinvite@test.org";
     }
 
     @Before
@@ -115,6 +120,9 @@ public class InvitationsIT {
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.manage().deleteAllCookies();
+
+        webDriver.get("http://localhost:8080/app/");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -145,7 +153,8 @@ public class InvitationsIT {
 
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = createInvitation(email, email, "http://localhost:8080/app/", OriginKeys.UAA);
+        String redirectUri = baseUrl + "/profile";
+        String code = createInvitation(email, email, redirectUri, OriginKeys.UAA);
         String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, OriginKeys.UAA, "email", email);
         if (isVerified) {
             ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
@@ -165,7 +174,14 @@ public class InvitationsIT {
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-            Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Application Authorization"));
+
+            assertTrue(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified());
+
+            webDriver.findElement(By.name("username")).sendKeys(email);
+            webDriver.findElement(By.name("password")).sendKeys("secr3T");
+            webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+            Assert.assertEquals(redirectUri, webDriver.getCurrentUrl());
         } else {
             //redirect to the home page to login
             Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));
@@ -181,10 +197,15 @@ public class InvitationsIT {
     @Test
     public void acceptInvitation_for_samlUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String email = "testinvite@test.org";
-        String code = createInvitation(email, email, "http://localhost:8080/app/", "simplesamlphp");
 
-        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", email);
+        BaseClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        appClient.setScope(Lists.newArrayList("cloud_controller.read", "password.write", "scim.userids", "cloud_controller.write", "openid", "organizations.acme"));
+        appClient.setAutoApproveScopes(Lists.newArrayList("openid"));
+        IntegrationTestUtils.updateClient(baseUrl, scimToken, appClient);
+
+        String code = createInvitation(testInviteEmail, testInviteEmail, "http://localhost:8080/app/", "simplesamlphp");
+
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", testInviteEmail);
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
@@ -193,12 +214,18 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
         WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+
         loginButton.click();
+
         //wait until UAA page has loaded
-        new WebDriverWait(webDriver, 45).until(ExpectedConditions.presenceOfElementLocated(By.id("application_authorization")));
+        webDriver.findElement(By.id("application_authorization"));
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         //webdriver follows redirects so we should be on the UAA authorization page
         assertEquals("user_only_for_invitations_test", acceptedUsername);
+
+        //external users should default to not being "verified" since we can't determine this
+        ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        assertFalse(user.isVerified());
     }
 
     @Test
@@ -250,7 +277,7 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
+        webDriver.get("https://oidc10.oms.identity.team/logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 

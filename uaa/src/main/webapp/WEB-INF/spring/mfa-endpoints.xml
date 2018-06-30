@@ -1,0 +1,55 @@
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+
+    <bean id="mfaProviderProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning">
+        <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
+        <constructor-arg type="org.cloudfoundry.identity.uaa.mfa.MfaProviderValidator"
+                         ref="mfaProviderValidator"/>
+    </bean>
+
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator" />
+
+    <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
+        <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
+        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
+    </bean>
+
+    <bean id="runtimeEnvironment" class="org.cloudfoundry.identity.uaa.util.RuntimeEnvironment" />
+
+    <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/mfa-providers"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/mfa-providers"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/mfa-providers/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('uaa.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/**" access="denyAll"/>
+        <csrf disabled="true"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+    </http>
+
+    <bean name="mfaProviderBootstrap" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderBootstrap">
+        <constructor-arg name="provisioning" ref="mfaProviderProvisioning" />
+        <property name="mfaProviders" value="#{@config['login']==null ? null : @config['login']['mfa']==null ? null : @config['login']['mfa']['providers']}" />
+    </bean>
+</beans>

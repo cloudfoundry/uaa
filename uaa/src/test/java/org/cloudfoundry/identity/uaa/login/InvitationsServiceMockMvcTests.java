@@ -47,6 +47,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -56,7 +57,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -257,7 +257,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .param("password", "s3cret")
                 .param("password_confirmation", "s3cret")
                 .param("code",invalidCode)
-                .with(csrf())
+                .with(cookieCsrf())
         )
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "code_expired"))
@@ -303,10 +303,10 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .param("password", "s3cret")
                 .param("password_confirmation", "s3cret")
                 .param("code",code)
-                .with(csrf())
+                .with(cookieCsrf())
         )
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI))
+            .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))
             .andReturn();
 
         assertTrue("User should be verified after password reset", queryUserForField(email, "verified", Boolean.class));
@@ -317,7 +317,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .session(session)
                 .accept(MediaType.TEXT_HTML)
         )
-            .andExpect(status().isOk());
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrlPattern("**/login"));
     }
 
     @Test

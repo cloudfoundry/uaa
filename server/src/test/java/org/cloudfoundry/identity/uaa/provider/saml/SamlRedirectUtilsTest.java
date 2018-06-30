@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,7 +33,8 @@ public class SamlRedirectUtilsTest {
                 .setLinkText("link text")
                 .setZoneId(IdentityZone.getUaa().getId());
 
-        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, "login.uaa-acceptance.cf-app.com");
-        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=login.uaa-acceptance.cf-app.com&idp=simplesamlphp-url&isPassive=true", url);
+        String domain = "login.random-made-up-url.com";
+        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, domain);
+        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=" + domain + "&idp=simplesamlphp-url&isPassive=true", url);
     }
 }

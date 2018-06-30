@@ -12,8 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.security.SecureRandom;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,10 +36,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SecureRandom;
-import java.util.List;
-import java.util.Map;
-
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.updateUserToForcePasswordChange;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -90,7 +91,7 @@ public class ForcedPasswordChangeIT {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer "+adminAccessToken);
         testClient.createUser(adminAccessToken, userEmail, userEmail, "secr3T", true);
-        ResponseEntity<Map> response = restTemplate.exchange(baseUrl + "/Users?filter=userName eq '{user-name}'", HttpMethod.GET,
+        ResponseEntity<Map> response = restTemplate.exchange(baseUrl + "/Users?filter=userName eq  \"{user-name}\"", HttpMethod.GET,
                 new HttpEntity<>(headers), Map.class, userEmail);
         Map results = response.getBody();
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
@@ -150,7 +151,7 @@ public class ForcedPasswordChangeIT {
 
     @Test
     public void testRedirectForHandleForcePasswordChange() throws Exception {
-        updateUserToForcePasswordChange();
+        updateUserToForcePasswordChange(restTemplate, baseUrl, adminAccessToken, userId);
         webDriver.get(baseUrl+"/profile");
         assertEquals(baseUrl+"/login", webDriver.getCurrentUrl());
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
@@ -175,7 +176,7 @@ public class ForcedPasswordChangeIT {
     }
 
     private void navigateToForcePasswordChange() {
-        updateUserToForcePasswordChange();
+        updateUserToForcePasswordChange(restTemplate, baseUrl, adminAccessToken, userId);
         webDriver.get(baseUrl+"/login");
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
@@ -185,12 +186,5 @@ public class ForcedPasswordChangeIT {
         assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
     }
 
-    private void updateUserToForcePasswordChange() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer "+adminAccessToken);
-        UserAccountStatus userAccountStatus = new UserAccountStatus();
-        userAccountStatus.setPasswordChangeRequired(true);
-        ResponseEntity<UserAccountStatus> response = restTemplate.exchange(baseUrl + "/Users/{user-id}/status", HttpMethod.PATCH, new HttpEntity<UserAccountStatus>(userAccountStatus, headers), UserAccountStatus.class, userId);
-        response.toString();
-    }
+
 }

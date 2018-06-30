@@ -16,6 +16,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -246,7 +247,9 @@ public class AutologinIT {
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
-        assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
+            assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        }
         assertThat(cookies, hasItem(startsWith("Current-User")));
         cookieStore.clear();
         setCookiesFromResponse(cookieStore, loginResponse);

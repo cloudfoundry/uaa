@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -106,9 +106,8 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                         throw new BadCredentialsException("Bad Credentials");
                     }
                 }
-                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
-                                authdetails);
-                publish(new UserAuthenticationSuccessEvent(user, success));
+                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
                 return success;
             }
         }

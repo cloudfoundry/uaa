@@ -12,6 +12,7 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
@@ -21,6 +22,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -122,6 +124,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -356,12 +360,18 @@ public class UaaTokenServicesTests {
         tokenServices.refreshAccessToken("", tokenSupport.requestFactory.createTokenRequest(ar,"dsdada"));
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();
         map.put("grant_type", "refresh_token");
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
-        tokenServices.refreshAccessToken("dasdasdasdasdas", tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
+        String refreshTokenValue = "dasdasdasdasdas";
+        try {
+            tokenServices.refreshAccessToken(refreshTokenValue, tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
+            fail("Expected Exception was not thrown");
+        } catch (InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(refreshTokenValue)));
+        }
     }
 
     @Test
@@ -396,6 +406,54 @@ public class UaaTokenServicesTests {
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
     }
 
+    @Test
+    public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"issuer\": \"http://uaamaster:8080/uaa\"}",
+                IdentityZoneConfiguration.class
+            )
+        );
+        identityZone.getConfig().getTokenPolicy().setAccessTokenValidity(tokenSupport.accessTokenValidity);
+        tokenSupport.copyClients(IdentityZoneHolder.get().getId(), identityZone.getId());
+        IdentityZoneHolder.set(identityZone);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        tokenServices.setIssuer("http://uaaslave:8080/uaa");
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(tokenSupport.accessTokenValidity)));
+        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/uaa/oauth/token")));
+        assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
+        assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        validateExternalAttributes(accessToken);
+    }
+
+    @Test
+    public void testCreateAccessTokenForInvalidIssuer()  {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        try {
+            identityZone.setConfig(
+                    JsonUtils.readValue(
+                            "{\"issuer\": \"notAnURL\"}",
+                            IdentityZoneConfiguration.class
+                    )
+            );
+            fail();
+        } catch (JsonUtils.JsonUtilException e) {
+            assertThat(e.getMessage(), containsString("Invalid issuer format. Must be valid URL."));
+        }
+    }
 
     @Test
     public void test_refresh_token_is_opaque_when_requested() {
@@ -431,6 +489,7 @@ public class UaaTokenServicesTests {
             OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(s, refreshTokenRequest);
             assertThat("Token value should be equal to or lesser than 36 characters", refreshedAccessToken.getValue().length(), lessThanOrEqualTo(36));
             assertCommonUserAccessTokenProperties(new DefaultOAuth2AccessToken(tokenSupport.tokens.get(refreshedAccessToken).getValue()), CLIENT_ID);
+            validateExternalAttributes(refreshedAccessToken);
         }
     }
 
@@ -668,13 +727,38 @@ public class UaaTokenServicesTests {
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(tokenSupport.requestedAuthScopes));
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
         Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
         if (tokenEnhancer!=null) {
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
+            String atValue = accessToken.getValue().length() < 40 ?
+                tokenSupport.tokens.get(accessToken.getValue()).getValue() :
+                accessToken.getValue();
+            Map<String,Object> claims = JsonUtils.readValue(JwtHelper.decode(atValue).getClaims(),
+                                                            new TypeReference<Map<String, Object>>() {});
+
+            assertNotNull(claims.get("ext_attr"));
+            assertEquals("test", ((Map)claims.get("ext_attr")).get("purpose"));
+
+            assertNotNull(claims.get("ex_prop"));
+            assertEquals("nz", ((Map)claims.get("ex_prop")).get("country"));
+
+            assertThat((List<String>)claims.get("ex_groups"), containsInAnyOrder("admin","editor"));
+
         } else {
             assertNull("External attributes should not exist", extendedAttributes);
         }
+    }
+
+    @Test
+    public void testCreateAccessTokenExternalContext() throws InterruptedException {
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
+
+        validateExternalAttributes(accessToken);
+        validateExternalAttributes(refreshedAccessToken);
     }
 
     @Test
@@ -1392,7 +1476,7 @@ public class UaaTokenServicesTests {
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testRefreshTokenExpiry() {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -1435,7 +1519,12 @@ public class UaaTokenServicesTests {
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+        try {
+            tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+            fail("Expected Exception was not thrown");
+        } catch(InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(accessToken.getRefreshToken().getValue())));
+        }
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -1911,7 +2000,7 @@ public class UaaTokenServicesTests {
         assertNull(loadedAuthentication.getUserAuthentication());
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test
     public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
         BaseClientDetails shortExpiryClient = tokenSupport.defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
@@ -1932,7 +2021,12 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, validFor(is(1)));
 
         Thread.sleep(1000l);
-        tokenServices.loadAuthentication(accessToken.getValue());
+        try {
+            tokenServices.loadAuthentication(accessToken.getValue());
+            fail("Expected Exception was not thrown");
+        } catch (InvalidTokenException e) {
+            assertThat(e.getMessage(), not(containsString(accessToken.getValue())));
+        }
     }
 
     @Test
@@ -1964,6 +2058,21 @@ public class UaaTokenServicesTests {
         azMap.put("external_group", "domain\\group1");
         azMap.put("external_id", "abcd1234");
         assertEquals(azMap, token.getAdditionalInformation().get("az_attr"));
+    }
+
+    @Test
+    public void testWrongClientDoesNotLeakToken() {
+        AuthorizationRequest ar = mock(AuthorizationRequest.class);
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+        try {
+            refreshTokenRequest.setClientId("invalidClientForToken");
+            tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
+            fail();
+        } catch (InvalidGrantException e) {
+            assertThat(e.getMessage(), startsWith("Wrong client for this refresh token"));
+            assertThat(e.getMessage(), not(containsString(accessToken.getRefreshToken().getValue())));
+        }
     }
 
     private BaseClientDetails cloneClient(ClientDetails client) {

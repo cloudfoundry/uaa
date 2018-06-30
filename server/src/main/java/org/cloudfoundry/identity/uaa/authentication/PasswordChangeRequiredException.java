@@ -13,9 +13,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 
-import org.springframework.security.core.AuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;
 
-public class PasswordChangeRequiredException extends AuthenticationException{
+public class PasswordChangeRequiredException extends InteractionRequiredException {
 
     private final UaaAuthentication authentication;
 

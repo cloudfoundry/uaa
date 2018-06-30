@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TokenPolicy {
     private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(e -> e.getKey(), e -> {
         KeyInformation keyInformation = new KeyInformation();

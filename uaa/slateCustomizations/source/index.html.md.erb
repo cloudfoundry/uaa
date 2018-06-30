@@ -4,7 +4,8 @@ title: UAA API Reference
 search: true
 
 toc_footers:
-  - <a href="propMappings/">Internal Property Mappings</a>
+  - <a href="./propMappings/">Internal Property Mappings</a>
+
 ---
 
 # Overview
@@ -149,9 +150,9 @@ _Response Headers_
 
 # Token
 
-The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as 
+The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as
 as part of the request authorization header, using basic authentication, or as part of the request parameters, using the `client_id` and `client_secret` parameter
-names. 
+names.
 
 ## Authorization Code Grant
 
@@ -220,6 +221,27 @@ _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md")).result(binding) %>
 
+### Password Grant with MFA
+
+<aside class="warning">
+  MFA support is in active development and is not ready for production use.
+</aside>
+
+A password grant can be completed when multi-factor authentication is enabled.
+
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md")).result(binding) %>
+
 ### One-time Passcode
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
@@ -281,7 +303,7 @@ _Response Fields_
   Added in 3.10.0
 </aside>
 
-The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in 
+The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in
 [RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
 In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
@@ -309,10 +331,10 @@ _Response Fields_
 </aside>
 
 The _JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants_
-allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in 
+allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in
 [RFC 7523](https://tools.ietf.org/html/rfc7523). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`.
 In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
-The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the 
+The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
 <%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantDocs/document_jwt_bearer_grant/curl-request.md")).result(binding) %>
@@ -395,6 +417,20 @@ _Request Header_
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/request-headers.md")).result(binding) %>
 
+### Revoke all tokens for a user and client combination
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/path-parameters.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/request-headers.md")).result(binding) %>
+
 ### Revoke a single token
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/curl-request.md")).result(binding) %>
@@ -419,7 +455,7 @@ _Request Header_
 ### List all tokens for a user
 
 The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
-This token requires the `tokens.list` scope. 
+This token requires the `tokens.list` scope.
 
 
 <%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/curl-request.md")).result(binding) %>
@@ -476,6 +512,32 @@ _Request Parameters_
 _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/response-fields.md")).result(binding) %>
+
+# Introspect Token
+
+<aside class="success">
+  Added in UAA 4.9.0
+</aside>
+
+Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) Complaint. Active flag is responsible for showing the validity of the token and not the HTTP status code.
+Status code will be 200 OK for both valid and invalid tokens.
+
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/response-fields.md")).result(binding) %>
+
 
 # Token Key(s)
 
@@ -556,9 +618,37 @@ _Error Codes_
 |------------|--------------------------------------------------------------------------------------------------------|
 | 401        | Unauthorized - Unregistered client or incorrect client secret                                          |
 
+# Session Management
+
+## Logout.do
+
+The logout endpoint is meant to be used by applications to log the user out of the UAA session. UAA will only log a user out of the UAA session if they also hit this endpoint, and may also perform Single Logout with SAML providers if configured to do so.
+The recommendation for application authors is to:
+
+* provide a local logout feature specific to the client application
+  and use that to clear state in the client
+* as part of the logout redirect to the logout endpoint using their client ID
+* provide a redirect param in the link to the logout success page of their application so
+  that the user come back to a familiar place when logged out
+* add the logout success page to the client's redirect_uri configuration to whitelist the URL
+
+If the chosen redirect URI is not whitelisted, users will land on the UAA login page. This is a security feature intended to prevent open redirects as per [RFC 6749](https://tools.ietf.org/html/rfc6749#section-10.15).
+
+<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/response-headers.md")).result(binding) %>
+
 # Identity Zones
 
-The UAA supports multi tenancy. This is referred to as identity zones. An identity zones is accessed through a unique subdomain. If the standard UAA responds to [https://uaa.10.244.0.34.xip.io](https://uaa.10.244.0.34.xip.io) a zone on this UAA would be accessed through [https://testzone1.uaa.10.244.0.34.xip.io](https://testzone1.uaa.10.244.0.34.xip.io)
+The UAA supports multi tenancy. This is referred to as **identity zones**. An identity zone is accessed through a unique subdomain. If the standard UAA responds to [https://uaa.10.244.0.34.xip.io](https://uaa.10.244.0.34.xip.io) a zone on this UAA would be accessed through [https://testzone1.uaa.10.244.0.34.xip.io](https://testzone1.uaa.10.244.0.34.xip.io)
 
 >A zone contains a unique identifier as well as a unique subdomain:
 
@@ -1127,6 +1217,26 @@ In order to establish trust, a SAML IdP and SAML SP exchange SAML metadata which
 
 GET http://localhost:8080/uaa/saml/idp/metadata
 
+## Initiate IDP Login Flow
+
+When the UAA is an IdP, you can initiate the login flow to the Service Provider, SP, by using the `initiate` endpoint
+This is a browser flow.
+
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/response-body.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/document_idp_initiated_flow/request-parameters.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                             |
+|------------|-----------------------------------------------------------------------------------------|
+| 400        | If IDP initiated login is not enabled, the SP parameter is incorrect or SP is disabled. |
+
+
 ## List
 
 <%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPDocs/getAllServiceProviders/curl-request.md")).result(binding) %>
@@ -1252,6 +1362,136 @@ _Error Codes_
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
 
+
+# MFA Providers
+
+## Create
+
+<aside class="success">
+  Added in UAA 4.13.0
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/request-fields.md")).result(binding) %>
+
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - JSON body was malformed or missing fields                                                |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
+
+
+## Update
+
+<aside class="warning">
+  Update is not supported for MFA provider.
+</aside>
+
+
+
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 405        | Method Not Allowed                                                                                     |
+
+
+## Get
+
+<aside class="success">
+  Added in UAA 4.13.0
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testGetMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 404        | Not Found - Provider id not found                                                                      |
+
+
+## Delete
+
+<aside class="success">
+  Added in UAA 4.13.0
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testDeleteMfaProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+| 404        | Not Found - Provider id not found                                                                      |
+
+## List
+
+<aside class="success">
+  Added in UAA 4.13.0
+</aside>
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointsDocs/testListMfaProviders/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
+
 # Users
 
 Users can be queried, created and updated via the `/Users` endpoint.
@@ -1274,10 +1514,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to retrieve a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to retrieve a user)                            |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to get users:
 
@@ -1292,7 +1532,7 @@ uaac user get testuser
 ## List
 
 Listing users supports <a href="http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources">SCIM filtering</a> on the available attributes.
-By default users are returned with their group memberships and approvals, a rather expensive operation. 
+By default users are returned with their group memberships and approvals, a rather expensive operation.
 To avoid this, perform the search by including the `attributes` parameter to reduce the results.
 
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/curl-request.md")).result(binding) %>
@@ -1315,9 +1555,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to search users)                                 |
+| 403        | Forbidden - Insufficient scope (`scim.read` is required to search users)                               |
 
 >Example using uaac to view users:
 
@@ -1374,10 +1614,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
-| 409        | Username already exists                                                                                |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
+| 409        | Conflict - Username already exists                                                                     |
 
 >Example using uaac to view users:
 
@@ -1411,10 +1651,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to view users:
 
@@ -1448,10 +1688,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to patch users:
 
@@ -1481,10 +1721,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to delete a user)                               |
-| 404        | User id not found                                                                                      |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
+| 404        | Not Found - User id not found                                                                          |
 
 >Example using uaac to delete users:
 
@@ -1516,9 +1756,9 @@ _Error Codes_
 
 | Error Code | Description                                                                                            |
 |------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (openid is required to get the user info)                               |
+| 403        | Forbidden - Insufficient scope (`openid` is required to get the user info)                             |
 
 >Example using uaac to view user info:
 
@@ -1553,10 +1793,10 @@ _Error Codes_
 
 | Error Code | Description                                                                                                |
 |------------|------------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - invalid JSON format or missing fields                                                        |
+| 400        | Bad Request - Invalid JSON format or missing fields                                                        |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or a token containing the user id is required to create a user) |
-| 404        | User id not found                                                                                          |
+| 403        | Forbidden - Insufficient scope (`scim.write` or a token containing the user id is required)                |
+| 404        | Not Found - User id not found                                                                              |
 
 >Example using uaac to view users:
 
@@ -1635,8 +1875,8 @@ _Error Codes_
 |------------|------------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or illegal value                                                         |
 | 401        | Unauthorized - Invalid token                                                                               |
-| 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
-| 404        | User id not found
+| 403        | Forbidden - Insufficient scope (`scim.write` or `uaa.account_status.write` required)                       |
+| 404        | Not Found - User id not found                                                                              |
 
 ## Get user verification link
 
@@ -1686,6 +1926,27 @@ _Error Codes_
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 400        | Bad Request - Incorrect version supplied in If-Match header           |
+| 403        | Forbidden - Insufficient scope or internal user management disabled   |
+| 404        | Not Found - User not found                                            |
+
+## Delete MFA registration
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/request-headers.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
 
@@ -1817,7 +2078,7 @@ _Response Fields_
 
 ## Patch
 
-Updating partial elements of a group is documented at 
+Updating partial elements of a group is documented at
 [SCIM Specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#edit-resource-with-patch)
 
 <%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointsDocs/patchScimGroup/curl-request.md")).result(binding) %>
@@ -2372,6 +2633,10 @@ _Request Headers_
 
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-headers.md")).result(binding) %>
 
+_Request Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md")).result(binding) %>
+
 _Response Fields_
 
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md")).result(binding) %>
@@ -2395,9 +2660,9 @@ _Request Headers_
 ### Get authentication code
 
 Similar to /passcode, the difference with an autologin authentication code, is that the authentication of the user takes place
-during the generation of the one time code.
+during the generation of the temporary authentication code.
 The autologin authentication code can be used to log the user in with an HTTP redirect. The UAA will establish an authenticated
-server side session and expire the code. To generate the one time code, a POST against /autologin is required.
+server side session and expire the code. To generate the temporary authentication code, a POST against /autologin is required.
 
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-request.md")).result(binding) %>
@@ -2439,8 +2704,8 @@ for browser based actions.
 ### Request Reset Password Code
 
 This endpoint returns an onetime code that can be used to change a user's password.
-The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through 
-the `/reset_password` endpoint. 
+The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through
+the `/reset_password` endpoint.
 
 <%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/http-request.md")).result(binding) %>

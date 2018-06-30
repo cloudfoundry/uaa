@@ -52,7 +52,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
             .setRedirectUrl("/login")
             .setDisableRedirectParameter(true)
             .setRedirectParameterName("redirect");
-        when(clientDetailsService.loadClientByClientId(CLIENT_ID)).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId(CLIENT_ID, "uaa")).thenReturn(client);
         handler = new ZoneAwareWhitelistLogoutHandler(clientDetailsService);
         IdentityZoneHolder.get().setConfig(configuration);
     }
@@ -126,7 +126,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
 
     @Test
     public void client_not_found_exception() throws Exception {
-        when(clientDetailsService.loadClientByClientId("test")).thenThrow(new NoSuchClientException("test"));
+        when(clientDetailsService.loadClientByClientId("test", "uaa")).thenThrow(new NoSuchClientException("test"));
         configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://testing.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://notwhitelisted.com");

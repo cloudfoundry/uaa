@@ -153,10 +153,17 @@ public final class UaaTokenUtils {
     }
 
     public static String getRevocableTokenSignature(ClientDetails client, String clientSecret, UaaUser user) {
+        String tokenSalt = (String) client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
+        String clientId = client.getClientId();
+
+        return getRevocableTokenSignature(user, tokenSalt, clientId, clientSecret);
+    }
+
+    public static String getRevocableTokenSignature(UaaUser user, String tokenSalt, String clientId, String clientSecret) {
         String[] salts = new String[] {
-            client.getClientId(),
+            clientId,
             clientSecret,
-            (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
+            tokenSalt,
             user == null ? null : user.getId(),
             user == null ? null : user.getPassword(),
             user == null ? null : user.getSalt(),
@@ -191,20 +198,30 @@ public final class UaaTokenUtils {
     }
 
     public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+        URI uri;
+        if (!IdentityZoneHolder.isUaa()) {
+            String zone_issuer = IdentityZoneHolder.get().getConfig() != null ? IdentityZoneHolder.get().getConfig().getIssuer() : null;
+            if(zone_issuer != null) {
+                uri = validateIssuer(zone_issuer);
+                return UriComponentsBuilder.fromUri(uri).pathSegment("oauth/token").build().toUriString();
+            }
+        }
+        uri = validateIssuer(issuer);
+        String hostToUse = uri.getHost();
+        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
+            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
+        }
+        return UriComponentsBuilder.fromUri(uri).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+    }
+
+    private static URI validateIssuer(String issuer) throws URISyntaxException {
         try {
             new URL(issuer);
         } catch (MalformedURLException x) {
             throw new URISyntaxException(issuer, x.getMessage());
         }
-        URI uri = new URI(issuer);
-        String hostToUse = uri.getHost();
-        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
-            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
-        }
-        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        return new URI(issuer);
     }
-
-
 
     public static boolean hasRequiredUserAuthorities(Collection<String> requiredGroups, Collection<? extends GrantedAuthority> userGroups) {
         return hasRequiredUserGroups(requiredGroups,

@@ -15,9 +15,11 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.openqa.selenium.Dimension;
-import org.openqa.selenium.phantomjs.PhantomJSDriver;
-import org.openqa.selenium.phantomjs.PhantomJSDriverService;
-import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 @Configuration
 @PropertySource("classpath:integration.test.properties")
@@ -38,8 +41,7 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public IntegrationTestRule integrationTestRule(@Value("${integration.test.uaa_url}") String baseUrl, Environment environment) {
-        boolean forceIntegrationTests = environment.getProperty("forceIntegrationTests") != null;
-        return new IntegrationTestRule(baseUrl, forceIntegrationTests);
+        return new IntegrationTestRule(baseUrl);
     }
 
     @Bean
@@ -48,16 +50,36 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean(destroyMethod = "quit")
-    public PhantomJSDriver webDriver() {
-        DesiredCapabilities desiredCapabilities = new DesiredCapabilities();
-        desiredCapabilities.setCapability(PhantomJSDriverService.PHANTOMJS_CLI_ARGS, new String[] {"--web-security=no", "--ignore-ssl-errors=yes"});
-        PhantomJSDriver driver = new PhantomJSDriver(desiredCapabilities);
+    public ChromeDriver webDriver() {
+        System.setProperty("webdriver.chrome.logfile", "/tmp/chromedriver.log");
+        System.setProperty("webdriver.chrome.verboseLogging", "true");
+
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments(
+          "--verbose",
+          "--headless",
+          "--disable-web-security",
+          "--ignore-certificate-errors",
+          "--allow-running-insecure-content",
+          "--allow-insecure-localhost",
+          "--no-sandbox",
+          "--disable-gpu"
+        );
+
+        LoggingPreferences logs = new LoggingPreferences();
+        logs.enable(LogType.PERFORMANCE, Level.ALL);
+        options.setCapability(CapabilityType.LOGGING_PREFS, logs);
+        options.setAcceptInsecureCerts(true);
+
+        ChromeDriver driver = new ChromeDriver(options);
+
         driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
         driver.manage().timeouts().pageLoadTimeout(20, TimeUnit.SECONDS);
         driver.manage().timeouts().setScriptTimeout(15, TimeUnit.SECONDS);
         driver.manage().window().setSize(new Dimension(1024, 768));
         return driver;
     }
+
 
     @Bean(destroyMethod = "stop")
     public SimpleSmtpServer simpleSmtpServer(@Value("${smtp.port}") int port) {

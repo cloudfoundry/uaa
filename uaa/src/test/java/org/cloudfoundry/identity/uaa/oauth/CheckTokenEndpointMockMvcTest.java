@@ -15,11 +15,14 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.ssl.Base64;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,8 +31,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-
-import java.util.Map;
+import org.springframework.web.util.HtmlUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -89,7 +91,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     public void check_token_get() throws Exception {
         check_token(get("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'GET' not supported", "ISO-8859-1")));
 
     }
 
@@ -97,7 +99,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     public void check_token_put() throws Exception {
         check_token(put("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'PUT' not supported", "ISO-8859-1")));
 
     }
 
@@ -116,7 +118,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     public void check_token_delete() throws Exception {
         check_token(MockMvcRequestBuilders.delete("/check_token"),status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
     }
 
     @Test

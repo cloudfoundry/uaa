@@ -1,0 +1,74 @@
+
+buildscript {
+
+  repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+      url 'http://repo.spring.io/plugins-release'
+    }
+  }
+
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.5.RELEASE")
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'war'
+
+war {
+  baseName = 'cloudfoundry-identity-statsd'
+}
+
+repositories {
+  mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+  compile project(':cloudfoundry-identity-metrics-data')
+  compile group: 'org.springframework.boot', name: 'spring-boot-starter', version: parent.springBootVersion
+  compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
+  compile group: 'log4j', name: 'log4j', version: '1.2.14'
+  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
+  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: parent.jacksonVersion
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+  providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
+  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.10.19'
+  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
+}
+
+test {
+  exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
+  exclude '**/*IT.class'
+}
+
+integrationTest {
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+    includeTestsMatching "*IT"
+  }
+}
+
+
+publishing {
+  publications {
+    statsd(MavenPublication) {
+      apply plugin: 'war'
+
+      groupId 'org.cloudfoundry.identity'
+      version version
+      artifactId 'cloudfoundry-identity-statsd'
+
+      from components.web
+      artifact sourceJar
+    }
+  }
+}

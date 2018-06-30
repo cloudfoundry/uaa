@@ -29,7 +29,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -59,6 +59,9 @@ public class LdapLoginIT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
+        //ensure we are able to resolve DNS for hostname testzone2.localhost
+        assertTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+
         screenShootRule.setWebDriver(webDriver);
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
@@ -83,8 +86,6 @@ public class LdapLoginIT {
     }
 
     private void performLdapLogin(String subdomain, String ldapUrl, boolean startTls, boolean skipSSLVerification, String username, String password) throws Exception {
-        //ensure we are able to resolve DNS for hostname testzone2.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         //ensure that certs have been added to truststore via gradle
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 

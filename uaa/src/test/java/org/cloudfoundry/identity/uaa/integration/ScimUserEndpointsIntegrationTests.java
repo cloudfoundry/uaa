@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Assume;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,6 +36,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -77,12 +83,10 @@ public class ScimUserEndpointsIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     private RestTemplate client;
+    private List<ScimUser> scimUsers;
 
     @Before
     public void createRestTemplate() throws Exception {
-
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
         client = (RestTemplate)serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
@@ -503,15 +507,38 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(new Integer(2), results.get("startIndex"));
     }
 
+    @Before
+    public void setupScimUsers() {
+        scimUsers = new ArrayList<>();
+    }
+
+    @After
+    public void teardownScimUsers() {
+        for (ScimUser scimUser : scimUsers) {
+            deleteUser(scimUser.getId(), scimUser.getVersion());
+        }
+    }
+
     @Test
     public void findUsersWithExtremePagination() throws Exception {
+        for (int i = 0; i < 501; i++) {
+            ResponseEntity<ScimUser> scimUserResponseEntity = createUser(
+                new RandomValueStringGenerator().generate().toLowerCase(),
+                new RandomValueStringGenerator().generate().toLowerCase(),
+                new RandomValueStringGenerator().generate().toLowerCase(),
+                new RandomValueStringGenerator().generate().toLowerCase()
+            );
+            scimUsers.add(scimUserResponseEntity.getBody());
+        }
+
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning
-                        .getForObject(usersEndpoint + "?startIndex=0&count=3000", Map.class);
+                        .getForObject(usersEndpoint + "?startIndex=0&count=501", Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        assertEquals(new Integer(1), results.get("startIndex"));
+        assertThat((Integer) results.get("totalResults"), greaterThan(500));
+        assertThat(results.get("itemsPerPage"), is(500));
+        assertThat(results.get("startIndex"), is(1));
     }
 }

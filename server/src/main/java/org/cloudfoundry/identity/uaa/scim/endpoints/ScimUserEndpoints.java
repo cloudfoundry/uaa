@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
@@ -129,6 +130,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private ScimGroupMembershipManager membershipManager;
 
+    private UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
+
     private ApprovalStore approvalStore;
 
     private static final Random passwordGenerator = new SecureRandom();
@@ -149,6 +152,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private ExpiringCodeStore codeStore;
 
     private ApplicationEventPublisher publisher;
+
+    private int userMaxCount;
 
     public void checkIsEditAllowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
@@ -313,7 +318,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
         checkIsEditAllowed(user.getOrigin(), request);
-        membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        membershipManager.removeMembersByMemberId(userId, user.getOrigin(), IdentityZoneHolder.get().getId());
         scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         if (publisher != null) {
@@ -401,15 +406,20 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             startIndex = 1;
         }
 
+        if (count > userMaxCount) {
+            count = userMaxCount;
+        }
+
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
+        Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
         try {
             result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), IdentityZoneHolder.get().getId());
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
-                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {
+                if(attributes.isEmpty() || attributes.stream().anyMatch(p -> "groups".equalsIgnoreCase(p))) {
                     syncGroups(user);
                 }
-                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)approvals") || attributesCommaSeparated.isEmpty()) {
+                if(attributes.isEmpty() || attributes.stream().anyMatch(p -> "approvals".equalsIgnoreCase(p))) {
                     syncApprovals(user);
                 }
                 input.add(user);
@@ -424,7 +434,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             // Return all user data
-            return new SearchResults<ScimUser>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
+            return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
         }
 
         Map<String, String> attributeMap = new HashMap<>();
@@ -433,10 +443,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         attributeMap.put("givenName", "name.givenName");
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
 
-        String[] attributes = attributesCommaSeparated.split(",");
         try {
-            return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                                                              mapper, Arrays.asList(ScimCore.SCHEMAS));
+            return SearchResultsFactory.buildSearchResultFrom(input,
+                                                              startIndex,
+                                                              count,
+                                                              result.size(),
+                                                              attributes.toArray(new String[attributes.size()]),
+                                                              mapper,
+                                                              Arrays.asList(ScimCore.SCHEMAS)
+            );
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
@@ -467,7 +482,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return status;
     }
 
-    private ScimUser syncGroups(ScimUser user) {
+    @RequestMapping(value = "/Users/{userId}/mfa", method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteMfaRegistration(@PathVariable String userId) {
+        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+
+        mfaCredentialsProvisioning.delete(user.getId());
+    }
+
+    protected ScimUser syncGroups(ScimUser user) {
         if (user == null) {
             return user;
         }
@@ -487,7 +510,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
-    private ScimUser syncApprovals(ScimUser user) {
+    protected ScimUser syncApprovals(ScimUser user) {
         if (user == null || approvalStore == null) {
             return user;
         }
@@ -584,6 +607,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.passwordValidator = passwordValidator;
     }
 
+    public void setMfaCredentialsProvisioning(UserMfaCredentialsProvisioning mfaCredentialsProvisioning) {
+        this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
+    }
+
     public void setCodeStore(ExpiringCodeStore codeStore) {
         this.codeStore = codeStore;
     }
@@ -591,5 +618,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
+    }
+
+    public void setUserMaxCount(int userMaxCount) {
+        if (userMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+            );
+        }
+
+        this.userMaxCount = userMaxCount;
     }
 }

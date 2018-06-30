@@ -198,7 +198,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
         if (!StringUtils.hasText(body.getId())) {
@@ -218,7 +219,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
-            idpDao.create(defaultIdp);
+            idpDao.create(defaultIdp, created.getId());
             logger.debug("Created default IDP in zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);
@@ -257,33 +258,35 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
         @RequestBody @Valid IdentityZone body, @PathVariable String id) {
-        if (id == null) {
-            throw new ZoneDoesNotExistsException(id);
-        }
-        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId())) {
-            throw new AccessDeniedException("Zone admins can only update their own zone.");
-        }
-
-        // make sure it exists
-        IdentityZone existingZone = zoneDao.retrieve(id);
-        restoreSecretProperties(existingZone, body);
-
-        try {
-            body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
-        } catch (InvalidIdentityZoneDetailsException ex) {
-            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
-        }
-
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
-            // ignore the id in the body, the id in the path is the only one that matters
+            if (id == null) {
+                throw new ZoneDoesNotExistsException(id);
+            }
+            if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId())) {
+                throw new AccessDeniedException("Zone admins can only update their own zone.");
+            }
+
+            if(body.getId() != null && !body.getId().equals(id)) {
+                throw new UnprocessableEntityException("The identity zone id from the request body does not match id in the url");
+            }
+
+            // make sure it exists
+            IdentityZone existingZone = zoneDao.retrieve(id);
+            restoreSecretProperties(existingZone, body);
+            //validator require id to be present
             body.setId(id);
+            body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
+
+            logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
             IdentityZone updated = zoneDao.update(body);
-            IdentityZoneHolder.set(updated); //what???
+            IdentityZoneHolder.set(updated);
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
             createUserGroups(updated);
             return new ResponseEntity<>(removeKeys(updated), OK);
+        } catch (InvalidIdentityZoneDetailsException ex) {
+            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         } finally {
             IdentityZoneHolder.set(previous);
         }

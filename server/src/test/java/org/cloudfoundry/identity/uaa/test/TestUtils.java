@@ -60,6 +60,7 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM service_provider");
         jdbcTemplate.update("DELETE FROM user_info");
         jdbcTemplate.update("DELETE FROM users");
+        jdbcTemplate.update("DELETE FROM mfa_providers");
 
         //this is data that the migration scripts insert
         jdbcTemplate.update("INSERT INTO identity_zone (id,version,subdomain,name,description,config) VALUES ('uaa',0,'','uaa','The system zone for backwards compatibility',null)");
@@ -72,7 +73,7 @@ public class TestUtils {
                 .setIdentityZoneId(IdentityZone.getUaa().getId())
                 .setName(origin)
                 .setType(origin);
-            idp.create(provider);
+            idp.create(provider, provider.getIdentityZoneId());
         }
     }
 

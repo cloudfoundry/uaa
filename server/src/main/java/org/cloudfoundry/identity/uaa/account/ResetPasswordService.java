@@ -23,8 +23,6 @@ public interface ResetPasswordService {
 
     ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
 
-    void updateLastLogonTime(String userId);
-
     class ResetPasswordResponse {
         @JsonProperty("user")
         private ScimUser user;

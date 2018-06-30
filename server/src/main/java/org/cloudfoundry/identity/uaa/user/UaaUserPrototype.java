@@ -59,9 +59,37 @@ public final class UaaUserPrototype {
 
     private Long previousLogonTime;
 
+    public UaaUserPrototype() {
+    }
+
+    public UaaUserPrototype(UaaUser user) {
+        withVerified(user.isVerified())
+            .withLegacyVerificationBehavior(user.isLegacyVerificationBehavior())
+            .withEmail(user.getEmail())
+            .withUsername(user.getUsername())
+            .withPhoneNumber(user.getPhoneNumber())
+            .withId(user.getId())
+            .withOrigin(user.getOrigin())
+            .withZoneId(user.getZoneId())
+            .withAuthorities(user.getAuthorities())
+            .withPassword(user.getPassword())
+            .withFamilyName(user.getFamilyName())
+            .withGivenName(user.getGivenName())
+            .withExternalId(user.getExternalId())
+            .withPasswordLastModified(user.getPasswordLastModified())
+            .withLastLogonSuccess(user.getLastLogonTime())
+            .withPreviousLogonSuccess(user.getPreviousLogonTime())
+            .withSalt(user.getSalt())
+            .withCreated(user.getCreated())
+            .withModified(user.getModified())
+            .withPasswordChangeRequired(user.isPasswordChangeRequired());
+
+    }
+
     public String getId() {
         return id;
     }
+
 
     public UaaUserPrototype withId(String id) {
         this.id = id;

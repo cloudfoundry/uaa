@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -27,6 +25,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -62,6 +63,8 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -140,7 +143,11 @@ public class InvitationsController {
             final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
-            if (user.isVerified()) {
+            boolean isUaaUserAndVerified =
+              UAA.equals(provider.getType()) && user.isVerified();
+            boolean isExternalUserAndAcceptedInvite =
+              !UAA.equals(provider.getType()) && UaaHttpRequestUtils.isAcceptedInvitationAuthentication();
+            if (isUaaUserAndVerified || isExternalUserAndAcceptedInvite) {
                 AcceptedInvitation accepted = invitationsService.acceptInvitation(newCode, "");
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
@@ -175,10 +182,19 @@ public class InvitationsController {
                 model.addAttribute("email", codeData.get("email"));
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
+            updateModelWithConsentAttributes(model);
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+    }
+
+    private void updateModelWithConsentAttributes(Model model) {
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null) {
+            model.addAttribute("consent_text", zoneBranding.getConsent().getText());
+            model.addAttribute("consent_link", zoneBranding.getConsent().getLink());
         }
     }
 
@@ -242,6 +258,7 @@ public class InvitationsController {
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("code") String code,
+                                   @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
                                    Model model,
                                    HttpServletRequest request,
                                    HttpServletResponse response) throws IOException {
@@ -265,15 +282,17 @@ public class InvitationsController {
         }
 
         final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
+            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", "missing_consent");
+        }
         if (!validation.valid()) {
            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
-//           return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
             return processErrorReload(newCode, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
-//            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         AcceptedInvitation invitation;
         try {
@@ -281,31 +300,22 @@ public class InvitationsController {
         } catch (HttpClientErrorException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
-        principal = new UaaPrincipal(
-            invitation.getUser().getId(),
-            invitation.getUser().getUserName(),
-            invitation.getUser().getPrimaryEmail(),
-            invitation.getUser().getOrigin(),
-            invitation.getUser().getExternalId(),
-            IdentityZoneHolder.get().getId()
-        );
-        UaaAuthentication authentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return "redirect:" + invitation.getRedirectUri();
+        String res = "redirect:/login?success=invite_accepted";
+        if (!invitation.getRedirectUri().equals("/home")) {
+            res += "&" + FORM_REDIRECT_PARAMETER + "=" + invitation.getRedirectUri();
+        }
+        return res;
     }
 
     private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         try {
-            String origin = codeData.get(ORIGIN);
-            IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             model.addAttribute(errorCode, error);
             model.addAttribute("code", newCode);
             return "redirect:accept";
-            //return handleUnprocessableEntity(model, response, errorCode, error, "invitations/accept_invite");
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
@@ -357,9 +367,9 @@ public class InvitationsController {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
                 userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
-                SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
+                zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token);
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
-                return "redirect:" + accept.getRedirectUri();
+                return "redirect:" + "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(accept.getRedirectUri());
             } else {
                 return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
             }

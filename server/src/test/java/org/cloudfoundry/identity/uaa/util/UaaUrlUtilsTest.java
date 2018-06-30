@@ -32,8 +32,10 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class UaaUrlUtilsTest {
@@ -58,7 +60,8 @@ public class UaaUrlUtilsTest {
         "www.invalid.com/*/with/path**",
         "www.*.invalid.com/*/with/path**",
         "http://username:password@*.com",
-        "http://username:password@*.com/path"
+        "http://username:password@*.com/path",
+        "org-;cl0udfoundry-identity://mobile-android-app.com/view"
     );
     private List<String> validUrls = Arrays.asList(
         "http://localhost",
@@ -78,7 +81,15 @@ public class UaaUrlUtilsTest {
         "http://sub*.valid.com/*/with/path**",
         "http://*.domain.com",
         "http://username:password@some.server.com",
-        "http://username:password@some.server.com/path"
+        "http://username:password@some.server.com/path",
+        "http://under_score_subdomain.example.com",
+        "http://under_score_subdomain.ex_ample.com",
+        "http://dash-subdomain.example.com",
+        "http://dash-subdomain.ex-ample.com",
+        "cool-app://example.com",
+        "org.cloudfoundry.identity://mobile-windows-app.com/view",
+        "org+cloudfoundry+identity://mobile-ios-app.com/view",
+        "org-cl0udfoundry-identity://mobile-android-app.com/view"
     );
 
     @Before
@@ -360,6 +371,72 @@ public class UaaUrlUtilsTest {
         validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
     }
 
+    @Test
+    public void addSubdomainToUrl_givenUaaUrl() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain("somezone"));
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_givenUaaUrlAndSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "somezone");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_handlesEmptySubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "");
+        assertEquals("http://localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(""));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://localhost:8080", url2);
+    }
+
+    @Test
+    public void addSudomain_handlesExtraSpaceInSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone  ");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSudomain_handlesExtraSpaceInSubdomain_currentZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2 "));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone2.localhost:8080", url2);
+    }
+
+    @Test
+    public void addSubdomain_handlesUnexpectedDotInSubdomain() {
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone. ");
+        assertEquals("http://somezone.localhost:8080", url);
+    }
+
+    @Test
+    public void addSubdomain_handlesUnexpectedDotInSubdomain_currentZone() {
+        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2. "));
+        String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
+        assertEquals("http://somezone2.localhost:8080", url2);
+    }
+
+    @Test
+    public void testUriHasMatchingHost() {
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
+        assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
+
+        assertFalse(UaaUrlUtils.uriHasMatchingHost(null, "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not-test.com/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("not-valid-url", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
+        assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not.test.com/test", "test.com"));
+    }
+
     private void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getFailedUrls(urls, result);
         if (!failed.isEmpty()) {
@@ -370,13 +447,27 @@ public class UaaUrlUtilsTest {
             fail(builder.toString());
         }
     }
+
+    enum CASE {
+        AS_IS,
+        UPPER_CASE,
+        LOWER_CASE
+    }
+
     private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
         Map<String, String> failed = new LinkedHashMap<>();
         urls.stream().forEach(
             url -> {
-                String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
-                if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
-                    failed.put(url, message);
+                for (CASE c : CASE.values()) {
+                    switch (c) {
+                        case AS_IS: break;
+                        case LOWER_CASE: url = url.toLowerCase(); break;
+                        case UPPER_CASE: url = url.toUpperCase(); break;
+                    }
+                    String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                    if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                        failed.put(url, message);
+                    }
                 }
             }
         );

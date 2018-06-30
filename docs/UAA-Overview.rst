@@ -88,7 +88,7 @@ Unresolved Issues
 OAuth2 Scopes
 --------------
 
-Not so much unresolved as just postponed. OAuth2 lets an authorization provider designate scopes that can further restrict what access a user delegates. For example, when I here of a new app that can analyze my apps on cloud foundry, I may only want to authorize it to read my data, not make any changes.
+Not so much unresolved as just postponed. OAuth2 lets an authorization provider designate scopes that can further restrict what access a user delegates. For example, when I hear of a new app that can analyze my apps on cloud foundry, I may only want to authorize it to read my data, not make any changes.
 
 Interaction between Collaboration Spaces and External Groups used for Authorization
 ------------------------------------------------------------------------------------

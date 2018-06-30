@@ -156,6 +156,7 @@ public class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0,255,0,0,0,0,6));
         IdentityZoneHolder.set(testZone);
 
+        endpoints.setClientMaxCount(5);
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
@@ -583,7 +584,7 @@ public class ClientAdminEndpointsTests {
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
         detail.setScope(Arrays.asList(input.getClientId() + ".read"));
-        verify(clientRegistrationService).updateClientDetails(detail);
+        verify(clientRegistrationService).updateClientDetails(detail, "testzone");
     }
 
     @Test
@@ -596,7 +597,7 @@ public class ClientAdminEndpointsTests {
         assertNull(result.getClientSecret());
         detail.setScope(input.getScope());
         detail.setAdditionalInformation(input.getAdditionalInformation());
-        verify(clientRegistrationService).updateClientDetails(detail);
+        verify(clientRegistrationService).updateClientDetails(detail, "testzone");
     }
 
     @Test
@@ -607,7 +608,7 @@ public class ClientAdminEndpointsTests {
         input.setAdditionalInformation(Collections.<String, Object> emptyMap());
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
-        verify(clientRegistrationService).updateClientDetails(detail);
+        verify(clientRegistrationService).updateClientDetails(detail, "testzone");
     }
 
     @Test
@@ -622,7 +623,7 @@ public class ClientAdminEndpointsTests {
         updated.setRegisteredRedirectUri(SINGLE_REDIRECT_URL);
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
-        verify(clientRegistrationService).updateClientDetails(updated);
+        verify(clientRegistrationService).updateClientDetails(updated, "testzone");
     }
 
     @Test
@@ -641,7 +642,7 @@ public class ClientAdminEndpointsTests {
         change.setOldSecret(detail.getClientSecret());
         change.setSecret("newpassword");
         endpoints.changeSecret(detail.getClientId(), change);
-        verify(clientRegistrationService).updateClientSecret(detail.getClientId(), "newpassword");
+        verify(clientRegistrationService).updateClientSecret(detail.getClientId(), "newpassword", "testzone");
 
     }
 
@@ -815,7 +816,7 @@ public class ClientAdminEndpointsTests {
         change.setOldSecret(detail.getClientSecret());
         change.setSecret("newpassword");
         endpoints.changeSecret(detail.getClientId(), change);
-        verify(clientRegistrationService).updateClientSecret(detail.getClientId(), "newpassword");
+        verify(clientRegistrationService).updateClientSecret(detail.getClientId(), "newpassword", "testzone");
 
     }
 
@@ -898,6 +899,15 @@ public class ClientAdminEndpointsTests {
         });
         detail.setScope(Arrays.asList(detail.getClientId() + ".read"));
         endpoints.createClientDetails(detail);
+    }
+
+    @Test
+    public void testClientEndpointCannotBeConfiguredWithAnInvalidMaxCount() throws Exception {
+        expected.expect(IllegalArgumentException.class);
+        expected.expectMessage(containsString(
+            "Invalid \"clientMaxCount\" value (got 0). Should be positive number."
+        ));
+        endpoints.setClientMaxCount(0);
     }
 
     @Test(expected = InvalidClientDetailsException.class)

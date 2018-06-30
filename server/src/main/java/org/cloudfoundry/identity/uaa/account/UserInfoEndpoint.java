@@ -71,20 +71,20 @@ public class UserInfoEndpoint implements InitializingBean {
         UaaUser user = userDatabase.retrieveUserById(principal.getId());
         UserInfoResponse response = new UserInfoResponse();
         response.setUserId(user.getId());
-        response.setUsername(user.getUsername());
+        response.setUserName(user.getUsername());
         response.setGivenName(user.getGivenName());
         response.setFamilyName(user.getFamilyName());
         response.setEmail(user.getEmail());
+        response.setEmailVerified(user.isVerified());
         response.setPhoneNumber(user.getPhoneNumber());
-        response.setSub(user.getId());
         response.setPreviousLogonSuccess(user.getPreviousLogonTime());
 
         UserInfo info = userDatabase.getUserInfo(user.getId());
         if (addCustomAttributes && info!=null) {
-            response.setAttributeValue(USER_ATTRIBUTES, info.getUserAttributes());
+            response.setUserAttributes(info.getUserAttributes());
         }
         if (addRoles && info!=null) {
-            response.setAttributeValue(ROLES, info.getRoles());
+            response.setRoles(info.getRoles());
         }
         return response;
     }

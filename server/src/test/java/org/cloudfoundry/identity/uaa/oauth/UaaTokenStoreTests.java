@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,6 +45,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Timestamp;
@@ -314,6 +316,27 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         }
     }
 
+    @Test
+    public void testCleanUpExpiredTokensDeadlockLoser() throws Exception {
+        Connection con = dataSource.getConnection();
+        try {
+            Connection expirationLoser = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class[]{Connection.class},
+                    new ExpirationLoserConnection(con));
+
+            SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
+
+            store = new UaaTokenStore(sameConnectionDataSource, 1);
+            int count = 10;
+            for (int i=0; i<count; i++) {
+                String code = store.createAuthorizationCode(clientAuthentication);
+                try { store.consumeAuthorizationCode(code); } catch (InvalidGrantException e) {}
+            }
+        } finally {
+            con.close();
+            store = new UaaTokenStore(dataSource);
+        }
+    }
 
 
     public class SameConnectionDataSource implements DataSource {
@@ -384,6 +407,53 @@ public class UaaTokenStoreTests extends JdbcTestBase {
             } else {
                 return method.invoke(con, args);
             }
+        }
+    }
+
+    public class ExpirationLoserConnection implements InvocationHandler {
+        static final String CLOSE_VAL = "close";
+        static final String PREPARE_VAL = "prepareStatement";
+        private final Connection con;
+
+        protected class ExpirationLoserPreparedStatement implements InvocationHandler {
+            static final String UPDATE_VAL = "executeUpdate";
+            private final PreparedStatement stmt;
+
+            ExpirationLoserPreparedStatement(PreparedStatement stmt) {
+                this.stmt = stmt;
+            }
+
+            @Override
+            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                if (UPDATE_VAL.equals(method.getName())) {
+                    throw new DeadlockLoserDataAccessException("Deadlock in update (emulated)", null);
+                }
+                return method.invoke(stmt, args);
+            }
+        }
+
+        ExpirationLoserConnection(Connection con) {
+            this.con = con;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            switch (method.getName()) {
+                case CLOSE_VAL:
+                    // This breaks things
+                    return null;
+                case PREPARE_VAL:
+                    if (args.length > 0) {
+                        String sql = (String) args[0];
+                        if (sql.startsWith("delete from oauth_code where expiresat ")) {
+                            PreparedStatement stmt = (PreparedStatement) method.invoke(con, args);
+                            return Proxy.newProxyInstance(getClass().getClassLoader(),
+                                    new Class[]{PreparedStatement.class},
+                                    new ExpirationLoserPreparedStatement(stmt));
+                        }
+                    }
+            }
+            return method.invoke(con, args);
         }
     }
 

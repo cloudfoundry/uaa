@@ -15,30 +15,48 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
+import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import javax.management.Notification;
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class UaaMetricsFilterTests {
 
@@ -46,61 +64,158 @@ public class UaaMetricsFilterTests {
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private FilterChain chain;
+    private NotificationPublisher publisher;
 
     @Before
     public void setup() throws Exception {
-        filter = new UaaMetricsFilter();
+        filter = spy(new UaaMetricsFilter());
+        filter.setEnabled(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        chain = Mockito.mock(FilterChain.class);
+        publisher = mock(NotificationPublisher.class);
+        filter.setNotificationPublisher(publisher);
+        chain = mock(FilterChain.class);
     }
 
 
     @Test
     public void group_static_content() throws Exception {
         for (String path : Arrays.asList("/vendor/test", "/resources/test")) {
-            request.setRequestURI(path);
-            assertEquals("/static-content", filter.getUriGroup(request));
+            setRequestData(path);
+            assertEquals("/static-content", filter.getUriGroup(request).getGroup());
             assertNull(MetricsAccessor.getCurrent());
         }
     }
 
     @Test
-    public void happy_path() throws Exception {
-        String path = "/some/path";
-        request.setRequestURI(path);
-        for (int status : Arrays.asList(200,500)) {
+    public void enabled_by_default() throws Exception {
+        filter = new UaaMetricsFilter();
+        assertTrue(filter.isEnabled());
+    }
+
+    @Test
+    public void per_request_disabled_by_default() throws Exception {
+        assertFalse(filter.isPerRequestMetrics());
+        performTwoSimpleRequests();
+        verify(filter, never()).sendRequestTime(anyString(), anyLong());
+    }
+
+    @Test
+    public void per_request_enabled() throws Exception {
+        filter.setPerRequestMetrics(true);
+        assertTrue(filter.isPerRequestMetrics());
+        performTwoSimpleRequests();
+        verify(filter, times(2)).sendRequestTime(anyString(), anyLong());
+    }
+
+
+    @Test
+    public void url_groups_loaded() throws Exception {
+        List<UrlGroup> urlGroups = filter.getUrlGroups();
+        assertNotNull(urlGroups);
+        assertThat(urlGroups.size(), greaterThan(0));
+        UrlGroup first = urlGroups.get(0);
+        assertEquals("/authenticate/**", first.getPattern());
+        assertEquals(1000l, first.getLimit());
+        assertEquals("API", first.getCategory());
+        assertEquals("/api", first.getGroup());
+    }
+
+    @Test
+    public void disabled() throws Exception {
+        filter.setEnabled(false);
+        performTwoSimpleRequests();
+        MetricsQueue queue = JsonUtils.readValue(filter.getGlobals(), MetricsQueue.class);
+        assertNotNull(queue);
+        assertEquals(0, queue.getTotals().getCount());
+    }
+
+    public String performTwoSimpleRequests() throws ServletException, IOException {
+        String path = "/authenticate/test";
+        setRequestData(path);
+        for (int status : Arrays.asList(200, 500)) {
             response.setStatus(status);
             filter.doFilterInternal(request, response, chain);
         }
+        return path;
+    }
+
+    @Test
+    public void happy_path() throws Exception {
+        filter.setPerRequestMetrics(true);
+        String path = performTwoSimpleRequests();
         Map<String, String> summary = filter.getSummary();
         assertNotNull(summary);
         assertFalse(summary.isEmpty());
-        assertEquals(1, summary.size());
-        Map<Integer, RequestMetricSummary> totals = JsonUtils.readValue(summary.get(path), new TypeReference<Map<Integer, RequestMetricSummary>>() {});
-        assertNotNull(totals);
-        for (int status : Arrays.asList(200,500)) {
-            RequestMetricSummary total = totals.get(status);
-            assertEquals(1, total.getCount());
+        assertEquals(2, summary.size());
+        for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
+            MetricsQueue totals = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
+            assertNotNull("URI:"+uri, totals);
+            for (StatusCodeGroup status : Arrays.asList(StatusCodeGroup.SUCCESS, StatusCodeGroup.SERVER_ERROR)) {
+                RequestMetricSummary total = totals.getDetailed().get(status);
+                assertEquals("URI:"+uri, 1, total.getCount());
+            }
         }
         assertNull(MetricsAccessor.getCurrent());
+        ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
+
+        verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
+        List<Notification> capturedArg = argumentCaptor.getAllValues();
+        assertEquals(2, capturedArg.size());
+        assertEquals("/api" , capturedArg.get(0).getType());
+    }
+
+    @Test
+    public void intolerable_request() throws Exception {
+        TimeService slowRequestTimeService = new TimeService() {
+            long now = System.currentTimeMillis();
+            @Override
+            public long getCurrentTimeMillis() {
+                now += 5000;
+                return now;
+            }
+        };
+        for (TimeService timeService : Arrays.asList(slowRequestTimeService, new TimeServiceImpl())) {
+            reset(publisher);
+            filter = new UaaMetricsFilter();
+            filter.setPerRequestMetrics(true);
+            filter.setTimeService(timeService);
+            filter.setNotificationPublisher(publisher);
+            String path = "/authenticate/test";
+            setRequestData(path);
+            filter.getUriGroup(request).setLimit(1000);
+            filter.doFilterInternal(request, response, chain);
+            MetricsQueue metricsQueue = filter.getMetricsQueue(filter.getUriGroup(request).getGroup());
+            RequestMetricSummary totals = metricsQueue.getTotals();
+            assertEquals(1, totals.getCount());
+            assertEquals(timeService == slowRequestTimeService ? 1 : 0, totals.getIntolerableCount());
+
+            ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
+            verify(publisher).sendNotification(argumentCaptor.capture());
+            Notification capturedArg = argumentCaptor.getValue();
+            assertEquals("/api" , capturedArg.getType());
+        }
     }
 
     @Test
     public void idle_counter() throws Exception {
-        final Lock lock = new ReentrantLock();
-        lock.lock();
-        request.setRequestURI("/oauth/token");
-        final FilterChain chain = Mockito.mock(FilterChain.class);
+        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        lock.writeLock().lock();
+        System.out.println("LOCK[MAIN] - Lock");
+        setRequestData("/oauth/token");
+        final FilterChain chain = mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
+        filter.setEnabled(true);
         doAnswer(invocation -> {
             try {
-                lock.lock();
+                lock.writeLock().lock();
+                System.out.println("LOCK[THREAD] - Lock");
             } finally {
-                lock.unlock();
+                lock.writeLock().unlock();
+                System.out.println("LOCK[THREAD] - Unlock");
                 return null;
             }
-        }).when(chain).doFilter(any(), any());
+        }).when(chain).doFilter(same(request), same(response));
         Runnable invocation = () -> {
             try {
                 filter.doFilterInternal(request, response, chain);
@@ -110,11 +225,12 @@ public class UaaMetricsFilterTests {
         };
         Thread invoker = new Thread(invocation);
         invoker.start();
-        Thread.sleep(10);
-        assertEquals(1, filter.getInflightRequests());
-        lock.unlock();
+        Thread.sleep(50);
+        assertEquals(1, filter.getInflightCount());
+        lock.writeLock().unlock();
+        System.out.println("LOCK[MAIN] - Unlock");
         Thread.sleep(25);
-        assertEquals(0, filter.getInflightRequests());
+        assertEquals(0, filter.getInflightCount());
         long idleTime = filter.getIdleTime();
         assertThat(idleTime, greaterThan(20l));
         System.out.println("Total idle time was:"+idleTime);
@@ -122,8 +238,39 @@ public class UaaMetricsFilterTests {
         assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
     }
 
+    public void setRequestData(String requestURI) {
+        request.setRequestURI("/uaa" + requestURI);
+        request.setPathInfo(requestURI);
+        request.setContextPath("/uaa");
+        request.setServerName("localhost");
+    }
+
     @Test
-    public void uri_groups() throws Exception {
+    public void deserialize_summary() throws Exception {
+        String path = "/some/path";
+        setRequestData(path);
+        for (int status : Arrays.asList(200,500)) {
+            response.setStatus(status);
+            filter.doFilterInternal(request, response, chain);
+        }
+        Map<String, String> summary = filter.getSummary();
+        MetricsQueue metricSummary = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
+        System.out.println("metricSummary = " + metricSummary);
+        assertEquals(2, metricSummary.getTotals().getCount());
+    }
+
+    @Test
+    public void url_groups() throws Exception {
+        request.setServerName("localhost:8080");
+        setRequestData("/uaa/authenticate");
+        request.setPathInfo("/authenticate");
+        request.setContextPath("/uaa");
+        assertEquals("/api", filter.getUriGroup(request).getGroup());
+    }
+
+    @Test
+    public void uri_groups_when_failed_to_load() throws Exception {
+        ReflectionTestUtils.setField(filter, "urlGroups", null);
         request.setContextPath("");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         map.add("/oauth/token/list","/oauth/token/list");
@@ -160,10 +307,18 @@ public class UaaMetricsFilterTests {
         map.entrySet().stream().forEach(
             entry -> {
                 for (String s : entry.getValue()) {
-                    request.setRequestURI(s);
-                    assertEquals("Testing URL: "+s, entry.getKey(), filter.getUriGroup(request));
+                    setRequestData(s);
+                    assertEquals("Testing URL: "+s, FALLBACK.getGroup(), filter.getUriGroup(request).getGroup());
                 }
             }
         );
+    }
+
+    @Test
+    public void validate_matcher() throws Exception {
+        //validates that patterns that end with /** still match at parent level
+        setRequestData("/some/path");
+        AntPathRequestMatcher matcher = new AntPathRequestMatcher("/some/path/**");
+        assertTrue(matcher.matches(request));
     }
 }

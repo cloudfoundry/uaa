@@ -49,6 +49,8 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  * <p>
  * A rule that prevents integration tests from failing if the server application
@@ -152,8 +154,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 
     @Override
     public Statement apply(Statement statement, FrameworkMethod frameworkMethod, Object o) {
-        Assume.assumeTrue("Test ignored as the server cannot be reached at " + hostName + ":" + port,
-                integrationTest || getStatus());
+        assertTrue("Test could not reach the server at " + hostName + ":" + port, getStatus());
         return statement;
     }
 

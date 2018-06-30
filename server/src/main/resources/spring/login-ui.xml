@@ -81,16 +81,6 @@
     <bean id="backwardsCompatibleScopeParameter"
           class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
 
-    <http name="changeEmailSecurity"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          pattern="/change_email**"
-          xmlns="http://www.springframework.org/schema/security">
-        <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <csrf disabled="false"/>
-    </http>
-
     <bean id="acceptInvitationSecurityContextPersistenceFilter"
           class="org.springframework.security.web.context.SecurityContextPersistenceFilter">
         <constructor-arg name="repo">
@@ -114,7 +104,8 @@
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/**" access="denyAll"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"/>
         <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
     </http>
 
@@ -122,6 +113,7 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true"
           pattern="/invite_users/**"
+          create-session="stateless"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**"
                        access="#oauth2.hasAnyScope('scim.invite') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
@@ -150,18 +142,8 @@
           xmlns="http://www.springframework.org/schema/security">
         <custom-filter ref="userManagementSecurityFilter" before="ANONYMOUS_FILTER"/>
         <custom-filter ref="resetPasswordAuthenticationFilter" position="LAST"/>
-        <csrf disabled="false"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
-    <http name="resetPasswordSecurity"
-          pattern="/reset_password**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"/>
+        <csrf disabled="false"
+              token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
@@ -176,66 +158,12 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <http name="changePasswordSecurity"
-          pattern="/change_password**"
-          disable-url-rewriting="true"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <csrf disabled="false"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
-    <bean id="uiCookeCsrfRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login.do"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-                    <constructor-arg value="/oauth/authorize"/>
-                    <property name="method" value="POST"/>
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-                    <constructor-arg value="/profile"/>
-                    <property name="method" value="POST"/>
-                </bean>
-            </list>
-        </constructor-arg>
-    </bean>
-
     <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/logout.do"/>
     </bean>
 
     <bean id="uiAuthorizeRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/oauth/authorize**"/>
-    </bean>
-
-    <bean id="uiRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/oauth/**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login/idp_discovery"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/logout.do**"/>
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/profile"/>
-                </bean>
-            </list>
-        </constructor-arg>
     </bean>
 
     <bean id="samlLogoutHandlers" class="java.util.ArrayList">
@@ -254,7 +182,13 @@
 
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
-        <property name="redirectingHandler" ref="successRedirectHandler"/>
+        <constructor-arg name="redirectingHandler" ref="successRedirectHandler"/>
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+    </bean>
+
+    <bean id="currentUserCookieFactory"
+          class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
+        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}" />
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
@@ -286,24 +220,102 @@
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>
     </bean>
 
-    <http name="forcePasswordChangeSecurity"
-          pattern="/force_password_change**"
-          entry-point-ref="loginEntryPoint"
-          use-expressions="false"
+    <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
+        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
+
+    <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
+        <constructor-arg name="urlFilter" value="/login/mfa/**"/>
+        <constructor-arg name="redirect" value="/login/mfa/register"/>
+        <constructor-arg name="cache" ref="clientRedirectStateCache"/>
+        <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+        <constructor-arg name="checker" ref="mfaChecker"/>
+        <constructor-arg name="logoutMatcher" ref="uiLogoutRequestMatcher"/>
+    </bean>
+
+    <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"
+          entry-point-ref="basicAuthenticationEntryPoint"
+          authentication-manager-ref="clientAuthenticationManager" use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="false"/>
-        <access-denied-handler ref="loginEntryPoint"/>
+    </http>
+
+    <http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
+
+    <http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
+
+    <http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
+          xmlns="http://www.springframework.org/schema/security"
+          entry-point-ref="loginEntryPoint" use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
+        <anonymous enabled="true"/>
+        <csrf disabled="true"/>
+    </http>
+
+    <bean id="catchAllFilterChainProxy" class="org.springframework.security.web.FilterChainProxy">
+        <constructor-arg>
+            <util:list>
+                <security:filter-chain pattern="/**" filters="
+                    httpsHeaderFilter,
+                    metadataGeneratorFilter,
+                    idpMetadataGeneratorFilter,
+                    samlFilter"/>
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
+        <constructor-arg name="redirectUri" value="/force_password_change"/>
+        <constructor-arg name="cache" ref="clientRedirectStateCache"/>
+        <constructor-arg name="ignoreUris">
+            <array>
+                <value>/login/mfa/**</value>
+            </array>
+        </constructor-arg>
+    </bean>
+
+    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
+    </bean>
+
+    <http name="idpSecurity"
+          use-expressions="true"
+          pattern="/saml/idp/SSO/**"
+          entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
+        <csrf disabled="true"/>
     </http>
 
     <http name="uiSecurity"
-          request-matcher-ref="uiRequestMatcher"
-          use-expressions="false"
+          use-expressions="true"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <intercept-url pattern="/login/idp_discovery" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
+        <intercept-url pattern="/force_password_change/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/reset_password**" access="isAnonymous()"/>
+        <intercept-url pattern="/login/mfa/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/create_account*" access="isAnonymous()"/>
+        <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
+        <intercept-url pattern="/login**" access="isAnonymous() or isFullyAuthenticated()"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
+        <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
+        <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+        <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
                     password-parameter="password"
@@ -312,22 +324,15 @@
                     authentication-failure-handler-ref="uaaAuthenticationFailureHandler"
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
-        <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
-        <custom-filter ref="clientRedirectStateCache" before="FORM_LOGIN_FILTER"/>
+        <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
+        <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
+        <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
-              token-repository-ref="loginCookieCsrfRepository"
-              request-matcher-ref="uiCookeCsrfRequestMatcher"/>
-        <access-denied-handler error-page="/login?error=invalid_login_request"/>
+              token-repository-ref="loginCookieCsrfRepository"/>
+        <access-denied-handler ref="loginEntryPoint"/>
         <request-cache ref="clientRedirectStateCache"/>
-    </http>
-
-    <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
     </http>
 
     <bean id="errorMessageAuthenticationFailureHandler"
@@ -342,6 +347,10 @@
                        value="/login?error=account_locked"/>
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException"
                        value="/login?error=account_not_precreated"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException"
+                       value="/force_password_change"/>
+                <entry key="org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException"
+                       value="/login/mfa/register"/>
             </map>
         </property>
         <property name="defaultFailureUrl" value="/login?error=login_failure"/>
@@ -349,71 +358,15 @@
 
     <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
     </bean>
 
-    <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
-
-    <security:http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
-
-    <security:http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <security:anonymous enabled="true"/>
-        <security:csrf disabled="true"/>
-    </security:http>
-
-    <security:http name="openIdSecurity" use-expressions="false">
-        <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
-        <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
-        <security:custom-filter after="BASIC_AUTH_FILTER" ref="samlFilter"/>
-        <security:custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
-        <security:custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
-        <security:logout logout-url="/logout" success-handler-ref="logoutHandler"/>
-        <security:openid-login login-page="/login" user-service-ref="openIdUserDetailsService"
-                               authentication-failure-url="/login?error=true">
-            <security:attribute-exchange identifier-match=".*myopenid.com.*">
-                <security:openid-attribute name="email" type="http://schema.openid.net/contact/email"
-                                           required="true"/>
-                <security:openid-attribute name="fullname" type="http://schema.openid.net/namePerson"
-                                           required="true"/>
-            </security:attribute-exchange>
-            <security:attribute-exchange identifier-match=".*">
-                <security:openid-attribute name="email" type="http://axschema.org/contact/email"
-                                           required="true" count="1"/>
-                <security:openid-attribute name="firstname" type="http://axschema.org/namePerson/first"
-                                           required="true"/>
-                <security:openid-attribute name="lastname" type="http://axschema.org/namePerson/last"
-                                           required="true"/>
-                <security:openid-attribute name="fullname" type="http://axschema.org/namePerson"
-                                           required="true"/>
-            </security:attribute-exchange>
-        </security:openid-login>
-        <security:anonymous enabled="false"/>
-        <security:csrf disabled="true"/>
-    </security:http>
 
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter"/>
 
-    <!-- this bean will be overwritten in the saml profile -->
-    <bean id="metadataGeneratorFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter"/>
-    <!-- this bean will be overwritten in the saml profile -->
-    <bean id="samlFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter"/>
-
     <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
         <constructor-arg name="redirectCsrf" value="/invalid_request"/>
-        <constructor-arg name="redirectNotLoggedIn" value="/login"/>
+        <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>
     </bean>
 
     <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
@@ -640,4 +593,48 @@
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
+
+    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
+        <constructor-arg index="0" value="${encryption.active_key_label}"/>
+        <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
+    </bean>
+
+    <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
+        <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
+    </bean>
+
+    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
+        <constructor-arg index="0" ref="jdbcTemplate"/>
+        <constructor-arg index="1" ref="activeKeyService"/>
+    </bean>
+
+    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
+        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
+        <property name="authenticator" ref="googleAuthenticator"/>
+    </bean>
+
+    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
+        <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
+        <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+        <property name="userDatabase" ref="userDatabase" />
+    </bean>
+
+    <bean id="mfaCompleteUrl" class="java.lang.String">
+        <constructor-arg value="/login/mfa/completed"/>
+    </bean>
+
+    <bean id="googleAuthenticator" class="com.warrenstrange.googleauth.GoogleAuthenticator">
+        <constructor-arg name="config" ref="googleAuthenticatorConfig"/>
+        <property name="credentialRepository" ref="userGoogleMfaCredentialsProvisioning"/>
+    </bean>
+
+    <bean id ="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
+        factory-bean="googleAuthenticatorConfigFactory"
+        factory-method="build" />
+
+    <bean id="googleAuthenticatorConfigFactory"
+          class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>
+
 </beans>

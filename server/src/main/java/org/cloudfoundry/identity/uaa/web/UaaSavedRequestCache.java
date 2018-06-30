@@ -92,7 +92,9 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         if (StringUtils.isEmpty(formRedirect)) {
             return false;
         }
-
+        if (!UaaUrlUtils.uriHasMatchingHost(formRedirect, request.getServerName())) {
+            return false;
+        }
         if (hasSavedRequest(request)) {
             return false;
         }
@@ -101,12 +103,12 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
     }
 
     protected static boolean hasSavedRequest(HttpServletRequest request) {
-        return request.getSession(false)!=null &&
-            getSavedRequest(request) !=null;
+        return getSavedRequest(request) !=null;
     }
 
     protected static SavedRequest getSavedRequest(HttpServletRequest request) {
-        return (SavedRequest) request.getSession(false).getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        HttpSession session = request.getSession(false);
+        return session==null ? null : (SavedRequest)session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
     }
 
     @Override

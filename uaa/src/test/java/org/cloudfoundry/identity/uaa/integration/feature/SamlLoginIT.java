@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -51,6 +50,7 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.logging.LogType;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +71,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -79,11 +78,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
@@ -92,12 +93,12 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
@@ -111,6 +112,9 @@ public class SamlLoginIT {
     private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -135,6 +139,7 @@ public class SamlLoginIT {
 
     @BeforeClass
     public static void setupSamlUtils() throws Exception {
+        assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         samlTestUtils = new SamlTestUtils();
         try {
             samlTestUtils.initialize();
@@ -150,6 +155,14 @@ public class SamlLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         screenShootRule.setWebDriver(webDriver);
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4")) {
+            try {
+                IntegrationTestUtils.deleteZone(baseUrl, zoneId, adminToken);
+            } catch(Exception _){}
+        }
+
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
             webDriver.manage().deleteAllCookies();
@@ -193,10 +206,6 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlLoginWithAddShadowUserOnLoginFalse() throws Exception {
-        //tells us that we are on travis
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-
-
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
         deleteUser(SAML_ORIGIN, testAccounts.getEmail());
@@ -218,23 +227,18 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
+        // We need to verify the last request URL through the performance log because the redirect
         // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
         // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
-        Thread.sleep(1000);
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
-        LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 
-        String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
+        List<LogEntry> logEntries = webDriver.manage().logs().get(LogType.PERFORMANCE).getAll();
+        List<String> logMessages = logEntries.stream().map(logEntry -> logEntry.getMessage()).collect(Collectors.toList());
 
-        assertThat("Unexpected URL.", lastRequestUrl,
-                Matchers.containsString(redirectUri + "?error=access_denied"
-                        + "&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+        assertThat(logMessages, hasItem(containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.")));
     }
 
     @Test
     public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -282,18 +286,6 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
-    }
-
-    private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
-            throws IOException {
-
-        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
-        Map<String, Object> log = (Map<String, Object>) message.get("log");
-        List<Object> entries = (List<Object>) log.get("entries");
-        Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
-        Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
-        String url = (String) request.get("url");
-        return url;
     }
 
     @Test
@@ -344,7 +336,6 @@ public class SamlLoginIT {
 
     @Test
     public void testSingleLogoutWithLogoutRedirect() throws Exception {
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -454,9 +445,6 @@ public class SamlLoginIT {
         testSimpleSamlLogin(firstUrl, lookfor, testAccounts.getUserName(), testAccounts.getPassword());
     }
     private void testSimpleSamlLogin(String firstUrl, String lookfor, String username, String password) throws Exception {
-        //tells us that we are on travis
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
         webDriver.get(baseUrl + firstUrl);
@@ -536,7 +524,6 @@ public class SamlLoginIT {
 
     public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -624,19 +611,9 @@ public class SamlLoginIT {
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
     }
 
-    protected boolean isMember(String userId, ScimGroup group) {
-        for (ScimGroupMember member : group.getMembers()) {
-            if(userId.equals(member.getMemberId())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Test
     public void test_RelayState_redirect_from_idp() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         //identity client token
@@ -699,7 +676,6 @@ public class SamlLoginIT {
     @Test
     public void testSamlLoginClientIDPAuthorizationAutomaticRedirectInZone1() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         //identity client token
@@ -769,7 +745,6 @@ public class SamlLoginIT {
     @Test
     public void testSamlLogin_Map_Groups_In_Zone1() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
@@ -876,7 +851,6 @@ public class SamlLoginIT {
 
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
@@ -962,6 +936,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
@@ -973,7 +948,8 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
@@ -987,7 +963,7 @@ public class SamlLoginIT {
 
         UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
-        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        Map<String,List<String>> userAttributeMap = userInfo.getUserAttributes();
         List<String> costCenterData = userAttributeMap.get(COST_CENTERS);
         List<String> managerData = userAttributeMap.get(MANAGERS);
         assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
@@ -1007,7 +983,6 @@ public class SamlLoginIT {
 
     public void two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = zoneName;
         String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
 
@@ -1016,10 +991,6 @@ public class SamlLoginIT {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
-        //admin client token - to create users
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
-        );
 
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
@@ -1027,7 +998,6 @@ public class SamlLoginIT {
         IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
 
         String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
-        //String idpMetadata = idpMetadataUrl;
 
         String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
 
@@ -1054,7 +1024,7 @@ public class SamlLoginIT {
         provider.setName(idpOrigin);
         provider.setOriginKey(idpOrigin);
 
-        provider = IntegrationTestUtils.createOrUpdateProvider(adminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(adminToken, baseUrl, provider);
 
         String clientId = new RandomValueStringGenerator().generate().toLowerCase();
         String username = "saml2bearerUser";
@@ -1101,7 +1071,8 @@ public class SamlLoginIT {
         ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Map<String,Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull("Expecting access_token to be present in response", tokenResponse.get("access_token"));
     }
 
@@ -1109,7 +1080,6 @@ public class SamlLoginIT {
     public void testSamlLogin_Email_In_ID_Token_When_UserID_IsNotEmail() throws Exception {
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone4";
         String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
 
@@ -1193,6 +1163,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
@@ -1204,7 +1175,8 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
@@ -1212,10 +1184,8 @@ public class SamlLoginIT {
     }
 
 
-
     @Test
     public void testSimpleSamlPhpLoginInTestZone1Works() throws Exception {
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -1352,11 +1322,13 @@ public class SamlLoginIT {
         try {
             webDriver.findElement(By.name("username"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         try {
             webDriver.findElement(By.name("password"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         webDriver.get(baseUrl + "/logout.do");
     }
 
@@ -1476,7 +1448,7 @@ public class SamlLoginIT {
     public SamlIdentityProviderDefinition getTestURLDefinition() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId("uaa");
-        def.setMetaDataLocation("https://branding.login.uaa-acceptance.cf-app.com/saml/metadata?random="+new RandomValueStringGenerator().generate());
+        def.setMetaDataLocation("https://branding.login.oms.identity.team/saml/metadata?random="+new RandomValueStringGenerator().generate());
         //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setAssertionConsumerIndex(0);
@@ -1518,6 +1490,4 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
     }
-
-
 }

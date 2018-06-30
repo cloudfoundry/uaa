@@ -103,7 +103,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", "foo");
         factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
-        when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(client);
         user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
     }
@@ -198,7 +198,7 @@ public class UaaAuthorizationRequestManagerTests {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
-        when(clientDetailsService.loadClientByClientId(recipient.getClientId())).thenReturn(recipient);
+        when(clientDetailsService.loadClientByClientId(recipient.getClientId(), "uaa")).thenReturn(recipient);
         ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
         client.setClientId("requestingId");
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(recipient);

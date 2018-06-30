@@ -79,18 +79,18 @@ public class NetworkTestUtils {
                                    Date issueDate,
                                    long validityDays) throws Exception {
         return getKeystore(directory,
-                           filename,
-                           1024,
-                           commonName,
-                           organizationalUnit,
-                           organization,
-                           city,
-                           state,
-                           country,
-                           issueDate,
-                           validityDays,
-                           alias,
-                           keyPass);
+          filename,
+          1024,
+          commonName,
+          organizationalUnit,
+          organization,
+          city,
+          state,
+          country,
+          issueDate,
+          validityDays,
+          alias,
+          keyPass);
 
     }
 
@@ -213,4 +213,6 @@ public class NetworkTestUtils {
             httpExchange.close();
         }
     }
+
+
 }

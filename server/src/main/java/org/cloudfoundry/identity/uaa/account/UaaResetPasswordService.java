@@ -82,11 +82,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     @Override
-    public void updateLastLogonTime(String userId) {
-        scimUserProvisioning.updateLastLogonTime(userId, IdentityZoneHolder.get().getId());
-    }
-
-    @Override
     public void resetUserPassword(String userId, String password) {
         if (scimUserProvisioning.checkPasswordMatches(userId, password, IdentityZoneHolder.get().getId())) {
             throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);

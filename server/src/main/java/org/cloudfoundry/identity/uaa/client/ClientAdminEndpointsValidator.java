@@ -236,6 +236,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (requestedGrantTypes.contains("client_credentials") || requestedGrantTypes
                             .contains("authorization_code")) {
                 if(!StringUtils.hasText(client.getClientSecret())) {
+                    logger.debug("Client secret is required for client_credentials and authorization_code grant types");
                     throw new InvalidClientDetailsException(
                             "Client secret is required for client_credentials and authorization_code grant types");
                 }

@@ -143,7 +143,7 @@ public class UaaStringUtils {
      * @return a regular expression string that will only match exact literals
      */
     public static String escapeRegExCharacters(String s) {
-        return escapeRegExCharacters(s, "([^a-zA-z0-9 ])");
+        return escapeRegExCharacters(s, "([^a-zA-Z0-9 ])");
     }
 
     /**

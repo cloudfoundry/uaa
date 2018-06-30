@@ -8,16 +8,21 @@
     <div class="island-content">
         <th:block th:if="${fieldUsernameShow}">
         <form th:action="@{/login.do}" method="post" novalidate="novalidate" accept-charset="UTF-8">
-            <div th:if="${param.error}" class="alert alert-error">
+            <div th:if="${param.error}" th:unless="${error}" class="alert alert-error">
                 <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
             </div>
+            <div th:if="${error}" class="alert alert-error">
+                <p th:text="#{'login.' + ${error}}">Error Message</p>
+            </div>
+            <div th:if="${param.success}" class="alert alert-success">
+                <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+            </div>
+
             <input th:each="prompt,iter : ${prompts}"
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
                    th:placeholder="${prompt.value[1]}"
-                   th:value="${iter.index} == 0 ? ${providedUsername} : ''"
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
-                   th:autofocus="${providedUsername == null ? iter.index == 0 : iter.index == 1}"
                    class="form-control"/>
             <input type="submit" value="Sign in" class="island-button"/>
             <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"
@@ -29,10 +34,19 @@
                    th:name="form_redirect_uri"
                    th:type="hidden"
                    th:value="${form_redirect_uri}"/>
+            <input th:if="${param.login_hint}"
+                   th:unless="${login_hint}"
+                   th:name="login_hint"
+                   th:type="hidden"
+                   th:value="${param.login_hint}"/>
+            <input th:if="${login_hint}"
+                   th:name="login_hint"
+                   th:type="hidden"
+                   th:value="${login_hint}"/>
         </form>
         </th:block>
         <div class="saml-login">
-            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or Sign in with: </p>
+            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or sign in with: </p>
             <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>

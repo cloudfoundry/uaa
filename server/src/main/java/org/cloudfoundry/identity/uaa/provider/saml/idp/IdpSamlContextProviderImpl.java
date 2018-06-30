@@ -12,16 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.namespace.QName;
+
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.transport.http.HTTPInTransport;
 import org.springframework.security.saml.context.SAMLContextProviderImpl;
 import org.springframework.security.saml.context.SAMLMessageContext;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.namespace.QName;
 
 /**
  * Use this class in conjuction with
@@ -34,7 +34,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
     @Override
     public SAMLMessageContext getLocalEntity(HttpServletRequest request, HttpServletResponse response)
             throws MetadataProviderException {
-        SAMLMessageContext context = super.getLocalEntity(request, response);
+        SAMLMessageContext context = super.getLocalEntity(new TestRequestWrapper(request), new TestResponseWrapper(response));
         context.setPeerEntityRole(SPSSODescriptor.DEFAULT_ELEMENT_NAME);
         return context;
     }
@@ -59,7 +59,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
         // Pre-configured entity Id
         entityId = (String) inTransport.getAttribute(org.springframework.security.saml.SAMLConstants.LOCAL_ENTITY_ID);
         if (entityId != null) {
-            logger.debug("Using protocol specified IdP {}", entityId);
+            log.debug("Using protocol specified IdP {}", entityId);
             context.setLocalEntityId(entityId);
             context.setLocalEntityRole(IDPSSODescriptor.DEFAULT_ELEMENT_NAME);
             return;
@@ -95,14 +95,14 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
             if (entityId == null) {
                 throw new MetadataProviderException("No local entity found for alias " + localAlias + ", verify your configuration.");
             } else {
-                logger.debug("Using IdP {} specified in request with alias {}", entityId, localAlias);
+                log.debug("Using IdP {} specified in request with alias {}", entityId, localAlias);
             }
 
             context.setLocalEntityId(entityId);
             context.setLocalEntityRole(localEntityRole);
 
         } else { // Defaults
-            context.setLocalEntityId(((IdpMetadataManager)metadata).getHostedIdpName());
+            context.setLocalEntityId(metadata.getDefaultIDP());
             context.setLocalEntityRole(IDPSSODescriptor.DEFAULT_ELEMENT_NAME);
         }
 

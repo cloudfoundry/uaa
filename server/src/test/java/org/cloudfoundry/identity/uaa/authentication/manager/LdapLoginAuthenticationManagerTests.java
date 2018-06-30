@@ -159,6 +159,7 @@ public class LdapLoginAuthenticationManagerTests {
         assertEquals(DN, user.getExternalId());
         assertEquals(LDAP_EMAIL, user.getEmail());
         assertEquals(origin, user.getOrigin());
+        assertFalse(user.isVerified());
     }
 
     @Test

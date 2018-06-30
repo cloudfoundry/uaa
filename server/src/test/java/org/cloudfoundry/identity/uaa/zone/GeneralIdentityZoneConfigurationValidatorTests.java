@@ -14,7 +14,11 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,6 +27,9 @@ import java.security.Security;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 @RunWith(Parameterized.class)
 public class GeneralIdentityZoneConfigurationValidatorTests {
@@ -185,7 +192,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         "iQpMzNWb7zZWlCfDL4dJZHYoNfg=\n" +
         "-----END CERTIFICATE-----";
 
-    SamlConfig config;
+    SamlConfig samlConfig;
 
 
     @BeforeClass
@@ -200,19 +207,26 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
 
     GeneralIdentityZoneConfigurationValidator validator;
+    IdentityZone zone;
 
     @Before
     public void setUp() throws Exception {
         IdentityZoneHolder.clear();
-        config = new SamlConfig();
-        config.setPrivateKey(legacyKey);
-        config.setCertificate(legacyCertificate);
-        config.setPrivateKeyPassword(legacyPassphrase);
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        samlConfig = new SamlConfig();
+        samlConfig.setPrivateKey(legacyKey);
+        samlConfig.setCertificate(legacyCertificate);
+        samlConfig.setPrivateKeyPassword(legacyPassphrase);
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
         validator = new GeneralIdentityZoneConfigurationValidator();
+        validator.setMfaConfigValidator(mock(MfaConfigValidator.class));
         zoneConfiguration = new IdentityZoneConfiguration();
-        zoneConfiguration.setSamlConfig(config);
+        BrandingInformation brandingInformation = new BrandingInformation();
+        zoneConfiguration.setBranding(brandingInformation);
+        zoneConfiguration.setSamlConfig(samlConfig);
+
+        zone = new IdentityZone();
+        zone.setConfig(zoneConfiguration);
         IdentityZoneHolder.clear();
     }
 
@@ -223,43 +237,86 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
     @Test
     public void validate_with_legacy_key_active() throws InvalidIdentityZoneConfigurationException {
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_with_invalid_active_key_id() throws InvalidIdentityZoneConfigurationException {
-        config.setActiveKeyId("wrong");
+        samlConfig.setActiveKeyId("wrong");
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid SAML active key ID: 'wrong'. Couldn't find any matching keys.");
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_with_invalid_consent_link() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent("some text", "some-invalid-link"));
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid consent link: some-invalid-link. Must be a properly formatted URI beginning with http:// or https://");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNotNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent("Terms and Conditions", null));
+
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNotNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent(null, "http://example.com"));
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validateConsent_withNullTextAndNullLink() throws InvalidIdentityZoneConfigurationException {
+        zone.getConfig().getBranding().setConsent(new Consent());
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Consent text must be set if configuring consent");
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_without_legacy_key() throws InvalidIdentityZoneConfigurationException {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addAndActivateKey("key-2", new SamlKey(key2, passphrase2, certificate2));
-        validator.validate(zoneConfiguration, mode);
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addAndActivateKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_without_legacy_key_and_null_active_key() throws InvalidIdentityZoneConfigurationException {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
+        samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid SAML active key ID: 'null'. Couldn't find any matching keys.");
-        validator.validate(zoneConfiguration, mode);
+        validator.validate(zone, mode);
     }
 
     @Test
     public void validate_no_keys() throws Exception {
-        config.setKeys(EMPTY_MAP);
-        assertNull(config.getActiveKeyId());
-        validator.validate(zoneConfiguration, mode);
+        samlConfig.setKeys(EMPTY_MAP);
+        assertNull(samlConfig.getActiveKeyId());
+        validator.validate(zone, mode);
     }
 
+    @Test
+    public void mfa_validation_exception_gets_thrown_back() throws Exception{
+        MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
+        validator.setMfaConfigValidator(mfaConfigValidator);
+        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any(), any());
 
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid MFA Config");
+        validator.validate(zone, mode);
+    }
 }

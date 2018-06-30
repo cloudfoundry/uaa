@@ -1,12 +1,25 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.util.Base64;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import static org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,25 +28,11 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.AuthenticationEntryPoint;
-
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Base64;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 public class ClientBasicAuthenticationFilterTests {
     private ClientBasicAuthenticationFilter filter;
@@ -49,6 +48,7 @@ public class ClientBasicAuthenticationFilterTests {
 
     @Before
     public void setUp() {
+        tearDown();
         clientAuthenticationManager = mock(AuthenticationManager.class);
         authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
         filter = new ClientBasicAuthenticationFilter(clientAuthenticationManager,
@@ -102,7 +102,7 @@ public class ClientBasicAuthenticationFilterTests {
     }
 
     @Test
-    public void doesNotContinueWithFilterChain_IfClientSecretExpired() throws IOException, ServletException, ParseException {
+    public void doesContinueWithFilterChain_EvenIfClientSecretExpired() throws IOException, ServletException, ParseException {
         BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials",
                                "http://localhost:5000/uaadb" );
 
@@ -120,8 +120,7 @@ public class ClientBasicAuthenticationFilterTests {
 
         filter.doFilter(request, response, chain);
 
-        verify(authenticationEntryPoint).commence(any(request.getClass()), any(response.getClass()), any(BadCredentialsException.class));
-        verifyNoMoreInteractions(chain);
+        verify(clientAuthenticationManager).authenticate(any(Authentication.class));
     }
 
     private Map<String, Object> createTestAdditionalInformation(Calendar calendar) throws ParseException{

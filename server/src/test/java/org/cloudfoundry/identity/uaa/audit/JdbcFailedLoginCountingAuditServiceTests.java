@@ -191,11 +191,11 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
-        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId());
+        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId(), null, null);
     }
 
     private AuditEvent getAuditEventForAltZone(AuditEventType type, String principal, String data) {
-        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), "test-zone");
+        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), "test-zone", null, null);
     }
 
 }

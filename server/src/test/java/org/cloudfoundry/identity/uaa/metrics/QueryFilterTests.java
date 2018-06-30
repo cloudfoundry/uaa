@@ -44,12 +44,13 @@ public class QueryFilterTests {
 
     @Test
     public void reportFailedQuery() throws Exception {
-        filter.reportFailedQuery("query", null, "name", 0, null);
+        long start = System.currentTimeMillis();
+        filter.reportFailedQuery("query", null, "name", start, null);
         assertNotNull(metric.getQueries());
         assertEquals(1, metric.getQueries().size());
         assertEquals("query", metric.getQueries().get(0).getQuery());
-        assertEquals(0, metric.getQueries().get(0).getRequestStartTime());
-        assertFalse(metric.getQueries().get(0).isSuccess());
+        assertEquals(start, metric.getQueries().get(0).getRequestStartTime());
+        assertFalse(metric.getQueries().get(0).isIntolerable());
     }
 
     @Test
@@ -60,18 +61,19 @@ public class QueryFilterTests {
         assertEquals("query", metric.getQueries().get(0).getQuery());
         assertEquals(0, metric.getQueries().get(0).getRequestStartTime());
         assertEquals(1, metric.getQueries().get(0).getRequestCompleteTime());
-        assertTrue(metric.getQueries().get(0).isSuccess());
+        assertFalse(metric.getQueries().get(0).isIntolerable());
     }
 
     @Test
     public void reportSlowQuery() throws Exception {
-        filter.reportSlowQuery("query", null, "name", 0, 1);
+        long delta = filter.getThreshold() + 10;
+        filter.reportSlowQuery("query", null, "name", 0, delta);
         assertNotNull(metric.getQueries());
         assertEquals(1, metric.getQueries().size());
         assertEquals("query", metric.getQueries().get(0).getQuery());
         assertEquals(0, metric.getQueries().get(0).getRequestStartTime());
-        assertEquals(1, metric.getQueries().get(0).getRequestCompleteTime());
-        assertTrue(metric.getQueries().get(0).isSuccess());
+        assertEquals(delta, metric.getQueries().get(0).getRequestCompleteTime());
+        assertTrue(metric.getQueries().get(0).isIntolerable());
     }
 
 }

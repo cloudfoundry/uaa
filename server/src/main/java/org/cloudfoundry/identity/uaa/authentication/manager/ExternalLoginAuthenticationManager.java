@@ -15,17 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
 import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
 import org.cloudfoundry.identity.uaa.user.Mailable;
@@ -35,7 +34,12 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.user.VerifiableUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,12 +49,15 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -74,6 +81,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     private IdentityProviderProvisioning providerProvisioning;
 
+    private ScimGroupExternalMembershipManager externalMembershipManager;
+
+
     public ExternalLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
@@ -84,6 +94,14 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+
+    public ScimGroupExternalMembershipManager getExternalMembershipManager() {
+        return externalMembershipManager;
+    }
+
+    public void setExternalMembershipManager(ScimGroupExternalMembershipManager externalMembershipManager) {
+        this.externalMembershipManager = externalMembershipManager;
     }
 
     public String getOrigin() {
@@ -153,7 +171,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         populateAuthenticationAttributes(success, request, authenticationData);
-        publish(new UserAuthenticationSuccessEvent(user, success));
+        publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
         return success;
     }
 
@@ -247,20 +265,21 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
         String phoneNumber = (userDetails instanceof DialableByPhone) ? ((DialableByPhone) userDetails).getPhoneNumber() : null;
         String externalId = (userDetails instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable) userDetails).getExternalId() : name;
-
+        boolean verified = (userDetails instanceof VerifiableUser) ? ((VerifiableUser) userDetails).isVerified() : false;
         UaaUserPrototype userPrototype = new UaaUserPrototype()
-                .withUsername(name)
-                .withPassword("")
-                .withEmail(email)
-                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-                .withGivenName(givenName)
-                .withFamilyName(familyName)
-                .withCreated(new Date())
-                .withModified(new Date())
-                .withOrigin(getOrigin())
-                .withExternalId(externalId)
-                .withZoneId(IdentityZoneHolder.get().getId())
-                .withPhoneNumber(phoneNumber);
+            .withVerified(verified)
+            .withUsername(name)
+            .withPassword("")
+            .withEmail(email)
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withGivenName(givenName)
+            .withFamilyName(familyName)
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withOrigin(getOrigin())
+            .withExternalId(externalId)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withPhoneNumber(phoneNumber);
 
         return new UaaUser(userPrototype);
     }
@@ -289,6 +308,17 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             return true;
         }
         return false;
+    }
+
+    protected List<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+        List<GrantedAuthority> result = new LinkedList<>();
+        for (GrantedAuthority authority : authorities ) {
+            String externalGroup = authority.getAuthority();
+            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
+                result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
+            }
+        }
+        return result;
     }
 
     @Override
