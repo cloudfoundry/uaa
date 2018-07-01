@@ -410,7 +410,7 @@ pipeline {
                     BINTRAY_ARTIFACT1="predix-uaa/cloudfoundry-identity-uaa-${APP_VERSION}.war"
                     LOCAL_ARTIFACT1="build/cloudfoundry-identity-uaa-${APP_VERSION}.war"
 
-                    BINTRAY_ARTIFACT2="predix-uaa/ppc-uaa-deploy.tgz"
+                    BINTRAY_ARTIFACT2="predix-uaa/ppc-uaa-deploy-${APP_VERSION}.tgz"
                     LOCAL_ARTIFACT2="ppc-uaa-deploy-${APP_VERSION}.tgz"
 
                     BINTRAY_JENKINSFILE="predix-uaa/PPCDeployJenkinsfile-${APP_VERSION}" 
@@ -434,12 +434,12 @@ pipeline {
                 }
             }
         }
-        stage('Updating manifest for $BINTRAY_ARTIFACT1') {
+        stage('Updating manifest for cloudfoundry-identity-uaa.war') {
             steps {
                 PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT1}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
             }
         }
-        stage('Updating manifest for $BINTRAY_ARTIFACT2') {
+        stage('Updating manifest for ppc-uaa-deploy.tgz') {
             steps {
                 PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT2}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
             }
