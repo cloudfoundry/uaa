@@ -626,7 +626,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String clientId = authentication.getOAuth2Request().getClientId();
         Set<String> userScopes = authentication.getOAuth2Request().getScope();
-        String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
+        Map<String, String> requestParameters = authentication.getOAuth2Request().getRequestParameters();
+        String grantType = requestParameters.get("grant_type");
 
         Set<String> modifiableUserScopes = new LinkedHashSet<>(userScopes);
 
@@ -637,17 +638,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             userAttributesForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getUserAttributes();
         }
 
-        String nonce = authentication.getOAuth2Request().getRequestParameters().get(NONCE);
+        String nonce = requestParameters.get(NONCE);
 
         Map<String, String> additionalAuthorizationAttributes =
             getAdditionalAuthorizationAttributes(
-                authentication.getOAuth2Request().getRequestParameters().get("authorities")
+                requestParameters.get("authorities")
             );
 
-        if ("authorization_code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.GRANT_TYPE)) &&
-            "code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.RESPONSE_TYPE)) &&
-            authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.SCOPE)!=null &&
-            authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.SCOPE).contains("openid")) {
+        if ("authorization_code".equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
+            "code".equals(requestParameters.get(OAuth2Utils.RESPONSE_TYPE)) &&
+            requestParameters.get(OAuth2Utils.SCOPE)!=null &&
+            Arrays.asList(requestParameters.get(OAuth2Utils.SCOPE).split(" ")).contains("openid")) {
             wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
         }
 
