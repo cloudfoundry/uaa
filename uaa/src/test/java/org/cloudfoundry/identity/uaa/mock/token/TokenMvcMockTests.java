@@ -4209,31 +4209,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(token, revocableToken.getValue());
     }
 
-
-    @Test
-    @Ignore(value = "We no longer support revocable=true parameter on the /oauth/token endpoint")
-    public void testPasswordGrantTokenForDefaultZone_Revocable() throws Exception {
-        Map<String,String> parameters = new HashedMap();
-        parameters.put("revocable", "true");
-        String tokenKey = "access_token";
-        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
-        assertNotNull("Token must be present", tokenResponse.get(tokenKey));
-        assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
-        String token = (String)tokenResponse.get(tokenKey);
-        assertThat("Token must be longer than 36 characters", token.length(), greaterThan(36));
-
-        Jwt jwt = JwtHelper.decode(token);
-        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>(){});
-        assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
-        assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
-
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI), IdentityZoneHolder.get().getId());
-        assertNotNull("Token should have been stored in the DB", revocableToken);
-    }
-
-
-
-
     public Map<String,Object> testRevocablePasswordGrantTokenForDefaultZone(Map<String, String> parameters) throws Exception {
         String username = generator.generate()+"@test.org";
         String clientId = "testclient" + generator.generate();
