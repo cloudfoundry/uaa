@@ -41,6 +41,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
@@ -104,9 +105,20 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+ OPAQUE+"' to retrieve an opaque and revocable token.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to `"+ OPAQUE+"` to retrieve an opaque and revocable token.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
+
+    private final FieldDescriptor accessTokenFieldDescriptor = fieldWithPath("access_token").description("An OAuth2 [access token](https://tools.ietf.org/html/rfc6749#section-1.4). When `token_format=opaque` is requested this value will be a random string that can only be validated using the UAA's `/check_token` or `/introspect` endpoints. When `token_format=jwt` is requested, this token will be a [JSON Web Token](https://tools.ietf.org/html/rfc7519) suitable for offline validation by OAuth2 Resource Servers.");
+    private final FieldDescriptor idTokenFieldDescriptor = fieldWithPath("id_token").description("An OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`.");
+    private final FieldDescriptor refreshTokenFieldDescriptor = fieldWithPath("refresh_token").description("An OAuth2 [refresh token](https://tools.ietf.org/html/rfc6749#section-6). Clients typically use the refresh token to obtain a new access token without the need for the user to authenticate again. They do this by calling `/oauth/token` with `grant_type=refresh_token`. See [here](#refresh-token) for more information. A refresh token will only be issued to [clients](#clients) that have `refresh_token` in their list of `authorized_grant_types`.");
+    private final FieldDescriptor scopeFieldDescriptorWhenUserToken = fieldWithPath("scope").description("A space-delimited list of scopes authorized by the user for this client. This list is the intersection of the scopes configured on the [client](#clients), the group memberships of the [user](#users), and the user's approvals (when `autoapprove: true` is not configured on the [client](#clients)).");
+    private final FieldDescriptor scopeFieldDescriptorWhenClientCredentialsToken = fieldWithPath("scope").description("A space-delimited list of scopes authorized for this client. This list is derived from the `authorities` configured on the [client](#clients).");
+    private final FieldDescriptor expiresInFieldDescriptor = fieldWithPath("expires_in").description("The number of seconds until the access token expires.");
+    private final FieldDescriptor jtiFieldDescriptor = fieldWithPath("jti").description("A globally unique identifier for this access token. This identifier is used when [revoking tokens](#revoke-tokens).");
+    private final FieldDescriptor tokenTypeFieldDescriptor = fieldWithPath("token_type").description("The type of the access token issued. This field is mandated in [RFC 6749](https://tools.ietf.org/html/rfc6749#section-7.1). In the UAA, the only supported `token_type` is `bearer`.");
+
+    private final String codeDescription = "the authorization code, obtained from `/oauth/authorize`, issued for the user";
 
     private final SnippetUtils.ConstrainableHeader authorizationHeader = SnippetUtils.headerWithName("Authorization");
 
@@ -177,20 +189,20 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             responseTypeParameter,
             clientIdParameter,
             parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request"), SnippetUtils.type.value(STRING)),
-            parameterWithName("code").description("the authorization code, obtained from /oauth/authorize, issued for the user").attributes(SnippetUtils.constraints.value("Required"), SnippetUtils.type.value(STRING)),
+            parameterWithName("code").description(codeDescription).attributes(SnippetUtils.constraints.value("Required"), SnippetUtils.type.value(STRING)),
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
             clientSecretParameter,
             opaqueFormatParameter
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token for the user to whom the authorization code was issued"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -219,11 +231,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenClientCredentialsToken,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -251,11 +263,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
 
         Snippet responseFields = responseFields(
-                fieldWithPath("access_token").description("the access token"),
-                fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-                fieldWithPath("expires_in").description("number of seconds until token expiry"),
-                fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-                fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenClientCredentialsToken,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -289,13 +301,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -333,13 +345,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -381,13 +393,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("An OAuth2 access token. When `token_format=opaque` is requested this will be a random string. When `token_format=jwt` is requested, this token will be a JSON Web Token suitable for offline validation by OAuth2 Resource Servers."),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
-            fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
-            fieldWithPath("scope").description("Space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("An OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("A globally unique identifier for this refresh token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -468,13 +480,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("Always null"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
             fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
             fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
-            fieldWithPath("scope").description("Space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("An OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("A globally unique identifier for this refresh token")
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(post)
@@ -509,13 +521,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -564,13 +576,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token. When `token_format=opaque` is requested this will be a random string. When `token_format=jwt` is requested, this token will be a JSON Web Token suitable for offline validation by OAuth2 Resource Servers."),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
@@ -614,14 +626,13 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
-            fieldWithPath("refresh_token").description("the refresh token"),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            refreshTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            jtiFieldDescriptor
         );
-
         getMockMvc().perform(postForRefreshToken)
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields))
                 .andExpect(status().isOk())
@@ -680,20 +691,20 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued. possible values are `id_token token` and `id_token`."),
             clientIdParameter,
             parameterWithName(REDIRECT_URI).type(STRING).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request")),
-            parameterWithName("code").required().type(STRING).description("the authorization code, obtained from /oauth/authorize, issued for the user"),
+            parameterWithName("code").required().type(STRING).description(codeDescription),
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
             clientSecretParameter,
             opaqueFormatParameter
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token for the user to whom the authorization code was issued"),
-            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
-            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-            fieldWithPath("expires_in").description("number of seconds until token expiry"),
-            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
-            fieldWithPath("jti").description("a globally unique identifier for this token")
+            accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
+            tokenTypeFieldDescriptor,
+            expiresInFieldDescriptor,
+            scopeFieldDescriptorWhenUserToken,
+            refreshTokenFieldDescriptor,
+            jtiFieldDescriptor
         );
 
         getMockMvc().perform(postForToken)
@@ -877,7 +888,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
-        Snippet pathParameters = pathParameters(parameterWithName("tokenId").description("The identifier for the token to be revoked. For JWT tokens use the jti claim in the token."));
+        Snippet pathParameters = pathParameters(parameterWithName("tokenId").description("The identifier for the token to be revoked. For JWT tokens use the `jti` claim in the token."));
 
         MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/oauth/token/revoke/{tokenId}", userInfoToken);
 
