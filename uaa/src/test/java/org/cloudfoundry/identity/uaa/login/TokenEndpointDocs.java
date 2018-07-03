@@ -185,6 +185,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("the access token for the user to whom the authorization code was issued"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
@@ -289,6 +290,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
@@ -332,6 +334,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
@@ -378,7 +381,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("Always null"),
+            fieldWithPath("access_token").description("An OAuth2 access token. When `token_format=opaque` is requested this will be a random string. When `token_format=jwt` is requested, this token will be a JSON Web Token suitable for offline validation by OAuth2 Resource Servers."),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
             fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
             fieldWithPath("scope").description("Space-delimited list of scopes authorized by the user for this client"),
@@ -465,6 +469,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("Always null"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
             fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
             fieldWithPath("scope").description("Space-delimited list of scopes authorized by the user for this client"),
@@ -505,6 +510,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
@@ -558,7 +564,8 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-            fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("access_token").description("the access token. When `token_format=opaque` is requested this will be a random string. When `token_format=jwt` is requested, this token will be a JSON Web Token suitable for offline validation by OAuth2 Resource Servers."),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
@@ -681,7 +688,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             fieldWithPath("access_token").description("the access token for the user to whom the authorization code was issued"),
-            fieldWithPath("id_token").description("the OpenID Connect ID token for the user to whom the authorization code was issued"),
+            fieldWithPath("id_token").description("an OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`."),
             fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
             fieldWithPath("expires_in").description("number of seconds until token expiry"),
             fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
