@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,13 +47,19 @@ import java.util.stream.Collectors;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -210,10 +217,51 @@ public class TokenValidationTest {
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
                 .checkRevocableTokenStore(revocableTokenProvisioning)
+                .checkAccessToken()
                 ;
 
         assertThat(validation.getValidationErrors(), empty());
         assertTrue(validation.isValid());
+    }
+
+    @Test
+    public void validateAccessToken() throws Exception {
+        content.put(JTI, "8b14f193-8212-4af2-9927-e3ae903f94a6-r");
+
+        TokenValidation validation = validate(getToken())
+          .checkAccessToken();
+
+        assertThat(validation.getValidationErrors(), not(empty()));
+        assertThat(validation.getValidationErrors(), hasSize(1));
+        assertThat(validation.getValidationErrors().get(0), instanceOf(InvalidTokenException.class));
+        assertThat(validation.getValidationErrors().get(0).getMessage(), is("Invalid access token."));
+
+        assertThat(validation.isValid(), is(false));
+    }
+
+    @Test
+    public void validateAccessToken_with_dashR_in_JTI_should_fail_validation() throws Exception {
+        content.put(JTI, "8b14f193-r-8212-4af2-9927-e3ae903f94a6");
+
+        TokenValidation validation = validate(getToken())
+          .checkAccessToken();
+
+        assertThat(validation.getValidationErrors(), empty());
+        assertThat(validation.isValid(), is(true));
+    }
+
+    @Test
+    public void validateAccessToken_without_jti_should_fail_validation() throws Exception {
+        content.put(JTI, null);
+
+        TokenValidation validation = validate(getToken())
+          .checkAccessToken();
+
+        assertThat(validation.getValidationErrors(), hasSize(1));
+        assertThat(validation.getValidationErrors().get(0), instanceOf(InvalidTokenException.class));
+        assertThat(validation.getValidationErrors().get(0).getMessage(), is("The token must contain a jti claim."));
+
+        assertThat(validation.isValid(), is(false));
     }
 
     @Test
