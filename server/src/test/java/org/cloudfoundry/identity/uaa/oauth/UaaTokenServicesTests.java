@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatc
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -139,7 +140,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1979,6 +1979,59 @@ public class UaaTokenServicesTests {
         System.out.println("newAccessToken = " + newAccessToken);
     }
 
+    @Test
+    public void loadAuthentication_when_given_an_opaque_refreshToken_should_throw_exception() {
+        tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+
+        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken compositeToken = tokenServices.createAccessToken(authentication);
+
+        String refreshTokenValue = tokenProvisioning.retrieve(compositeToken.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
+
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("Invalid access token was provided.");
+
+        tokenServices.loadAuthentication(refreshTokenValue);
+    }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Test
+    public void loadAuthentication_when_given_an_refresh_jwt_should_throw_exception() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
+        tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+
+        azParameters.put(REQUEST_TOKEN_FORMAT, JWT.getStringValue());
+
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken compositeToken = tokenServices.createAccessToken(authentication);
+        TokenValidation refreshToken = tokenServices.validateToken(compositeToken.getRefreshToken().getValue());
+
+        String refreshTokenValue = tokenProvisioning.retrieve(refreshToken.getClaims().get("jti").toString(), IdentityZoneHolder.get().getId()).getValue();
+
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("Invalid access token was provided.");
+        tokenServices.loadAuthentication(refreshTokenValue);
+    }
 
     @Test
     public void testLoadAuthenticationForAClient() {

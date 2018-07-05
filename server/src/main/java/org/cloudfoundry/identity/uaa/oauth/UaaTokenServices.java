@@ -960,6 +960,19 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         TokenValidation tokenValidation = validateToken(accessToken);
         Map<String, Object> claims = tokenValidation.getClaims();
+
+        Object jtiClaim = claims.get(JTI);
+
+        if (jtiClaim == null) {
+            throw new InvalidTokenException("The token must contain a jti claim.");
+        } else {
+            if (jtiClaim.toString().endsWith(REFRESH_TOKEN_SUFFIX)) {
+                throw new InvalidTokenException(
+                  "Invalid access token was provided."
+                );
+            }
+        }
+
         accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
