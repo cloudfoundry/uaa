@@ -938,20 +938,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 
-        TokenValidation tokenValidation = validateToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken)
+          .checkAccessToken()
+          .throwIfInvalid();
+
         Map<String, Object> claims = tokenValidation.getClaims();
-
-        Object jtiClaim = claims.get(JTI);
-
-        if (jtiClaim == null) {
-            throw new InvalidTokenException("The token must contain a jti claim.");
-        } else {
-            if (jtiClaim.toString().endsWith(REFRESH_TOKEN_SUFFIX)) {
-                throw new InvalidTokenException(
-                  "Invalid access token was provided."
-                );
-            }
-        }
 
         accessToken = tokenValidation.getJwt().getEncoded();
 
@@ -1014,7 +1005,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        TokenValidation tokenValidation = validateToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken)
+          .checkAccessToken()
+          .throwIfInvalid();
+
         Map<String, Object> claims = tokenValidation.getClaims();
         accessToken = tokenValidation.getJwt().getEncoded();
 

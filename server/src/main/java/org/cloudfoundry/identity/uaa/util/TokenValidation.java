@@ -58,9 +58,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
 public class TokenValidation {
@@ -492,4 +494,19 @@ public class TokenValidation {
     public Map<String, Object> getClaims() {
         return claims;
     }
+
+    public TokenValidation checkAccessToken() {
+        Object jti = this.getClaims().get(JTI);
+        if (jti == null) {
+            addError("The token must contain a jti claim.");
+            return this;
+        }
+
+        if (jti.toString().endsWith(REFRESH_TOKEN_SUFFIX)) {
+            addError("Invalid access token.");
+        }
+
+        return this;
+    }
+
 }
