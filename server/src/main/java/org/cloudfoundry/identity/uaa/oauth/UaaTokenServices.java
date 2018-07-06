@@ -1069,7 +1069,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, clientDetails.getAutoApproveScopes());
     }
 
-    private TokenValidation validateToken(String token) {
+    protected TokenValidation validateToken(String token) {
         TokenValidation tokenValidation;
 
         if (!UaaTokenUtils.isJwtToken(token)) {
