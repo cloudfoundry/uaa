@@ -15,6 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import javax.servlet.ServletContext;
+import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
@@ -44,29 +54,24 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.ws.wsaddressing.impl.AttributedURIImpl;
-import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.schema.XSBoolean;
-import org.opensaml.xml.schema.XSBooleanValue;
-import org.opensaml.xml.schema.impl.XSAnyImpl;
-import org.opensaml.xml.schema.impl.XSBase64BinaryImpl;
-import org.opensaml.xml.schema.impl.XSBooleanBuilder;
-import org.opensaml.xml.schema.impl.XSBooleanImpl;
-import org.opensaml.xml.schema.impl.XSDateTimeImpl;
-import org.opensaml.xml.schema.impl.XSIntegerImpl;
-import org.opensaml.xml.schema.impl.XSQNameImpl;
-import org.opensaml.xml.schema.impl.XSURIImpl;
+import org.opensaml.core.xml.schema.XSBoolean;
+import org.opensaml.core.xml.schema.XSBooleanValue;
+import org.opensaml.core.xml.schema.impl.XSAnyImpl;
+import org.opensaml.core.xml.schema.impl.XSBase64BinaryImpl;
+import org.opensaml.core.xml.schema.impl.XSBooleanBuilder;
+import org.opensaml.core.xml.schema.impl.XSBooleanImpl;
+import org.opensaml.core.xml.schema.impl.XSDateTimeImpl;
+import org.opensaml.core.xml.schema.impl.XSIntegerImpl;
+import org.opensaml.core.xml.schema.impl.XSQNameImpl;
+import org.opensaml.core.xml.schema.impl.XSURIImpl;
+import org.opensaml.security.credential.Credential;
+import org.opensaml.soap.wsaddressing.impl.AttributedURIImpl;
+import org.opensaml.soap.wssecurity.impl.AttributedStringImpl;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -76,28 +81,14 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.saml.SAMLAuthenticationToken;
-import org.springframework.security.saml.SAMLConstants;
-import org.springframework.security.saml.SAMLCredential;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.log.SAMLLogger;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.security.saml.websso.WebSSOProfileConsumer;
+import org.springframework.security.saml.SamlAuthentication;
+import org.springframework.security.saml.saml2.attribute.Attribute;
+import org.springframework.security.saml.saml2.authentication.AuthenticationContextClassReference;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.ServletWebRequest;
-
-import javax.servlet.ServletContext;
-import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -116,8 +107,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
@@ -141,9 +130,6 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     CreateUserPublisher publisher;
     JdbcUaaUserDatabase userDatabase;
     LoginSamlAuthenticationProvider authprovider;
-    WebSSOProfileConsumer consumer;
-    SAMLCredential credential;
-    SAMLLogger samlLogger = mock(SAMLLogger.class);
     SamlIdentityProviderDefinition providerDefinition;
     private IdentityProvider provider;
     private ScimUserProvisioning userProvisioning;
@@ -165,33 +151,33 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(attribute.getName()).thenReturn(name);
         when(attribute.getFriendlyName()).thenReturn(name);
 
-        List<XMLObject> xmlObjects = new LinkedList<>();
+        List<Object> xmlObjects = new LinkedList<>();
         if ("XSURI".equals(name)) {
             XSURIImpl impl = new AttributedURIImpl("", "", "");
             impl.setValue((String)value);
             xmlObjects.add(impl);
         } else if ("XSAny".equals(name)) {
-            XSAnyImpl impl = new XSAnyImpl("","","") {};
+            XSAnyImpl impl = new XSAnyImpl("", "", "") {};
             impl.setTextContent((String)value);
             xmlObjects.add(impl);
         } else if ("XSQName".equals(name)) {
-            XSQNameImpl impl = new XSQNameImpl("","","") {};
+            XSQNameImpl impl = new XSQNameImpl("", "", "") {};
             impl.setValue(new QName("", (String)value));
             xmlObjects.add(impl);
         } else if ("XSInteger".equals(name)) {
-            XSIntegerImpl impl = new XSIntegerImpl("","",""){};
+            XSIntegerImpl impl = new XSIntegerImpl("", "", ""){};
             impl.setValue((Integer)value);
             xmlObjects.add(impl);
         } else if ("XSBoolean".equals(name)) {
-            XSBooleanImpl impl = new XSBooleanImpl("","",""){};
+            XSBooleanImpl impl = new XSBooleanImpl("", "", ""){};
             impl.setValue(new XSBooleanValue((Boolean)value, false));
             xmlObjects.add(impl);
         } else if ("XSDateTime".equals(name)) {
-            XSDateTimeImpl impl = new XSDateTimeImpl("","",""){};
+            XSDateTimeImpl impl = new XSDateTimeImpl("", "", ""){};
             impl.setValue((DateTime)value);
             xmlObjects.add(impl);
         } else if ("XSBase64Binary".equals(name)) {
-            XSBase64BinaryImpl impl = new XSBase64BinaryImpl("","",""){};
+            XSBase64BinaryImpl impl = new XSBase64BinaryImpl("", "", ""){};
             impl.setValue((String)value);
             xmlObjects.add(impl);
         } else if (value instanceof List) {
@@ -208,7 +194,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                 }
             }
         } else if (value instanceof Boolean) {
-            XSBoolean impl = new XSBooleanBuilder().buildObject("","","");
+            XSBoolean impl = new XSBooleanBuilder().buildObject("", "", "");
             impl.setValue(new XSBooleanValue((Boolean)value, false));
             xmlObjects.add(impl);
         } else {
@@ -216,7 +202,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
             impl.setValue((String)value);
             xmlObjects.add(impl);
         }
-        when(attribute.getAttributeValues()).thenReturn(xmlObjects);
+        when(attribute.getValues()).thenReturn(xmlObjects);
         return Arrays.asList(attribute);
     }
 
@@ -251,8 +237,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, IdentityZoneHolder.get().getId());
         externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, OriginKeys.SAML, IdentityZoneHolder.get().getId());
 
-        consumer = mock(WebSSOProfileConsumer.class);
-        credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
+        Credential credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("firstName", "Marissa");
         attributes.put("lastName", "Bloggs");
@@ -261,7 +246,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
 
-        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+        //when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
         timeService = mock(TimeService.class);
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
@@ -272,8 +257,6 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         authprovider.setUserDatabase(userDatabase);
         authprovider.setIdentityProviderProvisioning(providerProvisioning);
         authprovider.setApplicationEventPublisher(publisher);
-        authprovider.setConsumer(consumer);
-        authprovider.setSamlLogger(samlLogger);
         authprovider.setExternalMembershipManager(externalManager);
 
         provider = new IdentityProvider();
@@ -288,7 +271,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         provider = providerProvisioning.create(provider, IdentityZoneHolder.get().getId());
     }
 
-    private SAMLCredential getUserCredential(String username, String firstName, String lastName, String emailAddress, String phoneNumber) {
+    private Credential getUserCredential(String username, String firstName, String lastName, String emailAddress, String phoneNumber) {
         return getUserCredential(username,
                                  firstName,
                                  lastName,
@@ -296,14 +279,14 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                                  phoneNumber,
                                  null);
     }
-    private SAMLCredential getUserCredential(String username,
+    private Credential getUserCredential(String username,
                                              String firstName,
                                              String lastName,
                                              String emailAddress,
                                              String phoneNumber,
                                              Boolean emailVerified) {
-        NameID usernameID = mock(NameID.class);
-        when(usernameID.getValue()).thenReturn(username);
+//        NameID usernameID = mock(NameID.class);
+//        when(usernameID.getValue()).thenReturn(username);
 
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("firstName", firstName);
@@ -328,24 +311,25 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("XSBase64Binary", "00001111");
 
 
-        AuthnContextClassRef contextClassRef = mock(AuthnContextClassRef.class);
-        when(contextClassRef.getAuthnContextClassRef()).thenReturn(AuthnContext.PASSWORD_AUTHN_CTX);
-
-        AuthnContext authenticationContext = mock(AuthnContext.class);
-        when(authenticationContext.getAuthnContextClassRef()).thenReturn(contextClassRef);
-
-        AuthnStatement statement = mock(AuthnStatement.class);
-        when(statement.getAuthnContext()).thenReturn(authenticationContext);
-
-        Assertion authenticationAssertion = mock(Assertion.class);
-        when(authenticationAssertion.getAuthnStatements()).thenReturn(Arrays.asList(statement));
-
-        return new SAMLCredential(
-            usernameID,
-            authenticationAssertion,
-            "remoteEntityID",
-            getAttributes(attributes),
-            "localEntityID");
+//        AuthnContextClassRef contextClassRef = mock(AuthnContextClassRef.class);
+//        when(contextClassRef.getAuthnContextClassRef()).thenReturn(AuthnContext.PASSWORD_AUTHN_CTX);
+//
+//        AuthnContext authenticationContext = mock(AuthnContext.class);
+//        when(authenticationContext.getAuthnContextClassRef()).thenReturn(contextClassRef);
+//
+//        AuthnStatement statement = mock(AuthnStatement.class);
+//        when(statement.getAuthnContext()).thenReturn(authenticationContext);
+//
+//        Assertion authenticationAssertion = mock(Assertion.class);
+//        when(authenticationAssertion.getAuthnStatements()).thenReturn(Arrays.asList(statement));
+//
+//        return new SAMLCredential(
+//            usernameID,
+//            authenticationAssertion,
+//            "remoteEntityID",
+//            getAttributes(attributes),
+//            "localEntityID");
+        throw new UnsupportedOperationException();
     }
 
     @After
@@ -376,30 +360,32 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void test_relay_state_when_url() {
         String redirectUrl = "https://www.cloudfoundry.org";
-        SAMLAuthenticationToken samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
-        when(samlAuthenticationToken.getCredentials().getRelayState()).thenReturn(redirectUrl);
-        Authentication authentication = authprovider.authenticate(samlAuthenticationToken);
-        assertNotNull("Authentication cannot be null", authentication);
-        assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
-        UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
-        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
-        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
-        verify(context, times(1)).getRelayState();
-        assertEquals(redirectUrl, RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
+        SamlAuthentication samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
+        throw new UnsupportedOperationException();
+        //when(samlAuthenticationToken.getCredentials().getRelayState()).thenReturn(redirectUrl);
+//        Authentication authentication = authprovider.authenticate(samlAuthenticationToken);
+//        assertNotNull("Authentication cannot be null", authentication);
+//        assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
+//        UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
+//        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+//        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
+//        verify(context, times(1)).getRelayState();
+//        assertEquals(redirectUrl, RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
     }
 
     @Test
     public void saml_authentication_contains_acr() {
-        SAMLAuthenticationToken samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
+        SamlAuthentication samlAuthenticationToken = mockSamlAuthentication(OriginKeys.SAML);
         Authentication authentication = authprovider.authenticate(samlAuthenticationToken);
         assertNotNull("Authentication cannot be null", authentication);
         assertTrue("Authentication should be of type:"+UaaAuthentication.class.getName(), authentication instanceof UaaAuthentication);
         UaaAuthentication uaaAuthentication = (UaaAuthentication)authentication;
-        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+        assertThat(uaaAuthentication.getAuthContextClassRef(),containsInAnyOrder(AuthenticationContextClassReference.PASSWORD.toString()));
 
-        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
-        verify(context, times(1)).getRelayState();
+//        SAMLMessageContext context = samlAuthenticationToken.getCredentials();
+//        verify(context, times(1)).getRelayState();
         assertNull(RequestContextHolder.currentRequestAttributes().getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST));
+        throw new UnsupportedOperationException();
     }
 
 
@@ -547,8 +533,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public void update_invitedUser_whose_username_is_notEmail() throws Exception {
         ScimUser scimUser = getInvitedUser();
 
-        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
-        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+        Credential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
+        //when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         getAuthentication();
 
         UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
@@ -569,8 +555,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         ScimUser scimUser = getInvitedUser();
 
-        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
-        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+        Credential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
+//        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         try {
             getAuthentication();
             fail();
@@ -615,8 +601,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
-        SAMLCredential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
-        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+        Credential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
+//        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         getAuthentication();
 
         user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -625,7 +611,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertFalse(user.isVerified());
 
         credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null, true);
-        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+//        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         getAuthentication();
 
         user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -768,7 +754,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void authnContext_isvalidated_good() throws Exception {
-        providerDefinition.setAuthnContext(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX));
+        providerDefinition.setAuthnContext(Arrays.asList(AuthenticationContextClassReference.PASSWORD.toString()));
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
@@ -887,21 +873,22 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     protected UaaAuthentication getAuthentication() {
-        SAMLAuthenticationToken authentication1 = mockSamlAuthentication(OriginKeys.SAML);
+        SamlAuthentication authentication1 = mockSamlAuthentication(OriginKeys.SAML);
         Authentication authentication = authprovider.authenticate(authentication1);
         assertNotNull("Authentication should exist", authentication);
         assertTrue("Authentication should be UaaAuthentication", authentication instanceof UaaAuthentication);
         return (UaaAuthentication)authentication;
     }
 
-    protected SAMLAuthenticationToken mockSamlAuthentication(String originKey) {
-        ExtendedMetadata metadata = mock(ExtendedMetadata.class);
-        when(metadata.getAlias()).thenReturn(originKey);
-        SAMLMessageContext contxt = mock(SAMLMessageContext.class);
-
-        when(contxt.getPeerExtendedMetadata()).thenReturn(metadata);
-        when(contxt.getCommunicationProfileId()).thenReturn(SAMLConstants.SAML2_WEBSSO_PROFILE_URI);
-        return new SAMLAuthenticationToken(contxt);
+    protected SamlAuthentication mockSamlAuthentication(String originKey) {
+//        ExtendedMetadata metadata = mock(ExtendedMetadata.class);
+//        when(metadata.getAlias()).thenReturn(originKey);
+//        SAMLMessageContext contxt = mock(SAMLMessageContext.class);
+//
+//        when(contxt.getPeerExtendedMetadata()).thenReturn(metadata);
+//        when(contxt.getCommunicationProfileId()).thenReturn(SAMLConstants.SAML2_WEBSSO_PROFILE_URI);
+//        return new SAMLAuthenticationToken(contxt);
+        throw new UnsupportedOperationException();
     }
 
     public static class CreateUserPublisher implements ApplicationEventPublisher {

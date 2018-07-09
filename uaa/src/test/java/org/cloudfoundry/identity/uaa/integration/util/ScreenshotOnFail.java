@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
-
-import java.io.File;
-import java.io.IOException;
 
 public class ScreenshotOnFail extends TestWatcher {
     private WebDriver browser;
@@ -33,7 +33,7 @@ public class ScreenshotOnFail extends TestWatcher {
         String pageSource = browser.getPageSource();
 
         try {
-            FileUtils.write(pageSourceFile, pageSource);
+            FileUtils.writeStringToFile(pageSourceFile, pageSource);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

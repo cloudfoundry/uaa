@@ -12,32 +12,33 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.saml.SamlAuthentication;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 
-
-public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthenticationToken {
+public class LoginSamlAuthenticationToken {
 
     public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
 
     private final UaaPrincipal uaaPrincipal;
+    private SamlAuthentication token;
+    private boolean incompleteImplementation = true;
 
-    public LoginSamlAuthenticationToken(UaaPrincipal uaaPrincipal, ExpiringUsernameAuthenticationToken token) {
-        super(token.getTokenExpiration(), uaaPrincipal, token.getCredentials(), token.getAuthorities());
+    public LoginSamlAuthenticationToken(UaaPrincipal uaaPrincipal, SamlAuthentication token) {
         this.uaaPrincipal = uaaPrincipal;
-
+        this.token = token;
     }
 
     public UaaPrincipal getUaaPrincipal() {
@@ -53,7 +54,20 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
                 customAttributes.put(entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length()), entry.getValue());
             }
         }
-        UaaAuthentication authentication = new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, externalGroups, customAttributes, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
+        if (incompleteImplementation) {
+            throw new UnsupportedOperationException("Implement get Expiration for SamlAuthentication");
+        }
+        UaaAuthentication authentication =
+            new UaaAuthentication(
+                getUaaPrincipal(),
+                token,
+                uaaAuthorityList,
+                externalGroups,
+                customAttributes,
+                null,
+                true,
+                0,
+                0);
         authentication.setAuthenticationMethods(Collections.singleton("ext"));
         List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
         if (acrValues !=null) {

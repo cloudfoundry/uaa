@@ -12,10 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Iterator;
+
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
+
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,11 +37,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Iterator;
-
-import static org.apache.commons.lang3.StringUtils.contains;
+import static org.apache.commons.lang.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;

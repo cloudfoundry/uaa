@@ -1,8 +1,15 @@
 description = 'CloudFoundry Identity Server JAR'
 
+repositories {
+  maven { url 'https://repo.spring.io/libs-milestone' }
+}
+
 dependencies {
 
   compile project(':cloudfoundry-identity-model')
+
+  //compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version: '1.0.4.RELEASE'
+  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml-core', version: parent.springSecuritySamlVersion
 
   compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
@@ -24,7 +31,6 @@ dependencies {
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
-  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion
 
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')

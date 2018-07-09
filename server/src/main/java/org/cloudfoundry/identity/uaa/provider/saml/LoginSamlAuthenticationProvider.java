@@ -13,6 +13,17 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
+import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
@@ -38,22 +49,20 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.schema.XSAny;
-import org.opensaml.xml.schema.XSBase64Binary;
-import org.opensaml.xml.schema.XSBoolean;
-import org.opensaml.xml.schema.XSBooleanValue;
-import org.opensaml.xml.schema.XSDateTime;
-import org.opensaml.xml.schema.XSInteger;
-import org.opensaml.xml.schema.XSQName;
-import org.opensaml.xml.schema.XSString;
-import org.opensaml.xml.schema.XSURI;
+import org.opensaml.core.xml.schema.XSAny;
+import org.opensaml.core.xml.schema.XSBase64Binary;
+import org.opensaml.core.xml.schema.XSBoolean;
+import org.opensaml.core.xml.schema.XSBooleanValue;
+import org.opensaml.core.xml.schema.XSDateTime;
+import org.opensaml.core.xml.schema.XSInteger;
+import org.opensaml.core.xml.schema.XSQName;
+import org.opensaml.core.xml.schema.XSString;
+import org.opensaml.core.xml.schema.XSURI;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
@@ -61,28 +70,17 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
-import org.springframework.security.saml.SAMLAuthenticationProvider;
-import org.springframework.security.saml.SAMLAuthenticationToken;
-import org.springframework.security.saml.SAMLCredential;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
+import org.springframework.security.saml.SamlAuthentication;
+import org.springframework.security.saml.SamlObjectResolver;
+import org.springframework.security.saml.saml2.authentication.AuthenticationContextClassReference;
+import org.springframework.security.saml.saml2.authentication.AuthenticationStatement;
+import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.xml.namespace.QName;
-
+import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -92,14 +90,14 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
-import static java.util.Optional.of;
 
-public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
+public class LoginSamlAuthenticationProvider implements AuthenticationManager,ApplicationEventPublisherAware {
     private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
     private UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private IdentityProviderProvisioning identityProviderProvisioning;
     private ScimGroupExternalMembershipManager externalMembershipManager;
+    private SamlObjectResolver resolver;
 
     public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -113,10 +111,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         this.externalMembershipManager = externalMembershipManager;
     }
 
-    @Override
-    public void setUserDetails(SAMLUserDetailsService userDetails) {
-        super.setUserDetails(userDetails);
-    }
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
@@ -125,16 +119,16 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        if (!supports(authentication.getClass())) {
+        if (!(authentication instanceof SamlAuthentication)) {
             throw new IllegalArgumentException("Only SAMLAuthenticationToken is supported, " + authentication.getClass() + " was attempted");
         }
 
         IdentityZone zone = IdentityZoneHolder.get();
         logger.debug(String.format("Initiating SAML authentication in zone '%s' domain '%s'", zone.getId(), zone.getSubdomain()));
-        SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
-        SAMLMessageContext context = token.getCredentials();
-        String alias = context.getPeerExtendedMetadata().getAlias();
-        String relayState = context.getRelayState();
+        SamlAuthentication token = (SamlAuthentication) authentication;
+        IdentityProviderMetadata idpm = resolver.resolveIdentityProvider(token.getAssertingEntityId());
+        String alias = idpm.getEntityAlias();
+        String relayState = "";
         boolean addNew;
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
@@ -149,8 +143,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:"+alias);
         }
 
-        ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
-        UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
+        String username = token.getSamlPrincipal().getValue();
+        UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, username, username, alias, username, zone.getId());
         logger.debug(
             String.format(
                 "Mapped SAML authentication to IDP with origin '%s' and username '%s'",
@@ -159,7 +153,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             )
         );
 
-        Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
+        Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, token);
 
         Collection<? extends GrantedAuthority> authorities = null;
         SamlIdentityProviderDefinition.ExternalGroupMappingMode groupMappingMode = idp.getConfig().getGroupMappingMode();
@@ -173,7 +167,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
 
         Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
-        MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
+        MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, token);
 
         if (samlConfig.getAuthnContext() != null) {
             if (Collections.disjoint(userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE), samlConfig.getAuthnContext())) {
@@ -183,7 +177,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
-        UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
+        UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, token).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
         publish(new IdentityProviderAuthenticationSuccessEvent(user, resultUaaAuthentication, OriginKeys.SAML));
         if (samlConfig.isStoreCustomAttributes()) {
             userDatabase.storeUserInfo(user.getId(),
@@ -207,10 +201,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                     RequestAttributes.SCOPE_REQUEST
                 );
         }
-    }
-
-    protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
-        return (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
     }
 
     protected void publish(ApplicationEvent event) {
@@ -242,7 +232,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return result;
     }
 
-    public Collection<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, SAMLCredential credential)  {
+    public Collection<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, SamlAuthentication credential)  {
         Collection<SamlUserAuthority> authorities = new ArrayList<>();
         if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME)!=null) {
             List<String> attributeNames = new LinkedList<>();
@@ -251,10 +241,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             } else if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof Collection) {
                 attributeNames.addAll((Collection) definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME));
             }
-            for (Attribute attribute : credential.getAttributes()) {
+            for (org.springframework.security.saml.saml2.attribute.Attribute attribute : credential.getAssertion().getAttributes()) {
                 if ((attributeNames.contains(attribute.getName())) || (attributeNames.contains(attribute.getFriendlyName()))) {
-                    if (attribute.getAttributeValues() != null && attribute.getAttributeValues().size() > 0) {
-                        for (XMLObject group : attribute.getAttributeValues()) {
+                    if (attribute.getValues() != null && attribute.getValues().size() > 0) {
+                        for (Object group : attribute.getValues()) {
                             authorities.add(new SamlUserAuthority(getStringValue(attribute.getName(),definition,group)));
                         }
                     }
@@ -264,15 +254,15 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return authorities == null ? Collections.EMPTY_LIST : authorities;
     }
 
-    public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
+    public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SamlAuthentication credential) {
         logger.debug(String.format("Retrieving SAML user attributes [zone:%s, origin:%s]", definition.getZoneId(), definition.getIdpEntityAlias()));
         MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
         if (definition != null && definition.getAttributeMappings() != null) {
             for (Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
                 if (attributeMapping.getValue() instanceof  String) {
-                    if (credential.getAttribute((String)attributeMapping.getValue()) != null) {
+                    if (credential.getAssertion().getFirstAttribute((String)attributeMapping.getValue()) != null) {
                         String key = attributeMapping.getKey();
-                        for (XMLObject xmlObject : credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues()) {
+                        for (Object xmlObject : credential.getAssertion().getFirstAttribute((String) attributeMapping.getValue()).getValues()) {
                             String value = getStringValue(key, definition, xmlObject);
                             if (value!=null) {
                                 userAttributes.add(key, value);
@@ -282,17 +272,20 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 }
             }
         }
-        if (credential.getAuthenticationAssertion() != null && credential.getAuthenticationAssertion().getAuthnStatements() != null) {
-            for (AuthnStatement statement : credential.getAuthenticationAssertion().getAuthnStatements()) {
-                if (statement.getAuthnContext() != null && statement.getAuthnContext().getAuthnContextClassRef() != null) {
-                    userAttributes.add(AUTHENTICATION_CONTEXT_CLASS_REFERENCE, statement.getAuthnContext().getAuthnContextClassRef().getAuthnContextClassRef());
+        if (credential.getAssertion().getAuthenticationStatements() != null) {
+
+            for (AuthenticationStatement statement : credential.getAssertion().getAuthenticationStatements()) {
+                if (statement.getAuthenticationContext() != null &&
+                    statement.getAuthenticationContext().getClassReference() != null) {
+                    AuthenticationContextClassReference ref = statement.getAuthenticationContext().getClassReference();
+                    userAttributes.add(AUTHENTICATION_CONTEXT_CLASS_REFERENCE, ref.toString());
                 }
             }
         }
         return userAttributes;
     }
 
-    protected String getStringValue(String key, SamlIdentityProviderDefinition definition, XMLObject xmlObject) {
+    protected String getStringValue(String key, SamlIdentityProviderDefinition definition, Object xmlObject) {
         String value = null;
         if (xmlObject instanceof XSString) {
             value = ((XSString) xmlObject).getValue();
@@ -314,6 +307,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             value = ((XSURI) xmlObject).getValue();
         } else if (xmlObject instanceof XSBase64Binary) {
             value = ((XSBase64Binary) xmlObject).getValue();
+        } else if (xmlObject != null) {
+            value = xmlObject.toString();
         }
 
         if (value!=null) {

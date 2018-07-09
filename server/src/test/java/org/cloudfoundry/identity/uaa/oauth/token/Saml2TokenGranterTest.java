@@ -14,29 +14,28 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import java.io.UnsupportedEncodingException;
+import java.security.Security;
+import java.time.Clock;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.impl.AssertionMarshaller;
-import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.xml.ConfigurationException;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.io.Unmarshaller;
-import org.opensaml.xml.io.UnmarshallerFactory;
-import org.opensaml.xml.io.UnmarshallingException;
-import org.opensaml.xml.parse.BasicParserPool;
-import org.opensaml.xml.parse.XMLParserException;
-import org.opensaml.xml.util.XMLHelper;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -47,27 +46,16 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
-import org.springframework.security.saml.SAMLAuthenticationToken;
-import org.springframework.security.saml.context.SAMLMessageContext;
+import org.springframework.security.saml.SamlAuthentication;
+import org.springframework.security.saml.saml2.Saml2Object;
+import org.springframework.security.saml.saml2.authentication.Assertion;
+import org.springframework.security.saml.saml2.metadata.EntityDescriptor;
+import org.springframework.security.saml.spi.DefaultSamlAuthentication;
+import org.springframework.security.saml.spi.opensaml.OpenSamlImplementation;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.security.Security;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
@@ -95,19 +83,19 @@ public class Saml2TokenGranterTest {
     private BaseClientDetails requestingClient;
     private BaseClientDetails receivingClient;
     private BaseClientDetails passwordClient;
-    private SAMLAuthenticationToken samltoken;
-    private SAMLMessageContext samlcontext;
+    private SamlAuthentication samltoken;
     private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
+    private OpenSamlImplementation implementation;
 
     @Before
     public void setup() {
-        try { DefaultBootstrap.bootstrap();
-        } catch (ConfigurationException e) { }
+        try {
+            implementation = new OpenSamlImplementation(Clock.systemUTC());
+        } catch (Exception e) { }
         tokenServices = mock(AuthorizationServerTokenServices.class);
         clientDetailsService = mock(ClientServicesExtension.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
-        samlcontext = mock(SAMLMessageContext.class);
         MockHttpServletRequest request = new MockHttpServletRequest();
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
@@ -118,7 +106,8 @@ public class Saml2TokenGranterTest {
             tokenServices,
             clientDetailsService,
             requestFactory);
-        samltoken = new SAMLAuthenticationToken(samlcontext);
+        Assertion assertion = mock(Assertion.class);
+        samltoken = new DefaultSamlAuthentication(true, assertion, "idp-entity-id", "sp-entity-id");
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);
@@ -242,7 +231,7 @@ public class Saml2TokenGranterTest {
 
     EntityDescriptor getMetadata(String xml) {
        try {
-           return (EntityDescriptor)unmarshallObject(xml);
+           return (EntityDescriptor)implementation.resolve(xml, null, null);
        } catch(Exception e) {
        }
        return null;
@@ -250,7 +239,7 @@ public class Saml2TokenGranterTest {
 
     Assertion getAssertion(String xml) {
         try {
-            return (Assertion)unmarshallObject(xml);
+            return (Assertion)implementation.resolve(xml, null, null);
         } catch(Exception e) {
         }
         return null;
@@ -258,10 +247,7 @@ public class Saml2TokenGranterTest {
 
     String getAssertionXml(Assertion assertion) {
         try {
-            AssertionMarshaller marshaller = new AssertionMarshaller();
-            Element plaintextElement = marshaller.marshall(assertion);
-            String serializedElement = XMLHelper.nodeToString(plaintextElement);
-            return serializedElement;
+            return implementation.toXml(assertion);
         } catch(Exception e) {
         }
         return null;
@@ -270,23 +256,8 @@ public class Saml2TokenGranterTest {
 	/*
 	 * Unmarshall XML string to OpenSAML XMLObject
 	 */
-	private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException, UnsupportedEncodingException {
-		BasicParserPool parser = new BasicParserPool();
-		parser.setNamespaceAware(true);
-		/* Base64URL encoded */
-		byte bytes[] = xmlString.getBytes("utf-8");
-		if (bytes == null || bytes.length == 0)
-			throw new InsufficientAuthenticationException("Invalid assertion encoding");
-		Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));
-		Document doc = parser.parse(reader);
-		Element samlElement = doc.getDocumentElement();
-
-		UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
-		Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(samlElement);
-		if (unmarshaller == null) {
-			throw new InsufficientAuthenticationException("Unsuccessful to unmarshal assertion string");
-		}
-		return unmarshaller.unmarshall(samlElement);
+	private Saml2Object unmarshallObject(String xmlString) throws UnsupportedEncodingException {
+		return implementation.resolve(xmlString, null, null);
 	}
 
 }

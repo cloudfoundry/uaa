@@ -16,39 +16,34 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import org.springframework.security.saml.metadata.MetadataMemoryProvider;
+import org.springframework.security.saml.SamlObjectResolver;
+import org.springframework.security.saml.saml2.metadata.ServiceProviderMetadata;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
 
-    private NonSnarlMetadataManager spManager;
-    private NonSnarlIdpMetadataManager idpManager;
     String entityID;
     private String entityAlias;
     private IdentityZoneProvisioning zoneProvisioning;
-
+    private SamlObjectResolver resolver;
     @Before
     public void setup() throws Exception {
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        spManager = getWebApplicationContext().getBean(NonSnarlMetadataManager.class);
-        idpManager = getWebApplicationContext().getBean(NonSnarlIdpMetadataManager.class);
         entityID = getWebApplicationContext().getBean("samlEntityID", String.class);
         entityAlias = getWebApplicationContext().getBean("samlSPAlias", String.class);
+        resolver = getWebApplicationContext().getBean(SamlObjectResolver.class);
     }
 
     @Before
@@ -59,14 +54,11 @@ public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void sp_initialized_in_non_snarl_metadata_manager() throws Exception {
-        ExtendedMetadataDelegate localServiceProvider = spManager.getLocalServiceProvider();
+        ServiceProviderMetadata localServiceProvider = resolver.getLocalServiceProvider("http://localhost");
         assertNotNull(localServiceProvider);
-        MetadataProvider provider = localServiceProvider.getDelegate();
-        assertNotNull(provider);
-        assertTrue(provider instanceof MetadataMemoryProvider);
-        String providerSpAlias = spManager.getProviderSpAlias(localServiceProvider);
+        String providerSpAlias = localServiceProvider.getEntityAlias();
         assertEquals(entityAlias, providerSpAlias);
-        assertEquals(entityID, spManager.getEntityIdForAlias(providerSpAlias));
+        assertEquals(entityID, localServiceProvider.getEntityId());
     }
 
     @Test
@@ -79,14 +71,11 @@ public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
             .setName(subdomain);
         zone = zoneProvisioning.create(zone);
         IdentityZoneHolder.set(zone);
-        ExtendedMetadataDelegate localServiceProvider = spManager.getLocalServiceProvider();
+        ServiceProviderMetadata localServiceProvider = resolver.getLocalServiceProvider(subdomain + "." + "http://localhost");
         assertNotNull(localServiceProvider);
-        MetadataProvider provider = localServiceProvider.getDelegate();
-        assertNotNull(provider);
-        assertTrue(provider instanceof MetadataMemoryProvider);
-        String providerSpAlias = spManager.getProviderSpAlias(localServiceProvider);
+        String providerSpAlias = localServiceProvider.getEntityAlias();
         assertEquals(subdomain + "." + entityAlias, providerSpAlias);
-        assertEquals(addSubdomainToEntityId(entityID, subdomain), spManager.getEntityIdForAlias(providerSpAlias));
+        assertEquals(addSubdomainToEntityId(entityID, subdomain), localServiceProvider.getEntityId());
     }
 
     public String addSubdomainToEntityId(String entityId, String subdomain) {

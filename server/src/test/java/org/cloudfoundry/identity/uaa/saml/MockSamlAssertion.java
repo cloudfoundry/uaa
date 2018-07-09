@@ -16,18 +16,19 @@
 package org.cloudfoundry.identity.uaa.saml;
 
 
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.opensaml.saml2.core.Assertion;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.PathResource;
-import org.springframework.core.io.Resource;
-import org.yaml.snakeyaml.Yaml;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Map;
+
+import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
+import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.security.saml.saml2.authentication.Assertion;
+import org.yaml.snakeyaml.Yaml;
 
 public class MockSamlAssertion {
 

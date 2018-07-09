@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -17,6 +20,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -29,11 +34,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-
-import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -41,6 +41,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
+import static org.apache.commons.lang.StringUtils.contains;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;

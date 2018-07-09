@@ -12,12 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
+import java.net.URL;
+import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.Iterator;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,19 +38,14 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.net.URL;
-import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.Iterator;
-
-import static org.apache.commons.lang3.StringUtils.contains;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.springframework.util.StringUtils.isEmpty;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)

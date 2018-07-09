@@ -12,7 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -35,6 +43,8 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -51,8 +61,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -64,21 +72,13 @@ import org.springframework.security.jwt.Jwt;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.saml.saml2.authentication.AuthenticationContextClassReference;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
-
-import java.net.URI;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
@@ -144,7 +144,7 @@ public class SamlLoginIT {
         samlTestUtils = new SamlTestUtils();
         try {
             samlTestUtils.initialize();
-        } catch (ConfigurationException e) {
+        } catch (Exception e) {
             samlTestUtils.initializeSimple();
         }
     }
@@ -1000,7 +1000,7 @@ public class SamlLoginIT {
         assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
         Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
         assertNotNull("acr claim should contain values attribute", acr.get("values"));
-        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthenticationContextClassReference.PASSWORD.toString()));
 
         UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 

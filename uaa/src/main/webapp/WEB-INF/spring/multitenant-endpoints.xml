@@ -27,9 +27,6 @@
         <constructor-arg ref="identityZoneProvisioning"/>
     </bean>
 
-    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
-          depends-on="identityZoneHolderInitializer"/>
-
     <bean id="identityProviderProvisioning"
           class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
@@ -81,7 +78,11 @@
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
         <constructor-arg name="configValidator" ref="identityProviderConfigValidator"/>
-        <constructor-arg ref="metaDataProviders"/>
+        <constructor-arg ref="idpProviders"/>
+    </bean>
+
+    <bean id="idpProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
+        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
@@ -204,6 +205,11 @@
           class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints">
         <constructor-arg ref="serviceProviderProvisioning"/>
         <constructor-arg ref="spMetaDataProviders"/>
+    </bean>
+
+    <bean id="spMetaDataProviders"
+          class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
+        <property name="providerProvisioning" ref="serviceProviderProvisioning"/>
     </bean>
 
     <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"

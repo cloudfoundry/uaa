@@ -28,17 +28,17 @@
 
         <bean id="samlSecurityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
 
-        <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
-            <security:filter-chain-map request-matcher="ant">
-                <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />
-                <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />
-                <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />
-                <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter" />
-                <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
-                <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
-                <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
-            </security:filter-chain-map>
-        </bean>
+        <!--<bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">-->
+            <!--<security:filter-chain-map request-matcher="ant">-->
+                <!--<security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />-->
+                <!--<security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />-->
+                <!--<security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />-->
+                <!--<security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter" />-->
+                <!--<security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />-->
+                <!--<security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />-->
+                <!--<security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />-->
+            <!--</security:filter-chain-map>-->
+        <!--</bean>-->
 
         <!-- Logger for SAML messages and events -->
         <bean id="samlLogger" class="org.springframework.security.saml.log.SAMLDefaultLogger" />

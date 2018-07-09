@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
-import org.springframework.security.saml.key.KeyManager;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -33,27 +30,15 @@ public class IdentityZoneHolder {
         @Override
         protected IdentityZoneWithKeyManager initialValue() {
             if (provisioning==null) {
-                return new IdentityZoneWithKeyManager(IdentityZone.getUaa(), null);
+                return new IdentityZoneWithKeyManager(IdentityZone.getUaa());
             }
             IdentityZone zone = getUaaZone();
-            return new IdentityZoneWithKeyManager(zone, null);
+            return new IdentityZoneWithKeyManager(zone);
         }
     };
 
     public static IdentityZone get() {
         return THREADLOCAL.get().getZone();
-    }
-
-    public static KeyManager getSamlSPKeyManager() {
-        IdentityZoneWithKeyManager withKeyManager = THREADLOCAL.get();
-        if (withKeyManager.getManager()==null) {
-            KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(withKeyManager.getZone().getConfig().getSamlConfig());
-            if (keyManager==null) {
-                keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone().getConfig().getSamlConfig());
-            }
-            withKeyManager.setManager(keyManager);
-        }
-        return withKeyManager.getManager();
     }
 
     public static IdentityZone getUaaZone() {
@@ -64,7 +49,7 @@ public class IdentityZoneHolder {
     }
 
     public static void set(IdentityZone zone) {
-        THREADLOCAL.set(new IdentityZoneWithKeyManager(zone, null));
+        THREADLOCAL.set(new IdentityZoneWithKeyManager(zone));
     }
 
     public static void clear() {
@@ -87,23 +72,13 @@ public class IdentityZoneHolder {
 
     public static class IdentityZoneWithKeyManager {
         private IdentityZone zone;
-        private KeyManager manager;
 
-        public IdentityZoneWithKeyManager(IdentityZone zone, KeyManager manager) {
+        public IdentityZoneWithKeyManager(IdentityZone zone) {
             this.zone = zone;
-            this.manager = manager;
         }
 
         public IdentityZone getZone() {
             return zone;
-        }
-
-        public KeyManager getManager() {
-            return manager;
-        }
-
-        public void setManager(KeyManager manager) {
-            this.manager = manager;
         }
     }
 

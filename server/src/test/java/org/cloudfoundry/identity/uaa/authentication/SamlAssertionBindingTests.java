@@ -15,12 +15,14 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.opensaml.ws.transport.http.HTTPInTransport;
-import org.opensaml.xml.parse.BasicParserPool;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,18 +35,18 @@ public class SamlAssertionBindingTests {
 
     @Before
     public void setUp() throws Exception {
-        binding = new SamlAssertionBinding(new BasicParserPool());
+        binding = new SamlAssertionBinding();
     }
 
     @Test
     public void supports() throws Exception {
-        HTTPInTransport transport = mock(HTTPInTransport.class);
+        HttpServletRequest transport = mock(HttpServletRequest.class);
         assertFalse(binding.supports(transport));
 
-        when(transport.getHTTPMethod()).thenReturn("POST");
+        when(transport.getMethod()).thenReturn("POST");
         assertFalse(binding.supports(transport));
 
-        when(transport.getParameterValue("assertion")).thenReturn("some assertion");
+        when(transport.getParameter("assertion")).thenReturn("some assertion");
         assertTrue(binding.supports(transport));
     }
 

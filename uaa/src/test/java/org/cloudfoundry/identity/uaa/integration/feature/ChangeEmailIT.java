@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.security.SecureRandom;
+import java.util.Iterator;
+
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.junit.After;
@@ -15,10 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.security.SecureRandom;
-import java.util.Iterator;
-
-import static org.apache.commons.lang3.StringUtils.contains;
+import static org.apache.commons.lang.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;

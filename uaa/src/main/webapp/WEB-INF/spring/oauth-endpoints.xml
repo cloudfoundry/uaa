@@ -254,7 +254,6 @@
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
         <constructor-arg ref="passwordGrantAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
-        <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <constructor-arg ref="xOauthAuthenticationManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />

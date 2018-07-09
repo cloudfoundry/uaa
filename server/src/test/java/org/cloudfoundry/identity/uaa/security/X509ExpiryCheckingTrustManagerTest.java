@@ -14,13 +14,13 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.X509Certificate;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.security.saml.trust.X509TrustManager;
-
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.X509Certificate;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;

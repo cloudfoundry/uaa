@@ -19,12 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -62,14 +60,14 @@ public class UaaAuthentication implements Authentication, Serializable {
     }
 
     //This is used when UAA acts as a SAML IdP
-    @JsonIgnore
-    private SAMLMessageContext samlMessageContext;
+//    @JsonIgnore
+//    private SAMLMessageContext samlMessageContext;
 
     /**
      * Creates a token with the supplied array of authorities.
      *
      * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
-     *            principal represented by this authentication object.
+     *                    principal represented by this authentication object.
      */
     public UaaAuthentication(UaaPrincipal principal,
                              Collection<? extends GrantedAuthority> authorities,
@@ -200,12 +198,12 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.externalGroups = externalGroups;
     }
 
-    public MultiValueMap<String,String> getUserAttributes() {
-        return new LinkedMultiValueMap<>(userAttributes!=null? userAttributes: EMPTY_MAP);
+    public MultiValueMap<String, String> getUserAttributes() {
+        return new LinkedMultiValueMap<>(userAttributes != null ? userAttributes : EMPTY_MAP);
     }
 
-    public Map<String,List<String>> getUserAttributesAsMap() {
-        return userAttributes!=null ? new HashMap<>(userAttributes) : EMPTY_MAP;
+    public Map<String, List<String>> getUserAttributesAsMap() {
+        return userAttributes != null ? new HashMap<>(userAttributes) : EMPTY_MAP;
     }
 
     public void setUserAttributes(MultiValueMap<String, String> userAttributes) {
@@ -215,15 +213,15 @@ public class UaaAuthentication implements Authentication, Serializable {
         }
     }
 
-    @JsonIgnore
-    public SAMLMessageContext getSamlMessageContext() {
-        return samlMessageContext;
-    }
-
-    @JsonIgnore
-    public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
-        this.samlMessageContext = samlMessageContext;
-    }
+//    @JsonIgnore
+//    public SAMLMessageContext getSamlMessageContext() {
+//        return samlMessageContext;
+//    }
+//
+//    @JsonIgnore
+//    public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
+//        this.samlMessageContext = samlMessageContext;
+//    }
 
     public Set<String> getAuthenticationMethods() {
         return authenticationMethods;

@@ -15,8 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.sql.Date;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
@@ -46,8 +54,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.mockito.stubbing.Answer;
-import org.opensaml.saml2.core.AuthnContext;
+import org.opensaml.saml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -60,16 +71,6 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;

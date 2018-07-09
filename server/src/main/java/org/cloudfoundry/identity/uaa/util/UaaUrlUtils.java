@@ -14,15 +14,6 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriUtils;
-
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -33,6 +24,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -239,5 +240,37 @@ public abstract class UaaUrlUtils {
         } catch (MalformedURLException e) {
             return false;
         }
+    }
+
+    public static String getUriName(String uri) {
+        if (uri == null || uri.length() == 0) { return uri; }
+        String path = getUriPath(uri);
+        int at = path.lastIndexOf("/");
+        int to = path.length();
+        return (at >= 0) ? path.substring(at + 1, to) : path;
+    }
+
+    public static String getUriPath(String uri) {
+        if (uri == null) {
+            return null;
+        }
+        // consider of net_path
+        int at = uri.indexOf("//");
+        int from = uri.indexOf(
+            "/",
+            at >= 0 ? (uri.lastIndexOf("/", at - 1) >= 0 ? 0 : at + 2) : 0
+        );
+        // the authority part of URI ignored
+        int to = uri.length();
+        // check the query
+        if (uri.indexOf('?', from) != -1) {
+            to = uri.indexOf('?', from);
+        }
+        // check the fragment
+        if (uri.lastIndexOf("#") > from && uri.lastIndexOf("#") < to) {
+            to = uri.lastIndexOf("#");
+        }
+        // get only the path.
+        return (from < 0) ? (at >= 0 ? "/" : uri) : uri.substring(from, to);
     }
 }

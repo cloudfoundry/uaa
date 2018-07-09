@@ -13,15 +13,17 @@
  */
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlSpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +33,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
@@ -57,8 +57,7 @@ public class SamlServiceProviderEndpoints {
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<SamlServiceProvider> createServiceProvider(@RequestBody SamlServiceProvider body)
-        throws MetadataProviderException {
+    public ResponseEntity<SamlServiceProvider> createServiceProvider(@RequestBody SamlServiceProvider body) {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         samlConfigurator.validateSamlServiceProvider(body);
@@ -68,7 +67,7 @@ public class SamlServiceProviderEndpoints {
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<SamlServiceProvider> updateServiceProvider(@PathVariable String id,
-                                                                     @RequestBody SamlServiceProvider body) throws MetadataProviderException {
+                                                                     @RequestBody SamlServiceProvider body)  {
         SamlServiceProvider existing = serviceProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
         String zoneId = IdentityZoneHolder.get().getId();
         body.setId(id);
@@ -107,8 +106,8 @@ public class SamlServiceProviderEndpoints {
         return new ResponseEntity<>(serviceProvider, OK);
     }
 
-    @ExceptionHandler(MetadataProviderException.class)
-    public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleMetadataProviderException(RuntimeException e) {
         if (e.getMessage().contains("Duplicate")) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
         } else {

@@ -16,49 +16,47 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
+import java.time.Clock;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Timer;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Timer;
+import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
+import org.springframework.security.saml.spi.SpringSecuritySaml;
+import org.springframework.security.saml.spi.opensaml.OpenSamlImplementation;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SamlIdentityProviderConfiguratorTests {
 
     private Runnable stopHttpServer;
-    private FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
     private SlowHttpServer slowHttpServer;
+    private static SpringSecuritySaml implementation;
 
     @BeforeClass
     public static void initializeOpenSAML() throws Exception {
-        if (!org.apache.xml.security.Init.isInitialized()) {
-            DefaultBootstrap.bootstrap();
-        }
+        implementation = new OpenSamlImplementation(Clock.systemUTC());
     }
 
     public static final String xmlWithoutID =
@@ -125,7 +123,6 @@ public class SamlIdentityProviderConfiguratorTests {
     public void setUp() throws Exception {
         bootstrap = new BootstrapSamlIdentityProviderData();
         configurator = new SamlIdentityProviderConfigurator();
-        configurator.setParserPool(new BasicParserPool());
         singleAdd = new SamlIdentityProviderDefinition()
           .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
           .setIdpEntityAlias(singleAddAlias)
@@ -145,9 +142,6 @@ public class SamlIdentityProviderConfiguratorTests {
           .setIconUrl("sample-icon-url")
           .setZoneId("uaa");
         configurator.setIdentityProviderProvisioning(provisioning);
-        fixedHttpMetaDataProvider = mock(FixedHttpMetaDataProvider.class);
-
-        configurator.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
     }
 
     @Test(expected = NullPointerException.class)
@@ -170,29 +164,29 @@ public class SamlIdentityProviderConfiguratorTests {
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
             switch (def.getIdpEntityAlias()) {
                 case "okta-local": {
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
+                    IdentityProviderMetadata provider = configurator.getExtendedMetadataDelegate(def);
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityId());
                     break;
                 }
                 case "okta-local-3": {
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJX", provider.getEntityID());
+                    IdentityProviderMetadata provider = configurator.getExtendedMetadataDelegate(def);
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJX", provider.getEntityId());
                     break;
                 }
                 case "okta-local-2": {
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityID());
+                    IdentityProviderMetadata provider = configurator.getExtendedMetadataDelegate(def);
+                    assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityId());
                     break;
                 }
                 case "simplesamlphp-url": {
-                    when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php", provider.getEntityID());
+                    //when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
+                    IdentityProviderMetadata provider = configurator.getExtendedMetadataDelegate(def);
+                    assertEquals("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php", provider.getEntityId());
                     break;
                 }
                 case "custom-authncontext": {
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
-                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
+                    IdentityProviderMetadata  provider = configurator.getExtendedMetadataDelegate(def);
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityId());
                     break;
                 }
                 default:
@@ -209,7 +203,7 @@ public class SamlIdentityProviderConfiguratorTests {
         assertNull(singleAdd.getSocketFactoryClassName());
         singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
         assertNull(singleAdd.getSocketFactoryClassName());
-        singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
+        singleAdd.setSocketFactoryClassName("any string");
         assertNull(singleAdd.getSocketFactoryClassName());
     }
 

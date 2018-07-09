@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.apache.commons.httpclient.util.URIUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -31,7 +23,16 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.getUriName;
 import static org.springframework.util.StringUtils.hasText;
 
 public class XOAuthAuthenticationFilter implements Filter {
@@ -73,7 +74,7 @@ public class XOAuthAuthenticationFilter implements Filter {
     }
 
     public boolean authenticationWasSuccessful(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String origin = URIUtil.getName(String.valueOf(request.getRequestURL()));
+        String origin = getUriName(String.valueOf(request.getRequestURL()));
         String code = request.getParameter("code");
         String idToken = request.getParameter("id_token");
         String accessToken = request.getParameter("access_token");
@@ -110,4 +111,6 @@ public class XOAuthAuthenticationFilter implements Filter {
     public void destroy() {
 
     }
+
+
 }

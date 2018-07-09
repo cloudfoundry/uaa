@@ -12,9 +12,27 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.httpclient.util.URIUtil;
+import javax.servlet.http.HttpSession;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -62,12 +80,13 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensaml.xml.ConfigurationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -98,26 +117,6 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpSession;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils.getClaimsForToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -126,14 +125,27 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInt
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -178,7 +190,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public static void initializeSamlUtils() {
         try {
             samlTestUtils.initializeSimple();
-        } catch (ConfigurationException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -1781,7 +1793,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
         MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
-        String errorMessage = URIUtil.encodeQuery("scim.write is invalid. Please use a valid scope name in the request");
+        String errorMessage = UriUtils.encodeQuery("scim.write is invalid. Please use a valid scope name in the request", StandardCharsets.UTF_8.name());
         assertTrue(!queryParams.containsKey("scope"));
         assertEquals(errorMessage, queryParams.getFirst("error_description"));
     }
@@ -1813,7 +1825,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
         MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
-        String errorMessage = URIUtil.encodeQuery("[something.else] is invalid. This user is not allowed any of the requested scopes");
+        String errorMessage = UriUtils.encodeQuery("[something.else] is invalid. This user is not allowed any of the requested scopes", StandardCharsets.UTF_8.name());
         assertTrue(!queryParams.containsKey("scope"));
         assertEquals(errorMessage, queryParams.getFirst("error_description"));
     }
@@ -4055,7 +4067,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void testRevocablePasswordGrantTokenForDefaultZone() throws Exception {
         String tokenKey = "access_token";
-        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(new HashedMap());
+        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(new HashMap());
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));
         assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
         String token = (String)tokenResponse.get(tokenKey);
@@ -4068,7 +4080,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void testPasswordGrantTokenForDefaultZone_Opaque() throws Exception {
-        Map<String,String> parameters = new HashedMap();
+        Map<String,String> parameters = new HashMap();
         parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         String tokenKey = "access_token";
         Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
@@ -4138,7 +4150,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         try {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
             zoneProvisioning.update(defaultZone);
-            Map<String, String> parameters = new HashedMap();
+            Map<String, String> parameters = new HashMap();
             Map<String, Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
             validateRevocableJwtToken(tokenResponse, defaultZone);
         }finally {

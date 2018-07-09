@@ -25,7 +25,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -98,7 +97,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException{
+    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws RuntimeException {
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
@@ -130,7 +129,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     @RequestMapping(value = "{id}", method = DELETE)
     @Transactional
-    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> deleteIdentityProvider(
+        @PathVariable String id,
+        @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws RuntimeException {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
         if (publisher!=null && existing!=null) {
             existing.setSerializeConfigRaw(rawConfig);
@@ -143,7 +144,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
 
     @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> updateIdentityProvider(
+        @PathVariable String id, @RequestBody IdentityProvider body,
+        @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws RuntimeException {
+
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = IdentityZoneHolder.get().getId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
@@ -248,8 +252,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
 
-    @ExceptionHandler(MetadataProviderException.class)
-    public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleMetadataProviderException(RuntimeException e) {
         if (e.getMessage().contains("Duplicate")) {
             return new ResponseEntity<>(e.getMessage(), CONFLICT);
         } else {

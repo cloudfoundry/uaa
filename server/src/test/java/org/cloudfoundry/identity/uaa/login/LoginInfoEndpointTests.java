@@ -12,6 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -39,6 +55,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +68,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+import org.springframework.security.saml.SamlAuthentication;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
@@ -59,21 +76,6 @@ import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.client.RestTemplate;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
@@ -587,19 +589,18 @@ public class LoginInfoEndpointTests {
         assertEquals("passcode", endpoint.generatePasscode(model, marissa));
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(),new UaaAuthenticationDetails(new MockHttpServletRequest()));
         assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa,"");
+        SamlAuthentication expiringUsernameAuthenticationToken = null;//new ExpiringUsernameAuthenticationToken("princpal", "");
         UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
         assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
         //token with a UaaPrincipal should always work
         assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
-
     }
 
     @Test(expected = LoginInfoEndpoint.UnknownPrincipalException.class)
     public void testGeneratePasscodeForUnknownUaaPrincipal() throws Exception {
         Map<String,Object> model = new HashMap<>();
         LoginInfoEndpoint endpoint = getEndpoint();
-        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
+        Principal token = null;//new ExpiringUsernameAuthenticationToken("princpal", "");
         assertEquals("passcode", endpoint.generatePasscode(model, token));
     }
 

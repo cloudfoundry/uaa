@@ -1,27 +1,20 @@
-package org.cloudfoundry.identity.uaa.provider.saml;
+/*
+ *  ****************************************************************************
+ *      Cloud Foundry
+ *      Copyright (c) [2009-2018] Pivotal Software, Inc. All Rights Reserved.
+ *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *      You may not use this product except in compliance with the License.
+ *
+ *      This product includes a number of subcomponents with
+ *      separate copyright notices and license terms. Your use of these
+ *      subcomponents is subject to the terms and conditions of the
+ *      subcomponent's license, as noted in the LICENSE file.
+ *  ****************************************************************************
+ */
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.springframework.security.saml.key.JKSKeyManager;
-import org.springframework.test.util.ReflectionTestUtils;
+package org.cloudfoundry.identity.uaa.saml;
 
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.Security;
-
-import static java.util.Collections.EMPTY_MAP;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
-
-public class SamlKeyManagerFactoryTests {
-
+public class SamlTestKeys {
     public static final String legacyKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
         "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
@@ -163,105 +156,35 @@ public class SamlKeyManagerFactoryTests {
         "iQpMzNWb7zZWlCfDL4dJZHYoNfg=\n" +
         "-----END CERTIFICATE-----";
 
-    SamlConfig config;
-
-    @BeforeClass
-    public static void addBCProvider() throws Exception {
-        try {
-            Security.addProvider(new BouncyCastleProvider());
-        } catch (SecurityException e) {
-            e.printStackTrace();
-            System.err.println("Ignoring provider error, may already be added.");
-        }
-    }
-
-    @Before
-    public void setup() {
-        IdentityZoneHolder.clear();
-        config = new SamlConfig();
-        config.setPrivateKey(legacyKey);
-        config.setCertificate(legacyCertificate);
-        config.setPrivateKeyPassword(legacyPassphrase);
-
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
-    }
-
-    @After
-    public void clear() {
-        IdentityZoneHolder.clear();
-    }
-
-
-    @Test
-    public void multiple_keys_legacy_is_active_key() {
-        String alias = SamlConfig.LEGACY_KEY_ID;
-        JKSKeyManager manager = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        assertEquals(alias, manager.getDefaultCredentialName());
-        assertEquals(3, manager.getAvailableCredentials().size());
-        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2"));
-
-    }
-
-    @Test
-    public void multiple_keys_with_active_key() {
-        config.setActiveKeyId("key-1");
-        String alias = "key-1";
-        JKSKeyManager manager = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        assertEquals(alias, manager.getDefaultCredentialName());
-        assertEquals(3, manager.getAvailableCredentials().size());
-        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID+"", "key-1", "key-2"));
-
-    }
-
-    @Test
-    public void add_active_key() {
-        config.addAndActivateKey("key-3", new SamlKey(key1, passphrase1, certificate1));
-        String alias = "key-3";
-        JKSKeyManager manager = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        assertEquals(alias, manager.getDefaultCredentialName());
-        assertEquals(4, manager.getAvailableCredentials().size());
-        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2", alias));
-
-    }
-
-    @Test
-    public void multiple_keys_with_active_key_in_other_zone() {
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("other-zone-id","domain"));
-        config.setActiveKeyId("key-1");
-        String alias = "key-1";
-        JKSKeyManager manager = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        assertEquals(alias, manager.getDefaultCredentialName());
-        assertEquals(3, manager.getAvailableCredentials().size());
-        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2"));
-    }
-
-    @Test
-    public void keystore_impls_is_not_a_singleton() throws KeyStoreException {
-        assertNotSame(KeyStore.getInstance("JKS"), KeyStore.getInstance("JKS"));
-        JKSKeyManager manager1 = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        config.setKeys(EMPTY_MAP);
-        config.setPrivateKey(key1);
-        config.setPrivateKeyPassword("password");
-        config.setCertificate(certificate1);
-
-        JKSKeyManager manager2 = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        KeyStore ks1 = (KeyStore) ReflectionTestUtils.getField(manager1, JKSKeyManager.class, "keyStore");
-        KeyStore ks2 = (KeyStore) ReflectionTestUtils.getField(manager2, JKSKeyManager.class, "keyStore");
-
-        String alias = SamlConfig.LEGACY_KEY_ID;
-
-        assertNotEquals(ks1.getCertificate(alias), ks2.getCertificate(alias));
-        assertEquals(ks1.getCertificate(alias), ks1.getCertificate(alias));
-    }
-
-    @Test
-    public void test_add_certs_keys_only() throws Exception {
-        config.setKeys(EMPTY_MAP);
-        config.addAndActivateKey("cert-only", new SamlKey(null, null, certificate1));
-        JKSKeyManager manager1 = (JKSKeyManager) SamlKeyManagerFactory.getKeyManager(config);
-        assertNotNull(manager1.getDefaultCredential().getPublicKey());
-        assertNull(manager1.getDefaultCredential().getPrivateKey());
-    }
-
+    public static final String KEY = "-----BEGIN RSA PRIVATE KEY-----\n" +
+        "Proc-Type: 4,ENCRYPTED\n" +
+        "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
+        "\n" +
+        "VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe\n" +
+        "aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v\n" +
+        "CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh\n" +
+        "DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B\n" +
+        "+KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3\n" +
+        "KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU\n" +
+        "o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6\n" +
+        "NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi\n" +
+        "7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI\n" +
+        "0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu\n" +
+        "h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9\n" +
+        "zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb\n" +
+        "dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==\n" +
+        "-----END RSA PRIVATE KEY-----";
+    public static final String CERTIFICATE = "-----BEGIN CERTIFICATE-----\n" +
+        "MIIB1TCCAT4CCQCpQCfJYT8ZJTANBgkqhkiG9w0BAQUFADAvMS0wKwYDVQQDFCRz\n" +
+        "YW1sX2xvZ2luLE9VPXRlbXBlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAyMDAw\n" +
+        "MzM3WhcNMTQwNzAyMDAwMzM3WjAvMS0wKwYDVQQDFCRzYW1sX2xvZ2luLE9VPXRl\n" +
+        "bXBlc3QsTz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB\n" +
+        "ANK8mv+mUzhPH/8iTdMsZ6mY4r4At/GZIFS34L+/I0V2g6PkZ84VBgodqqV6Z6NY\n" +
+        "OSk0lcjrzU650zbES7yn4MjuvP0N5T9LydlvjOEzfA+uRETiy8d+DsS3rThRY+Ja\n" +
+        "dvmS0PswJ8cvHAksYmGNUWfTU+Roxcv0ZDqD+cUNi1+NAgMBAAEwDQYJKoZIhvcN\n" +
+        "AQEFBQADgYEAy54UVlZifk1PPdTg9OJuumdxgzZk3QEWZGjdJYEc134MeKKsIX50\n" +
+        "+6y5GDyXmxvJx33ySTZuRaaXClOuAtXRWpz0KlceujYuwboyUxhn46SUASD872nb\n" +
+        "cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=\n" +
+        "-----END CERTIFICATE-----";
+    public static final String PASSWORD = "password";
 }

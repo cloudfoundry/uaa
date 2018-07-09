@@ -13,12 +13,12 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.ArrayUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;

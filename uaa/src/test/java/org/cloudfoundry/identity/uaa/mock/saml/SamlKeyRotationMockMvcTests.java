@@ -14,33 +14,33 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.saml.SamlTestKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.w3c.dom.NodeList;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static java.util.Collections.EMPTY_MAP;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyCertificate;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyKey;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyPassphrase;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.certificate1;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.certificate2;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.legacyCertificate;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.legacyKey;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.legacyPassphrase;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.passphrase1;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
+import static org.cloudfoundry.identity.uaa.saml.SamlTestKeys.passphrase2;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -85,9 +85,9 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
         samlConfig.setCertificate(legacyCertificate);
         samlConfig.setPrivateKey(legacyKey);
         samlConfig.setPrivateKeyPassword(legacyPassphrase);
-        samlKey1 = new SamlKey(key1, passphrase1, certificate1);
+        samlKey1 = new SamlKey(SamlTestKeys.key1, passphrase1, certificate1);
         samlConfig.addKey("key1", samlKey1);
-        samlKey2 = new SamlKey(key2, passphrase2, certificate2);
+        samlKey2 = new SamlKey(SamlTestKeys.key2, passphrase2, certificate2);
         samlConfig.addKey("key2", samlKey2);
         identityZone.getConfig().setSamlConfig(samlConfig);
 

@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
-import org.apache.commons.lang3.RandomStringUtils;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
@@ -22,6 +23,9 @@ import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -41,10 +45,6 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -574,7 +574,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
     private BaseClientDetails createTestClient() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
+        clientDetails.setClientId("test-client-" + new RandomValueStringGenerator(200).generate());
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
         clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));

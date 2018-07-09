@@ -13,11 +13,28 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
-import org.springframework.security.authentication.*;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,16 +45,8 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
-import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -62,25 +71,21 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final OAuth2RequestFactory oAuth2RequestFactory;
 
-    private final SAMLProcessingFilter samlAuthenticationFilter;
-
     private final XOAuthAuthenticationManager xoAuthAuthenticationManager;
 
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null, null);
+        this(authenticationManager, oAuth2RequestFactory, null);
     }
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-                                                                SAMLProcessingFilter samlAuthenticationFilter,
                                                                 XOAuthAuthenticationManager xoAuthAuthenticationManager) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
-        this.samlAuthenticationFilter = samlAuthenticationFilter;
         this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
     }
 
@@ -213,9 +218,10 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
-            if (assertion != null && samlAuthenticationFilter != null) {
+            if (assertion != null) {
                 logger.debug("Attempting SAML authentication for token endpoint.");
-                authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
+                throw new UnsupportedOperationException();
+                //authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
             } else {
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
                 throw new InsufficientAuthenticationException("SAML Assertion is missing");

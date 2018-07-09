@@ -12,23 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-
 public class SamlServiceProviderHolder {
 
-    private final ExtendedMetadataDelegate extendedMetadataDelegate;
     private final SamlServiceProvider samlServiceProvider;
 
-    public SamlServiceProviderHolder(ExtendedMetadataDelegate extendedMetadataDelegate,
-            SamlServiceProvider samlServiceProvider) {
-
-        this.extendedMetadataDelegate = extendedMetadataDelegate;
+    public SamlServiceProviderHolder(SamlServiceProvider samlServiceProvider) {
         this.samlServiceProvider = samlServiceProvider;
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate() {
-        return extendedMetadataDelegate;
-    }
 
     public SamlServiceProvider getSamlServiceProvider() {
         return samlServiceProvider;

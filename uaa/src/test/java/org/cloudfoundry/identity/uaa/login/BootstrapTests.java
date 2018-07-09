@@ -12,6 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import javax.servlet.RequestDispatcher;
+import java.io.File;
+import java.util.Arrays;
+import java.util.EventListener;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -20,9 +30,18 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+
 import org.flywaydb.core.Flyway;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -32,16 +51,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
 
-import javax.servlet.RequestDispatcher;
-import java.io.File;
-import java.util.*;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
 
@@ -115,16 +134,15 @@ public class BootstrapTests {
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertNotNull(findProvider(defs, "testIDPFile"));
         assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                findProvider(defs, "testIDPFile").getType());
+            SamlIdentityProviderDefinition.MetadataLocation.URL,
+            findProvider(defs, "testIDPFile").getType());
         assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
+            SamlIdentityProviderDefinition.MetadataLocation.URL,
+            defs.get(defs.size() - 1).getType()
         );
     }
 
@@ -136,8 +154,8 @@ public class BootstrapTests {
         context = getServletContext("default,saml,configMetadata", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.DATA,
-                findProvider(defs, "testIDPData").getType());
+            SamlIdentityProviderDefinition.MetadataLocation.DATA,
+            findProvider(defs, "testIDPData").getType());
     }
 
 
@@ -149,15 +167,14 @@ public class BootstrapTests {
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertNull(
-                defs.get(defs.size() - 1).getSocketFactoryClassName()
+            defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
+            SamlIdentityProviderDefinition.MetadataLocation.URL,
+            defs.get(defs.size() - 1).getType()
         );
 
     }
@@ -170,18 +187,17 @@ public class BootstrapTests {
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertFalse(
-                context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions().isEmpty()
+            context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions().isEmpty()
         );
         assertNull(
-                defs.get(defs.size() - 1).getSocketFactoryClassName()
+            defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
+            SamlIdentityProviderDefinition.MetadataLocation.URL,
+            defs.get(defs.size() - 1).getType()
         );
 
     }

@@ -397,8 +397,8 @@
         </constructor-arg>
     </bean>
 
-    <import resource="spring/saml-providers.xml"/>
-    <import resource="spring/saml-idp.xml"/>
+    <!--<import resource="spring/saml-providers.xml"/>-->
+    <!--<import resource="spring/saml-idp.xml"/>-->
     <import resource="classpath:spring/login-ui.xml"/>
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
@@ -446,7 +446,7 @@
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="entityID" ref="samlEntityID"/>
-        <property name="idpDefinitions" ref="metaDataProviders"/>
+        <property name="idpDefinitions" ref="idpProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
@@ -460,7 +460,11 @@
         <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
     </bean>
 
-    <context:annotation-config />
+    <context:annotation-config/>
+    <!--<context:component-scan base-package="org.cloudfoundry.identity.uaa.impl.config"></context:component-scan>-->
+    <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig"/>
+    <bean id="fileSpConfiguration" class="org.cloudfoundry.identity.uaa.impl.config.FileServiceProviderConfiguration"/>
+    <bean id="fileIdpConfiguration" class="org.cloudfoundry.identity.uaa.impl.config.FileIdentityProviderConfiguration"/>
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>

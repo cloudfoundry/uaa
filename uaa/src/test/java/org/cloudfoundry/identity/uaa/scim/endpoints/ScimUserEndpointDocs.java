@@ -15,6 +15,34 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import java.util.Collections;
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.ArrayUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.restdocs.headers.HeaderDescriptor;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.request.ParameterDescriptor;
+import org.springframework.restdocs.request.RequestDocumentation;
+import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -39,32 +67,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.restdocs.headers.HeaderDescriptor;
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
-import org.springframework.restdocs.payload.FieldDescriptor;
-import org.springframework.restdocs.request.ParameterDescriptor;
-import org.springframework.restdocs.request.RequestDocumentation;
-import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 public class ScimUserEndpointDocs extends InjectedMockContextTest {
 

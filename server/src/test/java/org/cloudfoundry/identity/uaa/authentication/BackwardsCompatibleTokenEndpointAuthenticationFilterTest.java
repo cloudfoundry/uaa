@@ -15,10 +15,15 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import java.util.Arrays;
+
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,11 +35,7 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
-
-import javax.servlet.FilterChain;
-import java.util.Arrays;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
@@ -59,7 +60,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     private AuthenticationManager passwordAuthManager;
     private OAuth2RequestFactory requestFactory;
-    private SAMLProcessingFilter samlAuthFilter;
+
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private BackwardsCompatibleTokenEndpointAuthenticationFilter filter;
     private MockHttpServletRequest request;
@@ -67,20 +68,20 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private FilterChain chain;
     private AuthenticationEntryPoint entryPoint;
     private TokenTestSupport support;
+    private Filter samlAuthFilter;
 
     @Before
     public void setUp() throws Exception {
 
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
-        samlAuthFilter = mock(SAMLProcessingFilter.class);
+        samlAuthFilter = mock(Filter.class);
         xoAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
 
         filter = spy(
             new BackwardsCompatibleTokenEndpointAuthenticationFilter(
                 passwordAuthManager,
                 requestFactory,
-                samlAuthFilter,
                 xoAuthAuthenticationManager
             )
         );
@@ -133,7 +134,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("assertion", "saml-assertion-value-here");
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
+        //verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
+        verify(samlAuthFilter, times(1));
         verifyZeroInteractions(passwordAuthManager);
         verifyZeroInteractions(xoAuthAuthenticationManager);
     }

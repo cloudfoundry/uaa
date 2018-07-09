@@ -1,6 +1,16 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.codec.binary.Base64;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -11,6 +21,8 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+
+import org.apache.commons.codec.binary.Base64;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -23,7 +35,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+import org.springframework.security.saml.SamlAuthentication;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -32,22 +44,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.filter.GenericFilterBean;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -92,7 +94,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginUsingPasscodeWithSamlToken() throws Exception {
-        ExpiringUsernameAuthenticationToken et = new ExpiringUsernameAuthenticationToken(USERNAME, null);
+        SamlAuthentication et = mock(SamlAuthentication.class);
         UaaAuthentication auth = new LoginSamlAuthenticationToken(marissa, et).getUaaAuthentication(
             Collections.emptyList(),
             Collections.emptySet(),

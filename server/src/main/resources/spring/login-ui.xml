@@ -43,8 +43,6 @@
 
     <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
 
-    <context:annotation-config/>
-
     <bean id="notificationsUrl" class="java.lang.String">
         <constructor-arg value="${notifications.url:}"/>
     </bean>
@@ -169,7 +167,7 @@
         <constructor-arg>
             <util:list>
                 <ref bean="uaaAuthenticationFailureHandler"/>
-                <ref bean="samlLogoutHandler"/>
+                <!--<ref bean="samlLogoutHandler"/>-->
             </util:list>
         </constructor-arg>
     </bean>
@@ -267,10 +265,7 @@
         <constructor-arg>
             <util:list>
                 <security:filter-chain pattern="/**" filters="
-                    httpsHeaderFilter,
-                    metadataGeneratorFilter,
-                    idpMetadataGeneratorFilter,
-                    samlFilter"/>
+                    httpsHeaderFilter"/>
             </util:list>
         </constructor-arg>
     </bean>
@@ -294,8 +289,6 @@
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
-        <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
         <csrf disabled="true"/>
     </http>
 
@@ -310,10 +303,7 @@
         <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
         <intercept-url pattern="/login**" access="isAnonymous() or isFullyAuthenticated()"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
-        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
         <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
@@ -327,7 +317,6 @@
         <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
         <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
-        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
@@ -478,7 +467,6 @@
 
     <bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.account.OpenIdUserDetailsService"/>
 
-    <context:annotation-config/>
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
     <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">

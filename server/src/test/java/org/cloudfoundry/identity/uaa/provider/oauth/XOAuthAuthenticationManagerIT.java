@@ -13,9 +13,21 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.RandomStringUtils;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -24,24 +36,38 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
-import org.cloudfoundry.identity.uaa.oauth.*;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.user.*;
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,6 +84,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -85,18 +112,41 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 public class XOAuthAuthenticationManagerIT {
     public static final String UAA_ORIGIN = "uaa";
@@ -409,7 +459,7 @@ public class XOAuthAuthenticationManagerIT {
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
-        String username = RandomStringUtils.random(50);
+        String username = new RandomValueStringGenerator(50).generate();
         claims.put("sub", username);
         claims.put("iss", "http://localhost/oauth/token");
         claims.put("origin", UAA_ORIGIN);
@@ -435,7 +485,7 @@ public class XOAuthAuthenticationManagerIT {
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
-        String username = RandomStringUtils.random(50);
+        String username = new RandomValueStringGenerator(50).generate();
         claims.put("sub", username);
         claims.put("iss", "http://localhost/oauth/token");
         claims.put("origin", origin);
@@ -470,7 +520,7 @@ public class XOAuthAuthenticationManagerIT {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> idpProvider = getProvider();
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
 
-        String username = RandomStringUtils.random(50);
+        String username = new RandomValueStringGenerator(50).generate();
         claims.put("sub", username);
         claims.put("iss", idpProvider.getConfig().getIssuer());
         claims.put("origin", idpProvider.getId());
