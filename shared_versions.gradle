@@ -47,7 +47,7 @@ ext {
   tomcatVersion = '8.5.23'
   tomcatJdbcPoolVersion = '8.5.23'
   tomcatContainerId = 'tomcat8x'
-  validationAPIVersion = '1.0.0.GA'
+  validationAPIVersion = '2.0.1.Final'
   velocityVersion = '2.0'
   xalanVersion = '2.7.2'
   zxingVersion = '3.3.1'
