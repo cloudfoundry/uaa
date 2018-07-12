@@ -678,7 +678,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                     preprocessResponse(prettyPrint()),
                     pathParameters(parameterWithName("userId").description(userIdDescription)),
                     requestHeaders(
-                        headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                        headerWithName("Authorization").description("Access token with scim.read, uaa.admin, or zones.uaa.admin required"),
                         headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
                         IDENTITY_ZONE_ID_HEADER,
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
