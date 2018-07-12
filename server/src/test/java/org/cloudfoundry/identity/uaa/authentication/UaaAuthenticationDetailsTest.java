@@ -1,6 +1,16 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Base64;
+
+import javax.servlet.ServletException;
+
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -18,6 +28,19 @@ public class UaaAuthenticationDetailsTest {
     }
 
     @Test
+    public void testBuildValidAuthenticationDetails() throws IOException, ServletException, ParseException {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("a:".getBytes())));
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
+        assertTrue("a".equals(details.getClientId()));
+    }
+
+    @Test(expected=BadCredentialsException.class)
+    public void testBuildInvalidAuthenticationDetails() throws IOException, ServletException, ParseException {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode(":".getBytes())));
+        new UaaAuthenticationDetails(request);
+    }
     public void testLoginHintIsParsed() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getParameter("login_hint")).thenReturn("{\"origin\":\"ldap\"}");
