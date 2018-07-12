@@ -1221,7 +1221,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderAfterDiscovery() throws  Exception{
+    public void testDefaultProviderBeforeDiscovery() throws  Exception{
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1233,8 +1233,6 @@ public class LoginInfoEndpointTests {
         ClientServicesExtension clientDetailsService = mockClientService();
 
         endpoint.setClientDetailsService(clientDetailsService);
-
-        mockHttpServletRequest.setParameter("discoveryPerformed", "true");
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
