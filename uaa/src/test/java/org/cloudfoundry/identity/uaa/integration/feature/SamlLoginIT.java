@@ -160,6 +160,7 @@ public class SamlLoginIT {
         for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4")) {
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, adminToken);
+                IntegrationTestUtils.deleteProvider(adminToken, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
             } catch(Exception _){}
         }
 
