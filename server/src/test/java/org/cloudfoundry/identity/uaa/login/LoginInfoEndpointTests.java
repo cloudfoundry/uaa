@@ -69,6 +69,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.saml.SamlAuthentication;
+import org.springframework.security.saml.spi.DefaultSamlAuthentication;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
@@ -589,11 +590,25 @@ public class LoginInfoEndpointTests {
         assertEquals("passcode", endpoint.generatePasscode(model, marissa));
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(),new UaaAuthenticationDetails(new MockHttpServletRequest()));
         assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
-        SamlAuthentication expiringUsernameAuthenticationToken = null;//new ExpiringUsernameAuthenticationToken("princpal", "");
-        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
+        SamlAuthentication expiringUsernameAuthenticationToken = new DefaultSamlAuthentication(true, null, null, null, null) {
+            @Override
+            public Object getPrincipal() {
+                return new UaaPrincipal("id","user","email","origin",null,"uaa");
+            }
+        };
+        long sessionExpiration = System.currentTimeMillis();
+        UaaAuthentication samlAuthenticationToken =
+            new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken)
+                .getUaaAuthentication(
+                    emptyList(),
+                    emptySet(),
+                    new LinkedMultiValueMap<>(),
+                    sessionExpiration
+                );
         assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
         //token with a UaaPrincipal should always work
         assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
+        assertEquals(sessionExpiration, samlAuthenticationToken.getExpiresAt());
     }
 
     @Test(expected = LoginInfoEndpoint.UnknownPrincipalException.class)

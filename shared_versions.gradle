@@ -39,7 +39,7 @@ ext {
   springSecurityJwtVersion = '1.0.8.RELEASE'
   springSecurityOAuthVersion = '2.0.15.RELEASE'
   springSecurityLdapVersion = '2.3.2.RELEASE'
-  springSecuritySamlVersion = '2.0.0.M2'
+  springSecuritySamlVersion = '2.0.0.M13'
   springRetryVersion = '1.2.1.RELEASE'
   thymeleafVersion = '3.0.6.RELEASE'
   thymeleafDialectVersion = '2.3.0'

@@ -12,21 +12,12 @@
  *  ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.impl.config;
-
-import java.util.Map;
-
-import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
+package org.cloudfoundry.identity.uaa.impl.config.saml;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Integer.parseInt;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getHostIfArgIsURL;
-import static org.springframework.util.StringUtils.hasText;
 
 @Configuration("UaaIdpConfiguration")
 public class FileIdentityProviderConfiguration extends BaseSamlFileConfiguration {
@@ -75,24 +66,6 @@ public class FileIdentityProviderConfiguration extends BaseSamlFileConfiguration
         return this;
     }
 
-    @Bean
-    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(Environment env) {
-        BootstrapSamlIdentityProviderData providerData = new BootstrapSamlIdentityProviderData();
-        @SuppressWarnings("checked")
-        Map<String,Map<String,Object>> providers = env.getProperty("login.saml.providers", Map.class);
-        providerData.setIdentityProviders(providers);
-
-        //no longer supporting the config for a single provider - remove
-        String legacyIdpUrl = env.getProperty("login.idpMetadataURL");
-        String legacyIdpMetadata = env.getProperty("login.idpMetadata");
-        providerData.setLegacyIdpMetaData(hasText(legacyIdpMetadata) ? legacyIdpMetadata : legacyIdpUrl);
-        providerData.setLegacyIdpIdentityAlias(env.getProperty("login.idpEntityAlias"));
-        providerData.setLegacyAssertionConsumerIndex(parseInt(env.getProperty("login.assertionConsumerIndex","0")));
-        providerData.setLegacyShowSamlLink(parseBoolean(env.getProperty("login.showSamlLoginLink","true")));
-        providerData.setLegacyMetadataTrustCheck(parseBoolean(env.getProperty("login.saml.metadataTrustCheck","true")));
-
-        return providerData;
-    }
 
     public String getEntityAlias() {
         return getHostIfArgIsURL(entityAlias);

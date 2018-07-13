@@ -12,9 +12,11 @@
  *  ****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.impl.config;
+package org.cloudfoundry.identity.uaa.impl.config.saml;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.saml.saml2.signature.AlgorithmMethod;
+import org.springframework.security.saml.saml2.signature.DigestMethod;
 
 public class BaseSamlFileConfiguration {
 
@@ -95,4 +97,29 @@ public class BaseSamlFileConfiguration {
     public String getDefaultDigestMethod() {
         return defaultDigestMethod;
     }
+
+    public AlgorithmMethod getSignatureAlgorithm() {
+        switch (getDefaultSignatureAlgorithm()) {
+            case "SHA1":
+                return AlgorithmMethod.RSA_SHA1;
+            case "SHA256":
+                return AlgorithmMethod.RSA_SHA256;
+            case "SHA512":
+                return AlgorithmMethod.RSA_SHA512;
+        }
+        return AlgorithmMethod.RSA_SHA256;
+    }
+
+    public DigestMethod getSignatureDigest() {
+        switch (getDefaultSignatureAlgorithm()) {
+            case "SHA1":
+                return DigestMethod.SHA1;
+            case "SHA256":
+                return DigestMethod.SHA256;
+            case "SHA512":
+                return DigestMethod.SHA512;
+        }
+        return DigestMethod.SHA256;
+    }
+
 }

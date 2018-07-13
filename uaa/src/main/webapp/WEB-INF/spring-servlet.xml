@@ -349,7 +349,6 @@
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
-
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
@@ -399,6 +398,8 @@
 
     <!--<import resource="spring/saml-providers.xml"/>-->
     <!--<import resource="spring/saml-idp.xml"/>-->
+    <!-- SAML Java Configuration -->
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.impl.config.saml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
@@ -461,10 +462,7 @@
     </bean>
 
     <context:annotation-config/>
-    <!--<context:component-scan base-package="org.cloudfoundry.identity.uaa.impl.config"></context:component-scan>-->
     <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig"/>
-    <bean id="fileSpConfiguration" class="org.cloudfoundry.identity.uaa.impl.config.FileServiceProviderConfiguration"/>
-    <bean id="fileIdpConfiguration" class="org.cloudfoundry.identity.uaa.impl.config.FileIdentityProviderConfiguration"/>
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>
@@ -517,6 +515,8 @@
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
         <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
+        <property name="samlSpEntityId" ref="samlEntityID"/>
+        <property name="samlSpEntityAlias" ref="samlSPAlias"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>

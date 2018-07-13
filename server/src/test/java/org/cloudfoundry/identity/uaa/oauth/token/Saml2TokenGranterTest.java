@@ -107,7 +107,7 @@ public class Saml2TokenGranterTest {
             clientDetailsService,
             requestFactory);
         Assertion assertion = mock(Assertion.class);
-        samltoken = new DefaultSamlAuthentication(true, assertion, "idp-entity-id", "sp-entity-id");
+        samltoken = new DefaultSamlAuthentication(true, assertion, "idp-entity-id", "sp-entity-id",null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.impl.config.saml.SamlAssertionAuthenticationHandler;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 
@@ -62,6 +63,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Filter {
 
     private static final Log logger = LogFactory.getLog(BackwardsCompatibleTokenEndpointAuthenticationFilter.class);
+    private final SamlAssertionAuthenticationHandler samlHandler;
 
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
 
@@ -75,18 +77,20 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null);
+        this(authenticationManager, oAuth2RequestFactory, null, null);
     }
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-                                                                XOAuthAuthenticationManager xoAuthAuthenticationManager) {
+                                                                XOAuthAuthenticationManager xoAuthAuthenticationManager,
+                                                                SamlAssertionAuthenticationHandler samlHandler) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
         this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
+        this.samlHandler = samlHandler;
     }
 
     /**
@@ -220,8 +224,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             String assertion = request.getParameter("assertion");
             if (assertion != null) {
                 logger.debug("Attempting SAML authentication for token endpoint.");
-                throw new UnsupportedOperationException();
-                //authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
+                //throw new UnsupportedOperationException();
+                authResult = samlHandler.authenticate(request, response, assertion);
             } else {
                 logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
                 throw new InsufficientAuthenticationException("SAML Assertion is missing");

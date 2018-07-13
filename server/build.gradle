@@ -8,8 +8,7 @@ dependencies {
 
   compile project(':cloudfoundry-identity-model')
 
-  //compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version: '1.0.4.RELEASE'
-  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml-core', version: parent.springSecuritySamlVersion
+  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version: parent.springSecuritySamlVersion
 
   compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion

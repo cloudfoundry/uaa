@@ -26,7 +26,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.SamlObjectResolver;
+import org.springframework.security.saml.provider.config.ThreadLocalSamlConfigurationRepository;
+import org.springframework.security.saml.provider.provisioning.HostBasedSamlServiceProviderProvisioning;
+import org.springframework.security.saml.provider.provisioning.SamlProviderProvisioning;
+import org.springframework.security.saml.provider.service.ServiceProviderService;
 import org.springframework.security.saml.saml2.metadata.ServiceProviderMetadata;
 
 import static org.junit.Assert.assertEquals;
@@ -37,24 +40,32 @@ public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
     String entityID;
     private String entityAlias;
     private IdentityZoneProvisioning zoneProvisioning;
-    private SamlObjectResolver resolver;
+    private SamlProviderProvisioning<ServiceProviderService> resolver;
+
     @Before
     public void setup() throws Exception {
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         entityID = getWebApplicationContext().getBean("samlEntityID", String.class);
         entityAlias = getWebApplicationContext().getBean("samlSPAlias", String.class);
-        resolver = getWebApplicationContext().getBean(SamlObjectResolver.class);
+        resolver = getWebApplicationContext().getBean(
+            "samlServiceProviderProvisioning",
+            HostBasedSamlServiceProviderProvisioning.class
+        );
     }
 
     @Before
     @After
-    public void clear() {
+    public void clear() throws Exception {
         IdentityZoneHolder.clear();
+        getWebApplicationContext().getBeansOfType(ThreadLocalSamlConfigurationRepository.class)
+            .entrySet()
+            .stream()
+            .forEach(e -> e.getValue().reset());
     }
 
     @Test
     public void sp_initialized_in_non_snarl_metadata_manager() throws Exception {
-        ServiceProviderMetadata localServiceProvider = resolver.getLocalServiceProvider("http://localhost");
+        ServiceProviderMetadata localServiceProvider = resolver.getHostedProvider().getMetadata();
         assertNotNull(localServiceProvider);
         String providerSpAlias = localServiceProvider.getEntityAlias();
         assertEquals(entityAlias, providerSpAlias);
@@ -71,7 +82,7 @@ public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
             .setName(subdomain);
         zone = zoneProvisioning.create(zone);
         IdentityZoneHolder.set(zone);
-        ServiceProviderMetadata localServiceProvider = resolver.getLocalServiceProvider(subdomain + "." + "http://localhost");
+        ServiceProviderMetadata localServiceProvider = resolver.getHostedProvider().getMetadata();
         assertNotNull(localServiceProvider);
         String providerSpAlias = localServiceProvider.getEntityAlias();
         assertEquals(subdomain + "." + entityAlias, providerSpAlias);

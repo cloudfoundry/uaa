@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import java.util.List;
+
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -9,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.util.List;
 
 import static java.lang.String.format;
 import static java.lang.System.getProperties;
@@ -41,10 +41,15 @@ public class SqlServerDbMigrationIntegrationTest {
 
     @Before
     public void setup() {
-        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("sqlserver"));
+        assumeTrue("Expected db profile to be enabled", isSqlserver());
 
         flyway.clean();
         migrationTestRunner = new MigrationTestRunner(flyway);
+    }
+
+    protected boolean isSqlserver() {
+        String property = getProperties().getProperty("spring.profiles.active");
+        return property != null && property.contains("sqlserver");
     }
 
     @After

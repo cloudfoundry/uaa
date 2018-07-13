@@ -14,9 +14,15 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -30,11 +36,6 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.security.web.csrf.InvalidCsrfTokenException;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.util.StringUtils;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 
 public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler, AuthenticationEntryPoint {
@@ -70,6 +71,8 @@ public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler,
     public CsrfAwareEntryPointAndDeniedHandler(String redirectCsrf, String redirectNotLoggedIn) {
         this("/login", redirectCsrf, redirectNotLoggedIn);
     }
+
+
 
     protected boolean isUserLoggedIn() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

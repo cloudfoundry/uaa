@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,15 +24,24 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.saml.SamlException;
+import org.springframework.security.saml.provider.provisioning.SamlProviderProvisioning;
+import org.springframework.security.saml.provider.service.ServiceProviderService;
+import org.springframework.security.saml.provider.service.config.ExternalIdentityProviderConfiguration;
 import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
 import org.springframework.util.StringUtils;
 
 import static org.springframework.util.StringUtils.hasText;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
+    private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
+
     private IdentityProviderProvisioning providerProvisioning;
+    private SamlProviderProvisioning<ServiceProviderService> resolver;
 
     public SamlIdentityProviderConfigurator() {
     }
@@ -92,11 +100,18 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         boolean entityIDexists = false;
 
         for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
-            IdentityProviderMetadata existingProvider = getExtendedMetadataDelegate(existing);
-            if (entityIDToBeAdded.equals(existingProvider.getEntityId()) &&
-              !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
-                entityIDexists = true;
-                break;
+            try {
+                IdentityProviderMetadata existingProvider = getExtendedMetadataDelegate(existing);
+                if (entityIDToBeAdded.equals(existingProvider.getEntityId()) &&
+                  !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+                    entityIDexists = true;
+                    break;
+                }
+            } catch (SamlException e) {
+                logger.debug(
+                    "Unable to process SAML provider:"+existing.getMetaDataLocation()+". No duplicate check performed",
+                    e
+                );
             }
         }
 
@@ -124,19 +139,16 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     protected IdentityProviderMetadata configureXMLMetadata(SamlIdentityProviderDefinition def) {
-        String zoneId = def.getZoneId();
         String alias = def.getIdpEntityAlias();
         String metadata = def.getMetaDataLocation();
-        IdentityProviderMetadata delegate = null;
-        throw new UnsupportedOperationException();
-//        configMetadataProvider.setParserPool(getParserPool());
-//        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-//        extendedMetadata.setLocal(false);
-//        extendedMetadata.setAlias(def.getIdpEntityAlias());
-//        ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
-//        delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
 
+        ExternalIdentityProviderConfiguration config = new ExternalIdentityProviderConfiguration()
+            .setAlias(alias)
+            .setMetadata(metadata)
+            .setSkipSslValidation(def.isSkipSslValidation())
+            .setMetadataTrustCheck(def.isMetadataTrustCheck());
 
+        return resolver.getHostedProvider().getRemoteProvider(config);
     }
 
 
@@ -156,17 +168,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     protected IdentityProviderMetadata configureURLMetadata(SamlIdentityProviderDefinition def) {
-        try {
-            def = def.clone();
-            String adjustedMetatadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
-
-            byte[] metadata = new byte[0];
-
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
-        }
+        return configureXMLMetadata(def);
     }
 
     public IdentityProviderProvisioning getIdentityProviderProvisioning() {
@@ -177,7 +179,10 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         this.providerProvisioning = providerProvisioning;
     }
 
-
+    public SamlIdentityProviderConfigurator setResolver(SamlProviderProvisioning<ServiceProviderService> resolver) {
+        this.resolver = resolver;
+        return this;
+    }
 
     @Override
     public void afterPropertiesSet() throws Exception {

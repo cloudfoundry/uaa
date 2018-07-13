@@ -98,7 +98,8 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
         UaaAuthentication auth = new LoginSamlAuthenticationToken(marissa, et).getUaaAuthentication(
             Collections.emptyList(),
             Collections.emptySet(),
-            new LinkedMultiValueMap<>()
+            new LinkedMultiValueMap<>(),
+            Long.MAX_VALUE
         );
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
 

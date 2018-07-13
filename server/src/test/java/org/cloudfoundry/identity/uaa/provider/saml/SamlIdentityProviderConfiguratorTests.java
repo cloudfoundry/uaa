@@ -16,6 +16,9 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
@@ -34,29 +37,39 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.saml.SamlMetadataException;
+import org.springframework.security.saml.provider.provisioning.HostBasedSamlServiceProviderProvisioning;
+import org.springframework.security.saml.provider.service.ServiceProviderService;
+import org.springframework.security.saml.provider.service.config.ExternalIdentityProviderConfiguration;
 import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
+import org.springframework.security.saml.spi.DefaultMetadataCache;
+import org.springframework.security.saml.spi.DefaultSamlTransformer;
 import org.springframework.security.saml.spi.SpringSecuritySaml;
 import org.springframework.security.saml.spi.opensaml.OpenSamlImplementation;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestOperations;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SamlIdentityProviderConfiguratorTests {
 
-    private Runnable stopHttpServer;
     private SlowHttpServer slowHttpServer;
     private static SpringSecuritySaml implementation;
+    private RestOperations mockNetwork = mock(RestOperations.class);
 
     @BeforeClass
     public static void initializeOpenSAML() throws Exception {
-        implementation = new OpenSamlImplementation(Clock.systemUTC());
+        implementation = new OpenSamlImplementation(Clock.systemUTC()).init();
     }
 
     public static final String xmlWithoutID =
@@ -121,8 +134,32 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Before
     public void setUp() throws Exception {
-        bootstrap = new BootstrapSamlIdentityProviderData();
         configurator = new SamlIdentityProviderConfigurator();
+
+        DefaultSamlTransformer samlTransformer = new DefaultSamlTransformer(implementation);
+        DefaultMetadataCache cache = new DefaultMetadataCache(Clock.systemUTC(), mockNetwork, mockNetwork);
+        HostBasedSamlServiceProviderProvisioning resolver = mock(HostBasedSamlServiceProviderProvisioning.class);
+        configurator.setResolver(resolver);
+        ServiceProviderService serviceProviderService = mock(ServiceProviderService.class);
+        when(resolver.getHostedProvider()).thenReturn(serviceProviderService);
+
+        when(serviceProviderService.getRemoteProvider(any(ExternalIdentityProviderConfiguration.class)))
+            .then(
+                (Answer<IdentityProviderMetadata>) invocation -> {
+                    Object[] arguments = invocation.getArguments();
+                    ExternalIdentityProviderConfiguration config = (ExternalIdentityProviderConfiguration)arguments[0];
+                    String metadata;
+                    if (isUri(config.getMetadata())) {
+                        metadata = new String(cache.getMetadata(config.getMetadata(), true));
+                    } else {
+                        metadata = config.getMetadata();
+                    }
+                    return (IdentityProviderMetadata) samlTransformer.fromXml(metadata.getBytes(), null, null);
+                }
+            );
+
+
+        bootstrap = new BootstrapSamlIdentityProviderData();
         singleAdd = new SamlIdentityProviderDefinition()
           .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
           .setIdpEntityAlias(singleAddAlias)
@@ -141,6 +178,8 @@ public class SamlIdentityProviderConfiguratorTests {
           .setLinkText("sample-link-test")
           .setIconUrl("sample-icon-url")
           .setZoneId("uaa");
+
+
         configurator.setIdentityProviderProvisioning(provisioning);
     }
 
@@ -179,7 +218,9 @@ public class SamlIdentityProviderConfiguratorTests {
                     break;
                 }
                 case "simplesamlphp-url": {
-                    //when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
+                    when(mockNetwork.getForObject(anyString(), any())).thenReturn(
+                        getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes()
+                    );
                     IdentityProviderMetadata provider = configurator.getExtendedMetadataDelegate(def);
                     assertEquals("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php", provider.getEntityId());
                     break;
@@ -266,12 +307,23 @@ public class SamlIdentityProviderConfiguratorTests {
     @Test(timeout = 1_000)
     public void shouldTimeoutWhenFetchingMetadataURL() throws Exception {
         slowHttpServer.run();
-
-        expectedException.expect(NullPointerException.class);
-
+        expectedException.expect(SamlMetadataException.class);
+        when(mockNetwork.getForObject(anyString(), any())).thenThrow(
+            new ResourceAccessException("Simulating a timeout", new SocketTimeoutException("mock"))
+        );
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://localhost:23439");
         def.setSkipSslValidation(true);
         configurator.configureURLMetadata(def);
+    }
+
+    private static boolean isUri(String uri) {
+        boolean isUri = false;
+        try {
+            new URI(uri);
+            isUri = true;
+        } catch (URISyntaxException e) {
+        }
+        return isUri;
     }
 }

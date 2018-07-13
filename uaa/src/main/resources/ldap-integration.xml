@@ -21,6 +21,8 @@
               http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
               http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd">
 
+    <context:annotation-config />
+
     <bean id="ldapGroupsMappedToScopesConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapGroupsMappedToScopesConfig" />
 
     <bean id="ldapGroupsAsScopesConfig" class="org.cloudfoundry.identity.uaa.impl.config.LdapGroupsAsScopesConfig" />
@@ -38,6 +40,5 @@
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
-
 
 </beans>

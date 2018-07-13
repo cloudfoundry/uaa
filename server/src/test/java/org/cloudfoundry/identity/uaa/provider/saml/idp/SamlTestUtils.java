@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,14 +30,27 @@ import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
 import org.opensaml.saml.saml2.metadata.EntitiesDescriptor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.saml.key.KeyType;
+import org.springframework.security.saml.key.SimpleKey;
 import org.springframework.security.saml.saml2.authentication.Assertion;
+import org.springframework.security.saml.saml2.authentication.AudienceRestriction;
 import org.springframework.security.saml.saml2.authentication.AuthenticationRequest;
+import org.springframework.security.saml.saml2.authentication.Conditions;
 import org.springframework.security.saml.saml2.authentication.Issuer;
+import org.springframework.security.saml.saml2.authentication.NameIdPrincipal;
+import org.springframework.security.saml.saml2.authentication.Subject;
+import org.springframework.security.saml.saml2.authentication.SubjectConfirmation;
+import org.springframework.security.saml.saml2.authentication.SubjectConfirmationData;
+import org.springframework.security.saml.saml2.authentication.SubjectConfirmationMethod;
 import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
+import org.springframework.security.saml.saml2.metadata.NameId;
 import org.springframework.security.saml.saml2.metadata.ServiceProviderMetadata;
+import org.springframework.security.saml.saml2.signature.AlgorithmMethod;
+import org.springframework.security.saml.saml2.signature.DigestMethod;
 import org.springframework.security.saml.spi.opensaml.OpenSamlImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -366,17 +380,45 @@ public class SamlTestUtils {
 //        profile.buildResponse(authentication, context, options);
 //        Response response = (Response) context.getOutboundSAMLMessage();
 //        Assertion assertion = response.getAssertions().get(0);
-//        DateTime until = new DateTime().plusHours(1);
+        Assertion assertion = new Assertion();
+        DateTime until = new DateTime().plusHours(1);
 //        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setRecipient(spEndpoint);
-//        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI(audienceEntityID);
-//        assertion.getIssuer().setValue(issuerEntityId);
-//        assertion.getSubject().getNameID().setValue(username);
-//        assertion.getSubject().getNameID().setFormat(format);
 //        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
 //        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+        assertion.setSubject(
+            new Subject().addConfirmation(
+                new SubjectConfirmation()
+                    .setConfirmationData(
+                        new SubjectConfirmationData().setRecipient(spEndpoint)
+                            .setInResponseTo(null)
+                            .setNotOnOrAfter(until)
+                    )
+                .setMethod(SubjectConfirmationMethod.BEARER)
+            )
+        );
+//        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI(audienceEntityID);
 //        assertion.getConditions().setNotOnOrAfter(until);
+        assertion.setConditions(
+            new Conditions()
+                .addCriteria(
+                    new AudienceRestriction().setAudiences(Arrays.asList(audienceEntityID)))
+                .setNotOnOrAfter(until)
+        );
+
+//        assertion.getIssuer().setValue(issuerEntityId);
+        assertion.setIssuer(issuerEntityId);
+//        assertion.getSubject().getNameID().setValue(username);
+//        assertion.getSubject().getNameID().setFormat(format);
+        assertion.getSubject().setPrincipal(
+            new NameIdPrincipal()
+                .setFormat(NameId.valueOf(format))
+                .setValue(username)
+        );
+
 //        SamlConfig config = new SamlConfig();
 //        config.addAndActivateKey("active-key", new SamlKey(privateKey, keyPassword, certificate));
+        SimpleKey key = new SimpleKey("mock", privateKey, certificate, keyPassword, KeyType.SIGNING);
+        assertion.setSigningKey(key, AlgorithmMethod.RSA_SHA1, DigestMethod.SHA1);
 //        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
 //        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
 //        Signature signature = signatureBuilder.buildObject();
@@ -387,8 +429,7 @@ public class SamlTestUtils {
 //        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
 //        marshaller.marshall(assertion);
 //        Signer.signObject(signature);
-//        return assertion;
-        throw new UnsupportedOperationException();
+        return assertion;
     }
 
     public String mockAssertionEncoded(Assertion assertion, String issuerEntityID, String format, String username, String spEndpoint, String audienceEntityID) throws Exception {

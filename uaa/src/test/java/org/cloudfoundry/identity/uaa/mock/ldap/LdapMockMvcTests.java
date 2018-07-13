@@ -12,6 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import javax.servlet.http.HttpSession;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
@@ -80,18 +92,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.servlet.http.HttpSession;
-
+import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
@@ -133,7 +134,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static java.util.Collections.EMPTY_LIST;
 
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests  {
@@ -914,8 +914,8 @@ public class LdapMockMvcTests  {
 
     @Test
     public void testTwoLdapServers() throws Exception {
-        int port = 33389 + 400 + (ldapPortRotation++);
-        int sslPort = 33636 + 400 + (ldapPortRotation++);
+        int port = 33389 + 400 + (++ldapPortRotation);
+        int sslPort = 33636 + 400 + (++ldapPortRotation);
         apacheDS2 = ApacheDSHelper.start(port,sslPort);
         String originalUrl = ldapBaseUrl;
         if (ldapBaseUrl.contains("ldap://")) {

@@ -26,6 +26,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.saml.provider.identity.IdentityProviderService;
+import org.springframework.security.saml.provider.identity.config.ExternalServiceProviderConfiguration;
+import org.springframework.security.saml.provider.provisioning.SamlProviderProvisioning;
 import org.springframework.security.saml.saml2.metadata.NameId;
 import org.springframework.security.saml.saml2.metadata.ServiceProviderMetadata;
 import org.springframework.util.StringUtils;
@@ -37,6 +40,7 @@ public class SamlServiceProviderConfigurator {
     private static final Logger LOG = LoggerFactory.getLogger(SamlServiceProviderConfigurator.class);
 
     private SamlServiceProviderProvisioning providerProvisioning;
+    private SamlProviderProvisioning<IdentityProviderService> resolver;
     private Set<NameId> supportedNameIDs = new HashSet<>(
         Arrays.asList(
             NameId.EMAIL,
@@ -133,20 +137,20 @@ public class SamlServiceProviderConfigurator {
     }
 
     protected ServiceProviderMetadata configureXMLMetadata(SamlServiceProvider provider) {
-//        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(provider.getIdentityZoneId(),
-//          provider.getEntityId(), provider.getConfig().getMetaDataLocation());
-//        configMetadataProvider.setParserPool(getParserPool());
-//        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-//        extendedMetadata.setLocal(false);
-//        extendedMetadata.setAlias(provider.getEntityId());
-//        ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
-//        delegate.setMetadataTrustCheck(provider.getConfig().isMetadataTrustCheck());
+        String alias = provider.getEntityId();
+        String metadata = provider.getConfig().getMetaDataLocation();
 
-        throw new UnsupportedOperationException();
+        ExternalServiceProviderConfiguration config = new ExternalServiceProviderConfiguration()
+            .setAlias(alias)
+            .setMetadata(metadata)
+            .setSkipSslValidation(provider.getConfig().isSkipSslValidation())
+            .setMetadataTrustCheck(provider.getConfig().isMetadataTrustCheck());
+
+        return getResolver().getHostedProvider().getRemoteProvider(config);
     }
 
     protected ServiceProviderMetadata configureURLMetadata(SamlServiceProvider provider) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        return configureXMLMetadata(provider);
     }
 
     public SamlServiceProviderProvisioning getProviderProvisioning() {
@@ -161,4 +165,12 @@ public class SamlServiceProviderConfigurator {
         this.supportedNameIDs = supportedNameIDs;
     }
 
+    public SamlServiceProviderConfigurator setResolver(SamlProviderProvisioning<IdentityProviderService> resolver) {
+        this.resolver = resolver;
+        return this;
+    }
+
+    public SamlProviderProvisioning<IdentityProviderService> getResolver() {
+        return resolver;
+    }
 }

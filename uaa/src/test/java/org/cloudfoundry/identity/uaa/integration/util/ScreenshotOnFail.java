@@ -6,8 +6,6 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 
 public class ScreenshotOnFail extends TestWatcher {
@@ -19,15 +17,7 @@ public class ScreenshotOnFail extends TestWatcher {
     }
 
     public void debugPage(String className, String description) {
-        TakesScreenshot takesScreenshot = (TakesScreenshot) browser;
-
-        File scrFile = takesScreenshot.getScreenshotAs(OutputType.FILE);
-        File destFile = getDestinationFile(className, description);
-        try {
-            FileUtils.copyFile(scrFile, destFile);
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+        IntegrationTestUtils.takeScreenShot("ScreenshotOnFail-", browser);
 
         File pageSourceFile = getDestinationFile(className, description + ".html");
         String pageSource = browser.getPageSource();

@@ -81,10 +81,6 @@
         <constructor-arg ref="idpProviders"/>
     </bean>
 
-    <bean id="idpProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
-        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-    </bean>
-
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
@@ -207,11 +203,6 @@
         <constructor-arg ref="spMetaDataProviders"/>
     </bean>
 
-    <bean id="spMetaDataProviders"
-          class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
-        <property name="providerProvisioning" ref="serviceProviderProvisioning"/>
-    </bean>
-
     <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
@@ -230,6 +221,7 @@
                        method="DELETE"/>
         <intercept-url pattern="/**" access="denyAll"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <custom-filter ref="idpSamlConfigurationFilter" after="PRE_AUTH_FILTER"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>

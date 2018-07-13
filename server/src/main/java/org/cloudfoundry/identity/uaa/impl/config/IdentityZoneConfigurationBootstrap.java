@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -23,12 +28,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.springframework.beans.factory.InitializingBean;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import org.springframework.beans.factory.InitializingBean;
 
 import static java.util.Collections.EMPTY_MAP;
 import static java.util.Objects.nonNull;
@@ -56,7 +57,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
     private boolean disableSamlInResponseToCheck = false;
-
+    private String samlSpEntityId;
+    private String samlSpEntityAlias;
     private Map<String, Map<String, String>> samlKeys;
     private String activeKeyId;
 
@@ -84,10 +86,12 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
+        definition.getSamlConfig().setEntityID(samlSpEntityId);
         definition.getSamlConfig().setCertificate(samlSpCertificate);
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
         definition.getSamlConfig().setDisableInResponseToCheck(disableSamlInResponseToCheck);
+
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.getMfaConfig().setEnabled(mfaEnabled);
@@ -259,5 +263,15 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setDisableSamlInResponseToCheck(boolean disableSamlInResponseToCheck) {
         this.disableSamlInResponseToCheck = disableSamlInResponseToCheck;
+    }
+
+    public IdentityZoneConfigurationBootstrap setSamlSpEntityId(String samlSpEntityId) {
+        this.samlSpEntityId = samlSpEntityId;
+        return this;
+    }
+
+    public IdentityZoneConfigurationBootstrap setSamlSpEntityAlias(String samlSpEntityAlias) {
+        this.samlSpEntityAlias = samlSpEntityAlias;
+        return this;
     }
 }

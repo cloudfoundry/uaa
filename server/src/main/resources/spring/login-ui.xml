@@ -283,13 +283,28 @@
     <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
     </bean>
 
-    <http name="idpSecurity"
+    <http name="samlIdpSecurity"
           use-expressions="true"
-          pattern="/saml/idp/SSO/**"
+          pattern="/saml/idp/**"
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/SSO/**" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/**" access="permitAll()"/>
+        <custom-filter ref="samlIdpFilters" after="FILTER_SECURITY_INTERCEPTOR"/>
         <csrf disabled="true"/>
+        <access-denied-handler ref="loginEntryPoint"/>
+        <request-cache ref="clientRedirectStateCache"/>
+    </http>
+
+    <http name="samlSpSecurity"
+          use-expressions="true"
+          pattern="/saml/**"
+          entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="permitAll()"/>
+        <custom-filter ref="samlSpFilters" after="FILTER_SECURITY_INTERCEPTOR"/>
+        <csrf disabled="true"/>
+        <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
     <http name="uiSecurity"
@@ -317,11 +332,24 @@
         <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
         <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
         <request-cache ref="clientRedirectStateCache"/>
     </http>
+
+    <bean id="samlIdpFilters" class="org.springframework.security.web.FilterChainProxy">
+        <security:filter-chain-map request-matcher="ant">
+            <security:filter-chain pattern="/saml/idp/**" filters="compositeIdpFilter"/>
+        </security:filter-chain-map>
+    </bean>
+
+    <bean id="samlSpFilters" class="org.springframework.security.web.FilterChainProxy">
+        <security:filter-chain-map request-matcher="ant">
+            <security:filter-chain pattern="/saml/**" filters="compositeSpFilter"/>
+        </security:filter-chain-map>
+    </bean>
 
     <bean id="errorMessageAuthenticationFailureHandler"
           class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">

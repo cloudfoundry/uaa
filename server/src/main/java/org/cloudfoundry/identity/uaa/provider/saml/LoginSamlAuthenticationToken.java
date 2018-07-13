@@ -20,6 +20,8 @@ import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.SamlAuthentication;
@@ -34,11 +36,16 @@ public class LoginSamlAuthenticationToken {
 
     private final UaaPrincipal uaaPrincipal;
     private SamlAuthentication token;
-    private boolean incompleteImplementation = true;
+    private TimeService time = new TimeServiceImpl();
 
     public LoginSamlAuthenticationToken(UaaPrincipal uaaPrincipal, SamlAuthentication token) {
         this.uaaPrincipal = uaaPrincipal;
         this.token = token;
+    }
+
+    public LoginSamlAuthenticationToken setTime(TimeService time) {
+        this.time = time;
+        return this;
     }
 
     public UaaPrincipal getUaaPrincipal() {
@@ -47,15 +54,13 @@ public class LoginSamlAuthenticationToken {
 
     public UaaAuthentication getUaaAuthentication(List<? extends GrantedAuthority> uaaAuthorityList,
                                                   Set<String> externalGroups,
-                                                  MultiValueMap<String, String> userAttributes) {
+                                                  MultiValueMap<String, String> userAttributes,
+                                                  long sessionExpiration) {
         LinkedMultiValueMap<String, String> customAttributes = new LinkedMultiValueMap<>();
         for (Map.Entry<String, List<String>> entry : userAttributes.entrySet()) {
             if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX)) {
                 customAttributes.put(entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length()), entry.getValue());
             }
-        }
-        if (incompleteImplementation) {
-            throw new UnsupportedOperationException("Implement get Expiration for SamlAuthentication");
         }
         UaaAuthentication authentication =
             new UaaAuthentication(
@@ -66,8 +71,8 @@ public class LoginSamlAuthenticationToken {
                 customAttributes,
                 null,
                 true,
-                0,
-                0);
+                time.getCurrentTimeMillis(),
+                sessionExpiration);
         authentication.setAuthenticationMethods(Collections.singleton("ext"));
         List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
         if (acrValues !=null) {

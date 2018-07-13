@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import java.util.List;
+
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -9,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.util.List;
 
 import static java.lang.String.format;
 import static java.lang.System.getProperties;
@@ -42,10 +42,15 @@ public class PostgresDbMigrationIntegrationTest {
 
     @Before
     public void setup() {
-        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("postgresql"));
+        assumeTrue("Expected db profile to be enabled", isPostgresql());
 
         flyway.clean();
         migrationTestRunner = new MigrationTestRunner(flyway);
+    }
+
+    protected boolean isPostgresql() {
+        String property = getProperties().getProperty("spring.profiles.active");
+        return property != null && property.contains("postgresql");
     }
 
     @After

@@ -255,6 +255,7 @@
         <constructor-arg ref="passwordGrantAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="xOauthAuthenticationManager"/>
+        <constructor-arg ref="assertionAuthenticationHandler"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
     </bean>
@@ -731,6 +732,18 @@
         <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService" />
         <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator" />
+    </bean>
+
+    <bean id="samlTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.Saml2TokenGranter">
+        <constructor-arg name="tokenServices" ref="tokenServices"/>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
+    <bean id="addSamlTokenGranter"
+          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
+        <constructor-arg name="userTokenGranter" ref="samlTokenGranter"/>
+        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
     </bean>
 
     <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
