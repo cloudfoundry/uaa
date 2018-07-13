@@ -93,11 +93,11 @@ jwt:
       refreshTokenValiditySeconds: 9600
     queryString:
       enabled: false
-    refresh:
-      format: opaque
-      restrict_grant: true
-      unique: true
     revocable: true
+  refresh:
+    format: opaque
+    restrict_grant: true
+    unique: true
 ldap:
   override: false
   addShadowUserOnLogin: false
