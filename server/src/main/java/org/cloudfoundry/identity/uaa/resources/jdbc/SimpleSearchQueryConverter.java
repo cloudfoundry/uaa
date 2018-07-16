@@ -173,14 +173,12 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     protected SCIMFilter scimFilter(String filter) throws SCIMException {
-        SCIMFilter scimFilter;
-        try {
-            scimFilter = SCIMFilter.parse(filter);
-        } catch (SCIMException e) {
-            logger.debug("Attempting legacy scim filter conversion for [" + filter + "]", e);
-            filter = filter.replaceAll("'","\"");
-            scimFilter = SCIMFilter.parse(filter);
-        }
+        if(filter.indexOf("'") != -1) {
+    		filter = filter.replaceAll("'","\"");
+    		logger.debug("Attempting legacy scim filter conversion for [" + filter + "]");
+    	}
+        
+        SCIMFilter scimFilter = SCIMFilter.parse(filter);
         validateFilterAttributes(scimFilter, VALID_ATTRIBUTE_NAMES);
         return scimFilter;
     }
