@@ -547,7 +547,7 @@ public class LdapMockMvcTests  {
             .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
 
         result = getMockMvc().perform(post)
-            .andExpect(status().isExpectationUnsuccessful())
+            .andExpect(status().isExpectationFailed())
             .andReturn();
         assertEquals("\"bad credentials\"", result.getResponse().getContentAsString());
 
