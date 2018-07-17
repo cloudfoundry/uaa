@@ -2090,7 +2090,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void login_LockoutPolicySucceeds_ForDefaultZone() throws Exception {
         ScimUser userToLockout = createUser(getUaa().getId());
-        attemptFailedLogin(5, userToLockout.getUserName(), "");
+        attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
         getMockMvc().perform(post("/uaa/login.do")
             .contextPath("/uaa")
             .with(cookieCsrf())
@@ -2109,7 +2109,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         ScimUser userToLockout = createUser(zone.getId());
 
-        attemptFailedLogin(2, userToLockout.getUserName(), subdomain);
+        attemptUnsuccessfulLogin(2, userToLockout.getUserName(), subdomain);
 
         getMockMvc().perform(post("/uaa/login.do")
             .contextPath("/uaa")
@@ -2183,7 +2183,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void idpDiscoveryPageNotDisplayed_IfFlagIsEnabledAndDiscoveryFailedPreviously() throws Exception {
+    public void idpDiscoveryPageNotDisplayed_IfFlagIsEnabledAndDiscoveryUnsuccessfulPreviously() throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         IdentityZone zone = setupZone(config);
@@ -2614,7 +2614,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(identityProvider, zone.getId());
     }
 
-    private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
+    private void attemptUnsuccessfulLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/uaa/login.do")
             .with(new SetServerNameRequestPostProcessor(requestDomain))

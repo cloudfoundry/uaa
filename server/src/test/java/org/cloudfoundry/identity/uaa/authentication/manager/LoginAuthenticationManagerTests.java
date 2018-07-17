@@ -143,7 +143,7 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testFailedAutoAddButWithNewUser() {
+    public void testUnsuccessfulAutoAddButWithNewUser() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory

@@ -648,7 +648,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testUnlockAccount() throws Exception {
         ScimUser userToLockout = createUser(uaaAdminToken);
-        attemptFailedLogin(5, userToLockout.getUserName(), "");
+        attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(false);
@@ -663,7 +663,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testAccountStatusEmptyPatchDoesNotUnlock() throws Exception {
         ScimUser userToLockout = createUser(uaaAdminToken);
-        attemptFailedLogin(5, userToLockout.getUserName(), "");
+        attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
             .andExpect(status().isOk())
@@ -762,7 +762,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testTryMultipleStatusUpdatesWithInvalidRemovalOfPasswordChange() throws Exception {
         ScimUser user = createUser(uaaAdminToken);
-        attemptFailedLogin(5, user.getUserName(), "");
+        attemptUnsuccessfulLogin(5, user.getUserName(), "");
 
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(false);
@@ -797,7 +797,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 .param("password", user.getPassword()));
     }
 
-    private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
+    private void attemptUnsuccessfulLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/login.do")
             .with(new SetServerNameRequestPostProcessor(requestDomain))

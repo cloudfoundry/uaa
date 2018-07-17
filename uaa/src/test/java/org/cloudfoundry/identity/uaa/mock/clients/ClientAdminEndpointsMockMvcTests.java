@@ -896,7 +896,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     }
 
     @Test
-    public void testAddUpdateDeleteClientsTxDeleteFailedRollback() throws Exception {
+    public void testAddUpdateDeleteClientsTxDeleteUnsuccessfulRollback() throws Exception {
         ClientDetailsModification[] details = new ClientDetailsModification[15];
         for (int i = 0; i < 5; i++) {
             details[i] = (ClientDetailsModification) createClient(adminToken, null, SECRET,
@@ -1337,7 +1337,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     }
 
     @Test
-    public void testFailedSecretChangeEvent() throws Exception {
+    public void testUnsuccessfulSecretChangeEvent() throws Exception {
 
         List<String> scopes = Arrays.asList("oauth.approvals", "clients.secret");
         BaseClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password", "client_credentials"), scopes, scopes);

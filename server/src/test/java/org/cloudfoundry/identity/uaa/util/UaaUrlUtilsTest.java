@@ -438,7 +438,7 @@ public class UaaUrlUtilsTest {
     }
 
     private void validateRedirectUri(List<String> urls, boolean result) {
-        Map<String, String> failed = getFailedUrls(urls, result);
+        Map<String, String> failed = getUnsuccessfulUrls(urls, result);
         if (!failed.isEmpty()) {
             StringBuilder builder = new StringBuilder("\n");
             failed.entrySet().forEach(entry ->
@@ -454,7 +454,7 @@ public class UaaUrlUtilsTest {
         LOWER_CASE
     }
 
-    private Map<String, String> getFailedUrls(List<String> urls, boolean result) {
+    private Map<String, String> getUnsuccessfulUrls(List<String> urls, boolean result) {
         Map<String, String> failed = new LinkedHashMap<>();
         urls.stream().forEach(
             url -> {

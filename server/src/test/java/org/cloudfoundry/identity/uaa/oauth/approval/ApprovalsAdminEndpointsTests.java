@@ -415,7 +415,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
             jdbcTemplate.update(sql);
             System.err.println("Succeeded: "+sql);
         } catch (Exception e) {
-            System.err.println("Failed: "+sql);
+            System.err.println("Unsuccessful: "+sql);
         }
     }
 

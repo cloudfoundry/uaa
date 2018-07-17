@@ -258,8 +258,8 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         String userToken = utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(userToken, null, clientId, "example.com", email);
         assertEquals(0, response.getNewInvites().size());
-        assertEquals(1, response.getFailedInvites().size());
-        assertEquals("user.ambiguous", response.getFailedInvites().get(0).getErrorCode());
+        assertEquals(1, response.getUnsuccessfulInvites().size());
+        assertEquals("user.ambiguous", response.getUnsuccessfulInvites().get(0).getErrorCode());
     }
 
     @Test
@@ -270,14 +270,14 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         String redirectUrl = "test.com";
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(scimInviteToken, null, clientId, redirectUrl, invalidEmail1, invalidEmail2, invalidEmail3);
         assertEquals(0, response.getNewInvites().size());
-        assertEquals(3, response.getFailedInvites().size());
+        assertEquals(3, response.getUnsuccessfulInvites().size());
 
-        assertEquals("email.invalid", response.getFailedInvites().get(0).getErrorCode());
-        assertEquals("email.invalid", response.getFailedInvites().get(1).getErrorCode());
-        assertEquals("email.invalid", response.getFailedInvites().get(2).getErrorCode());
-        assertEquals(invalidEmail1 + " is invalid email.", response.getFailedInvites().get(0).getErrorMessage());
-        assertEquals(invalidEmail2 + " is invalid email.", response.getFailedInvites().get(1).getErrorMessage());
-        assertEquals(invalidEmail3 + " is invalid email.", response.getFailedInvites().get(2).getErrorMessage());
+        assertEquals("email.invalid", response.getUnsuccessfulInvites().get(0).getErrorCode());
+        assertEquals("email.invalid", response.getUnsuccessfulInvites().get(1).getErrorCode());
+        assertEquals("email.invalid", response.getUnsuccessfulInvites().get(2).getErrorCode());
+        assertEquals(invalidEmail1 + " is invalid email.", response.getUnsuccessfulInvites().get(0).getErrorMessage());
+        assertEquals(invalidEmail2 + " is invalid email.", response.getUnsuccessfulInvites().get(1).getErrorMessage());
+        assertEquals(invalidEmail3 + " is invalid email.", response.getUnsuccessfulInvites().get(2).getErrorMessage());
     }
 
     @Test
@@ -368,7 +368,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     public void sendRequestWithToken(String token, String subdomain, String clientId, String redirectUri, String...emails) throws Exception {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(token, subdomain, clientId, redirectUri, emails);
         assertThat(response.getNewInvites().size(), is(emails.length));
-        assertThat(response.getFailedInvites().size(), is(0));
+        assertThat(response.getUnsuccessfulInvites().size(), is(0));
     }
 
     private void assertResponseAndCodeCorrect(String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {

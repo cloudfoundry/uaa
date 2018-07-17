@@ -3459,7 +3459,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void clientCredentials_byDefault_WillNotLockoutDuringFailedBasicAuth() throws Exception {
+    public void clientCredentials_byDefault_WillNotLockoutDuringUnsuccessfulBasicAuth() throws Exception {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
@@ -3472,7 +3472,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void clientCredentials_byDefault_WillNotLockoutDuringFailedBasicAuthAndFormData() throws Exception {
+    public void clientCredentials_byDefault_WillNotLockoutDuringUnsuccessfulBasicAuthAndFormData() throws Exception {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);

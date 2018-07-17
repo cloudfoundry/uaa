@@ -345,7 +345,7 @@ public class Saml2TokenGranterTest {
 		UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
 		Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(samlElement);
 		if (unmarshaller == null) {
-			throw new InsufficientAuthenticationException("Failed to unmarshal assertion string");
+			throw new InsufficientAuthenticationException("Unsuccessful to unmarshal assertion string");
 		}
 		return unmarshaller.unmarshall(samlElement);
 	}

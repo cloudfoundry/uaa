@@ -329,7 +329,7 @@ public class AuthzAuthenticationManagerTests {
     }
 
     @Test
-    public void userIsLockedOutAfterNumberOfFailedTriesIsExceeded() throws Exception {
+    public void userIsLockedOutAfterNumberOfUnsuccessfulTriesIsExceeded() throws Exception {
         AccountLoginPolicy lockoutPolicy = mock(PeriodLockoutPolicy.class);
         mgr.setAccountLoginPolicy(lockoutPolicy);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);

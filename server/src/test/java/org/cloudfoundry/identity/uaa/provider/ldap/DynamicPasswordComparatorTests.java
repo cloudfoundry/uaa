@@ -49,7 +49,7 @@ public class DynamicPasswordComparatorTests  {
                 assertTrue("Password["+s+"] should match 'test'", comparator.comparePasswords(test, getBytes(s)));
             } catch (Exception e) {
                 e.printStackTrace();
-                fail("Failed on password [" + s + "]");
+                fail("Unsuccessful on password [" + s + "]");
             }
         }
     }
