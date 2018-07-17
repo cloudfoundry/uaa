@@ -46,7 +46,6 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private final MessageDigest messageDigest;
     private final byte[] secret;
     private final byte[] salt;
-    private final BytesKeyGenerator saltGenerator;
     private final int iterations;
 
     private int maxKeys = 1000;
@@ -69,8 +68,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     public CachingPasswordEncoder() throws NoSuchAlgorithmException {
         messageDigest = MessageDigest.getInstance("SHA-256");
         this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
-        this.saltGenerator = KeyGenerators.secureRandom();
-        this.salt = saltGenerator.generateKey();
+        this.salt = KeyGenerators.secureRandom().generateKey();
         iterations = 25;
         buildCache();
     }
@@ -116,8 +114,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         List<String> searchList = (cacheValue!=null ? new ArrayList(cacheValue) : Collections.<String>emptyList());
         for (String encoded : searchList) {
             if (hashesEquals(encoded, encodedPassword)) {
-                result = true;
-                break;
+                return true;
             }
         }
         if (!result) {
