@@ -552,14 +552,24 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateRefreshToken() {
+    public void validateRefreshToken_happycase() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
 
         String refreshToken = getToken();
+
         buildRefreshTokenValidator(refreshToken)
           .checkScopesWithin("some-granted-scope");
+    }
+
+    @Test
+    public void validateRefreshToken_should_fail_when_missing_scopes() {
+        // Build a refresh token
+        content.put(JTI, content.get(JTI) + "-r");
+        content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
+
+        String refreshToken = getToken();
 
         expectedException.expectMessage("Some required granted_scopes are missing: some-granted-scope");
 
