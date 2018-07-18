@@ -216,16 +216,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
         }
 
-        // TODO: Should reuse the access token you get after the first
-        // successful authentication.
-        // You will get an invalid_grant error if your previous token has not
-        // expired yet.
-        // OAuth2RefreshToken refreshToken =
-        // tokenStore.readRefreshToken(refreshTokenValue);
-        // if (refreshToken == null) {
-        // throw new InvalidGrantException("Invalid refresh token");
-        // }
-
         String clientId = (String) claims.get(CID);
         if (clientId == null || !clientId.equals(request.getClientId())) {
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
@@ -248,9 +238,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Boolean revocableClaim = (Boolean)claims.get(REVOCABLE);
         boolean revocable = opaque || (revocableClaim == null ? false : revocableClaim);
 
-
-        // TODO: Need to add a lookup by id so that the refresh token does not
-        // need to contain a name
         UaaUser user = userDatabase.retrieveUserById(userid);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
