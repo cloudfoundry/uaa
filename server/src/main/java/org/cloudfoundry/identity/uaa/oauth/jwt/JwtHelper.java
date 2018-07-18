@@ -305,8 +305,16 @@ class JwtImpl implements Jwt {
     }
 
     private byte[] signingInput() {
-        return concat(b64UrlEncode(header.bytes()), JwtHelper.PERIOD,
-                b64UrlEncode(content));
+        return concat(safeB64UrlEncode(header.bytes()), JwtHelper.PERIOD,
+                safeB64UrlEncode(content));
+    }
+
+    private byte[] safeB64UrlEncode(byte[] bytes) {
+        if (bytes.length == 0) {
+            return bytes;
+        } else {
+            return b64UrlEncode(bytes);
+        }
     }
 
     /**
