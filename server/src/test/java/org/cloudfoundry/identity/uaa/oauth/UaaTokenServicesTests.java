@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -100,8 +101,6 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
@@ -144,8 +143,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.ArgumentMatchers.isNotNull;
-import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -780,6 +777,37 @@ public class UaaTokenServicesTests {
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
+        this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
+        assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));
+        assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
+        validateExternalAttributes(accessToken);
+    }
+
+    @Test
+    public void testCreateAccessTokenRefreshGrant_with_an_old_refresh_token_format_containing_scopes_claim() throws InterruptedException {
+        //Given
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+        String refreshTokenJwt = accessToken.getRefreshToken().getValue();
+
+        String kid = JwtHelper.decode(refreshTokenJwt).getHeader().getKid();
+        HashMap claimsWithScopeAndNotGrantedScopeMap = JsonUtils.readValue(JwtHelper.decode(refreshTokenJwt).getClaims(), HashMap.class);
+        claimsWithScopeAndNotGrantedScopeMap.put("scope", Arrays.asList("openid", "read", "write"));
+        claimsWithScopeAndNotGrantedScopeMap.remove("granted_scopes");
+
+        Map<String, Object> tokenJwtHeaderMap = new HashMap<>();
+        tokenJwtHeaderMap.put("alg", JwtHelper.decode(refreshTokenJwt).getHeader().getAlg());
+        tokenJwtHeaderMap.put("kid", JwtHelper.decode(refreshTokenJwt).getHeader().getKid());
+        tokenJwtHeaderMap.put("enc", JwtHelper.decode(refreshTokenJwt).getHeader().getEnc());
+        tokenJwtHeaderMap.put("iv", JwtHelper.decode(refreshTokenJwt).getHeader().getIv());
+        tokenJwtHeaderMap.put("typ", JwtHelper.decode(refreshTokenJwt).getHeader().getTyp());
+
+        String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, KeyInfo.getKey(kid).getSigner());
+
+        //When
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim, getRefreshTokenRequest());
+
+        //Then
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));

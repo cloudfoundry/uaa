@@ -71,24 +71,26 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
-public class TokenValidation {
+public abstract class TokenValidation {
     private static final Log logger = LogFactory.getLog(TokenValidation.class);
     private final Map<String, Object> claims;
     private final Jwt tokenJwt;
     private final String token;
-    private boolean isAccessToken;
 
     public static TokenValidation buildAccessTokenValidator(String tokenJwtValue) {
-        return new TokenValidation(tokenJwtValue, true);
+        return new AccessTokenValidation(tokenJwtValue);
     }
 
     public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue) {
-        return new TokenValidation(tokenJwtValue, false);
+        return new RefreshTokenValidation(tokenJwtValue);
     }
 
-    private TokenValidation(String token, boolean isAccessToken) {
+    abstract String getClaimName();
+
+    abstract Optional<List<String>> getScopes();
+
+    private TokenValidation(String token) {
         this.token = token;
-        this.isAccessToken = isAccessToken;
 
         try {
             this.tokenJwt = JwtHelper.decode(token);
@@ -236,13 +238,14 @@ public class TokenValidation {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
             List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(toList());
             if (!missingScopes.isEmpty()) {
-                String claimName = isAccessToken ? SCOPE : GRANTED_SCOPES;
+                String claimName = getClaimName();
                 String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), claimName);
                 throw new InsufficientScopeException(message);
             }
         });
         return this;
     }
+
 
     public TokenValidation checkClientAndUser(ClientDetails client, UaaUser user) {
         TokenValidation validation =
@@ -415,11 +418,8 @@ public class TokenValidation {
 
     private Optional<List<String>> scopes = null;
 
-    private Optional<List<String>> getScopes() {
-        return isAccessToken ? readScopesFromClaim(SCOPE) : readScopesFromClaim(GRANTED_SCOPES);
-    }
 
-    private Optional<List<String>> readScopesFromClaim(String claimName) {
+    protected Optional<List<String>> readScopesFromClaim(String claimName) {
         if (!claims.containsKey(claimName)) {
             throw new InvalidTokenException(String.format("The token does not bear a %s claim.", claimName), null);
         }
@@ -485,4 +485,39 @@ public class TokenValidation {
         return null;
     }
 
+    private static class AccessTokenValidation extends TokenValidation {
+        public AccessTokenValidation(String tokenJwtValue) {
+            super(tokenJwtValue);
+        }
+
+        @Override
+        String getClaimName() {
+            return SCOPE;
+        }
+
+        @Override
+        Optional<List<String>> getScopes() {
+            return readScopesFromClaim(getClaimName());
+        }
+    }
+
+    private static class RefreshTokenValidation extends TokenValidation {
+        public RefreshTokenValidation(String tokenJwtValue) {
+            super(tokenJwtValue);
+        }
+
+        @Override
+        String getClaimName() {
+            if(this.getClaims().containsKey(GRANTED_SCOPES)){
+                return GRANTED_SCOPES;
+            }
+            return SCOPE;
+        }
+
+        @Override
+        Optional<List<String>> getScopes() {
+            return readScopesFromClaim(getClaimName());
+
+        }
+    }
 }

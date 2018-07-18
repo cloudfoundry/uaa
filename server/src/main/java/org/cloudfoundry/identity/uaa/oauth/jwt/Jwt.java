@@ -12,8 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-
 public interface Jwt extends org.springframework.security.jwt.Jwt {
     HeaderParameters getHeader();
 }

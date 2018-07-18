@@ -554,7 +554,34 @@ public class TokenValidationTest {
     @Test
     public void validateRefreshToken_happycase() {
         // Build a refresh token
+        content.remove(SCOPE);
         content.put(JTI, content.get(JTI) + "-r");
+        content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
+
+        String refreshToken = getToken();
+
+        buildRefreshTokenValidator(refreshToken)
+          .checkScopesWithin("some-granted-scope");
+    }
+
+    @Test
+    public void validateRefreshToken_withScopeClaimAndNotGrantedScopeClaim_happycase() {
+        // Build a refresh token
+        content.put(JTI, content.get(JTI) + "-r");
+        content.put(SCOPE, Collections.singletonList("some-granted-scope"));
+        content.remove(GRANTED_SCOPES);
+
+        String refreshToken = getToken();
+
+        buildRefreshTokenValidator(refreshToken)
+          .checkScopesWithin("some-granted-scope");
+    }
+
+    @Test
+    public void validateRefreshToken_withScopeClaimAndGrantedScopeClaim_happycase() {
+        // Build a refresh token
+        content.put(JTI, content.get(JTI) + "-r");
+        content.put(SCOPE, Collections.singletonList("another-granted-scope"));
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
 
         String refreshToken = getToken();
@@ -574,16 +601,6 @@ public class TokenValidationTest {
         expectedException.expectMessage("Some required granted_scopes are missing: some-granted-scope");
 
         buildRefreshTokenValidator(refreshToken)
-            .checkScopesWithin((Collection) content.get(SCOPE));
-    }
-
-    @Test
-    public void validateRefreshToken_ignoresScopesClaim() {
-        String accessToken = getToken();
-
-        expectedException.expectMessage("The token does not bear a granted_scopes claim.");
-
-        buildRefreshTokenValidator(accessToken)
             .checkScopesWithin((Collection) content.get(SCOPE));
     }
 
