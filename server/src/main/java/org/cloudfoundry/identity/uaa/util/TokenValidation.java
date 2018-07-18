@@ -90,16 +90,14 @@ public class TokenValidation {
         this.token = token;
         this.isAccessToken = isAccessToken;
 
-        Jwt tokenJwt;
         try {
-            tokenJwt = JwtHelper.decode(token);
+            this.tokenJwt = JwtHelper.decode(token);
         } catch (Exception ex) {
             throw new InvalidTokenException("Invalid token (could not decode): " + token, ex);
         }
-        this.tokenJwt = tokenJwt;
 
         String tokenJwtClaims;
-        if (tokenJwt != null && StringUtils.hasText(tokenJwtClaims = tokenJwt.getClaims())) {
+        if (StringUtils.hasText(tokenJwtClaims = this.tokenJwt.getClaims())) {
             Map<String, Object> claims;
             try {
                 claims = JsonUtils.readValue(tokenJwtClaims, new TypeReference<Map<String, Object>>() {
@@ -112,18 +110,10 @@ public class TokenValidation {
             this.claims = new HashMap<>();
         }
 
-        Optional<SignatureVerifier> signatureVerifier =
-          fetchSignatureVerifierFromToken(tokenJwt);
-
-        signatureVerifier.ifPresent(this::validateHeader);
-
+        checkSignature();
     }
 
-    private Optional<SignatureVerifier> fetchSignatureVerifierFromToken(Jwt tokenJwt) {
-        if (tokenJwt == null) {
-            return Optional.empty();
-        }
-
+    private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
         String kid = tokenJwt.getHeader().getKid();
         if (kid == null) {
             throw new InvalidTokenException("kid claim not found in JWT token header");
@@ -136,18 +126,16 @@ public class TokenValidation {
             ));
         }
 
-        SignatureVerifier signatureVerifier = signingKey.getVerifier();
-
-        return Optional.of(signatureVerifier);
+        return signingKey.getVerifier();
     }
 
-    private TokenValidation validateHeader(SignatureVerifier signatureVerifier) {
-        return checkSignature(signatureVerifier);
+    public TokenValidation checkSignature() {
+        return checkSignature(fetchSignatureVerifierFromToken(this.tokenJwt));
     }
 
     public TokenValidation checkSignature(SignatureVerifier verifier) {
         try {
-            tokenJwt.verifySignature(verifier);
+            this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
             throw new InvalidTokenException("Could not verify token signature.", new InvalidSignatureException(token));
