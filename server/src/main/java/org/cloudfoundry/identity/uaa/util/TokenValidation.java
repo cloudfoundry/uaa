@@ -606,15 +606,4 @@ public class TokenValidation {
         return null;
     }
 
-
-    public static TokenValidation buildAccessTokenValidatorForTesting(String tokenJwtValue,
-                                                            SignatureVerifier signatureVerifier) {
-        return new TokenValidation(tokenJwtValue, true, signatureVerifier);
-    }
-
-    public static TokenValidation buildRefreshTokenValidatorForTesting(String tokenJwtValue,
-                                                             SignatureVerifier signatureVerifier) {
-        return new TokenValidation(tokenJwtValue, false, signatureVerifier);
-    }
-
 }

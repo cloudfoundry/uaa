@@ -56,9 +56,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidatorForTesting;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidatorForTesting;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -66,7 +64,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -85,22 +82,9 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class TokenValidationTest {
-
-    private static class TrivialSignatureVerifier implements SignatureVerifier {
-        @Override
-        public void verify(byte[] content, byte[] signature) {
-        }
-
-        @Override
-        public String algorithm() {
-            return null;
-        }
-    }
-
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
-    private final SignatureVerifier verifier = new MacSigner("secret");
-    private final SignatureVerifier trivialVerifier = new TrivialSignatureVerifier();
+    private final SignatureVerifier verifier = new MacSigner("foobar");
 
     private final Instant oneSecondAfterTheTokenExpires = Instant.ofEpochSecond(1458997132 + 1);
     private final Instant oneSecondBeforeTheTokenExpires = Instant.ofEpochSecond(1458997132 - 1);
@@ -117,6 +101,7 @@ public class TokenValidationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private static final String macSigningKeySecret = "foobar";
 
     @Before
     public void setup() {
@@ -124,7 +109,7 @@ public class TokenValidationTest {
 
         IdentityZone uaaZone = IdentityZone.getUaa();
         uaaZone.getConfig().getTokenPolicy().setKeys(
-            map(entry(defaultKeyId, "foobar"))
+          map(entry(defaultKeyId, macSigningKeySecret))
         );
         identityZoneProvisioning = mock(IdentityZoneProvisioning.class);
         when(identityZoneProvisioning.retrieve(anyString())).thenReturn(uaaZone);
@@ -132,50 +117,50 @@ public class TokenValidationTest {
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
         header = map(
-            entry("alg", "HS256"),
-            entry("kid", defaultKeyId)
+          entry("alg", "HS256"),
+          entry("kid", defaultKeyId)
         );
 
         content = map(
-            entry("jti", "8b14f193-8212-4af2-9927-e3ae903f94a6"),
-            entry("nonce", "04e2e934200b4b9fbe5d4e70ae18ba8e"),
-            entry("sub", "a7f07bf6-e720-4652-8999-e980189cef54"),
-            entry("scope", Arrays.asList("acme.dev")),
-            entry("client_id", "app"),
-            entry("cid", "app"),
-            entry("azp", "app"),
-            entry("grant_type", "authorization_code"),
-            entry("user_id", "a7f07bf6-e720-4652-8999-e980189cef54"),
-            entry("origin", "uaa"),
-            entry("user_name", "marissa"),
-            entry("email", "marissa@test.org"),
-            entry("auth_time", 1458953554),
-            entry("rev_sig", "fa1c787d"),
-            entry("iat", 1458953932),
-            entry("exp", 1458997132),
-            entry("iss", "http://localhost:8080/uaa/oauth/token"),
-            entry("zid", "uaa"),
-            entry("aud", Arrays.asList("app", "acme")),
-            entry("revocable", true)
+          entry("jti", "8b14f193-8212-4af2-9927-e3ae903f94a6"),
+          entry("nonce", "04e2e934200b4b9fbe5d4e70ae18ba8e"),
+          entry("sub", "a7f07bf6-e720-4652-8999-e980189cef54"),
+          entry("scope", Arrays.asList("acme.dev")),
+          entry("client_id", "app"),
+          entry("cid", "app"),
+          entry("azp", "app"),
+          entry("grant_type", "authorization_code"),
+          entry("user_id", "a7f07bf6-e720-4652-8999-e980189cef54"),
+          entry("origin", "uaa"),
+          entry("user_name", "marissa"),
+          entry("email", "marissa@test.org"),
+          entry("auth_time", 1458953554),
+          entry("rev_sig", "fa1c787d"),
+          entry("iat", 1458953932),
+          entry("exp", 1458997132),
+          entry("iss", "http://localhost:8080/uaa/oauth/token"),
+          entry("zid", "uaa"),
+          entry("aud", Arrays.asList("app", "acme")),
+          entry("revocable", true)
         );
 
-        signer = new MacSigner("secret");
+        signer = new MacSigner(macSigningKeySecret);
 
         clientDetailsService = new InMemoryClientServicesExtentions();
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
         clientDetailsService.setClientDetailsStore(IdentityZone.getUaa().getId(),
-            Collections.singletonMap(CLIENT_ID, uaaClient));
+          Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
-            .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
+          .thenReturn(new RevocableToken().setValue(UaaTokenUtils.constructToken(header, content, signer)));
 
         userDb = new MockUaaUserDatabase(u -> u
-            .withUsername("marissa")
-            .withId(USER_ID)
-            .withEmail("marissa@test.org")
-            .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
+          .withUsername("marissa")
+          .withId(USER_ID)
+          .withEmail("marissa@test.org")
+          .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
 
         uaaUser = userDb.retrieveUserById(USER_ID);
         uaaUserGroups = uaaUser.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toList());
@@ -192,7 +177,7 @@ public class TokenValidationTest {
         assertThat(validation.getValidationErrors(), not(empty()));
         assertThat(validation.getValidationErrors(), hasSize(1));
         assertThat(validation.getValidationErrors().get(0).getMessage(),
-            equalTo("kid claim not found in JWT token header"));
+          equalTo("kid claim not found in JWT token header"));
     }
 
     @Test
@@ -207,7 +192,7 @@ public class TokenValidationTest {
         assertThat(validation.getValidationErrors(), not(empty()));
         assertThat(validation.getValidationErrors(), hasSize(1));
         assertThat(validation.getValidationErrors().get(0).getMessage(),
-            equalTo("Token header claim [kid] references unknown signing key : [garbage]"));
+          equalTo("Token header claim [kid] references unknown signing key : [garbage]"));
     }
 
     @Test
@@ -215,7 +200,7 @@ public class TokenValidationTest {
         String token = getToken();
 
         ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token)
-            .getClientDetails(clientDetailsService);
+          .getClientDetails(clientDetailsService);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
     }
@@ -268,6 +253,7 @@ public class TokenValidationTest {
     private String getToken() {
         return getToken(EMPTY_LIST);
     }
+
     private String getToken(Collection<String> excludedClaims) {
         Map<String, Object> content = this.content != null ? new HashMap(this.content) : null;
         for (String key : excludedClaims) {
@@ -282,30 +268,30 @@ public class TokenValidationTest {
 
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
-                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
-            );
+          .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
+            (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+          );
         Mockito.reset(validation);
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, null);
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
-                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
-            );
+          .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
+            (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+          );
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group1", "group2"));
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
-            .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[] {"group1", "group2"})),
-                                     (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
-            );
+          .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[]{"group1", "group2"})),
+            (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+          );
 
     }
 
     @Test
     public void required_groups_are_present() throws Exception {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier);
+        TokenValidation validation = buildAccessTokenValidator(getToken());
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
         assertTrue(validation.checkClientAndUser(uaaClient, uaaUser).throwIfInvalid().isValid());
     }
@@ -313,10 +299,10 @@ public class TokenValidationTest {
 
     @Test
     public void required_groups_are_missing() throws Exception {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier);
+        TokenValidation validation = buildAccessTokenValidator(getToken());
         uaaUserGroups.add("group-missing-from-user");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
-        assertFalse(validation.checkClientAndUser(uaaClient, uaaUser).isValid());
+        assertThat(validation.checkClientAndUser(uaaClient, uaaUser).isValid(), is(false));
 
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("User does not meet the client's required group criteria.");
@@ -326,16 +312,16 @@ public class TokenValidationTest {
 
     @Test
     public void testValidateAccessToken() throws Exception {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
-                .checkExpiry(oneSecondBeforeTheTokenExpires)
-                .checkUser((uid) -> userDb.retrieveUserById(uid))
-                .checkScopesWithin("acme.dev", "another.scope")
-                .checkRevocationSignature(Collections.singletonList("fa1c787d"))
-                .checkAudience("acme", "app")
-                .checkRevocableTokenStore(revocableTokenProvisioning)
-                .checkAccessToken();
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkIssuer("http://localhost:8080/uaa/oauth/token")
+          .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+          .checkExpiry(oneSecondBeforeTheTokenExpires)
+          .checkUser((uid) -> userDb.retrieveUserById(uid))
+          .checkScopesWithin("acme.dev", "another.scope")
+          .checkRevocationSignature(Collections.singletonList("fa1c787d"))
+          .checkAudience("acme", "app")
+          .checkRevocableTokenStore(revocableTokenProvisioning)
+          .checkAccessToken();
 
         assertThat(validation.getValidationErrors(), empty());
         assertTrue(validation.isValid());
@@ -345,7 +331,7 @@ public class TokenValidationTest {
     public void testValidateAccessToken_givenRefreshToken() throws Exception {
         content.put(JTI, "8b14f193-8212-4af2-9927-e3ae903f94a6-r");
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
+        TokenValidation validation = buildAccessTokenValidator(getToken())
           .checkAccessToken();
 
         assertThat(validation.getValidationErrors(), not(empty()));
@@ -360,7 +346,7 @@ public class TokenValidationTest {
     public void validateAccessToken_with_dashR_in_JTI_should_fail_validation() throws Exception {
         content.put(JTI, "8b14f193-r-8212-4af2-9927-e3ae903f94a6");
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
+        TokenValidation validation = buildAccessTokenValidator(getToken())
           .checkAccessToken();
 
         assertThat(validation.getValidationErrors(), empty());
@@ -371,7 +357,7 @@ public class TokenValidationTest {
     public void validateAccessToken_without_jti_should_fail_validation() throws Exception {
         content.put(JTI, null);
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
+        TokenValidation validation = buildAccessTokenValidator(getToken())
           .checkAccessToken();
 
         assertThat(validation.getValidationErrors(), hasSize(1));
@@ -383,19 +369,17 @@ public class TokenValidationTest {
 
     @Test
     public void validateToken_Without_Email_And_Username() throws Exception {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(
-            getToken(Arrays.asList(EMAIL, USER_NAME)),
-            trivialVerifier)
-            .checkSignature(verifier)
-            .checkIssuer("http://localhost:8080/uaa/oauth/token")
-            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
-            .checkExpiry(oneSecondBeforeTheTokenExpires)
-            .checkUser((uid) -> userDb.retrieveUserById(uid))
-            .checkScopesWithin("acme.dev", "another.scope")
-            .checkRevocationSignature(Collections.singletonList("fa1c787d"))
-            .checkAudience("acme", "app")
-            .checkRevocableTokenStore(revocableTokenProvisioning)
-            ;
+        TokenValidation validation = buildAccessTokenValidator(
+          getToken(Arrays.asList(EMAIL, USER_NAME)))
+          .checkSignature(verifier)
+          .checkIssuer("http://localhost:8080/uaa/oauth/token")
+          .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+          .checkExpiry(oneSecondBeforeTheTokenExpires)
+          .checkUser((uid) -> userDb.retrieveUserById(uid))
+          .checkScopesWithin("acme.dev", "another.scope")
+          .checkRevocationSignature(Collections.singletonList("fa1c787d"))
+          .checkAudience("acme", "app")
+          .checkRevocableTokenStore(revocableTokenProvisioning);
 
         assertThat(validation.getValidationErrors(), empty());
         assertTrue(validation.isValid());
@@ -405,44 +389,44 @@ public class TokenValidationTest {
     public void tokenSignedWithDifferentKey() throws Exception {
         signer = new MacSigner("some_other_key");
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkSignature(verifier);
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkSignature(verifier);
         // opaque tokens should remain valid even through a signing key being removed
-        assertFalse(validation.isValid());
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void invalidJwt() throws Exception {
         TokenValidation validation = buildAccessTokenValidator("invalid.jwt.token");
-        assertFalse(validation.isValid());
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void tokenWithInvalidIssuer() throws Exception {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), trivialVerifier)
-                .checkIssuer("http://wrong.issuer/");
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkIssuer("http://wrong.issuer/");
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void emptyBodyJwt() throws Exception {
         content = null;
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), trivialVerifier);
+        TokenValidation validation = buildAccessTokenValidator(getToken());
         assertThat(validation.getValidationErrors(), empty());
         assertTrue("Token with no claims is valid after decoding.", validation.isValid());
 
-        assertFalse("Token with no claims fails issuer check.", validation.clone().checkIssuer("http://localhost:8080/uaa/oauth/token").isValid());
-        assertFalse("Token with no claims fails expiry check.", validation.clone().checkExpiry(oneSecondBeforeTheTokenExpires).isValid());
+        assertThat("Token with no claims fails issuer check.", validation.clone().checkIssuer("http://localhost:8080/uaa/oauth/token").isValid(), is(false));
+        assertThat("Token with no claims fails expiry check.", validation.clone().checkExpiry(oneSecondBeforeTheTokenExpires).isValid(), is(false));
     }
 
     @Test
     public void expiredToken() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkExpiry(oneSecondAfterTheTokenExpires);
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkExpiry(oneSecondAfterTheTokenExpires);
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
@@ -450,39 +434,39 @@ public class TokenValidationTest {
     public void nonExistentUser() {
         UaaUserDatabase userDb = new InMemoryUaaUserDatabase(Collections.emptySet());
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkUser((uid) -> userDb.retrieveUserById(uid));
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkUser((uid) -> userDb.retrieveUserById(uid));
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void userHadScopeRevoked() {
         UaaUserDatabase userDb = new MockUaaUserDatabase(u -> u
-                .withUsername("marissa")
-                .withId("a7f07bf6-e720-4652-8999-e980189cef54")
-                .withEmail("marissa@test.org")
-                .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("a.different.scope"))));
+          .withUsername("marissa")
+          .withId("a7f07bf6-e720-4652-8999-e980189cef54")
+          .withEmail("marissa@test.org")
+          .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("a.different.scope"))));
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkUser((uid) -> userDb.retrieveUserById(uid));
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkUser((uid) -> userDb.retrieveUserById(uid));
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
     }
 
     @Test
     public void tokenHasInsufficientScope() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkScopesWithin("a.different.scope");
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkScopesWithin("a.different.scope");
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
     }
 
     @Test
     public void tokenContainsRevokedScope() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkScopesWithin("a.different.scope");
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkScopesWithin("a.different.scope");
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
     }
 
@@ -490,9 +474,9 @@ public class TokenValidationTest {
     public void nonExistentClient() {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.emptyMap());
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
@@ -501,45 +485,42 @@ public class TokenValidationTest {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "a.different.scope", "authorization_code", "")));
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId));
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
     }
 
     @Test
     public void clientRevocationHashChanged() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier).checkRevocationSignature(Collections.singletonList("New-Hash"));
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken()).checkRevocationSignature(Collections.singletonList("New-Hash"));
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void clientRevocationHashChanged_and_Should_Pass() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(
-            getToken(),
-            verifier
-        ).checkRevocationSignature(Arrays.asList("fa1c787d", "New-Hash"));
+        TokenValidation validation = buildAccessTokenValidator(getToken()).checkRevocationSignature(Arrays.asList("fa1c787d", "New-Hash"));
         assertTrue(validation.isValid());
 
-        validation = buildAccessTokenValidatorForTesting(getToken(), verifier).checkRevocationSignature(Arrays.asList("New-Hash", "fa1c787d"));
+        validation = buildAccessTokenValidator(getToken()).checkRevocationSignature(Arrays.asList("New-Hash", "fa1c787d"));
         assertTrue(validation.isValid());
 
     }
 
     @Test
     public void incorrectAudience() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-                .checkAudience("app", "somethingelse");
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkAudience("app", "somethingelse");
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void emptyAudience() {
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkAudience("");
-        assertFalse(validation.isValid());
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkAudience("");
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
@@ -547,12 +528,12 @@ public class TokenValidationTest {
     public void tokenIsRevoked() {
         RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
-            .thenThrow(new EmptyResultDataAccessException(1));
+          .thenThrow(new EmptyResultDataAccessException(1));
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkRevocableTokenStore(revocableTokenProvisioning);
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkRevocableTokenStore(revocableTokenProvisioning);
 
-        assertFalse(validation.isValid());
+        assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
@@ -560,12 +541,12 @@ public class TokenValidationTest {
     public void nonRevocableToken() {
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6", IdentityZoneHolder.get().getId()))
-            .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
+          .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
 
         content.remove("revocable");
 
-        TokenValidation validation = buildAccessTokenValidatorForTesting(getToken(), verifier)
-            .checkRevocableTokenStore(revocableTokenProvisioning);
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkRevocableTokenStore(revocableTokenProvisioning);
 
         verifyZeroInteractions(revocableTokenProvisioning);
         assertThat(validation.getValidationErrors(), empty());
@@ -579,15 +560,15 @@ public class TokenValidationTest {
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
 
         String refreshToken = getToken();
-        assertTrue(buildRefreshTokenValidatorForTesting(refreshToken, trivialVerifier)
-            .checkScopesWithin("some-granted-scope").isValid());
+        assertTrue(buildRefreshTokenValidator(refreshToken)
+          .checkScopesWithin("some-granted-scope").isValid());
 
         TokenValidation tokenValidation =
-            buildRefreshTokenValidatorForTesting(refreshToken, trivialVerifier)
-                .checkScopesWithin((Collection) content.get(SCOPE));
-        assertFalse(tokenValidation.isValid());
+          buildRefreshTokenValidator(refreshToken)
+            .checkScopesWithin((Collection) content.get(SCOPE));
+        assertThat(tokenValidation.isValid(), is(false));
         assertThat(tokenValidation.getValidationErrors().get(0).getMessage(),
-            equalTo("Some required granted_scopes are missing: some-granted-scope"));
+          equalTo("Some required granted_scopes are missing: some-granted-scope"));
     }
 
     @Test
@@ -595,11 +576,11 @@ public class TokenValidationTest {
         String accessToken = getToken();
 
         TokenValidation tokenValidation =
-            buildRefreshTokenValidatorForTesting(accessToken, trivialVerifier)
-                .checkScopesWithin((Collection) content.get(SCOPE));
-        assertFalse(tokenValidation.isValid());
+          buildRefreshTokenValidator(accessToken)
+            .checkScopesWithin((Collection) content.get(SCOPE));
+        assertThat(tokenValidation.isValid(), is(false));
         assertThat(tokenValidation.getValidationErrors().get(0).getMessage(),
-            equalTo("The token does not bear a granted_scopes claim."));
+          equalTo("The token does not bear a granted_scopes claim."));
     }
 
     @Test
@@ -609,10 +590,10 @@ public class TokenValidationTest {
         String refreshToken = getToken();
 
         TokenValidation tokenValidation =
-            buildAccessTokenValidatorForTesting(refreshToken, verifier)
-                .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
+          buildAccessTokenValidator(refreshToken)
+            .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
         assertThat(tokenValidation.isValid(), is(false));
         assertThat(tokenValidation.getValidationErrors().get(0).getMessage(),
-            equalTo("The token does not bear a scope claim."));
+          equalTo("The token does not bear a scope claim."));
     }
 }
