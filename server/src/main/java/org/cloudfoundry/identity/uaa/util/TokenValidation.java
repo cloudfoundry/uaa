@@ -51,7 +51,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -77,7 +76,6 @@ public class TokenValidation {
     private final Map<String, Object> claims;
     private final Jwt tokenJwt;
     private final String token;
-    private final boolean decoded; // this is used to avoid checking claims on tokens that had errors when decoding
     private final List<RuntimeException> validationErrors = new ArrayList<>();
     private boolean isAccessToken;
 
@@ -122,43 +120,9 @@ public class TokenValidation {
 
         signatureVerifier.ifPresent(this::validateHeader);
 
-        this.decoded = isValid();
     }
 
-    private TokenValidation(String token, boolean isAccessToken, SignatureVerifier signatureVerifier) {
-        this.token = token;
-        this.isAccessToken = isAccessToken;
-
-        Jwt tokenJwt;
-        try {
-            tokenJwt = JwtHelper.decode(token);
-        } catch (Exception ex) {
-            tokenJwt = null;
-            validationErrors.add(new InvalidTokenException("Invalid token (could not decode): " + token, ex));
-        }
-        this.tokenJwt = tokenJwt;
-
-        String tokenJwtClaims;
-        if(tokenJwt != null && StringUtils.hasText(tokenJwtClaims = tokenJwt.getClaims())) {
-            Map<String, Object> claims;
-            try {
-                claims = JsonUtils.readValue(tokenJwtClaims, new TypeReference<Map<String, Object>>() {});
-            }
-            catch (JsonUtils.JsonUtilException ex) {
-                claims = null;
-                validationErrors.add(new InvalidTokenException("Invalid token (cannot read token claims): " + token, ex));
-            }
-            this.claims = claims;
-        } else {
-            this.claims = new HashMap<>();
-        }
-
-        validateHeader(signatureVerifier);
-
-        this.decoded = isValid();
-    }
-
-        private Optional<SignatureVerifier> fetchSignatureVerifierFromToken(Jwt tokenJwt) {
+    private Optional<SignatureVerifier> fetchSignatureVerifierFromToken(Jwt tokenJwt) {
         if (tokenJwt == null) {
             return Optional.empty();
         }
@@ -199,19 +163,6 @@ public class TokenValidation {
         return validationErrors;
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
-    public TokenValidation clone() {
-        return new TokenValidation(this);
-    }
-
-
-    private TokenValidation(TokenValidation source) {
-        this.claims = source.claims == null ? null : new HashMap<>(source.claims);
-        this.tokenJwt = source.tokenJwt;
-        this.token = source.token;
-        this.decoded = source.decoded;
-        this.scopes = source.scopes;
-    }
 
     //TODO: make private
     public TokenValidation checkSignature(SignatureVerifier verifier) {
@@ -229,7 +180,7 @@ public class TokenValidation {
     public TokenValidation checkIssuer(String issuer) {
         if(issuer == null) { return this; }
 
-        if(!isValid() || !claims.containsKey(ISS)) {
+        if(!claims.containsKey(ISS)) {
             addError("Token does not bear an ISS claim.");
             return this;
         }
@@ -241,7 +192,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkExpiry(Instant asOf) {
-        if(!isValid() || !claims.containsKey(EXP)) {
+        if(!claims.containsKey(EXP)) {
             addError("Token does not bear an EXP claim.");
             return this;
         }
@@ -262,7 +213,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkUser(Function<String, UaaUser> getUser) {
-        if(!isValid() || !isUserToken(claims)) {
+        if(!isUserToken(claims)) {
             addError("Token is not a user token.");
             return this;
         }
@@ -370,7 +321,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkClient(Function<String, ClientDetails> getClient) {
-        if(!isValid() || !claims.containsKey(CID)) {
+        if(!claims.containsKey(CID)) {
             addError("Token bears no client ID.");
             return this;
         }
@@ -449,7 +400,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkAudience(Collection<String> clients) {
-        if (!isValid() || !claims.containsKey(AUD)) {
+        if (!claims.containsKey(AUD)) {
             addError("The token does not bear an AUD claim.");
             return this;
         }
@@ -533,7 +484,7 @@ public class TokenValidation {
     }
 
     private Optional<List<String>> readScopesFromClaim(String claimName) {
-        if (!isValid() || !claims.containsKey(claimName)) {
+        if (!claims.containsKey(claimName)) {
             addError(
                 String.format("The token does not bear a %s claim.", claimName)
             );

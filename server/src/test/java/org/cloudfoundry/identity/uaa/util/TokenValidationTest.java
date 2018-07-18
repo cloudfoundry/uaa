@@ -415,14 +415,23 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void emptyBodyJwt() throws Exception {
+    public void emptyBodyJwt_failsCheckingIssuer() throws Exception {
         content = null;
         TokenValidation validation = buildAccessTokenValidator(getToken());
         assertThat(validation.getValidationErrors(), empty());
         assertTrue("Token with no claims is valid after decoding.", validation.isValid());
 
-        assertThat("Token with no claims fails issuer check.", validation.clone().checkIssuer("http://localhost:8080/uaa/oauth/token").isValid(), is(false));
-        assertThat("Token with no claims fails expiry check.", validation.clone().checkExpiry(oneSecondBeforeTheTokenExpires).isValid(), is(false));
+        assertThat("Token with no claims fails issuer check.", validation.checkIssuer("http://localhost:8080/uaa/oauth/token").isValid(), is(false));
+    }
+
+    @Test
+    public void emptyBodyJwt_failsCheckingExpiry() throws Exception {
+        content = null;
+        TokenValidation validation = buildAccessTokenValidator(getToken());
+        assertThat(validation.getValidationErrors(), empty());
+        assertTrue("Token with no claims is valid after decoding.", validation.isValid());
+
+        assertThat("Token with no claims fails expiry check.", validation.checkExpiry(oneSecondBeforeTheTokenExpires).isValid(), is(false));
     }
 
     @Test
