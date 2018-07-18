@@ -520,7 +520,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());
         }
-        return validation.checkExpiry().throwIfInvalid();
+        return validation.checkExpiry();
     }
 
     protected JsonWebKeySet<JsonWebKey> getTokenKeyForUaaOrigin() {

@@ -944,9 +944,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 
-        TokenValidation tokenValidation = validateToken(accessToken, true)
-          .checkAccessToken()
-          .throwIfInvalid();
+        TokenValidation tokenValidation =
+          validateToken(accessToken, true)
+          .checkAccessToken();
 
         Map<String, Object> claims = tokenValidation.getClaims();
 
@@ -954,8 +954,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXP).toString());
-        if (expiration != null && new Date(expiration * 1000l).before(new Date())) {
-            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000l));
+        if (expiration != null && new Date(expiration * 1000L).before(new Date())) {
+            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
         }
 
         @SuppressWarnings("unchecked")
@@ -1011,9 +1011,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        TokenValidation tokenValidation = validateToken(accessToken, true)
-          .checkAccessToken()
-          .throwIfInvalid();
+        TokenValidation tokenValidation =
+          validateToken(accessToken, true)
+            .checkAccessToken();
 
         Map<String, Object> claims = tokenValidation.getClaims();
         accessToken = tokenValidation.getJwt().getEncoded();
@@ -1071,14 +1071,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);
         tokenValidation
             .checkRevocableTokenStore(tokenProvisioning)
-            .checkIssuer(getTokenEndpoint())
-            .throwIfInvalid();
+            .checkIssuer(getTokenEndpoint());
 
         ClientDetails client = tokenValidation.getClientDetails(clientDetailsService);
         UaaUser user = tokenValidation.getUserDetails(userDatabase);
         tokenValidation
-            .checkClientAndUser(client, user)
-            .throwIfInvalid();
+            .checkClientAndUser(client, user);
 
         List<String> clientSecrets = new ArrayList<>();
         List<String> revocationSignatureList = new ArrayList<>();
@@ -1094,7 +1092,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         tokenValidation = tokenValidation.checkRevocationSignature(revocationSignatureList);
 
-        tokenValidation.throwIfInvalid();
         return tokenValidation;
     }
 
