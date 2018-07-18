@@ -269,7 +269,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void uri_groups_when_failed_to_load() throws Exception {
+    public void uri_groups_when_fails_to_load() throws Exception {
         ReflectionTestUtils.setField(filter, "urlGroups", null);
         request.setContextPath("");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
