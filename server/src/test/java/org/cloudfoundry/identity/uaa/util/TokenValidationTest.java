@@ -604,16 +604,14 @@ public class TokenValidationTest {
 
     @Test
     public void validateAccessToken_ignoresGrantedScopesClaim() {
-        // Build a refresh token
-        content.put(JTI, content.get(JTI) + "-r");
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
         content.remove(SCOPE);
         String refreshToken = getToken();
 
         TokenValidation tokenValidation =
-            buildRefreshTokenValidatorForTesting(refreshToken, trivialVerifier)
+            buildAccessTokenValidatorForTesting(refreshToken, verifier)
                 .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
-        assertFalse(tokenValidation.isValid());
+        assertThat(tokenValidation.isValid(), is(false));
         assertThat(tokenValidation.getValidationErrors().get(0).getMessage(),
             equalTo("The token does not bear a scope claim."));
     }
