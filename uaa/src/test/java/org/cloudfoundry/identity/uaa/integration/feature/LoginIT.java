@@ -262,7 +262,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testFailedLogin() throws Exception {
+    public void testUnsuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
@@ -308,7 +308,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testRedirectAfterFailedLogin() throws Exception {
+    public void testRedirectAfterUnsuccessfulLogin() throws Exception {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -342,7 +342,7 @@ public class LoginIT {
     }
 
     @Test
-    public void userLockedoutAfterFailedAttempts() throws Exception {
+    public void userLockedoutAfterUnsuccessfulAttempts() throws Exception {
         String userEmail = createAnotherUser();
 
         webDriver.get(baseUrl + "/logout.do");
