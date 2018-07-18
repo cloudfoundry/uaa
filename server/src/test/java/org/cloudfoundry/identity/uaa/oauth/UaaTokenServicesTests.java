@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -99,6 +100,7 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -1805,7 +1807,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
 
-        expectedException.expectMessage("Invalid access token.");
+        expectedException.expectMessage("The token does not bear a scope claim.");
         tokenServices.readAccessToken(accessToken.getRefreshToken().getValue());
     }
 
@@ -1977,7 +1979,7 @@ public class UaaTokenServicesTests {
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
         setup.accept(null);
-        tokenServices.validateToken(accessToken.getValue());
+        tokenServices.validateToken(accessToken.getValue(), true);
     }
 
     @Test
@@ -2002,11 +2004,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
         String accessTokenValue = tokenProvisioning.retrieve(composite.getValue(), IdentityZoneHolder.get().getId()).getValue();
-        Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue).getClaims();
+        Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue, true).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
         String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
-        Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue).getClaims();
+        Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue, false).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 
 
@@ -2050,7 +2052,7 @@ public class UaaTokenServicesTests {
         String refreshTokenValue = tokenProvisioning.retrieve(compositeToken.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
 
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("Invalid access token.");
+        expectedException.expectMessage("The token does not bear a scope claim.");
 
         tokenServices.loadAuthentication(refreshTokenValue);
     }
@@ -2075,12 +2077,12 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken compositeToken = tokenServices.createAccessToken(authentication);
-        TokenValidation refreshToken = tokenServices.validateToken(compositeToken.getRefreshToken().getValue());
+        TokenValidation refreshToken = tokenServices.validateToken(compositeToken.getRefreshToken().getValue(), false);
 
         String refreshTokenValue = tokenProvisioning.retrieve(refreshToken.getClaims().get("jti").toString(), IdentityZoneHolder.get().getId()).getValue();
 
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("Invalid access token.");
+        expectedException.expectMessage("The token does not bear a scope claim.");
         tokenServices.loadAuthentication(refreshTokenValue);
     }
 
@@ -2183,6 +2185,28 @@ public class UaaTokenServicesTests {
         }
     }
 
+    @Test
+    public void createRefreshToken_JwtDoesNotContainScopeClaim() {
+        AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
+        Map<String, String> authzParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        authzParameters.put(GRANT_TYPE, PASSWORD);
+        authzParameters.put(REQUEST_TOKEN_FORMAT, JWT.toString());
+        authorizationRequest.setRequestParameters(authzParameters);
+        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        String refreshTokenString = accessToken.getRefreshToken().getValue();
+        assertNotNull(refreshTokenString);
+
+        Claims refreshTokenClaims = getClaimsFromTokenString(refreshTokenString);
+        assertNotNull(refreshTokenClaims);
+        assertNull(refreshTokenClaims.getScope());
+        // matcher below can't match list against set
+        assertThat(refreshTokenClaims.getGrantedScopes(), containsInAnyOrder(accessToken.getScope().toArray()));
+    }
+
     private BaseClientDetails cloneClient(ClientDetails client) {
         return new BaseClientDetails(client);
     }
@@ -2244,5 +2268,15 @@ public class UaaTokenServicesTests {
         Assert.assertEquals(expectedPrincipalId, auditEvent.getPrincipalId());
         Assert.assertEquals(expectedData, auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
+    }
+
+    private Claims getClaimsFromTokenString(String token) {
+        Jwt jwt = JwtHelper.decode(token);
+        if (jwt == null) {
+            // TODO: parse opaque
+            return null;
+        } else {
+            return JsonUtils.readValue(jwt.getClaims(), Claims.class);
+        }
     }
 }

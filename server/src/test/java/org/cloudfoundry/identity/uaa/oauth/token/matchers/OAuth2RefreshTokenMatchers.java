@@ -66,7 +66,7 @@ public class OAuth2RefreshTokenMatchers extends AbstractOAuth2AccessTokenMatcher
 
     @Factory
     public static Matcher<OAuth2RefreshToken> scope(Matcher<Object> scopes) {
-        return new OAuth2RefreshTokenMatchers(ClaimConstants.SCOPE, scopes);
+        return new OAuth2RefreshTokenMatchers(ClaimConstants.GRANTED_SCOPES, scopes);
     }
 
     @Factory

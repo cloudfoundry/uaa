@@ -60,6 +60,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
@@ -75,17 +76,19 @@ public class TokenValidation {
     private final String token;
     private final boolean decoded; // this is used to avoid checking claims on tokens that had errors when decoding
     private final List<RuntimeException> validationErrors = new ArrayList<>();
+    private boolean isAccessToken;
 
-    public static TokenValidation validateAccessToken(String tokenJwtValue) {
-        return new TokenValidation(tokenJwtValue);
+    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue) {
+        return new TokenValidation(tokenJwtValue, true);
     }
 
-    public static TokenValidation validateRefreshToken(String tokenJwtValue) {
-        return new TokenValidation(tokenJwtValue);
+    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue) {
+        return new TokenValidation(tokenJwtValue, false);
     }
 
-    private TokenValidation(String token) {
+    private TokenValidation(String token, boolean isAccessToken) {
         this.token = token;
+        this.isAccessToken = isAccessToken;
 
         Jwt tokenJwt;
         try {
@@ -118,7 +121,7 @@ public class TokenValidation {
         this.decoded = isValid();
     }
 
-    public TokenValidation validateHeader(Jwt tokenJwt) {
+    private TokenValidation validateHeader(Jwt tokenJwt) {
         String kid = tokenJwt.getHeader().getKid();
         if (kid == null) {
             validationErrors.add(
@@ -190,7 +193,7 @@ public class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkExpiry(Instant asOf) {
+    protected TokenValidation checkExpiry(Instant asOf) {
         if(!decoded || !claims.containsKey(EXP)) {
             addError("Token does not bear an EXP claim.");
             return this;
@@ -263,30 +266,18 @@ public class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkScopesInclude(String... scopes) {
-        return checkScopesInclude(Arrays.asList(scopes));
-    }
-
-    public TokenValidation checkScopesInclude(Collection<String> scopes) {
-        getScopes().ifPresent(tokenScopes -> {
-            String missingScopes = scopes.stream().filter(s -> !tokenScopes.contains(s)).collect(Collectors.joining(" "));
-            if(StringUtils.hasText(missingScopes)) {
-                validationErrors.add(new InsufficientScopeException("Some expected scopes are missing: " + missingScopes));
-            }
-        });
-        return this;
-    }
-
-    public TokenValidation checkScopesWithin(String... scopes) {
+    protected TokenValidation checkScopesWithin(String... scopes) {
         return checkScopesWithin(Arrays.asList(scopes));
     }
 
-    public TokenValidation checkScopesWithin(Collection<String> scopes) {
+    protected TokenValidation checkScopesWithin(Collection<String> scopes) {
         getScopes().ifPresent(tokenScopes -> {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
             List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(Collectors.toList());
             if(!missingScopes.isEmpty()) {
-                validationErrors.add(new InvalidTokenException("Some scopes have been revoked: " + missingScopes.stream().collect(Collectors.joining(" "))));
+                String claimName = isAccessToken ? SCOPE : GRANTED_SCOPES;
+                String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), claimName);
+                validationErrors.add(new InsufficientScopeException(message));
             }
         });
         return this;
@@ -409,7 +400,7 @@ public class TokenValidation {
         return checkAudience(Arrays.asList(clients));
     }
 
-    public TokenValidation checkAudience(Collection<String> clients) {
+    protected TokenValidation checkAudience(Collection<String> clients) {
         if (!decoded || !claims.containsKey(AUD)) {
             addError("The token does not bear an AUD claim.");
             return this;
@@ -490,28 +481,31 @@ public class TokenValidation {
 
     private Optional<List<String>> scopes = null;
     private Optional<List<String>> getScopes() {
-        if (scopes == null) {
-            if (!decoded || !claims.containsKey(SCOPE)) {
-                addError("The token does not bear a SCOPE claim.");
-                return scopes = Optional.empty();
-            }
+        return isAccessToken ? readScopesFromClaim(SCOPE) : readScopesFromClaim(GRANTED_SCOPES);
+    }
 
-            Object scopeClaim = claims.get(SCOPE);
-            if (scopeClaim == null) {
-                // treat null scope claim the same as empty scope claim
-                scopeClaim = new ArrayList<>();
-            }
-
-            try {
-                return scopes = Optional.of(((List<?>) scopeClaim).stream()
-                        .map(s -> (String) s)
-                        .collect(Collectors.toList()));
-            } catch (ClassCastException ex) {
-                addError("The token's scope claim is invalid or unparseable.", ex);
-                return scopes = Optional.empty();
-            }
+    private Optional<List<String>> readScopesFromClaim(String claimName) {
+        if (!decoded || !claims.containsKey(claimName)) {
+            addError(
+                String.format("The token does not bear a %s claim.", claimName)
+            );
+            return scopes = Optional.empty();
         }
-        return scopes;
+
+        Object scopeClaim = claims.get(claimName);
+        if (scopeClaim == null) {
+            // treat null scope claim the same as empty scope claim
+            scopeClaim = new ArrayList<>();
+        }
+
+        try {
+            return scopes = Optional.of(((List<?>) scopeClaim).stream()
+                .map(s -> (String) s)
+                .collect(Collectors.toList()));
+        } catch (ClassCastException ex) {
+            addError("The token's scope claim is invalid or unparseable.", ex);
+            return scopes = Optional.empty();
+        }
     }
 
     public TokenValidation throwIfInvalid() {

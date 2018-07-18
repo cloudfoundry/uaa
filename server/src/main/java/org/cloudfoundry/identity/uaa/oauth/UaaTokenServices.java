@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
@@ -53,8 +52,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
@@ -67,7 +64,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -107,6 +103,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
@@ -127,7 +124,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.validateAccessToken;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -201,7 +199,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        TokenValidation tokenValidation = validateToken(refreshTokenValue);
+        TokenValidation tokenValidation = validateToken(refreshTokenValue, false);
         Map<String, Object> claims = new HashMap<String,Object>(tokenValidation.getClaims()) {
             @Override
             public Object get(Object key) {
@@ -211,7 +209,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
-        ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
+        ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(GRANTED_SCOPES);
         if (isRestrictRefreshGrant() && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
             throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
         }
@@ -861,7 +859,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         response.put(JTI, tokenId);
         response.put(SUB, user.getId());
-        response.put(SCOPE, scopes);
+        response.put(GRANTED_SCOPES, scopes);
         if (null != additionalAuthorizationAttributes) {
             response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
@@ -945,7 +943,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 
-        TokenValidation tokenValidation = validateToken(accessToken)
+        TokenValidation tokenValidation = validateToken(accessToken, true)
           .checkAccessToken()
           .throwIfInvalid();
 
@@ -1012,7 +1010,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        TokenValidation tokenValidation = validateToken(accessToken)
+        TokenValidation tokenValidation = validateToken(accessToken, true)
           .checkAccessToken()
           .throwIfInvalid();
 
@@ -1056,66 +1054,29 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, clientDetails.getAutoApproveScopes());
     }
 
-    protected TokenValidation validateToken(String token) {
-        TokenValidation tokenValidation;
-
+    protected TokenValidation validateToken(String token, boolean isAccessToken) {
         if (!UaaTokenUtils.isJwtToken(token)) {
             RevocableToken revocableToken;
             try {
-                 revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
+                revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
             } catch(EmptyResultDataAccessException ex) {
                 throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect.");
             }
             token = revocableToken.getValue();
         }
 
-        tokenValidation = validateAccessToken(token)
-          .checkRevocableTokenStore(tokenProvisioning)
-          .throwIfInvalid();
-        Jwt tokenJwt = tokenValidation.getJwt();
-
-        String keyId = tokenJwt.getHeader().getKid();
-        KeyInfo key;
-        if(keyId!=null) {
-            key = KeyInfo.getKey(keyId);
-        } else {
-            key = KeyInfo.getActiveKey();
-        }
-
-        if(key == null) {
-            throw new InvalidTokenException("Invalid key ID: " + keyId);
-        }
-        SignatureVerifier verifier = key.getVerifier();
+        TokenValidation tokenValidation = isAccessToken ?
+            buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);
         tokenValidation
-          .checkSignature(verifier)
-          .throwIfInvalid()
-        ;
-        Map<String, Object> claims = tokenValidation.getClaims();
-
-        tokenValidation
+            .checkRevocableTokenStore(tokenProvisioning)
             .checkIssuer(getTokenEndpoint())
-            .throwIfInvalid()
-            ;
+            .throwIfInvalid();
 
-        String clientId = (String) claims.get(CID);
-        String userId = (String) claims.get(USER_ID);
-
-        ClientDetails client;
-        try {
-            client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-        } catch (NoSuchClientException x) {
-            //happens if the client is deleted and token exist
-            throw new InvalidTokenException("Invalid client ID "+clientId);
-        }
-        UaaUser user = null;
-        if( UaaTokenUtils.isUserToken(claims)) {
-            try {
-                user = userDatabase.retrieveUserById(userId);
-            } catch (UsernameNotFoundException e) {
-                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId);
-            }
-        }
-        tokenValidation.checkClientAndUser(client, user).throwIfInvalid();
+        ClientDetails client = tokenValidation.getClientDetails(clientDetailsService);
+        UaaUser user = tokenValidation.getUserDetails(userDatabase);
+        tokenValidation
+            .checkClientAndUser(client, user)
+            .throwIfInvalid();
 
         List<String> clientSecrets = new ArrayList<>();
         List<String> revocationSignatureList = new ArrayList<>();

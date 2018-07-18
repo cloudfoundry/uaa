@@ -100,7 +100,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.validateAccessToken;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -511,11 +511,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         TokenValidation validation;
         if (tokenServices.getTokenEndpoint().equals(config.getIssuer())) {
             tokenKey = getTokenKeyForUaaOrigin();
-            validation = validateAccessToken(idToken)
+            validation = buildAccessTokenValidator(idToken)
                 .checkSignature(new ChainedSignatureVerifier(tokenKey));
         } else {
             tokenKey = getTokenKeyFromOAuth(config);
-            validation = validateAccessToken(idToken)
+            validation = buildAccessTokenValidator(idToken)
                 .checkSignature(new ChainedSignatureVerifier(tokenKey))
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());

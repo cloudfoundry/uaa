@@ -32,6 +32,7 @@ public class ClaimConstants {
     public static final String EXP = "exp";
     public static final String AUTHORITIES = "authorities";
     public static final String SCOPE = "scope";
+    public static final String GRANTED_SCOPES = "granted_scopes";
     public static final String JTI = "jti";
     public static final String AUD = "aud";
     public static final String SUB = "sub";
