@@ -127,7 +127,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.validateAccessToken;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -1069,7 +1069,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             token = revocableToken.getValue();
         }
 
-        tokenValidation = validate(token)
+        tokenValidation = validateAccessToken(token)
           .checkRevocableTokenStore(tokenProvisioning)
           .throwIfInvalid();
         Jwt tokenJwt = tokenValidation.getJwt();

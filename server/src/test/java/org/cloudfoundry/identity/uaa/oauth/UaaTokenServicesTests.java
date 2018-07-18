@@ -99,6 +99,7 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
@@ -141,6 +142,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.isNotNull;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1941,7 +1944,7 @@ public class UaaTokenServicesTests {
     @Test
     public void opaque_tokens_validate_signature() throws Exception {
         expectedEx.expect(InvalidTokenException.class);
-        expectedEx.expectMessage("Invalid key ID: testKey");
+        expectedEx.expectMessage("Token header claim [kid] references unknown signing key : [testKey]");
 
         Consumer<Void> setup = (ignore) -> {
             Map < String, String > keys = new HashMap<>();

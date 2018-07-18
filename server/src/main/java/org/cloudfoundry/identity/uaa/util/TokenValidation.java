@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -22,6 +23,8 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -73,7 +76,11 @@ public class TokenValidation {
     private final boolean decoded; // this is used to avoid checking claims on tokens that had errors when decoding
     private final List<RuntimeException> validationErrors = new ArrayList<>();
 
-    public static TokenValidation validate(String tokenJwtValue) {
+    public static TokenValidation validateAccessToken(String tokenJwtValue) {
+        return new TokenValidation(tokenJwtValue);
+    }
+
+    public static TokenValidation validateRefreshToken(String tokenJwtValue) {
         return new TokenValidation(tokenJwtValue);
     }
 
@@ -104,7 +111,34 @@ public class TokenValidation {
             this.claims = new HashMap<>();
         }
 
+        if (tokenJwt != null) {
+            validateHeader(tokenJwt);
+        }
+
         this.decoded = isValid();
+    }
+
+    public TokenValidation validateHeader(Jwt tokenJwt) {
+        String kid = tokenJwt.getHeader().getKid();
+        if (kid == null) {
+            validationErrors.add(
+                new InvalidTokenException("kid claim not found in JWT token header")
+            );
+            return this;
+        }
+
+        KeyInfo signingKey = KeyInfo.getKey(kid);
+        if (signingKey == null) {
+            validationErrors.add(
+                new InvalidTokenException(String.format(
+                    "Token header claim [kid] references unknown signing key : [%s]", kid
+                ))
+            );
+            return this;
+        }
+
+        SignatureVerifier signatureVerifier = signingKey.getVerifier();
+        return checkSignature(signatureVerifier);
     }
 
     public boolean isValid() {
@@ -509,4 +543,25 @@ public class TokenValidation {
         return this;
     }
 
+    public ClientDetails getClientDetails(ClientServicesExtension clientDetailsService) {
+        String clientId = (String) claims.get(CID);
+        try {
+            return clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        } catch (NoSuchClientException x) {
+            //happens if the client is deleted and token exist
+            throw new InvalidTokenException("Invalid client ID "+clientId);
+        }
+    }
+
+    public UaaUser getUserDetails(UaaUserDatabase userDatabase) {
+        String userId = (String) claims.get(USER_ID);
+        if( UaaTokenUtils.isUserToken(claims)) {
+            try {
+                return userDatabase.retrieveUserById(userId);
+            } catch (UsernameNotFoundException e) {
+                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId);
+            }
+        }
+        return null;
+    }
 }
