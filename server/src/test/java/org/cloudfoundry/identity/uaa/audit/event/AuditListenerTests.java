@@ -64,7 +64,7 @@ public class AuditListenerTests {
     }
 
     @Test
-    public void failedUserAuthenticationIsAudited() throws Exception {
+    public void unsuccessfulUserAuthenticationIsAudited() throws Exception {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("auser", "password", details);
         listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));

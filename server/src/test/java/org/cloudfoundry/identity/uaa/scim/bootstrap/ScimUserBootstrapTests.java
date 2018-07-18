@@ -314,7 +314,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void failedAttemptToUpdateUsersNotFatal() throws Exception {
+    public void unsuccessfulAttemptToUpdateUsersNotFatal() throws Exception {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
