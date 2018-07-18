@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -41,10 +42,12 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -460,6 +463,16 @@ public class TokenValidationTest {
           .checkScopesWithin("a.different.scope");
         assertThat(validation.isValid(), is(false));
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
+    }
+
+    @Test
+    public void tokenHasIntegerScope() {
+        this.content.put(SCOPE, Lists.newArrayList("a.different.scope", 1, "another.different.scope", null));
+
+        TokenValidation validation = buildAccessTokenValidator(getToken())
+          .checkScopesWithin("a.different.scope", "1", "another.different.scope");
+        assertThat(validation.getValidationErrors(), empty());
+        assertThat(validation.isValid(), is(true));
     }
 
     @Test

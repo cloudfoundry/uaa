@@ -47,14 +47,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
@@ -302,7 +305,7 @@ public class TokenValidation {
                 if (authorities == null) {
                     addError("Invalid token (all scopes have been revoked)");
                 } else {
-                    List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+                    List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(toList());
                     checkScopesWithin(authoritiesValue);
                 }
             }
@@ -318,7 +321,7 @@ public class TokenValidation {
         Optional<List<String>> scopesGot = getScopes();
         scopesGot.ifPresent(tokenScopes -> {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
-            List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(Collectors.toList());
+            List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(toList());
             if(!missingScopes.isEmpty()) {
                 String claimName = isAccessToken ? SCOPE : GRANTED_SCOPES;
                 String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), claimName);
@@ -394,7 +397,7 @@ public class TokenValidation {
                 clientScopes = ofNullable(client.getAuthorities())
                     .map(a -> a.stream()
                         .map(GrantedAuthority::getAuthority)
-                        .collect(Collectors.toList()))
+                        .collect(toList()))
                     .orElse(Collections.emptyList());
             } else {
                 clientScopes = client.getScope();
@@ -463,14 +466,14 @@ public class TokenValidation {
             try {
                 audience = ((List<?>) audClaim).stream()
                         .map(s -> (String) s)
-                        .collect(Collectors.toList());
+                        .collect(toList());
             } catch (ClassCastException ex) {
                 addError("The token's audience claim is invalid or unparseable.", ex);
                 return this;
             }
         }
 
-        List<String> notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(Collectors.toList());
+        List<String> notInAudience = clients.stream().filter(c -> !audience.contains(c)).collect(toList());
         if(!notInAudience.isEmpty()) {
             String joinedAudiences = notInAudience.stream().map(c ->  "".equals(c) ? "EMPTY_VALUE" : c  ).collect(Collectors.joining(", "));
             addError("Some parties were not in the token audience: " + joinedAudiences);
@@ -545,8 +548,9 @@ public class TokenValidation {
 
         try {
             List<String> scopeList = ((List<?>) scopeClaim).stream()
-                .map(s -> (String) s)
-                .collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .collect(toList());
             scopes = Optional.of(scopeList);
             return scopes;
         } catch (ClassCastException ex) {
