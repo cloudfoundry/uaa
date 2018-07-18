@@ -106,7 +106,7 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
 
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
-    private PasswordEncoder passwordEncoder = NoOpPasswordEncoder.getInstance();
+    private PasswordEncoder passwordEncoder;
 
     private final JdbcTemplate jdbcTemplate;
 

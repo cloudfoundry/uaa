@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -90,6 +91,7 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         template = spy(jdbcTemplate);
         service = spy(new MultitenantJdbcClientDetailsService(template));
+        service.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("testzone");
         otherIdentityZone.setName("testzone");
