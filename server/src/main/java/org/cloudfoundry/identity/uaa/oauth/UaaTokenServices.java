@@ -52,6 +52,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
@@ -1064,6 +1065,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
             token = revocableToken.getValue();
         }
+
 
         TokenValidation tokenValidation = isAccessToken ?
             buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);

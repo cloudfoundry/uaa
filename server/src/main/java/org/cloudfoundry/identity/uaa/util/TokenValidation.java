@@ -114,20 +114,58 @@ public class TokenValidation {
             this.claims = new HashMap<>();
         }
 
-        if (tokenJwt != null) {
-            validateHeader(tokenJwt);
-        }
+        Optional<SignatureVerifier> signatureVerifier =
+            fetchSignatureVerifierFromToken(tokenJwt);
+
+        signatureVerifier.ifPresent(this::validateHeader);
 
         this.decoded = isValid();
     }
 
-    private TokenValidation validateHeader(Jwt tokenJwt) {
+    private TokenValidation(String token, boolean isAccessToken, SignatureVerifier signatureVerifier) {
+        this.token = token;
+        this.isAccessToken = isAccessToken;
+
+        Jwt tokenJwt;
+        try {
+            tokenJwt = JwtHelper.decode(token);
+        } catch (Exception ex) {
+            tokenJwt = null;
+            validationErrors.add(new InvalidTokenException("Invalid token (could not decode): " + token, ex));
+        }
+        this.tokenJwt = tokenJwt;
+
+        String tokenJwtClaims;
+        if(tokenJwt != null && StringUtils.hasText(tokenJwtClaims = tokenJwt.getClaims())) {
+            Map<String, Object> claims;
+            try {
+                claims = JsonUtils.readValue(tokenJwtClaims, new TypeReference<Map<String, Object>>() {});
+            }
+            catch (JsonUtils.JsonUtilException ex) {
+                claims = null;
+                validationErrors.add(new InvalidTokenException("Invalid token (cannot read token claims): " + token, ex));
+            }
+            this.claims = claims;
+        } else {
+            this.claims = new HashMap<>();
+        }
+
+        validateHeader(signatureVerifier);
+
+        this.decoded = isValid();
+    }
+
+        private Optional<SignatureVerifier> fetchSignatureVerifierFromToken(Jwt tokenJwt) {
+        if (tokenJwt == null) {
+            return Optional.empty();
+        }
+
         String kid = tokenJwt.getHeader().getKid();
         if (kid == null) {
             validationErrors.add(
                 new InvalidTokenException("kid claim not found in JWT token header")
             );
-            return this;
+            return Optional.empty();
         }
 
         KeyInfo signingKey = KeyInfo.getKey(kid);
@@ -137,10 +175,15 @@ public class TokenValidation {
                     "Token header claim [kid] references unknown signing key : [%s]", kid
                 ))
             );
-            return this;
+            return Optional.empty();
         }
 
         SignatureVerifier signatureVerifier = signingKey.getVerifier();
+
+        return Optional.of(signatureVerifier);
+    }
+
+    private TokenValidation validateHeader(SignatureVerifier signatureVerifier) {
         return checkSignature(signatureVerifier);
     }
 
@@ -167,7 +210,7 @@ public class TokenValidation {
         this.scopes = source.scopes;
     }
 
-
+    //TODO: make private
     public TokenValidation checkSignature(SignatureVerifier verifier) {
         if(isValid()) {
             try {
@@ -272,7 +315,8 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkScopesWithin(Collection<String> scopes) {
-        getScopes().ifPresent(tokenScopes -> {
+        Optional<List<String>> scopesGot = getScopes();
+        scopesGot.ifPresent(tokenScopes -> {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
             List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(Collectors.toList());
             if(!missingScopes.isEmpty()) {
@@ -500,9 +544,11 @@ public class TokenValidation {
         }
 
         try {
-            return scopes = Optional.of(((List<?>) scopeClaim).stream()
+            List<String> scopeList = ((List<?>) scopeClaim).stream()
                 .map(s -> (String) s)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+            scopes = Optional.of(scopeList);
+            return scopes;
         } catch (ClassCastException ex) {
             addError("The token's scope claim is invalid or unparseable.", ex);
             return scopes = Optional.empty();
@@ -559,4 +605,16 @@ public class TokenValidation {
         }
         return null;
     }
+
+
+    public static TokenValidation buildAccessTokenValidatorForTesting(String tokenJwtValue,
+                                                            SignatureVerifier signatureVerifier) {
+        return new TokenValidation(tokenJwtValue, true, signatureVerifier);
+    }
+
+    public static TokenValidation buildRefreshTokenValidatorForTesting(String tokenJwtValue,
+                                                             SignatureVerifier signatureVerifier) {
+        return new TokenValidation(tokenJwtValue, false, signatureVerifier);
+    }
+
 }
