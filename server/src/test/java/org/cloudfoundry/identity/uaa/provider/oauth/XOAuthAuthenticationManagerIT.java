@@ -197,13 +197,14 @@ public class XOAuthAuthenticationManagerIT {
         trustingRestTemplate = restTemplateConfig.trustingRestTemplate();
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
+        String keyName = "testKey";
         header = map(
             entry("alg", "HS256"),
-            entry("kid", "testKey"),
+            entry("kid", keyName),
             entry("typ", "JWT")
         );
         signer = new RsaSigner(PRIVATE_KEY);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(LEGACY_TOKEN_KEY_ID, PRIVATE_KEY));
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
         externalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
