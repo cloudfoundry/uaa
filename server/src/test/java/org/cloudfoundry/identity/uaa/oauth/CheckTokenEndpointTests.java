@@ -47,6 +47,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -524,7 +525,7 @@ public class CheckTokenEndpointTests {
         }
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test(expected = InsufficientScopeException.class)
     public void revokingScopesFromUser_invalidatesToken() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         user = user.authorities(UaaAuthority.NONE_AUTHORITIES);
@@ -532,7 +533,7 @@ public class CheckTokenEndpointTests {
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test(expected = InsufficientScopeException.class)
     public void revokingScopesFromClient_invalidatesToken() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
@@ -544,7 +545,7 @@ public class CheckTokenEndpointTests {
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
-    @Test(expected = InvalidTokenException.class)
+    @Test(expected = InsufficientScopeException.class)
     public void revokingAuthoritiesFromClients_invalidatesToken() throws Exception {
         defaultClient = new BaseClientDetails("client", "scim, cc", "write,read", "authorization_code, password", "scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap(

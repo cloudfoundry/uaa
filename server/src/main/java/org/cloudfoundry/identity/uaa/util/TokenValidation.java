@@ -145,7 +145,7 @@ public class TokenValidation {
     }
 
     public boolean isValid() {
-        return validationErrors.size() == 0;
+        return validationErrors.isEmpty();
     }
 
 
@@ -169,12 +169,13 @@ public class TokenValidation {
 
 
     public TokenValidation checkSignature(SignatureVerifier verifier) {
-        if(!decoded) { return this; }
-        try {
-            tokenJwt.verifySignature(verifier);
-        } catch (Exception ex) {
-            logger.debug("Invalid token (could not verify signature)", ex);
-            addError("Could not verify token signature.", new InvalidSignatureException(token));
+        if(isValid()) {
+            try {
+                tokenJwt.verifySignature(verifier);
+            } catch (RuntimeException ex) {
+                logger.debug("Invalid token (could not verify signature)", ex);
+                addError("Could not verify token signature.", new InvalidSignatureException(token));
+            }
         }
         return this;
     }
@@ -182,7 +183,7 @@ public class TokenValidation {
     public TokenValidation checkIssuer(String issuer) {
         if(issuer == null) { return this; }
 
-        if(!decoded || !claims.containsKey(ISS)) {
+        if(!isValid() || !claims.containsKey(ISS)) {
             addError("Token does not bear an ISS claim.");
             return this;
         }
@@ -194,7 +195,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkExpiry(Instant asOf) {
-        if(!decoded || !claims.containsKey(EXP)) {
+        if(!isValid() || !claims.containsKey(EXP)) {
             addError("Token does not bear an EXP claim.");
             return this;
         }
@@ -215,7 +216,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkUser(Function<String, UaaUser> getUser) {
-        if(!decoded || !isUserToken(claims)) {
+        if(!isValid() || !isUserToken(claims)) {
             addError("Token is not a user token.");
             return this;
         }
@@ -322,7 +323,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkClient(Function<String, ClientDetails> getClient) {
-        if(!decoded || !claims.containsKey(CID)) {
+        if(!isValid() || !claims.containsKey(CID)) {
             addError("Token bears no client ID.");
             return this;
         }
@@ -366,7 +367,7 @@ public class TokenValidation {
     }
 
     public TokenValidation checkRevocationSignature(List<String> revocableSignatureList) {
-        if(!decoded) {
+        if(!isValid()) {
             addError("Token does not bear a revocation hash.");
             return this;
         }
@@ -401,7 +402,7 @@ public class TokenValidation {
     }
 
     protected TokenValidation checkAudience(Collection<String> clients) {
-        if (!decoded || !claims.containsKey(AUD)) {
+        if (!isValid() || !claims.containsKey(AUD)) {
             addError("The token does not bear an AUD claim.");
             return this;
         }
@@ -435,7 +436,7 @@ public class TokenValidation {
     }
 
     public TokenValidation checkRevocableTokenStore(RevocableTokenProvisioning revocableTokenProvisioning) {
-        if(!decoded) {
+        if(!isValid()) {
             addError("The token could not be checked for revocation.");
             return this;
         }
@@ -485,7 +486,7 @@ public class TokenValidation {
     }
 
     private Optional<List<String>> readScopesFromClaim(String claimName) {
-        if (!decoded || !claims.containsKey(claimName)) {
+        if (!isValid() || !claims.containsKey(claimName)) {
             addError(
                 String.format("The token does not bear a %s claim.", claimName)
             );
