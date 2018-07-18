@@ -10,7 +10,7 @@ ext {
   commonsHttpClientVersion = '4.5.3'
   commonsLoggingVersion = '1.2'
   esapiVersion = '2.1.0.1'
-  flywayVersion = '4.2.0'
+  flywayVersion = '5.1.4'
   googleauthVersion = '1.1.2'
   guavaVersion = '24.1.1-jre'
   hamcrestVersion = '1.3'
