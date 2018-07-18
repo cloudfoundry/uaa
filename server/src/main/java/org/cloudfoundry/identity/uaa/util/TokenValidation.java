@@ -240,7 +240,7 @@ public abstract class TokenValidation {
             if (!missingScopes.isEmpty()) {
                 String claimName = getClaimName();
                 String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), claimName);
-                throw new InsufficientScopeException(message);
+                throw new InvalidTokenException(message);
             }
         });
         return this;

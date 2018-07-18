@@ -432,7 +432,7 @@ public class TokenValidationTest {
           .withEmail("marissa@test.org")
           .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("a.different.scope"))));
 
-        expectedException.expect(InsufficientScopeException.class);
+        expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken())
           .checkUser(userDb::retrieveUserById);
@@ -440,7 +440,7 @@ public class TokenValidationTest {
 
     @Test
     public void tokenHasInsufficientScope() {
-        expectedException.expect(InsufficientScopeException.class);
+        expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken())
           .checkScopesWithin("a.different.scope");
@@ -456,7 +456,7 @@ public class TokenValidationTest {
 
     @Test
     public void tokenContainsRevokedScope() {
-        expectedException.expect(InsufficientScopeException.class);
+        expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken())
           .checkScopesWithin("a.different.scope");
@@ -483,7 +483,7 @@ public class TokenValidationTest {
           )
         );
 
-        expectedException.expect(InsufficientScopeException.class);
+        expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken())
           .checkClient(clientDetailsService::loadClientByClientId);
