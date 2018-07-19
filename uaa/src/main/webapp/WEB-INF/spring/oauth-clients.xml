@@ -33,7 +33,7 @@
     </bean>
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-        <constructor-arg ref="bcryptPasswordEncoder"/>
+        <constructor-arg ref="passwdEncoder"/>
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
@@ -45,7 +45,7 @@
 
     <beans profile="default">
         <bean class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-            <constructor-arg ref="bcryptPasswordEncoder"/>
+            <constructor-arg ref="passwdEncoder"/>
             <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
             <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />

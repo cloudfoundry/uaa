@@ -431,15 +431,8 @@
 
     <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
-    <bean id="bcryptPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.LowConcurrencyPasswordEncoder">
-        <constructor-arg name="delegate"  ref="passwdEncoder"/>
-        <constructor-arg name="timeoutMs" value="${system.bcrypt.timeout:5000}"/>
-        <constructor-arg name="enabled" value="${system.bcrypt.protected:false}"/>
-        <constructor-arg name="environment" ref="runtimeEnvironment" />
-    </bean>
-
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
-        <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
+        <property name="passwordEncoder" ref="passwdEncoder"/>
         <property name="maxKeys" value="1000"/>
         <property name="maxEncodedPasswords" value="5"/>
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>

@@ -33,23 +33,15 @@ import static junit.framework.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class CachingPasswordEncoderTest  {
 
-    private static RuntimeEnvironment environment = new RuntimeEnvironment();
-
     @Parameterized.Parameters(name = "{index}: {0}")
     public static Object[][] parameters() {
         return new Object[][] {
             {new BCryptPasswordEncoder()},
-            {new LowConcurrencyPasswordEncoder(new BCryptPasswordEncoder(), 30000, true, environment)}
         };
     }
 
     CachingPasswordEncoder cachingPasswordEncoder;
     private String password;
-    private PasswordEncoder delegate;
-
-    public CachingPasswordEncoderTest(PasswordEncoder delegate) {
-        this.delegate = delegate;
-    }
 
     @Before
     public void setUp() throws Exception {
