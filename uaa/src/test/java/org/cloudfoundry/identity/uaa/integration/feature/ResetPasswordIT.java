@@ -127,7 +127,7 @@ public class ResetPasswordIT {
 
     @Test
     public void resetPassword_with_clientRedirect() throws Exception {
-        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=https://www.google.com");
+        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
@@ -155,13 +155,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
-        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=https://www.google.com", webDriver.getCurrentUrl());
-        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Password reset successful"));
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys("new_password");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
-        assertEquals("https://www.google.com/", webDriver.getCurrentUrl());
+        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com", webDriver.getCurrentUrl());
     }
 
     @Test
