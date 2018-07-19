@@ -30,15 +30,7 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 
-@RunWith(Parameterized.class)
 public class CachingPasswordEncoderTest  {
-
-    @Parameterized.Parameters(name = "{index}: {0}")
-    public static Object[][] parameters() {
-        return new Object[][] {
-            {new BCryptPasswordEncoder()},
-        };
-    }
 
     CachingPasswordEncoder cachingPasswordEncoder;
     private String password;
