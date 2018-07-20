@@ -3,11 +3,16 @@ def devcloudArtServer = Artifactory.server('devcloud')
 
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa")
+def APP_VERSION = 'UNKNOWN'
+def BINTRAY_LOCATION = 'UNKNOWN'
+def BINTRAY_ARTIFACT1 = 'UNKNOWN'
+def BINTRAY_ARTIFACT2 = 'UNKNOWN'
+def BINTRAY_JENKINSFILE = 'UNKNOWN'
 
 pipeline {
     agent none
     environment {
-            COMPLIANCEENABLED = true
+        COMPLIANCEENABLED = true
     }
     options {
         skipDefaultCheckout()
@@ -390,19 +395,19 @@ pipeline {
                     APP_VERSION = sh (returnStdout: true, script: '''
                         grep 'version' uaa/gradle.properties | sed 's/version=//'
                         ''').trim()
-                   echo "Uploading UAA ${APP_VERSION} build to Artifactory"
+                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
 
 
-                   def uploadSpec = """{
+                    def uploadSpec = """{
                        "files": [
                            {
                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
                                "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
                            }
                        ]
-                   }"""
-                   def buildInfo = devcloudArtServer.upload(uploadSpec)
-                   devcloudArtServer.publishBuildInfo(buildInfo)
+                    }"""
+                    def buildInfo = devcloudArtServer.upload(uploadSpec)
+                    devcloudArtServer.publishBuildInfo(buildInfo)
 
                     BINTRAY_LOCATION = "https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}"
                     echo "BINTRAY_LOCATION=${BINTRAY_LOCATION}"
@@ -413,7 +418,7 @@ pipeline {
                     BINTRAY_ARTIFACT2="predix-uaa/ppc-uaa-deploy-${APP_VERSION}.tgz"
                     LOCAL_ARTIFACT2="ppc-uaa-deploy-${APP_VERSION}.tgz"
 
-                    BINTRAY_JENKINSFILE="predix-uaa/PPCDeployJenkinsfile-${APP_VERSION}" 
+                    BINTRAY_JENKINSFILE="predix-uaa/PPCDeployJenkinsfile-${APP_VERSION}"
                     LOCAL_JENKINSFILE="uaa/PPCDeployJenkinsfile"
 
                     echo 'package offline install files to CLZ'
@@ -421,16 +426,24 @@ pipeline {
                         # currently only pulls config for rosneft PPC, maybe parameterize per PPC later
                         # TODO: compose .toml file and push along with tar and war
                         tar -zcf $LOCAL_ARTIFACT2 uaa-cf-release
-
+    
                         curl -vvv -T $LOCAL_ARTIFACT1 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT1?override=1
                         
                         curl -vvv -T $LOCAL_ARTIFACT2 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT2?override=1
                         
                         curl -vvv -T $LOCAL_JENKINSFILE -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_JENKINSFILE?override=1
-
+    
                         echo 'publish file in bintray'
                         curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/predix-uaa/publish
                     """
+                }
+            }
+            post {
+                success {
+                    echo "Upload Build Artifact completed"
+                }
+                failure {
+                    echo "Upload Build Artifact failed"
                 }
             }
         }
