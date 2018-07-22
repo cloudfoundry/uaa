@@ -419,13 +419,6 @@ grant clients need not apply).
   * Client is authenticated
   * Client has authority `uaa.resource`
 
-### Management Information
-
-The `/varz` endpoint is protected by HTTP Basic authentication with
-credentials that are externalized via `uaa.yml`.  They have defaults
-(`varz:varzclientsecret`) and can also be overridden via System
-properties.
-
 ### Login Prompts
 
 The login endpoint is unsecured.  Any client can ask it and it will
