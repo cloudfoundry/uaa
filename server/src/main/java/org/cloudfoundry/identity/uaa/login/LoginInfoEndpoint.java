@@ -396,7 +396,7 @@ public class LoginInfoEndpoint {
 
         String defaultIdentityProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
 
-        if (idpForRedirect == null && defaultIdentityProvider != null) {
+        if (idpForRedirect == null && defaultIdentityProvider != null && !model.containsAttribute("login_hint")) { //Default set, no login_hint given
             if (!OriginKeys.UAA.equals(defaultIdentityProvider) && !OriginKeys.LDAP.equals(defaultIdentityProvider)) {
                 if (combinedIdps.containsKey(defaultIdentityProvider)) {
                     idpForRedirect = combinedIdps.entrySet().stream().filter(entry -> defaultIdentityProvider.equals(entry.getKey())).findAny().orElse(null);

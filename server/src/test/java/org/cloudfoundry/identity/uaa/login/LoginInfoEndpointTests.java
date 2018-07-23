@@ -974,7 +974,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testLoginHintOriginUaa() throws  Exception{
+    public void testLoginHintOriginUaa() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -992,7 +992,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testLoginHintOriginUaaSkipAccountChooser() throws  Exception{
+    public void testLoginHintOriginUaaSkipAccountChooser() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1013,7 +1013,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testInvalidLoginHintErrorOnDiscoveryPage() throws  Exception{
+    public void testInvalidLoginHintErrorOnDiscoveryPage() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1033,7 +1033,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testLoginHintOriginOidc() throws  Exception{
+    public void testLoginHintOriginOidc() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1055,7 +1055,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testLoginHintOriginInvalid() throws  Exception{
+    public void testLoginHintOriginInvalid() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1073,7 +1073,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testGetPromptsFromOIDCProvider() throws  Exception{
+    public void testGetPromptsFromOIDCProvider() throws Exception {
         List<Prompt> customPrompts = new ArrayList<>();
         customPrompts.add(new Prompt("username", "text", "MyEmail"));
         customPrompts.add(new Prompt("password", "password", "MyPassword"));
@@ -1108,7 +1108,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testGetPromptsFromNonOIDCProvider() throws  Exception{
+    public void testGetPromptsFromNonOIDCProvider() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("origin", "non-OIDC");
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -1135,7 +1135,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testGetPromptsFromNonExistentProvider() throws  Exception{
+    public void testGetPromptsFromNonExistentProvider() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("origin", "non-OIDC");
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -1159,7 +1159,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testGetPromptsFromOIDCProviderWithoutPrompts() throws  Exception{
+    public void testGetPromptsFromOIDCProviderWithoutPrompts() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("origin", "OIDC-without-prompts");
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -1188,7 +1188,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderUaa() throws  Exception{
+    public void testDefaultProviderUaa() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
@@ -1203,7 +1203,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderOIDC() throws  Exception{
+    public void testDefaultProviderOIDC() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1221,7 +1221,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderBeforeDiscovery() throws  Exception{
+    public void testDefaultProviderBeforeDiscovery() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1241,7 +1241,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testLoginHintOverridesDefaultProvider() throws  Exception{
+    public void testLoginHintOverridesDefaultProvider() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
@@ -1264,7 +1264,26 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderInvalidFallback() throws  Exception{
+    public void testLoginHintLdapOverridesDefaultProviderUaa() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"ldap\"}"});
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+
+        assertEquals("{\"origin\":\"ldap\"}", model.get("login_hint"));
+        assertEquals("login", redirect);
+    }
+
+    @Test
+    public void testDefaultProviderInvalidFallback() throws  Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("invalid");
@@ -1278,7 +1297,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testDefaultProviderLdapWithAllowedOnlyOIDC() throws  Exception{
+    public void testDefaultProviderLdapWithAllowedOnlyOIDC() throws  Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1303,7 +1322,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testAllowedProvidersOnlyLDAPDoesNotUseInternalUsers() throws  Exception{
+    public void testAllowedProvidersOnlyLDAPDoesNotUseInternalUsers() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
@@ -1324,7 +1343,7 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void testAllowedProvidersLoginHintDoesKeepExternalProviders() throws  Exception{
+    public void testAllowedProvidersLoginHintDoesKeepExternalProviders() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
 
