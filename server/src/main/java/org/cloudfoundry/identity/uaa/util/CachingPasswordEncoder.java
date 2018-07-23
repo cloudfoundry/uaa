@@ -17,10 +17,8 @@ package org.cloudfoundry.identity.uaa.util;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
-import org.springframework.security.crypto.keygen.BytesKeyGenerator;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -118,8 +116,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
             }
         }
         if (!result) {
-            String encoded = BCrypt.hashpw(rawPassword.toString(), encodedPassword);
-            if (hashesEquals(encoded, encodedPassword)) {
+            if (getPasswordEncoder().matches(rawPassword, encodedPassword)) {
                 result = true;
                 cacheValue = getOrCreateHashList(cacheKey);
                 if (cacheValue!=null) {
@@ -128,7 +125,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
                     if (cacheValue.size() >= getMaxEncodedPasswords()) {
                         cacheValue.clear();
                     }
-                    cacheValue.add(encoded);
+                    cacheValue.add(encodedPassword);
                 }
             }
         }
