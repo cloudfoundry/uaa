@@ -120,6 +120,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import static java.util.Collections.emptySet;
+import static org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils.getClaimsForToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
@@ -2748,29 +2749,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Long dbPreviousLogonTime = getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserById(userId).getPreviousLogonTime();
         assertEquals(dbPreviousLogonTime, previous_logon_time);
 
-    }
-
-    private Map<String, Object> getClaimsForToken(String token) {
-        Jwt tokenJwt;
-        try {
-            tokenJwt = JwtHelper.decode(token);
-        } catch (Throwable t) {
-            throw new InvalidTokenException("Invalid token (could not decode): " + token);
-        }
-
-        Map<String, Object> claims;
-        try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
-        }
-
-        String kid = tokenJwt.getHeader().getKid();
-        assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(KeyInfo.getKey(kid).getVerifier());
-
-        return claims;
     }
 
     public static Map<String, List<String>> splitQuery(URL url) throws UnsupportedEncodingException {
