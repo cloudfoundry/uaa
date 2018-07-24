@@ -627,7 +627,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String nonce = requestParameters.get(NONCE);
 
         Map<String, String> additionalAuthorizationAttributes =
-            getAdditionalAuthorizationAttributes(
+            new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(
                 requestParameters.get("authorities")
             );
 
@@ -766,35 +766,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return responseTypes;
     }
 
-    /**
-     * This method searches the authorities in the request for
-     * additionalAuthorizationAttributes
-     * and returns a map of these attributes that will later be added to the
-     * token
-     *
-     * @param authoritiesJson
-     * @return
-     */
-    private Map<String, String> getAdditionalAuthorizationAttributes(String authoritiesJson) {
-        if (StringUtils.hasLength(authoritiesJson)) {
-            try {
-                Map<String, Object> authorities = JsonUtils.readValue(authoritiesJson, new TypeReference<Map<String, Object>>() {});
-                Object az_attr = authorities.get("az_attr");
-                if(az_attr == null)
-                    return null;
-                // validate az_attr content with Map<String, String>>
-                Map<String, String> additionalAuthorizationAttributes =
-                    JsonUtils.readValue(JsonUtils.writeValueAsBytes(az_attr), new TypeReference<Map<String, String>>() {});
-
-                return additionalAuthorizationAttributes;
-            } catch (Throwable t) {
-                logger.error("Unable to read additionalAuthorizationAttributes", t);
-            }
-        }
-
-        return null;
-    }
-
     private ExpiringOAuth2RefreshToken createRefreshToken(UaaUser user, String tokenId,
                                                           OAuth2Authentication authentication,
                                                           String revocableHashSignature,
@@ -807,7 +778,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             return null;
         }
 
-        Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
+        Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(authentication
             .getOAuth2Request().getRequestParameters().get("authorities"));
 
         Date validitySeconds = refreshTokenValidityResolver.resolve(authentication.getOAuth2Request().getClientId());
