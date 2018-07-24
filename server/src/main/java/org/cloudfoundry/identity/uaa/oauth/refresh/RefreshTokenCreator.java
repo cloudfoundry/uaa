@@ -46,14 +46,14 @@ import static org.springframework.util.StringUtils.hasText;
 public class RefreshTokenCreator {
     private boolean isRestrictRefreshGrant;
     private TokenValidityResolver refreshTokenValidityResolver;
-    private String issuer;
+    private TokenEndpointBuilder tokenEndpointBuilder;
 
     public RefreshTokenCreator(boolean isRestrictRefreshGrant,
                                TokenValidityResolver refreshTokenValidityResolver,
-                               String issuer) {
+                               TokenEndpointBuilder tokenEndpointBuilder) {
         this.isRestrictRefreshGrant = isRestrictRefreshGrant;
         this.refreshTokenValidityResolver = refreshTokenValidityResolver;
-        this.issuer = issuer;
+        this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 
     public ExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
@@ -166,7 +166,7 @@ public class RefreshTokenCreator {
     }
 
     private String getTokenEndpoint() {
-        return new TokenEndpointBuilder(issuer).getTokenEndpoint();
+        return tokenEndpointBuilder.getTokenEndpoint();
     }
 
     /**

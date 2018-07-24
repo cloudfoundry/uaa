@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -258,18 +259,20 @@ public class TokenTestSupport {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
             new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
         );
-        tokenServices.setIssuer(DEFAULT_ISSUER);
+        TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
+        tokenServices.setTokenEndpointBuilder(tokenEndpointBuilder);
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(DEFAULT_ISSUER, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
-        tokenServices.setRefreshTokenValidityResolver(refreshTokenValidityResolver);
+        RefreshTokenCreator refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder);
+        tokenServices.setRefreshTokenCreator(refreshTokenCreator);
         tokenServices.afterPropertiesSet();
     }
 

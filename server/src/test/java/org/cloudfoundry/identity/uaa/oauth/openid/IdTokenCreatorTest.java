@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -9,7 +10,6 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
@@ -177,7 +177,7 @@ public class IdTokenCreatorTest {
         clientDetails.setAdditionalInformation(additionalInfo);
         when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
-        tokenCreator = new IdTokenCreator(uaaUrl, tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
+        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
     }
 
     @After
@@ -379,12 +379,5 @@ public class IdTokenCreatorTest {
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
         assertThat(idToken.iss, is("http://myzone.localhost:8080/uaa/oauth/token"));
-    }
-
-    @Test(expected = IdTokenCreationException.class)
-    public void whenIssuerUrlIsInvalid_throwsRuntimeException() throws Exception {
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenThrow(URISyntaxException.class);
-
-        tokenCreator.create(clientId, userId, userAuthenticationData);
     }
 }

@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -824,8 +825,9 @@ public class BootstrapTests {
         assertEquals(152, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutPeriodSeconds());
         assertEquals(1, accountLoginPolicy.getDefaultLockoutPolicy().getLockoutAfterFailures());
 
-        UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
-        assertEquals("https://localhost:8443/uaa/oauth/token", uaaTokenServices.getIssuer());
+        TokenEndpointBuilder tokenEndpointBuilder = context.getBean("tokenEndpointBuilder", TokenEndpointBuilder.class);
+        assertEquals("https://localhost:8443/uaa/oauth/token", tokenEndpointBuilder.getIssuer());
+        UaaTokenServices uaaTokenServices = context.getBean("tokenServices", UaaTokenServices.class);
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
 

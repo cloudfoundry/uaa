@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -2728,8 +2729,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     private void validateOpenIdConnectToken(String token, String userId, String clientId) throws Exception {
         Map<String,Object> result = getClaimsForToken(token);
+        TokenEndpointBuilder tokenEndpointBuilder = (TokenEndpointBuilder) getWebApplicationContext().getBean("tokenEndpointBuilder");
         String iss = (String)result.get(ClaimConstants.ISS);
-        assertEquals(tokenServices.getTokenEndpoint(), iss);
+        assertEquals(tokenEndpointBuilder.getTokenEndpoint(), iss);
         String sub = (String)result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
         List<String> aud = (List<String>)result.get(ClaimConstants.AUD);

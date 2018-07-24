@@ -321,25 +321,6 @@ public class UaaTokenServicesTests {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void do_not_allow_set_of_null_issuer() throws URISyntaxException {
-        tokenServices.setIssuer(null);
-    }
-
-    @Test(expected = URISyntaxException.class)
-    public void do_not_allow_set_of_non_url_issuer() throws URISyntaxException {
-        tokenServices.setIssuer("some bla bla bla");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void getTokenEndpoint_Fails_If_Issuer_Is_Wrong() throws Exception {
-        Field field = UaaTokenServices.class.getDeclaredField("issuer");
-        field.setAccessible(true);
-        ReflectionUtils.setField(field, tokenServices, "adasdas");
-        tokenServices.getTokenEndpoint();
-    }
-
-
     @Test
     public void is_opaque_token_required() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
@@ -412,7 +393,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void testCreateAccessTokenForAnotherIssuer() throws URISyntaxException {
+    public void testCreateAccessTokenForAnotherIssuer() throws Exception {
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
         identityZone.setConfig(
@@ -432,7 +413,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
-        tokenServices.setIssuer("http://uaaslave:8080/uaa");
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://uaaslave:8080/uaa"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         assertCommonClientAccessTokenProperties(accessToken);

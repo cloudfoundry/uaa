@@ -71,7 +71,6 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -142,8 +141,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ClientServicesExtension clientDetailsService = null;
 
-    private String issuer = null;
-
     private ApprovalStore approvalStore = null;
 
     private ApplicationEventPublisher applicationEventPublisher;
@@ -158,8 +155,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private UaaTokenEnhancer uaaTokenEnhancer = null;
     private IdTokenCreator idTokenCreator;
+    private RefreshTokenCreator refreshTokenCreator;
+    private TokenEndpointBuilder tokenEndpointBuilder;
+
     private TokenValidityResolver accessTokenValidityResolver;
-    private TokenValidityResolver refreshTokenValidityResolver;
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -533,8 +532,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(IAT, System.currentTimeMillis() / 1000);
         claims.put(EXP, token.getExpiration().getTime() / 1000);
 
-        if (getTokenEndpoint() != null) {
-            claims.put(ISS, getTokenEndpoint());
+        if (tokenEndpointBuilder.getTokenEndpoint() != null) {
+            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
@@ -604,7 +603,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
-            RefreshTokenCreator refreshTokenCreator = new RefreshTokenCreator(isRestrictRefreshGrant(), refreshTokenValidityResolver, issuer);
             refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenId, authentication, revocableHashSignature, refreshTokenRevocable, additionalRootClaims);
         }
 
@@ -775,9 +773,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public void afterPropertiesSet() throws URISyntaxException {
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
-        Assert.notNull(issuer, "issuer must be set");
         Assert.notNull(approvalStore, "approvalStore must be set");
-        new URI(issuer); //assert the issuer is a valid url at startup.
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -919,12 +915,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             token = revocableToken.getValue();
         }
 
-
         TokenValidation tokenValidation = isAccessToken ?
             buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);
         tokenValidation
             .checkRevocableTokenStore(tokenProvisioning)
-            .checkIssuer(getTokenEndpoint());
+            .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());
 
         ClientDetails client = tokenValidation.getClientDetails(clientDetailsService);
         UaaUser user = tokenValidation.getUserDetails(userDatabase);
@@ -955,20 +950,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2AccessToken getAccessToken(OAuth2Authentication authentication) {
         return null;
-    }
-
-    public void setIssuer(String issuer) throws URISyntaxException {
-        Assert.notNull(issuer);
-        UaaTokenUtils.constructTokenEndpointUrl(issuer);
-        this.issuer = issuer;
-    }
-
-    public String getIssuer() {
-        return issuer;
-    }
-
-    public String getTokenEndpoint() {
-        return new TokenEndpointBuilder(issuer).getTokenEndpoint();
     }
 
     public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
@@ -1009,7 +990,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.accessTokenValidityResolver = accessTokenValidityResolver;
     }
 
-    public void setRefreshTokenValidityResolver(TokenValidityResolver refreshTokenValidityResolver) {
-        this.refreshTokenValidityResolver = refreshTokenValidityResolver;
+    public void setRefreshTokenCreator(RefreshTokenCreator refreshTokenCreator) {
+        this.refreshTokenCreator = refreshTokenCreator;
+    }
+
+    public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
+        this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 }

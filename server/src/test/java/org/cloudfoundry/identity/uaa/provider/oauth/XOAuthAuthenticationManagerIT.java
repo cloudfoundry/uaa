@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -160,7 +161,7 @@ public class XOAuthAuthenticationManagerIT {
     private Map<String, Object> header;
     private String invalidRsaSigningKey;
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
-    private UaaTokenServices uaaTokenServices;
+    private TokenEndpointBuilder tokenEndpointBuilder;
 
     private static final String PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\n" +
         "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
@@ -215,8 +216,8 @@ public class XOAuthAuthenticationManagerIT {
 
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
-        uaaTokenServices = mock(UaaTokenServices.class);
-        when(uaaTokenServices.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
+        tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
         xoAuthProviderConfigurator = spy(
             new XOAuthProviderConfigurator(
                 provisioning,
@@ -229,7 +230,7 @@ public class XOAuthAuthenticationManagerIT {
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
-        xoAuthAuthenticationManager.setUaaTokenServices(uaaTokenServices);
+        xoAuthAuthenticationManager.setTokenEndpointBuilder(tokenEndpointBuilder);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
             entry("sub", "12345"),
@@ -456,7 +457,7 @@ public class XOAuthAuthenticationManagerIT {
     public void origin_is_resolved_when_using_internal_idp() throws Exception {
         String issuerURL = "http://issuer.url";
         String contextPathURL = "http://contextPath.url";
-        when(uaaTokenServices.getTokenEndpoint()).thenReturn(issuerURL);
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(issuerURL);
         claims.put("iss", issuerURL);
         CompositeAccessToken token = getCompositeAccessToken();
         IdentityProvider idp = xoAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue(), contextPathURL);

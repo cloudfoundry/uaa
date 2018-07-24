@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -26,6 +27,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
@@ -41,6 +43,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUM
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PREVIOUS_LOGON_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
@@ -49,13 +52,13 @@ import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableToken
 
 public class IdTokenCreator {
     private final Log logger = LogFactory.getLog(getClass());
-    private String issuerUrlBase;
+    private TokenEndpointBuilder tokenEndpointBuilder;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
     private ClientServicesExtension clientServicesExtension;
     private Set<String> excludedClaims;
 
-    public IdTokenCreator(String issuerUrlBase,
+    public IdTokenCreator(TokenEndpointBuilder tokenEndpointBuilder,
                           TokenValidityResolver tokenValidityResolver,
                           UaaUserDatabase uaaUserDatabase,
                           ClientServicesExtension clientServicesExtension,
@@ -64,7 +67,7 @@ public class IdTokenCreator {
         this.uaaUserDatabase = uaaUserDatabase;
         this.clientServicesExtension = clientServicesExtension;
         this.excludedClaims = excludedClaims;
-        this.issuerUrlBase = issuerUrlBase;
+        this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 
     public IdToken create(String clientId,
@@ -88,13 +91,7 @@ public class IdTokenCreator {
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
         String phoneNumber = getIfScopeContainsProfile(uaaUser.getPhoneNumber(), userAuthenticationData.scopes);
 
-        String issuerUrl;
-        try {
-            issuerUrl = UaaTokenUtils.constructTokenEndpointUrl(this.issuerUrlBase);
-        } catch (URISyntaxException e) {
-            logger.error("Could not construct the issuer url", e);
-            throw new IdTokenCreationException();
-        }
+        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint();
         String identityZone = IdentityZoneHolder.get().getId();
 
         ClientDetails clientDetails = clientServicesExtension.loadClientByClientId(clientId, identityZone);

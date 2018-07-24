@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -112,7 +113,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     private final RestTemplate nonTrustingRestTemplate;
 
 
-    private UaaTokenServices tokenServices;
+    private TokenEndpointBuilder tokenEndpointBuilder;
 
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
@@ -149,7 +150,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
-                if (tokenServices.getTokenEndpoint().equals(issuer)) {
+                if (tokenEndpointBuilder.getTokenEndpoint().equals(issuer)) {
                     OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
                     uaaOidcProviderConfig.setTokenKeyUrl(new URL(contextPath + "/token_keys"));
                     uaaOidcProviderConfig.setIssuer(issuer);
@@ -504,7 +505,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         JsonWebKeySet tokenKey;
         TokenValidation validation;
-        if (tokenServices.getTokenEndpoint().equals(config.getIssuer())) {
+        if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
             tokenKey = getTokenKeyForUaaOrigin();
             validation = buildAccessTokenValidator(idToken)
                 .checkSignature(new ChainedSignatureVerifier(tokenKey));
@@ -615,8 +616,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return "Basic " + clientAuth;
     }
 
-    public void setUaaTokenServices(UaaTokenServices tokenServices) {
-        this.tokenServices = tokenServices;
+    public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
+        this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 
     protected static class AuthenticationData {

@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -200,7 +201,7 @@ public class CheckTokenEndpointTests {
         setUp(useOpaque);
     }
 
-    public void setUp(boolean opaque) throws URISyntaxException {
+    public void setUp(boolean opaque) throws Exception {
         defaultZone = IdentityZone.getUaa();
         zone = MultitenancyFixture.identityZone("id", "subdomain");
         userAuthorities = new ArrayList<>();
@@ -271,7 +272,7 @@ public class CheckTokenEndpointTests {
             .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setAccessTokenValidityResolver(new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE));
-        tokenServices.setRefreshTokenValidityResolver(new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), Integer.MAX_VALUE));
+        tokenServices.setRefreshTokenCreator(mock(RefreshTokenCreator.class));
         tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
@@ -284,7 +285,7 @@ public class CheckTokenEndpointTests {
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenProvisioning(tokenProvisioning);
-        tokenServices.setIssuer("http://localhost:8080/uaa");
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://localhost:8080/uaa"));
         tokenServices.afterPropertiesSet();
     }
 
@@ -332,13 +333,6 @@ public class CheckTokenEndpointTests {
 
     public void setAccessToken(OAuth2AccessToken accessToken) {
         this.accessToken = accessToken;
-    }
-
-    @Test(expected = InvalidTokenException.class)
-    public void testRejectInvalidIssuer() throws Exception {
-        setAccessToken(tokenServices.createAccessToken(authentication));
-        tokenServices.setIssuer("http://some.other.issuer");
-        endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
     @Test()
@@ -621,8 +615,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testIssuerInResults() throws Exception {
-        tokenServices.setIssuer("http://some.other.issuer");
-        tokenServices.afterPropertiesSet();
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertNotNull("iss field is not present", result.getIss());
@@ -633,7 +626,7 @@ public class CheckTokenEndpointTests {
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
             IdentityZoneHolder.set(zone);
-            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
             tokenServices.afterPropertiesSet();
             setAccessToken(tokenServices.createAccessToken(authentication));
             Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
@@ -642,7 +635,6 @@ public class CheckTokenEndpointTests {
         } finally {
             IdentityZoneHolder.clear();
         }
-
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -662,8 +654,7 @@ public class CheckTokenEndpointTests {
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
-            tokenServices.setIssuer("http://some.other.issuer");
-            tokenServices.afterPropertiesSet();
+            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
@@ -686,8 +677,7 @@ public class CheckTokenEndpointTests {
                     "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenServices.setIssuer("http://some.other.issuer");
-            tokenServices.afterPropertiesSet();
+            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
             setAccessToken(tokenServices.createAccessToken(authentication));
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
@@ -709,8 +699,7 @@ public class CheckTokenEndpointTests {
             "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
             "-----END RSA PRIVATE KEY-----");
         configureDefaultZoneKeys(keys);
-        tokenServices.setIssuer("http://some.other.issuer");
-        tokenServices.afterPropertiesSet();
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
         setAccessToken(tokenServices.createAccessToken(authentication));
 
         keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
@@ -734,8 +723,7 @@ public class CheckTokenEndpointTests {
                 "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                 "-----END RSA PRIVATE KEY-----");
             configureDefaultZoneKeys(keys);
-            tokenServices.setIssuer("http://some.other.issuer");
-            tokenServices.afterPropertiesSet();
+            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
             setAccessToken(tokenServices.createAccessToken(authentication));
 
             keys.remove("oldKey");
@@ -764,8 +752,7 @@ public class CheckTokenEndpointTests {
                 "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                 "-----END RSA PRIVATE KEY-----"));
         IdentityZoneHolder.set(zone);
-        tokenServices.setIssuer("http://some.other.issuer");
-        tokenServices.afterPropertiesSet();
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
         setAccessToken(tokenServices.createAccessToken(authentication));
         IdentityZoneHolder.clear();
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
