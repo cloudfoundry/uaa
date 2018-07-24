@@ -92,25 +92,8 @@ public abstract class TokenValidation {
     private TokenValidation(String token) {
         this.token = token;
 
-        try {
-            this.tokenJwt = JwtHelper.decode(token);
-        } catch (Exception ex) {
-            throw new InvalidTokenException("Invalid token (could not decode): " + token, ex);
-        }
-
-        String tokenJwtClaims;
-        if (StringUtils.hasText(tokenJwtClaims = this.tokenJwt.getClaims())) {
-            Map<String, Object> claims;
-            try {
-                claims = JsonUtils.readValue(tokenJwtClaims, new TypeReference<Map<String, Object>>() {
-                });
-            } catch (JsonUtils.JsonUtilException ex) {
-                throw new InvalidTokenException("Invalid token (cannot read token claims): " + token, ex);
-            }
-            this.claims = claims;
-        } else {
-            this.claims = new HashMap<>();
-        }
+        this.claims = UaaTokenUtils.getClaims(token);
+        this.tokenJwt = JwtHelper.decode(token);
 
         checkSignature();
     }

@@ -14,12 +14,16 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.Signer;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -28,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -235,5 +240,24 @@ public final class UaaTokenUtils {
     public static boolean hasRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
         return ofNullable(userGroups).orElse(emptySet())
             .containsAll(ofNullable(requiredGroups).orElse(emptySet()));
+    }
+
+    public static Map<String, Object> getClaims(String jwtToken) {
+        Jwt jwt;
+        try {
+            jwt = JwtHelper.decode(jwtToken);
+        } catch (Exception ex) {
+            throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
+        }
+
+        Map<String, Object> claims;
+        try {
+            claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            });
+        } catch (JsonUtils.JsonUtilException ex) {
+            throw new InvalidTokenException("Invalid token (cannot read token claims): " + jwtToken, ex);
+        }
+
+        return claims != null ? claims : new HashMap<>();
     }
 }

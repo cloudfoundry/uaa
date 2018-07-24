@@ -12,10 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
@@ -28,10 +34,12 @@ import java.util.Map;
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.hasRequiredUserAuthorities;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
@@ -133,6 +141,47 @@ public class UaaTokenUtilsTest {
         List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
         List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
         assertTrue(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
+    }
+    
+    @Test
+    public void getClaims() {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("kid", "some-key");
+        headers.put("alg", "HS256");
+        Map<String, Object> content = new HashMap<>();
+        content.put("cid", "openidclient");
+        content.put("origin", "uaa");
+        String jwt = UaaTokenUtils.constructToken(headers, content, new MacSigner("foobar"));
+
+        Map<String, Object> claims = UaaTokenUtils.getClaims(jwt);
+
+        assertEquals(claims.get("cid"), "openidclient");
+        assertEquals(claims.get("origin"), "uaa");
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void getClaims_throwsExceptionWhenJwtIsMalformed() {
+        UaaTokenUtils.getClaims("not.a.jwt");
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void getClaims_throwsExceptionWhenClaimsCannotBeRead() {
+        Signer signer = new CommonSigner("foo", "bar");
+        Jwt encoded = JwtHelper.encode("great content", signer);
+        UaaTokenUtils.getClaims(encoded.getEncoded());
+    }
+
+    @Test
+    public void getClaims_wWhenClaimsAreMissing_returnsEmptyMap() {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("kid", "some-key");
+        headers.put("alg", "HS256");
+        String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, null, new MacSigner("foobar"));
+
+        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims);
+
+        assertNotNull(claims);
+        assertEquals(claims.size(), 0);
     }
 
 }
