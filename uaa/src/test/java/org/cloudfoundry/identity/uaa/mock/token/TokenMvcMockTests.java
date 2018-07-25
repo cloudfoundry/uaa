@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
@@ -207,6 +208,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @After
     public void resetAllowQueryString() throws Exception {
         getWebApplicationContext().getBean(UaaTokenEndpoint.class).setAllowQueryString(allowQueryString);
+    }
+
+
+    @After
+    public void resetRefreshTokenCreator() throws Exception {
+        RefreshTokenCreator bean = getWebApplicationContext().getBean(RefreshTokenCreator.class);
+        bean.setRestrictRefreshGrant(false);
     }
 
     @Override
@@ -1508,14 +1516,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void refreshTokenIssued_whenScopeIsPresent_andRestrictedOnGrantType() throws Exception {
-        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        RefreshTokenCreator bean = getWebApplicationContext().getBean(RefreshTokenCreator.class);
         bean.setRestrictRefreshGrant(true);
         String clientId = "testclient"+ generator.generate();
-        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        String scopes = "openid,uaa.user,scim.me,uaa.offline_token";
         setUpClients(clientId, "", scopes, "password,refresh_token", true);
 
         String username = "testuser"+ generator.generate();
-        String userScopes = UaaTokenServices.UAA_REFRESH_TOKEN;
+        String userScopes = "uaa.offline_token";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
@@ -1528,19 +1536,18 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get(REFRESH_TOKEN));
-        bean.setRestrictRefreshGrant(false);
     }
 
     @Test
     public void refreshAccessToken_whenScopeIsPresent_andRestrictedOnGrantType() throws Exception {
-        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        RefreshTokenCreator bean = getWebApplicationContext().getBean(RefreshTokenCreator.class);
         bean.setRestrictRefreshGrant(true);
         String clientId = "testclient"+ generator.generate();
-        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        String scopes = "openid,uaa.user,scim.me,uaa.offline_token";
         setUpClients(clientId, "", scopes, "password,refresh_token", true);
 
         String username = "testuser"+ generator.generate();
-        String userScopes = UaaTokenServices.UAA_REFRESH_TOKEN;
+        String userScopes = "uaa.offline_token";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
@@ -1561,7 +1568,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
         getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
-        bean.setRestrictRefreshGrant(false);
     }
 
     @Test

@@ -13,15 +13,16 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
+import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
@@ -47,6 +48,8 @@ public class RefreshTokenCreator {
     private boolean isRestrictRefreshGrant;
     private TokenValidityResolver refreshTokenValidityResolver;
     private TokenEndpointBuilder tokenEndpointBuilder;
+
+    private final String UAA_REFRESH_TOKEN = "uaa.offline_token";
 
     public RefreshTokenCreator(boolean isRestrictRefreshGrant,
                                TokenValidityResolver refreshTokenValidityResolver,
@@ -187,5 +190,15 @@ public class RefreshTokenCreator {
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }
+    }
+
+    public void ensureRefreshTokenCreationNotRestricted(ArrayList<String> tokenScopes) {
+        if (isRestrictRefreshGrant && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
+            throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
+        }
+    }
+
+    public void setRestrictRefreshGrant(boolean isRestrictRefreshGrant) {
+        this.isRestrictRefreshGrant = isRestrictRefreshGrant;
     }
 }

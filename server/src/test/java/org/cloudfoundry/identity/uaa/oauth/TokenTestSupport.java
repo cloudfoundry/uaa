@@ -68,7 +68,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -113,7 +112,7 @@ public class TokenTestSupport {
         UaaAuthority.authority(OPENID),
         UaaAuthority.authority(READ),
         UaaAuthority.authority(WRITE),
-        UaaAuthority.authority(UAA_REFRESH_TOKEN));
+        UaaAuthority.authority("uaa.offline_token"));
 
     UaaUser defaultUser  =
         new UaaUser(
@@ -170,6 +169,7 @@ public class TokenTestSupport {
     TokenPolicy tokenPolicy;
     RevocableTokenProvisioning tokenProvisioning;
     final Map<String, RevocableToken> tokens = new HashMap<>();
+    private final RefreshTokenCreator refreshTokenCreator;
 
     public void clear() {
         tokens.clear();
@@ -211,14 +211,14 @@ public class TokenTestSupport {
         defaultClient = new BaseClientDetails(
             CLIENT_ID,
             SCIM+","+CLIENTS,
-            READ+","+WRITE+","+OPENID+","+UAA_REFRESH_TOKEN,
+            READ+","+WRITE+","+OPENID+",uaa.offline_token",
             ALL_GRANTS_CSV,
             CLIENT_AUTHORITIES);
 
         clientWithoutRefreshToken = new BaseClientDetails(
             CLIENT_ID_NO_REFRESH_TOKEN_GRANT,
             SCIM+","+CLIENTS,
-            READ+","+WRITE+","+OPENID+","+UAA_REFRESH_TOKEN,
+            READ+","+WRITE+","+OPENID+",uaa.offline_token",
             AUTHORIZATION_CODE,
             CLIENT_AUTHORITIES);
 
@@ -271,7 +271,7 @@ public class TokenTestSupport {
         tokenServices.setIdTokenCreator(idTokenCreator);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
-        RefreshTokenCreator refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder);
+        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder);
         tokenServices.setRefreshTokenCreator(refreshTokenCreator);
         tokenServices.afterPropertiesSet();
     }
@@ -327,5 +327,9 @@ public class TokenTestSupport {
 
     public void copyClients(String fromZoneId, String toZoneId) {
         getClientDetailsService().setClientDetailsStore(toZoneId, getClientDetailsService().getInMemoryService(fromZoneId));
+    }
+
+    public RefreshTokenCreator getRefreshTokenCreator() {
+        return refreshTokenCreator;
     }
 }

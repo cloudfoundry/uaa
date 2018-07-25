@@ -134,7 +134,6 @@ import static org.springframework.util.StringUtils.hasText;
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
                 InitializingBean, ApplicationEventPublisherAware {
 
-    public static final String UAA_REFRESH_TOKEN = "uaa.offline_token";
     private final Log logger = LogFactory.getLog(getClass());
 
     private UaaUserDatabase userDatabase = null;
@@ -150,8 +149,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private RevocableTokenProvisioning tokenProvisioning;
 
     private Set<String> excludedClaims = Collections.EMPTY_SET;
-
-    private boolean restrictRefreshGrant;
 
     private UaaTokenEnhancer uaaTokenEnhancer = null;
     private IdTokenCreator idTokenCreator;
@@ -208,9 +205,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(claims);
 
-        if (isRestrictRefreshGrant() && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
-            throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
-        }
+        refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
         String clientId = (String) claims.get(CID);
         if (clientId == null || !clientId.equals(request.getClientId())) {
@@ -972,14 +967,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public TokenPolicy getTokenPolicy() {
         return tokenPolicy;
-    }
-
-    public boolean isRestrictRefreshGrant() {
-        return restrictRefreshGrant;
-    }
-
-    public void setRestrictRefreshGrant(boolean restrictRefreshGrant) {
-        this.restrictRefreshGrant = restrictRefreshGrant;
     }
 
     public void setIdTokenCreator(IdTokenCreator idTokenCreator) {

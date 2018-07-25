@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -56,7 +55,6 @@ import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshTo
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -65,10 +63,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -98,7 +93,6 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PROFILE;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ROLES;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
@@ -142,7 +136,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -167,7 +160,6 @@ public class UaaTokenServicesTests {
 
     private Calendar expiresAt = Calendar.getInstance();
     private Calendar updatedAt = Calendar.getInstance();
-
 
     public UaaTokenServicesTests(TestTokenEnhancer enhancer, String testname) {
         this.tokenEnhancer = enhancer;
@@ -195,7 +187,6 @@ public class UaaTokenServicesTests {
 
         tokenServices = tokenSupport.getUaaTokenServices();
         tokenProvisioning = tokenSupport.getTokenProvisioning();
-
     }
 
     @After
@@ -307,18 +298,6 @@ public class UaaTokenServicesTests {
         assertEquals(RevocableToken.TokenFormat.OPAQUE.name(), rt.getAllValues().get(0).getFormat());
         assertEquals("refresh-token-value", rt.getAllValues().get(0).getValue());
         assertNotEquals("refresh-token-value", result.getRefreshToken().getValue());
-    }
-
-    @Test
-    public void null_issuer_should_fail() throws URISyntaxException {
-        tokenServices = new UaaTokenServices();
-        tokenServices.setClientDetailsService(mock(ClientServicesExtension.class));
-        try {
-            tokenServices.afterPropertiesSet();
-            fail();
-        } catch (IllegalArgumentException x) {
-            assertTrue(x.getMessage().contains("issuer must be set"));
-        }
     }
 
     @Test
@@ -1164,20 +1143,6 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void refreshTokenNotCreatedIfGrantTypeRestricted() {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setRequestParameters(azParameters);
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), tokenSupport.defaultUserAuthentication);
-        tokenServices.setRestrictRefreshGrant(true);
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-
-        assertThat(accessToken.getRefreshToken(), is(nullValue()));
-    }
-
-    @Test
     public void testCreateAccessTokenImplicitGrant() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
@@ -1707,61 +1672,6 @@ public class UaaTokenServicesTests {
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
-    }
-
-    @Test
-    public void refreshAccessTokenWithGrantTypeRestricted() {
-        expectedEx.expect(InsufficientScopeException.class);
-        expectedEx.expectMessage("Expected scope "+ UAA_REFRESH_TOKEN+" is missing");
-
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setRequestParameters(azParameters);
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), tokenSupport.defaultUserAuthentication);
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-
-        AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.readScope);
-        reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
-
-        tokenServices.setRestrictRefreshGrant(true);
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(reducedScopeAuthorizationRequest, "refresh_token"));
-    }
-
-    @Test
-    public void refreshAccessTokenWithGrantTypeRestricted_butRefreshScopePresent() {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, Arrays.asList(UAA_REFRESH_TOKEN));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setRequestParameters(azParameters);
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), tokenSupport.defaultUserAuthentication);
-        tokenServices.setRestrictRefreshGrant(true);
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-
-        AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID, null);
-        reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
-
-        expiresAt.add(Calendar.MILLISECOND, 300000);
-        updatedAt.add(Calendar.MILLISECOND, -1000);
-        tokenSupport.approvalStore.addApproval(new Approval()
-            .setUserId(tokenSupport.userId)
-            .setClientId(CLIENT_ID)
-            .setScope(UAA_REFRESH_TOKEN)
-            .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(updatedAt.getTime()), IdentityZoneHolder.get().getId());
-
-        tokenServices.setRestrictRefreshGrant(true);
-        OAuth2AccessToken refresh_token = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(reducedScopeAuthorizationRequest, "refresh_token"));
-        assertNotNull(refresh_token);
     }
 
     @Test

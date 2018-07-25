@@ -556,7 +556,6 @@
         <property name="tokenPolicy" ref="globalTokenPolicy"/>
         <property name="excludedClaims" ref="excludedClaims"/>
         <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
-        <property name="restrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
         <property name="accessTokenValidityResolver" ref="accessTokenValidityResolver" />
     </bean>
 
