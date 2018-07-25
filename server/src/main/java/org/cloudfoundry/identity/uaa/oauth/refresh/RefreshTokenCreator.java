@@ -10,17 +10,14 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
-import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
-import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
-import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
@@ -42,6 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.springframework.util.StringUtils.hasText;
 
 public class RefreshTokenCreator {
@@ -59,117 +57,83 @@ public class RefreshTokenCreator {
         this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 
-    public ExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
-                                                          String tokenId,
-                                                          OAuth2Authentication authentication,
-                                                          String revocableHashSignature,
-                                                          boolean revocable,
-                                                          Map<String,Object> externalAttributes) {
+    public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
+                                                         RefreshTokenRequestData tokenRequestData,
+                                                         String revocableHashSignature) {
 
-        String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
-        Set<String> scope = authentication.getOAuth2Request().getScope();
+        String grantType = tokenRequestData.grantType;
+        Set<String> scope = tokenRequestData.scopes;
         if (!isRefreshTokenSupported(grantType, scope)) {
             return null;
         }
 
-        Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(authentication
-            .getOAuth2Request().getRequestParameters().get("authorities"));
+        Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(tokenRequestData.authorities);
 
-        Date validitySeconds = refreshTokenValidityResolver.resolve(authentication.getOAuth2Request().getClientId());
-        ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId, validitySeconds);
+        Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId);
+        String tokenId = UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX;
 
+        String jwtToken = buildJwtToken(user, tokenRequestData, revocableHashSignature, grantType, additionalAuthorizationAttributes, expirationDate, tokenId);
+
+        return new CompositeExpiringOAuth2RefreshToken(jwtToken, expirationDate, tokenId);
+    }
+
+    private String buildJwtToken(UaaUser user, RefreshTokenRequestData tokenRequestData, String revocableHashSignature, String grantType, Map<String, String> additionalAuthorizationAttributes, Date expirationDate, String tokenId) {
         String content;
         try {
+
+            Map<String, Object> response = new LinkedHashMap<>();
+
+            response.put(JTI, tokenId);
+            response.put(SUB, user.getId());
+            response.put(GRANTED_SCOPES, tokenRequestData.scopes);
+            if (null != additionalAuthorizationAttributes) {
+                response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+            }
+            if (null != tokenRequestData.externalAttributes) {
+                response.putAll(tokenRequestData.externalAttributes);
+            }
+
+            response.put(IAT, System.currentTimeMillis() / 1000);
+            response.put(EXP, expirationDate.getTime() / 1000);
+
+            response.put(CID, tokenRequestData.clientId);
+            response.put(CLIENT_ID, tokenRequestData.clientId);
+            if (tokenEndpointBuilder.getTokenEndpoint() != null) {
+                response.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+                response.put(ZONE_ID, IdentityZoneHolder.get().getId());
+            }
+
+            if (tokenRequestData.revocable) {
+                response.put(ClaimConstants.REVOCABLE, true);
+            }
+
+            if (null != grantType) {
+                response.put(GRANT_TYPE, grantType);
+            }
+            if (user != null) {
+                response.put(USER_NAME, user.getUsername());
+                response.put(ORIGIN, user.getOrigin());
+                response.put(USER_ID, user.getId());
+            }
+
+            if (hasText(revocableHashSignature)) {
+                response.put(REVOCATION_SIGNATURE, revocableHashSignature);
+            }
+
+            response.put(AUD, tokenRequestData.resourceIds);
+
             content = JsonUtils.writeValueAsString(
-                createJWTRefreshToken(
-                    token,
-                    tokenId,
-                    user,
-                    authentication.getOAuth2Request().getScope(),
-                    authentication.getOAuth2Request().getClientId(),
-                    grantType,
-                    additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds(),
-                    revocableHashSignature,
-                    revocable,
-                    externalAttributes
-                )
+                response
             );
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
-
-        ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
-
-        return refreshToken;
+        return JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
     }
 
     private KeyInfo getActiveKeyInfo() {
         return ofNullable(KeyInfo.getActiveKey())
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
-    }
-
-    private Map<String, ?> createJWTRefreshToken(
-        OAuth2RefreshToken token,
-        String tokenId,
-        UaaUser user,
-        Set<String> scopes,
-        String clientId,
-        String grantType,
-        Map<String, String> additionalAuthorizationAttributes,
-        Set<String> resourceIds,
-        String revocableSignature,
-        boolean revocable,
-        Map<String, Object> externalAttributes) {
-
-        Map<String, Object> response = new LinkedHashMap<>();
-
-        response.put(JTI, tokenId);
-        response.put(SUB, user.getId());
-        response.put(GRANTED_SCOPES, scopes);
-        if (null != additionalAuthorizationAttributes) {
-            response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
-        }
-        if (null != externalAttributes) {
-            response.putAll(externalAttributes);
-        }
-
-        response.put(IAT, System.currentTimeMillis() / 1000);
-        if (((ExpiringOAuth2RefreshToken) token).getExpiration() != null) {
-            response.put(EXP, ((ExpiringOAuth2RefreshToken) token).getExpiration().getTime() / 1000);
-        }
-
-        response.put(CID, clientId);
-        response.put(CLIENT_ID, clientId);
-        if (getTokenEndpoint() != null) {
-            response.put(ISS, getTokenEndpoint());
-            response.put(ZONE_ID, IdentityZoneHolder.get().getId());
-        }
-
-        if (revocable) {
-            response.put(ClaimConstants.REVOCABLE, true);
-        }
-
-        if (null != grantType) {
-            response.put(GRANT_TYPE, grantType);
-        }
-        if (user!=null) {
-            response.put(USER_NAME, user.getUsername());
-            response.put(ORIGIN, user.getOrigin());
-            response.put(USER_ID, user.getId());
-        }
-
-        if (hasText(revocableSignature)) {
-            response.put(REVOCATION_SIGNATURE, revocableSignature);
-        }
-
-        response.put(AUD, resourceIds);
-
-        return response;
-    }
-
-    private String getTokenEndpoint() {
-        return tokenEndpointBuilder.getTokenEndpoint();
     }
 
     /**

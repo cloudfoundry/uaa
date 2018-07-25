@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
@@ -51,7 +52,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
@@ -201,13 +201,12 @@ public class UaaTokenServicesTests {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(false);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",
-                                                                          "rid",
-                                                                          persistToken,
-                                                                          new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                                                                          "clientId",
-                                                                          "userId",
-                                                                          true,
-                                                                          true);
+            persistToken,
+            new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, "rid"),
+            "clientId",
+            "userId",
+            true,
+            true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
@@ -227,13 +226,12 @@ public class UaaTokenServicesTests {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(true);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         tokenServices.persistRevocableToken("id",
-                "rid",
-                persistToken,
-                new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                "clientId",
-                "userId",
-                true,
-                true);
+            persistToken,
+            new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+            "clientId",
+            "userId",
+            true,
+            true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
         verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
@@ -245,13 +243,12 @@ public class UaaTokenServicesTests {
     public void test_refresh_token_not_unique_when_set_to_false() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(false);
         tokenServices.persistRevocableToken("id",
-                "rid",
-                persistToken,
-                new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                "clientId",
-                "userId",
-                true,
-                true);
+            persistToken,
+            new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+            "clientId",
+            "userId",
+            true,
+            true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
@@ -264,13 +261,12 @@ public class UaaTokenServicesTests {
     public void test_jwt_no_token_is_not_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",
-                                                                          "rid",
-                                                                          persistToken,
-                                                                          new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                                                                          "clientId",
-                                                                          "userId",
-                                                                          false,
-                                                                          false);
+            persistToken,
+            new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+            "clientId",
+            "userId",
+            false,
+            false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, never()).create(rt.capture(), anyString());
@@ -282,13 +278,12 @@ public class UaaTokenServicesTests {
     public void test_opaque_refresh_token_is_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         CompositeAccessToken result = tokenServices.persistRevocableToken("id",
-                                                                          "rid",
-                                                                          persistToken,
-                                                                          new DefaultExpiringOAuth2RefreshToken("refresh-token-value", expiration),
-                                                                          "clientId",
-                                                                          "userId",
-                                                                          false,
-                                                                          false);
+            persistToken,
+            new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+            "clientId",
+            "userId",
+            false,
+            false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());

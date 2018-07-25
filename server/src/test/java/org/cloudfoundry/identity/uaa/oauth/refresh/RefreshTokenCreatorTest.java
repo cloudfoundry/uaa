@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.refresh;
 
 import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -10,13 +11,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-
-import java.util.HashMap;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -59,16 +55,11 @@ public class RefreshTokenCreatorTest {
             .withUsername("spongebob")
             .withOrigin("uaa")
         );
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest("someclient", Lists.newArrayList());
-        authorizationRequest.setRequestParameters(new HashMap() {{
-            put("grant_type", "refresh_token");
-        }});
 
-        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(new UaaPrincipal(user), "n/a", null);
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), usernamePasswordAuthenticationToken);
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", Sets.newHashSet(), null, Sets.newHashSet(), "someclient", false, Maps.newHashMap());
 
         refreshTokenCreator.setRestrictRefreshGrant(true);
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, "jti", authentication, "abcdef", false, null);
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
         assertThat(refreshToken, is(nullValue()));
     }
