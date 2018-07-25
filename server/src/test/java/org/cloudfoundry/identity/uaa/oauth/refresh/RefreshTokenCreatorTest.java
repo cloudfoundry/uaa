@@ -59,7 +59,7 @@ public class RefreshTokenCreatorTest {
             .withUsername("spongebob")
             .withOrigin("uaa")
         );
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest("someclient", Lists.newArrayList("uaa.offline_token"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest("someclient", Lists.newArrayList());
         authorizationRequest.setRequestParameters(new HashMap() {{
             put("grant_type", "refresh_token");
         }});
