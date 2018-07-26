@@ -1,9 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.refresh;
 
-import org.cloudfoundry.identity.uaa.oauth.AuthorizationAttributesParser;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
-import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
-import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
+import org.cloudfoundry.identity.uaa.oauth.*;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -20,22 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -80,12 +62,14 @@ public class RefreshTokenCreator {
     private String buildJwtToken(UaaUser user, RefreshTokenRequestData tokenRequestData, String revocableHashSignature, String grantType, Map<String, String> additionalAuthorizationAttributes, Date expirationDate, String tokenId) {
         String content;
         try {
-
             Map<String, Object> response = new LinkedHashMap<>();
 
             response.put(JTI, tokenId);
             response.put(SUB, user.getId());
             response.put(GRANTED_SCOPES, tokenRequestData.scopes);
+            if (null != tokenRequestData.authTime) {
+                response.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
+            }
             if (null != additionalAuthorizationAttributes) {
                 response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
             }

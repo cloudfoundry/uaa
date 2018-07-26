@@ -54,7 +54,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
-import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -193,12 +192,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         TokenValidation tokenValidation = validateToken(refreshTokenValue, false);
-        Map<String, Object> claims = new HashMap<String,Object>(tokenValidation.getClaims()) {
-            @Override
-            public Object get(Object key) {
-                return super.remove(key);
-            }
-        };
+        Map<String, Object> claims = tokenValidation.getClaims();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
@@ -291,7 +285,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 accessTokenId,
                 user.getId(),
                 user,
-                (claims.get(AUTH_TIME) != null) ? new Date(((Long) claims.get(AUTH_TIME)) * 1000l) : null,
+                AuthTimeDateConverter.authTimeToDate((Integer) claims.get(AUTH_TIME)),
                 null,
                 requestedScopes,
                 clientId,
@@ -312,7 +306,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate), refreshTokenId);
         return persistRevocableToken(accessTokenId, accessToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
-
     }
 
     private void checkForApproval(String userid,
@@ -604,6 +597,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 oAuth2Request.getResourceIds(),
                 oAuth2Request.getClientId(),
                 refreshTokenRevocable,
+                userAuthenticationTime,
                 additionalRootClaims
             );
             refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, revocableHashSignature);
