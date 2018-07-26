@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import org.cloudfoundry.identity.uaa.oauth.AuthTimeDateConverter;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -147,10 +148,7 @@ public class IdToken {
 
     @JsonProperty(AUTH_TIME)
     public Long getAuthTimeInSeconds() {
-        if (authTime == null) {
-            return null;
-        }
-        return authTime.getTime() / 1000;
+        return AuthTimeDateConverter.dateToAuthTime(authTime);
     }
 
     @JsonProperty(USER_ID)
