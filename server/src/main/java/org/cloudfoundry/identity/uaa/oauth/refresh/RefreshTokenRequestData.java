@@ -7,6 +7,7 @@ import java.util.Set;
 public class RefreshTokenRequestData {
     public final String grantType;
     public final Set<String> scopes;
+    public final Set<String> authenticationMethods;
     public final String authorities;
     public final Set<String> resourceIds;
     public final String clientId;
@@ -16,7 +17,7 @@ public class RefreshTokenRequestData {
 
     public RefreshTokenRequestData(String grantType,
                                    Set<String> scopes,
-                                   String authorities,
+                                   Set<String> authenticationMethods, String authorities,
                                    Set<String> resourceIds,
                                    String clientId,
                                    boolean revocable,
@@ -24,6 +25,7 @@ public class RefreshTokenRequestData {
                                    Map<String, Object> externalAttributes) {
         this.grantType = grantType;
         this.scopes = scopes;
+        this.authenticationMethods = authenticationMethods;
         this.authorities = authorities;
         this.resourceIds = resourceIds;
         this.clientId = clientId;

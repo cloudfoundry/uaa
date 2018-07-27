@@ -10,19 +10,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.springframework.util.StringUtils.hasText;
 
 public class RefreshTokenCreator {
@@ -68,7 +60,18 @@ public class RefreshTokenCreator {
 
             response.put(JTI, tokenId);
             response.put(SUB, user.getId());
+            response.put(IAT, timeService.getCurrentTimeMillis() / 1000);
+            response.put(EXP, expirationDate.getTime() / 1000);
+            response.put(CID, tokenRequestData.clientId);
+            response.put(CLIENT_ID, tokenRequestData.clientId);
+            response.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+            response.put(ZONE_ID, IdentityZoneHolder.get().getId());
+            response.put(AUD, tokenRequestData.resourceIds);
             response.put(GRANTED_SCOPES, tokenRequestData.scopes);
+
+            if (null != tokenRequestData.authenticationMethods && !tokenRequestData.authenticationMethods.isEmpty()) {
+                response.put(AMR, tokenRequestData.authenticationMethods);
+            }
             if (null != tokenRequestData.authTime) {
                 response.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
             }
@@ -78,39 +81,24 @@ public class RefreshTokenCreator {
             if (null != tokenRequestData.externalAttributes) {
                 response.putAll(tokenRequestData.externalAttributes);
             }
-
-            response.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-            response.put(EXP, expirationDate.getTime() / 1000);
-
-            response.put(CID, tokenRequestData.clientId);
-            response.put(CLIENT_ID, tokenRequestData.clientId);
-            if (tokenEndpointBuilder.getTokenEndpoint() != null) {
-                response.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
-                response.put(ZONE_ID, IdentityZoneHolder.get().getId());
+            if (null != grantType) {
+                response.put(GRANT_TYPE, grantType);
+            }
+            if (null != user) {
+                response.put(USER_NAME, user.getUsername());
+                response.put(ORIGIN, user.getOrigin());
+                response.put(USER_ID, user.getId());
             }
 
             if (tokenRequestData.revocable) {
                 response.put(ClaimConstants.REVOCABLE, true);
             }
 
-            if (null != grantType) {
-                response.put(GRANT_TYPE, grantType);
-            }
-            if (user != null) {
-                response.put(USER_NAME, user.getUsername());
-                response.put(ORIGIN, user.getOrigin());
-                response.put(USER_ID, user.getId());
-            }
-
             if (hasText(revocableHashSignature)) {
                 response.put(REVOCATION_SIGNATURE, revocableHashSignature);
             }
 
-            response.put(AUD, tokenRequestData.resourceIds);
-
-            content = JsonUtils.writeValueAsString(
-                response
-            );
+            content = JsonUtils.writeValueAsString(response);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }

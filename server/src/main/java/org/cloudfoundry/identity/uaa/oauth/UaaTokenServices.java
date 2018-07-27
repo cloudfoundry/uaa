@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -60,11 +61,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
@@ -72,19 +69,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -92,34 +77,10 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITIES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
 import static org.springframework.util.StringUtils.hasText;
@@ -194,40 +155,31 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         TokenValidation tokenValidation = validateToken(refreshTokenValue, false);
-        Map<String, Object> claims = tokenValidation.getClaims();
+        Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
-        ArrayList<String> tokenScopes = getScopesFromRefreshToken(claims);
+        ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
 
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
-        String clientId = (String) claims.get(CID);
+        String clientId = (String) refreshTokenClaims.get(CID);
         if (clientId == null || !clientId.equals(request.getClientId())) {
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
-        //remove known claims
-        claims.remove(CLIENT_ID);
-        claims.remove(ORIGIN);
-        claims.remove(SUB);
-        claims.remove(ISS);
-        claims.remove(USER_NAME);
-        claims.remove(ZONE_ID);
-        claims.remove(IAT);
 
-        String userid = (String) claims.get(USER_ID);
-
-        String refreshTokenId = (String) claims.get(JTI);
+        String userid = (String) refreshTokenClaims.get(USER_ID);
+        String refreshTokenId = (String) refreshTokenClaims.get(JTI);
         String accessTokenId = generateUniqueTokenId();
 
         boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
-        Boolean revocableClaim = (Boolean)claims.get(REVOCABLE);
+        Boolean revocableClaim = (Boolean)refreshTokenClaims.get(REVOCABLE);
         boolean revocable = opaque || (revocableClaim == null ? false : revocableClaim);
 
         UaaUser user = userDatabase.retrieveUserById(userid);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
-        Integer refreshTokenExpiry = (Integer) claims.get(EXP);
+        Integer refreshTokenExpiry = (Integer) refreshTokenClaims.get(EXP);
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
         if (new Date(refreshTokenExpireDate).before(new Date(timeService.getCurrentTimeMillis()))) {
@@ -251,17 +203,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // is in the refresh token
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
-        String grantType = claims.get(GRANT_TYPE).toString();
+        String grantType = refreshTokenClaims.get(GRANT_TYPE).toString();
         checkForApproval(userid, clientId, requestedScopes,
                         getAutoApprovedScopes(grantType, tokenScopes, client)
         );
 
-        String nonce = (String) claims.get(NONCE);
+        String nonce = (String) refreshTokenClaims.get(NONCE);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
+        Map<String, String> additionalAuthorizationInfo = (Map<String, String>) refreshTokenClaims.get(ADDITIONAL_AZ_ATTR);
 
-        String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
+        String revocableHashSignature = (String)refreshTokenClaims.get(REVOCATION_SIGNATURE);
         if (hasText(revocableHashSignature)) {
             String clientSecretForHash = client.getClientSecret();
             if(clientSecretForHash != null && clientSecretForHash.split(" ").length > 1){
@@ -273,46 +225,44 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
+        Set<String> audience = new HashSet<>((ArrayList<String>)refreshTokenClaims.get(AUD));
 
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        claims.entrySet()
+        refreshTokenClaims.entrySet()
             .stream()
             .forEach(
                 entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
             );
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(
-                null,
-                null,
+                AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
+                Sets.newHashSet((ArrayList <String>) refreshTokenClaims.get(AMR)),
                 null,
                 requestedScopes,
                 null,
                 null,
                 nonce,
                 grantType,
-                null);
+                generateUniqueTokenId());
 
+        Collection<GrantedAuthority> clientScopes = getClientPermissions(client);
         CompositeAccessToken accessToken =
             createCompositeAccessToken(
-                accessTokenId,
-                user.getId(),
-                user,
-                AuthTimeDateConverter.authTimeToDate((Integer) claims.get(AUTH_TIME)),
-                null,
-                requestedScopes,
-                clientId,
-                audience /*request.createOAuth2Request(client).getResourceIds()*/,
-                grantType,
-                refreshTokenValue,
-                nonce,
-                additionalAuthorizationInfo,
-                additionalRootClaims,
-                new HashSet<>(),
-                revocableHashSignature,
-                false,
-                revocable,
-                authenticationData);
+                    accessTokenId,
+                    user.getId(),
+                    user,
+                    AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
+                    clientScopes,
+                    clientId,
+                    audience /*request.createOAuth2Request(client).getResourceIds()*/,
+                    refreshTokenValue,
+                    additionalAuthorizationInfo,
+                    additionalRootClaims,
+                    new HashSet<>(),
+                    revocableHashSignature,
+                    false,
+                    revocable,
+                    authenticationData);
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate), refreshTokenId);
         return persistRevocableToken(accessTokenId, accessToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
@@ -358,12 +308,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                             UaaUser user,
                                                             Date userAuthenticationTime,
                                                             Collection<GrantedAuthority> clientScopes,
-                                                            Set<String> requestedScopes,
                                                             String clientId,
                                                             Set<String> resourceIds,
-                                                            String grantType,
                                                             String refreshToken,
-                                                            String nonce,
                                                             Map<String, String> additionalAuthorizationAttributes,
                                                             Map<String, Object> additionalRootClaims,
                                                             Set<String> responseTypes,
@@ -374,6 +321,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeAccessToken compositeAccessToken = new CompositeAccessToken(tokenId);
         compositeAccessToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
         compositeAccessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
+
+        Set<String> requestedScopes = userAuthenticationData.scopes;
+        String grantType = userAuthenticationData.grantType;
 
         if (null == requestedScopes || requestedScopes.size() == 0) {
             logger.debug("No scopes were granted");
@@ -388,6 +338,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
 
+        String nonce = userAuthenticationData.nonce;
         if (nonce != null) {
             info.put(NONCE, nonce);
         }
@@ -551,10 +502,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (authentication.isClientOnly()) {
             clientScopes = client.getAuthorities();
         } else {
-            clientScopes = new ArrayList<GrantedAuthority>();
-            for(String scope : client.getScope()) {
-                clientScopes.add(new XOAuthUserAuthority(scope));
-            }
+            clientScopes = getClientPermissions(client);
             userId = getUserId(authentication);
             user = userDatabase.retrieveUserById(userId);
             if (authentication.getUserAuthentication() instanceof UaaAuthentication) {
@@ -590,6 +538,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                 oAuth2Request.getGrantType(),
                 oAuth2Request.getScope(),
+                authenticationMethods,
                 oAuth2Request.getRequestParameters().get("authorities"),
                 oAuth2Request.getResourceIds(),
                 oAuth2Request.getClientId(),
@@ -647,13 +596,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 user,
                 userAuthenticationTime,
                 clientScopes,
-                modifiableUserScopes,
-                clientId,
+                    clientId,
                 oAuth2Request.getResourceIds(),
-                grantType,
-                refreshToken != null ? refreshToken.getValue() : null,
-                nonce,
-                additionalAuthorizationAttributes,
+                    refreshToken != null ? refreshToken.getValue() : null,
+                    additionalAuthorizationAttributes,
                 additionalRootClaims,
                 responseTypes,
                 revocableHashSignature,
@@ -662,6 +608,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     authenticationData);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, opaque, accessTokenRevocable);
+    }
+
+    private Collection<GrantedAuthority> getClientPermissions(ClientDetails client) {
+        Collection<GrantedAuthority> clientScopes;
+        clientScopes = new ArrayList<GrantedAuthority>();
+        for(String scope : client.getScope()) {
+            clientScopes.add(new XOAuthUserAuthority(scope));
+        }
+        return clientScopes;
     }
 
     public static void validateRequiredUserGroups(UaaUser user, ClientDetails client) {

@@ -3,30 +3,30 @@ package org.cloudfoundry.identity.uaa.oauth.refresh;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +64,7 @@ public class RefreshTokenCreatorTest {
     }
 
     @Test
-    public void refreshToken_includesAuthTime() {
+    public void refreshToken_includesClaimsNeededToBuildIdTokens() {
         UaaUser user = new UaaUser(new UaaUserPrototype()
             .withId("id")
             .withEmail("spongebob@krustykrab.com")
@@ -75,17 +75,19 @@ public class RefreshTokenCreatorTest {
         HashSet<String> scopes = Sets.newHashSet();
         HashSet<String> resourceIds = Sets.newHashSet();
         HashMap<String, Object> externalAttributes = Maps.newHashMap();
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", scopes, null, resourceIds, "someclient", false, authTime, externalAttributes);
+        HashSet<String> authenticationMethods = Sets.newHashSet("pwd");
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", scopes, authenticationMethods, null, resourceIds, "someclient", false, authTime, externalAttributes);
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
         assertThat(UaaTokenUtils.getClaims(refreshToken.getValue()).get(AUTH_TIME), is(1));
+        assertThat((List<String>) UaaTokenUtils.getClaims(refreshToken.getValue()).get(AMR), hasItem("pwd"));
     }
 
     @Test
-    public void refreshToken_ifAuthTimeIsUnknown_omitsTheAuthTimeClaim() {
+    public void refreshToken_ifIdTokenClaimsAreUnknown_omitsThem() {
         // This is a backwards compatibility case when trying to construct a new refresh token from an old refresh
-        // token issued before auth_time was included in the token claims. We can't show a value for the auth_time
+        // token issued before auth_time, amr, etc were included in the token claims. We can't show a value for the auth_time
         // because we don't know when the user authenticated.
 
         UaaUser user = new UaaUser(new UaaUserPrototype()
@@ -98,11 +100,22 @@ public class RefreshTokenCreatorTest {
         HashSet<String> scopes = Sets.newHashSet();
         HashSet<String> resourceIds = Sets.newHashSet();
         HashMap<String, Object> externalAttributes = Maps.newHashMap();
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", scopes, null, resourceIds, "someclient", false, authTime, externalAttributes);
+        HashSet<String> authenticationMethods = Sets.newHashSet();
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                "refresh_token",
+                scopes,
+                authenticationMethods,
+                null,
+                resourceIds,
+                "someclient",
+                false,
+                authTime,
+                externalAttributes);
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
-        assertThat(UaaTokenUtils.getClaims(refreshToken.getValue()).get(AUTH_TIME), is(nullValue()));
+        assertFalse(UaaTokenUtils.getClaims(refreshToken.getValue()).containsKey(AUTH_TIME));
+        assertFalse(UaaTokenUtils.getClaims(refreshToken.getValue()).containsKey(AMR));
     }
 
     @Test
@@ -114,7 +127,8 @@ public class RefreshTokenCreatorTest {
             .withOrigin("uaa")
         );
 
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", Sets.newHashSet(), null, Sets.newHashSet(), "someclient", false, new Date(), Maps.newHashMap());
+        HashSet<String> authenticationMethods = Sets.newHashSet();
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", Sets.newHashSet(), authenticationMethods, null, Sets.newHashSet(), "someclient", false, new Date(), Maps.newHashMap());
 
         refreshTokenCreator.setRestrictRefreshGrant(true);
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
