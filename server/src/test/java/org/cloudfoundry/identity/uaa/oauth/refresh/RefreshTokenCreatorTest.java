@@ -43,6 +43,7 @@ public class RefreshTokenCreatorTest {
         when(validityResolver.resolve("someclient")).thenReturn(new Date());
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
         refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder);
+        refreshTokenCreator.setTimeService(new TimeServiceImpl() );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret")));
     }

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -177,7 +178,7 @@ public class IdTokenCreatorTest {
         clientDetails.setAdditionalInformation(additionalInfo);
         when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
-        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
+        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), new TimeServiceImpl(), tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
     }
 
     @After

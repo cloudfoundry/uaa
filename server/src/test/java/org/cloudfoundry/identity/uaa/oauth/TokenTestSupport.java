@@ -35,6 +35,8 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -267,7 +269,7 @@ public class TokenTestSupport {
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, new TimeServiceImpl(), accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);

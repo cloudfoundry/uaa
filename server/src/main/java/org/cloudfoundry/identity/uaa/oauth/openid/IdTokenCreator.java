@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -53,16 +54,19 @@ import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableToken
 public class IdTokenCreator {
     private final Log logger = LogFactory.getLog(getClass());
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private TimeService timeService;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
     private ClientServicesExtension clientServicesExtension;
     private Set<String> excludedClaims;
 
     public IdTokenCreator(TokenEndpointBuilder tokenEndpointBuilder,
+                          TimeService timeService,
                           TokenValidityResolver tokenValidityResolver,
                           UaaUserDatabase uaaUserDatabase,
                           ClientServicesExtension clientServicesExtension,
                           Set<String> excludedClaims) {
+        this.timeService = timeService;
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
         this.clientServicesExtension = clientServicesExtension;
@@ -74,7 +78,7 @@ public class IdTokenCreator {
                           String userId,
                           UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
         Date expiryDate = tokenValidityResolver.resolve(clientId);
-        Date issuedAt = DateTime.now().toDate();
+        Date issuedAt = new Date(timeService.getCurrentTimeMillis());
 
         UaaUser uaaUser;
         try {
@@ -147,5 +151,9 @@ public class IdTokenCreator {
             return null;
         }
         return userAuthenticationData.roles;
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 }

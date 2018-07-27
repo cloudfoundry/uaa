@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
@@ -152,6 +153,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private IdTokenCreator idTokenCreator;
     private RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private TimeService timeService;
 
     private TokenValidityResolver accessTokenValidityResolver;
 
@@ -228,7 +230,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Integer refreshTokenExpiry = (Integer) claims.get(EXP);
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
-        if (new Date(refreshTokenExpireDate).before(new Date())) {
+        if (new Date(refreshTokenExpireDate).before(new Date(timeService.getCurrentTimeMillis()))) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireDate));
         }
 
@@ -794,7 +796,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXP).toString());
-        if (expiration != null && new Date(expiration * 1000L).before(new Date())) {
+        if (expiration != null && new Date(expiration * 1000L).before(new Date(timeService.getCurrentTimeMillis()))) {
             throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
         }
 
@@ -986,5 +988,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 }

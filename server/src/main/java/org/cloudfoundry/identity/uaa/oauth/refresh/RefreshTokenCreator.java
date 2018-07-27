@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
@@ -28,6 +29,7 @@ public class RefreshTokenCreator {
     private boolean isRestrictRefreshGrant;
     private TokenValidityResolver refreshTokenValidityResolver;
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private TimeService timeService;
 
     private final String UAA_REFRESH_TOKEN = "uaa.offline_token";
 
@@ -77,7 +79,7 @@ public class RefreshTokenCreator {
                 response.putAll(tokenRequestData.externalAttributes);
             }
 
-            response.put(IAT, System.currentTimeMillis() / 1000);
+            response.put(IAT, timeService.getCurrentTimeMillis() / 1000);
             response.put(EXP, expirationDate.getTime() / 1000);
 
             response.put(CID, tokenRequestData.clientId);
@@ -148,5 +150,9 @@ public class RefreshTokenCreator {
 
     public void setRestrictRefreshGrant(boolean isRestrictRefreshGrant) {
         this.isRestrictRefreshGrant = isRestrictRefreshGrant;
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 }
