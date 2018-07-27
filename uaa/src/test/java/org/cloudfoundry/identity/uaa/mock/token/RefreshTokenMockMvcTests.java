@@ -130,10 +130,10 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         zone.getConfig().getTokenPolicy().setActiveKeyId("key1");
         zone = identityZoneProvisioning.update(zone);
 
-        String clientId = "refresh-" + new RandomValueStringGenerator().generate();
+        String clientId = "refreshclient";
         client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA), 30 * 60, zone);
 
-        String username = "testuser" + new RandomValueStringGenerator().generate();
+        String username = "testuser";
         user = setUpUser(username, "", OriginKeys.UAA, zone.getId());
 
         refreshToken = getRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, zone.getSubdomain() + ".localhost");
@@ -144,6 +144,10 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @After
     public void reset() {
+        zone = zone == null ? IdentityZone.getUaa() : zone;
+        deleteClient(client.getClientId(), zone.getId());
+        deleteUser(user, zone.getId());
+
         IdentityZoneHolder.clear();
     }
 
@@ -271,14 +275,14 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void refreshTokenGrantType_returnsIdToken_toOpenIdClients() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
-        BaseClientDetails openIdClient = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
-        ScimUser user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
-        Map<String, Object> tokenResponse = getTokens(openIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "jwt");
+        client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
+        user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        Map<String, Object> tokenResponse = getTokens(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "jwt");
         String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
         String originalIdTokenJwt = (String) tokenResponse.get(ID_TOKEN);
         when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
 
-        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, openIdClient.getClientId(), SECRET, "localhost");
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
@@ -289,14 +293,14 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void refreshTokenGrantType_returnsIdToken_toOpenIdClients_withOpaqueRefreshToken() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
-        BaseClientDetails openIdClient = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
-        ScimUser user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
-        Map<String, Object> tokenResponse = getTokens(openIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "opaque");
+        client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
+        user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        Map<String, Object> tokenResponse = getTokens(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "opaque");
         String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
         String originalIdTokenJwt = (String) tokenResponse.get(ID_TOKEN);
         when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
 
-        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, openIdClient.getClientId(), SECRET, "localhost");
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
@@ -323,11 +327,11 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void refreshTokenGrantType_doesNotReturnIdToken_toNonOpenIdClients() throws Exception {
-        BaseClientDetails nonOpenIdClient = setUpClients("nonopenidclient", "", "scim.me", "password,refresh_token", true);
-        ScimUser user = setUpUser("joe-user", "", OriginKeys.UAA, "uaa");
-        String refreshToken = getRefreshToken(nonOpenIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
+        client = setUpClients("nonopenidclient", "", "scim.me", "password,refresh_token", true);
+        user = setUpUser("joe-user", "", OriginKeys.UAA, "uaa");
+        String refreshToken = getRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
 
-        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, nonOpenIdClient.getClientId(), SECRET, "localhost");
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);

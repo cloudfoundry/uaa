@@ -245,6 +245,14 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         }
     }
 
+    protected void deleteClient(String clientId, String zoneId) {
+        clientDetailsService.removeClientDetails(clientId, zoneId);
+    }
+
+    protected void deleteUser(ScimUser user, String zoneId) {
+        userProvisioning.delete(user.getId(), user.getVersion(), zoneId);
+    }
+
     protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
         IdentityZone original = IdentityZoneHolder.get();
         ScimUser user = new ScimUser(null, username, "GivenName", "FamilyName");
