@@ -627,6 +627,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             accessTokenFieldDescriptor,
+            idTokenFieldDescriptor,
             refreshTokenFieldDescriptor,
             tokenTypeFieldDescriptor,
             expiresInFieldDescriptor,
