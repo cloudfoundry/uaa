@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -129,10 +130,10 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         zone.getConfig().getTokenPolicy().setActiveKeyId("key1");
         zone = identityZoneProvisioning.update(zone);
 
-        String clientId = "refresh-"+new RandomValueStringGenerator().generate();
-        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA), 30*60, zone);
+        String clientId = "refresh-" + new RandomValueStringGenerator().generate();
+        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA), 30 * 60, zone);
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser" + new RandomValueStringGenerator().generate();
         user = setUpUser(username, "", OriginKeys.UAA, zone.getId());
 
         refreshToken = getRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, zone.getSubdomain() + ".localhost");
@@ -205,7 +206,8 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         IdentityZoneHolder.set(zone);
         String token = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()).getValue();
         Jwt jwt = JwtHelper.decode(token);
-        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull(claims.get(ClaimConstants.REVOCABLE));
         assertTrue((Boolean) claims.get(ClaimConstants.REVOCABLE));
     }
@@ -223,26 +225,10 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(1, countTokens(client.getClientId(), user.getId()));
     }
 
-    @Test
-    public void refreshTokenGrantType_returnsIdToken_toOpenIdClients() throws Exception {
-        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
-        BaseClientDetails openIdClient = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
-        ScimUser user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
-        Map<String, Object> tokenResponse = getTokens(openIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
-        String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
-        String originalIdToken = (String) tokenResponse.get(ID_TOKEN);
-
-        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
-        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, openIdClient.getClientId(), SECRET, "localhost");
-
-        assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
-        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
-        String idTokenJwt = compositeAccessToken.getIdTokenValue();
-
-        assertNotNull(idTokenJwt);
-        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken);
-        Map<String, Object> originalIdClaims = UaaTokenUtils.getClaims(originalIdToken);
-        Map<String, Object> idClaims = UaaTokenUtils.getClaims(idTokenJwt);
+    private void assertRefreshIdTokenCorrect(String originalIdTokenJwt, String idTokenJwtFromRefreshGrant) {
+        assertNotNull(idTokenJwtFromRefreshGrant);
+        Map<String, Object> originalIdClaims = UaaTokenUtils.getClaims(originalIdTokenJwt);
+        Map<String, Object> idClaims = UaaTokenUtils.getClaims(idTokenJwtFromRefreshGrant);
 
         // These claims should be the same in the old and new id tokens: auth_time, iss, sub, azp
         // http://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
@@ -252,7 +238,6 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertThat(idClaims.get("iss"), not(nullValue()));
         assertEquals(originalIdClaims.get("iss"), idClaims.get("iss"));
 
-        assertThat(refreshClaims.get("sub"), not(nullValue()));
         assertThat(originalIdClaims.get("sub"), not(nullValue()));
         assertEquals(originalIdClaims.get("sub"), idClaims.get("sub"));
 
@@ -261,7 +246,6 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         // These claims should be different in the old and new id token: iat
         // http://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
-        assertThat(refreshClaims.get("iat"), not(nullValue()));
         assertThat(originalIdClaims.get("iat"), not(nullValue()));
         assertThat(idClaims.get("iat"), not(nullValue()));
         assertNotEquals(originalIdClaims.get("iat"), idClaims.get("iat"));
@@ -284,8 +268,58 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertNotEquals(originalIdClaims.get("jti"), idClaims.get("jti"));
     }
 
-    // TODO: should test with opaque refresh token
-    // TODO: iss should not change in id_token even if admin updates issuer config
+    @Test
+    public void refreshTokenGrantType_returnsIdToken_toOpenIdClients() throws Exception {
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
+        BaseClientDetails openIdClient = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
+        ScimUser user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        Map<String, Object> tokenResponse = getTokens(openIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "jwt");
+        String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
+        String originalIdTokenJwt = (String) tokenResponse.get(ID_TOKEN);
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
+
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, openIdClient.getClientId(), SECRET, "localhost");
+
+        assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
+        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
+        String idTokenJwt = compositeAccessToken.getIdTokenValue();
+        assertRefreshIdTokenCorrect(originalIdTokenJwt, idTokenJwt);
+    }
+
+    @Test
+    public void refreshTokenGrantType_returnsIdToken_toOpenIdClients_withOpaqueRefreshToken() throws Exception {
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
+        BaseClientDetails openIdClient = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
+        ScimUser user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        Map<String, Object> tokenResponse = getTokens(openIdClient.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "opaque");
+        String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
+        String originalIdTokenJwt = (String) tokenResponse.get(ID_TOKEN);
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
+
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, openIdClient.getClientId(), SECRET, "localhost");
+
+        assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
+        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
+        String idTokenJwt = compositeAccessToken.getIdTokenValue();
+        assertRefreshIdTokenCorrect(originalIdTokenJwt, idTokenJwt);
+    }
+
+    @Test
+    public void refreshTokenGrantType_rejectsRefreshTokensIfIssuerHasChanged() throws Exception {
+        createClientAndUserInRandomZone();
+        zone.getConfig().setIssuer("http://fancyissuer.com");
+        identityZoneProvisioning.update(zone);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
+        Map<String, Object> tokenResponse = getTokens(client.getClientId(), SECRET, user.getUserName(), SECRET, zone.getSubdomain() + ".localhost", "jwt");
+        String refreshToken = (String) tokenResponse.get(REFRESH_TOKEN);
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
+        zone.getConfig().setIssuer("http://a.new.issuer.url.com");
+        identityZoneProvisioning.update(zone);
+
+        MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, zone.getSubdomain() + ".localhost");
+
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, refreshResponse.getStatus());
+    }
 
     @Test
     public void refreshTokenGrantType_doesNotReturnIdToken_toNonOpenIdClients() throws Exception {
@@ -301,7 +335,7 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     protected int countTokens(String clientId, String userId) {
-        return template.queryForObject("select count(*) from revocable_tokens where client_id=? and user_id=?", new String[] {clientId, userId}, Integer.class);
+        return template.queryForObject("select count(*) from revocable_tokens where client_id=? and user_id=?", new String[]{clientId, userId}, Integer.class);
     }
 
     protected MockHttpServletResponse useRefreshToken(String refreshToken, String clientId, String clientSecret, String host) throws Exception {
@@ -319,17 +353,18 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     private void validateAccessTokenExists(String refreshResponse) {
-        Map<String,Object> result = JsonUtils.readValue(refreshResponse, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = JsonUtils.readValue(refreshResponse, new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull(result.get(ACCESS_TOKEN));
     }
 
     protected String getRefreshToken(String clientId, String clientSecret, String userName, String password, String host) throws Exception {
-        Map<String, Object> result = getTokens(clientId, clientSecret, userName, password, host);
+        Map<String, Object> result = getTokens(clientId, clientSecret, userName, password, host, "jwt");
         assertNotNull(result.get(REFRESH_TOKEN));
-        return (String)result.get(REFRESH_TOKEN);
+        return (String) result.get(REFRESH_TOKEN);
     }
 
-    private Map<String, Object> getTokens(String clientId, String clientSecret, String userName, String password, String host) throws Exception {
+    private Map<String, Object> getTokens(String clientId, String clientSecret, String userName, String password, String host, String tokenFormat) throws Exception {
         String response = getMockMvc().perform(
                 post("/oauth/token")
                         .header("Host", host)
@@ -340,11 +375,13 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                         .param("username", userName)
                         .param("password", password)
                         .param("client_secret", clientSecret)
+                        .param("token_format", tokenFormat)
                         .param(OAuth2Utils.CLIENT_ID, clientId)
         )
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        return JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        return JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
+        });
     }
 }
