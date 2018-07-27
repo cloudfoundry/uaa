@@ -172,6 +172,7 @@ public class TokenTestSupport {
     RevocableTokenProvisioning tokenProvisioning;
     final Map<String, RevocableToken> tokens = new HashMap<>();
     private final RefreshTokenCreator refreshTokenCreator;
+    public final TimeService timeService;
 
     public void clear() {
         tokens.clear();
@@ -268,11 +269,11 @@ public class TokenTestSupport {
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
-        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
-        TimeServiceImpl timeService = new TimeServiceImpl();
+        timeService = mock(TimeService.class);
+        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
         IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
-        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
+        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
         refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService);
         tokenServices.setRefreshTokenCreator(refreshTokenCreator);

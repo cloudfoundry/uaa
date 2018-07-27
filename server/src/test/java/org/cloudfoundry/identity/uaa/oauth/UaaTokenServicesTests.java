@@ -137,10 +137,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(Parameterized.class)
 public class UaaTokenServicesTests {
@@ -187,6 +184,7 @@ public class UaaTokenServicesTests {
 
         tokenServices = tokenSupport.getUaaTokenServices();
         tokenProvisioning = tokenSupport.getTokenProvisioning();
+        when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
     }
 
     @After
@@ -2045,7 +2043,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertThat(accessToken, validFor(is(1)));
 
-        Thread.sleep(1000l);
+        when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(2001L);
         try {
             tokenServices.loadAuthentication(accessToken.getValue());
             fail("Expected Exception was not thrown");

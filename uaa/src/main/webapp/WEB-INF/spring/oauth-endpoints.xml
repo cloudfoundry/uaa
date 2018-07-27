@@ -518,6 +518,7 @@
     <bean id="accessTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
         <constructor-arg name="clientTokenValidity" ref="clientAccessTokenValidity"/>
         <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <bean id="clientRefreshTokenValidity" class="org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity">
@@ -526,6 +527,7 @@
     <bean id="refreshTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
         <constructor-arg name="clientTokenValidity" ref="clientRefreshTokenValidity"/>
         <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <bean id="idTokenCreator" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator">

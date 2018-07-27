@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -21,17 +22,12 @@ public class TokenValidityResolverTest {
     public void setup() {
         int globalAccessTokenValiditySeconds = 120;
 
-        DateTimeUtils.setCurrentMillisFixed(1000L);
-
         clientTokenValidity = mock(ClientTokenValidity.class);
+        TimeService timeService = mock(TimeService.class);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         when(clientTokenValidity.getValiditySeconds("clientId")).thenReturn(100);
 
-        resolver = new TokenValidityResolver(clientTokenValidity, globalAccessTokenValiditySeconds);
-    }
-
-    @After
-    public void teardown() {
-        DateTimeUtils.setCurrentMillisSystem();
+        resolver = new TokenValidityResolver(clientTokenValidity, globalAccessTokenValiditySeconds, timeService);
     }
 
     @Test

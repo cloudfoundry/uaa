@@ -271,11 +271,12 @@ public class CheckTokenEndpointTests {
             .setExpiresAt(thirtySecondsAhead)
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
+        TimeServiceImpl timeService = new TimeServiceImpl();
         tokenServices.setApprovalStore(approvalStore);
-        tokenServices.setAccessTokenValidityResolver(new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE));
+        tokenServices.setAccessTokenValidityResolver(new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService));
         tokenServices.setRefreshTokenCreator(mock(RefreshTokenCreator.class));
         tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
-        tokenServices.setTimeService(new TimeServiceImpl());
+        tokenServices.setTimeService(timeService);
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =

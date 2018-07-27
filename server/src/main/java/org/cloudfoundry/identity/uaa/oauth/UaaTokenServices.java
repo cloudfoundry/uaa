@@ -465,7 +465,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        claims.put(IAT, System.currentTimeMillis() / 1000);
+        claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
         claims.put(EXP, token.getExpiration().getTime() / 1000);
 
         if (tokenEndpointBuilder.getTokenEndpoint() != null) {
