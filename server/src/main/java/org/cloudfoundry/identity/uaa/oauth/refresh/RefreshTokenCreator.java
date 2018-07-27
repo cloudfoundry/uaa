@@ -19,18 +19,20 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class RefreshTokenCreator {
     private boolean isRestrictRefreshGrant;
-    private TokenValidityResolver refreshTokenValidityResolver;
-    private TokenEndpointBuilder tokenEndpointBuilder;
+    private final TokenValidityResolver refreshTokenValidityResolver;
+    private final TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
 
     private final String UAA_REFRESH_TOKEN = "uaa.offline_token";
 
     public RefreshTokenCreator(boolean isRestrictRefreshGrant,
                                TokenValidityResolver refreshTokenValidityResolver,
-                               TokenEndpointBuilder tokenEndpointBuilder) {
+                               TokenEndpointBuilder tokenEndpointBuilder,
+                               TimeService timeService) {
         this.isRestrictRefreshGrant = isRestrictRefreshGrant;
         this.refreshTokenValidityResolver = refreshTokenValidityResolver;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+        this.timeService = timeService;
     }
 
     public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,

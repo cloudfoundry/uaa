@@ -269,13 +269,15 @@ public class TokenTestSupport {
         tokenServices.setTokenProvisioning(tokenProvisioning);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, new TimeServiceImpl(), accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        TimeServiceImpl timeService = new TimeServiceImpl();
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
         tokenServices.setIdTokenCreator(idTokenCreator);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345);
         tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
-        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder);
+        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService);
         tokenServices.setRefreshTokenCreator(refreshTokenCreator);
         tokenServices.afterPropertiesSet();
+        tokenServices.setTimeService(timeService);
     }
 
     public UaaTokenServices getUaaTokenServices() {

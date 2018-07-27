@@ -541,7 +541,7 @@
         <constructor-arg name="isRestrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <constructor-arg name="refreshTokenValidityResolver" ref="refreshTokenValidityResolver" />
-        <property name="timeService" ref="timeService" />
+        <constructor-arg name="timeService" ref="timeService" />
     </bean>
 
     <bean id="tokenEndpointBuilder" class="org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder">

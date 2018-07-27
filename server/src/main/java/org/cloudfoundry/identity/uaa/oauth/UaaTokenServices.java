@@ -234,9 +234,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
             );
 
+        ArrayList<String> authenticationMethods = (ArrayList<String>) refreshTokenClaims.get(AMR);
         UserAuthenticationData authenticationData = new UserAuthenticationData(
                 AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
-                Sets.newHashSet((ArrayList <String>) refreshTokenClaims.get(AMR)),
+                authenticationMethods == null ? Sets.newHashSet() : Sets.newHashSet(authenticationMethods),
                 null,
                 requestedScopes,
                 null,
