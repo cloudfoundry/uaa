@@ -615,9 +615,6 @@ public class PasswordGrantAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
-        Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
-        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
         Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
 
@@ -635,9 +632,6 @@ public class PasswordGrantAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
-        Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
-        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
         Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa", "ldap"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
 
@@ -648,15 +642,30 @@ public class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
-    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedMultipleIdps() {
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedMultipleIdpsWithUaa() {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider2");
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
-        Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
-        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
         Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa", "oidcprovider"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        instance.authenticate(auth);
+
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
+        ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
+        verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
+        assertNotNull(captor.getValue());
+        assertEquals("uaa", captor.getValue().getOrigin());
+    }
+
+    @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedMultipleIdpsOnlyOIDC() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider3");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("oidcprovider", "oidcprovider2"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
         try {
             instance.authenticate(auth);
             fail();
