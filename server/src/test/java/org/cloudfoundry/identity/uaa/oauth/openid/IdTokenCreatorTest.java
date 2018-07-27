@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
@@ -138,8 +139,7 @@ public class IdTokenCreatorTest {
             .withOrigin(origin)
         );
 
-        DateTimeUtils.setCurrentMillisFixed(1l);
-        iatDate = DateTime.now().toDate();
+        iatDate = new Date(1L);
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
         when(tokenValidityResolver.resolve(clientId)).thenReturn(expDate);
@@ -178,7 +178,9 @@ public class IdTokenCreatorTest {
         clientDetails.setAdditionalInformation(additionalInfo);
         when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
-        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), new TimeServiceImpl(), tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
+        TimeService timeService = mock(TimeService.class);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1L);
+        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), timeService, tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
     }
 
     @After
