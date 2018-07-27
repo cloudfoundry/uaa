@@ -68,21 +68,13 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (uaaLoginHint == null) {
             if (defaultProvider == null) {
                 if (allowedProviders != null) {
-                    if (allowedProviders.size() == 1) {
-                        loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
-                    } else if (!(allowedProviders.size() == 2 && allowedProviders.contains(OriginKeys.UAA) && allowedProviders.contains(OriginKeys.LDAP))) {
-                        throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
-                    }
+                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
                 }
             } else {
                 if (allowedProviders == null || allowedProviders.contains(defaultProvider)) {
                     loginHintToUse = new UaaLoginHint(defaultProvider);
                 } else {
-                    if (allowedProviders.size() == 1) {
-                        loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
-                    } else if (!(allowedProviders.size() == 2 && allowedProviders.contains(OriginKeys.UAA) && allowedProviders.contains(OriginKeys.LDAP))) {
-                        throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
-                    }
+                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
                 }
             }
         } else {
@@ -96,6 +88,22 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else {
             return oidcPasswordGrant(authentication, getOidcIdentityProviderDefinitionForPasswordGrant(loginHintToUse));
         }
+    }
+
+    private UaaLoginHint getUaaLoginHintForChainedAuth(List<String> allowedProviders) {
+        UaaLoginHint loginHintToUse = null;
+        if (allowedProviders.size() == 1) {
+            loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
+        } else if (allowedProviders.contains(OriginKeys.UAA)) {
+            if (!allowedProviders.contains(OriginKeys.LDAP)) {
+                loginHintToUse = new UaaLoginHint(OriginKeys.UAA);
+            }
+        } else if (allowedProviders.contains(OriginKeys.LDAP)) {
+            loginHintToUse = new UaaLoginHint(OriginKeys.LDAP);
+        } else {
+            throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
+        }
+        return loginHintToUse;
     }
 
     private Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
