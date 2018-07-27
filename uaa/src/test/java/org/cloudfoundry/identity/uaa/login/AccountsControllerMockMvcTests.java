@@ -574,7 +574,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
     private BaseClientDetails createTestClient() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
-        clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(2));
+        clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
         clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));
