@@ -141,6 +141,7 @@ login:
       base64 logo with
       line feeds
   entityBaseURL: https://login.some.test.domain.com:555/uaa
+  defaultIdentityProvider: uaa
   idpDiscoveryEnabled: true
   oauth:
     providers:
