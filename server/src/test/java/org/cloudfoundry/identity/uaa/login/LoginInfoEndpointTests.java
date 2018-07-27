@@ -1234,6 +1234,8 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
+        mockHttpServletRequest.setParameter("discoveryPerformed", "true");
+
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
