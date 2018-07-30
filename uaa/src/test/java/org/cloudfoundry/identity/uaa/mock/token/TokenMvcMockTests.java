@@ -216,8 +216,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
 
-
-
     public ResultActions try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
         String username = setUpUserForPasswordGrant();
 

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -19,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -89,7 +91,7 @@ public class CheckTokenEndpointTests {
 
     private OAuth2AccessToken accessToken;
 
-    private UaaTokenServices tokenServices = new UaaTokenServices();
+    private UaaTokenServices tokenServices;
 
     private InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
@@ -226,7 +228,6 @@ public class CheckTokenEndpointTests {
             IdentityZoneHolder.get().getId(),
             "salt",
             new Date(System.currentTimeMillis() - 2000));
-        mockUserDatabase(userId, user);
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client", "scim")));
         Map<String, String> requestParameters = new HashMap<>();
@@ -253,7 +254,6 @@ public class CheckTokenEndpointTests {
         configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
         IdentityZoneHolder.set(defaultZone);
         when(zoneProvisioning.retrieve("uaa")).thenReturn(defaultZone);
-        endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
 
@@ -272,11 +272,6 @@ public class CheckTokenEndpointTests {
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         TimeServiceImpl timeService = new TimeServiceImpl();
-        tokenServices.setApprovalStore(approvalStore);
-        tokenServices.setAccessTokenValidityResolver(new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService));
-        tokenServices.setRefreshTokenCreator(mock(RefreshTokenCreator.class));
-        tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
-        tokenServices.setTimeService(timeService);
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =
@@ -286,10 +281,22 @@ public class CheckTokenEndpointTests {
             );
         clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
-        tokenServices.setClientDetailsService(clientDetailsService);
-        tokenServices.setTokenProvisioning(tokenProvisioning);
-        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://localhost:8080/uaa"));
-        tokenServices.afterPropertiesSet();
+
+        tokenServices = new UaaTokenServices(
+                mock(IdTokenCreator.class),
+                new TokenEndpointBuilder("http://localhost:8080/uaa"),
+                clientDetailsService,
+                tokenProvisioning,
+                mock(TokenValidationService.class),
+                mock(RefreshTokenCreator.class),
+                timeService,
+                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
+                mock(UaaUserDatabase.class),
+                approvalStore,
+                Sets.newHashSet(),
+                IdentityZoneHolder.get().getConfig().getTokenPolicy());
+        mockUserDatabase(userId, user);
+        endpoint.setTokenServices(tokenServices);
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
@@ -630,7 +637,6 @@ public class CheckTokenEndpointTests {
         try {
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
-            tokenServices.afterPropertiesSet();
             setAccessToken(tokenServices.createAccessToken(authentication));
             Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
             assertNotNull("iss field is not present", result.getIss());

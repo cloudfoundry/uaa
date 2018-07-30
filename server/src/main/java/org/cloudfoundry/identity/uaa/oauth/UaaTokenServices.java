@@ -48,7 +48,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -81,8 +80,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -91,16 +88,15 @@ import static org.springframework.util.StringUtils.hasText;
  * consumption of UAA tokens.
  *
  */
-public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
-                InitializingBean, ApplicationEventPublisherAware {
+public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices, ApplicationEventPublisherAware {
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private UaaUserDatabase userDatabase = null;
+    private UaaUserDatabase userDatabase;
 
-    private ClientServicesExtension clientDetailsService = null;
+    private ClientServicesExtension clientDetailsService;
 
-    private ApprovalStore approvalStore = null;
+    private ApprovalStore approvalStore;
 
     private ApplicationEventPublisher applicationEventPublisher;
 
@@ -115,8 +111,34 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
-
     private TokenValidityResolver accessTokenValidityResolver;
+    private TokenValidationService tokenValidationService;
+
+    public UaaTokenServices(IdTokenCreator idTokenCreator,
+                            TokenEndpointBuilder tokenEndpointBuilder,
+                            ClientServicesExtension clientDetailsService,
+                            RevocableTokenProvisioning revocableTokenProvisioning,
+                            TokenValidationService tokenValidationService,
+                            RefreshTokenCreator refreshTokenCreator,
+                            TimeService timeService,
+                            TokenValidityResolver accessTokenValidityResolver,
+                            UaaUserDatabase userDatabase,
+                            ApprovalStore approvalStore,
+                            Set<String> excludedClaims,
+                            TokenPolicy globalTokenPolicy){
+        this.idTokenCreator = idTokenCreator;
+        this.tokenEndpointBuilder = tokenEndpointBuilder;
+        this.clientDetailsService = clientDetailsService;
+        this.tokenProvisioning = revocableTokenProvisioning;
+        this.tokenValidationService = tokenValidationService;
+        this.refreshTokenCreator = refreshTokenCreator;
+        this.timeService = timeService;
+        this.accessTokenValidityResolver = accessTokenValidityResolver;
+        this.userDatabase = userDatabase;
+        this.approvalStore = approvalStore;
+        this.excludedClaims = excludedClaims;
+        this.tokenPolicy = globalTokenPolicy;
+    }
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -726,12 +748,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UUID.randomUUID().toString().replace("-", "");
     }
 
-    @Override
-    public void afterPropertiesSet() throws URISyntaxException {
-        Assert.notNull(clientDetailsService, "clientDetailsService must be set");
-        Assert.notNull(approvalStore, "approvalStore must be set");
-    }
-
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
@@ -859,42 +875,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     protected TokenValidation validateToken(String token, boolean isAccessToken) {
-        if (!UaaTokenUtils.isJwtToken(token)) {
-            RevocableToken revocableToken;
-            try {
-                revocableToken = tokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
-            } catch(EmptyResultDataAccessException ex) {
-                throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect.");
-            }
-            token = revocableToken.getValue();
-        }
-
-        TokenValidation tokenValidation = isAccessToken ?
-            buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);
-        tokenValidation
-            .checkRevocableTokenStore(tokenProvisioning)
-            .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());
-
-        ClientDetails client = tokenValidation.getClientDetails(clientDetailsService);
-        UaaUser user = tokenValidation.getUserDetails(userDatabase);
-        tokenValidation
-            .checkClientAndUser(client, user);
-
-        List<String> clientSecrets = new ArrayList<>();
-        List<String> revocationSignatureList = new ArrayList<>();
-        if (client.getClientSecret() != null) {
-            clientSecrets.addAll(Arrays.asList(client.getClientSecret().split(" ")));
-        } else {
-            revocationSignatureList.add(UaaTokenUtils.getRevocableTokenSignature(client, null, user));
-        }
-
-        for (String clientSecret : clientSecrets) {
-            revocationSignatureList.add(UaaTokenUtils.getRevocableTokenSignature(client, clientSecret, user));
-        }
-
-        tokenValidation = tokenValidation.checkRevocationSignature(revocationSignatureList);
-
-        return tokenValidation;
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
+        return tokenValidationService.validateToken(token, isAccessToken);
     }
 
     /**
@@ -926,18 +908,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public TokenPolicy getTokenPolicy() {
         return tokenPolicy;
-    }
-
-    public void setIdTokenCreator(IdTokenCreator idTokenCreator) {
-        this.idTokenCreator = idTokenCreator;
-    }
-
-    public void setAccessTokenValidityResolver(TokenValidityResolver accessTokenValidityResolver) {
-        this.accessTokenValidityResolver = accessTokenValidityResolver;
-    }
-
-    public void setRefreshTokenCreator(RefreshTokenCreator refreshTokenCreator) {
-        this.refreshTokenCreator = refreshTokenCreator;
     }
 
     public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {

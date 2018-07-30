@@ -551,18 +551,26 @@
         <constructor-arg name="issuerUrlBase" value="${issuer.uri}" />
     </bean>
 
+    <bean id="tokenValidationService" class="org.cloudfoundry.identity.uaa.oauth.TokenValidationService">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="revocableTokenProvisioning" ref="revocableTokenProvisioning"/>
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="userDatabase" ref="userDatabase"/>
+    </bean>
+
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
-        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="idTokenCreator" ref="idTokenCreator"/>
-        <property name="refreshTokenCreator" ref="refreshTokenCreator" />
-        <property name="userDatabase" ref="userDatabase"/>
-        <property name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
-        <property name="approvalStore" ref="approvalStore"/>
-        <property name="tokenPolicy" ref="globalTokenPolicy"/>
-        <property name="excludedClaims" ref="excludedClaims"/>
-        <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
-        <property name="accessTokenValidityResolver" ref="accessTokenValidityResolver" />
-        <property name="timeService" ref="timeService" />
+        <constructor-arg name="idTokenCreator" ref="idTokenCreator" />
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder" />
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService" />
+        <constructor-arg name="revocableTokenProvisioning" ref="revocableTokenProvisioning" />
+        <constructor-arg name="tokenValidationService" ref="tokenValidationService" />
+        <constructor-arg name="refreshTokenCreator" ref="refreshTokenCreator" />
+        <constructor-arg name="timeService" ref="timeService" />
+        <constructor-arg name="accessTokenValidityResolver" ref="accessTokenValidityResolver" />
+        <constructor-arg name="userDatabase" ref="userDatabase" />
+        <constructor-arg name="approvalStore" ref="approvalStore" />
+        <constructor-arg name="excludedClaims" ref="excludedClaims" />
+        <constructor-arg name="globalTokenPolicy" ref="globalTokenPolicy"/>
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">

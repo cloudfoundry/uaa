@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -138,7 +139,7 @@ public class TokenTestSupport {
                 .withPreviousLogonSuccess(12365L)
         );
 
-    UaaTokenServices tokenServices = new UaaTokenServices();
+    UaaTokenServices tokenServices;
 
     final int accessTokenValidity = 60 * 60 * 12;
     final int refreshTokenValidity = 60 * 60 * 24 * 30;
@@ -256,28 +257,33 @@ public class TokenTestSupport {
         AbstractOAuth2AccessTokenMatchers.revocableTokens.set(tokens);
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
-        tokenServices.setClientDetailsService(clientDetailsService);
-        tokenServices.setTokenPolicy(tokenPolicy);
+        timeService = mock(TimeService.class);
+        TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
+        TokenValidationService tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
+        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
+        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService);
+        tokenServices = new UaaTokenServices(
+                idTokenCreator,
+                tokenEndpointBuilder,
+                clientDetailsService,
+                tokenProvisioning,
+                tokenValidationService,
+                refreshTokenCreator,
+                timeService,
+                accessTokenValidityResolver,
+                userDatabase,
+                approvalStore,
+                Sets.newHashSet(),
+                tokenPolicy);
+
+        tokenServices.setApplicationEventPublisher(publisher);
+        tokenServices.setUaaTokenEnhancer(tokenEnhancer);
+
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
             new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
         );
-        TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        tokenServices.setTokenEndpointBuilder(tokenEndpointBuilder);
-        tokenServices.setUserDatabase(userDatabase);
-        tokenServices.setApprovalStore(approvalStore);
-        tokenServices.setApplicationEventPublisher(publisher);
-        tokenServices.setTokenProvisioning(tokenProvisioning);
-        tokenServices.setUaaTokenEnhancer(tokenEnhancer);
-        timeService = mock(TimeService.class);
-        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
-        tokenServices.setIdTokenCreator(idTokenCreator);
-        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
-        tokenServices.setAccessTokenValidityResolver(accessTokenValidityResolver);
-        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService);
-        tokenServices.setRefreshTokenCreator(refreshTokenCreator);
-        tokenServices.afterPropertiesSet();
-        tokenServices.setTimeService(timeService);
     }
 
     public UaaTokenServices getUaaTokenServices() {
