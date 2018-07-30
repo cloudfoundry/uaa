@@ -15,7 +15,7 @@
 package org.cloudfoundry.identity.client;
 
 import org.cloudfoundry.identity.client.token.TokenRequest;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.springframework.web.client.RestTemplate;
 
 public interface UaaContext {
@@ -28,14 +28,14 @@ public interface UaaContext {
 
     /**
      * Returns true if the context contains an OpenID Connect id_token.
-     * The token can be retrieved by {@link CompositeAccessToken#getIdTokenValue()}
+     * The token can be retrieved by {@link CompositeToken#getIdTokenValue()}
      * @return true if the context contains an OpenID Connect id_token
      */
     boolean hasIdToken();
 
     /**
      * Returns true if the context has a refresh token
-     * The token can be retrieved by {@link CompositeAccessToken#getRefreshToken()}
+     * The token can be retrieved by {@link CompositeToken#getRefreshToken()}
      * @return true if the context has a refresh token
      */
     boolean hasRefreshToken();
@@ -45,7 +45,7 @@ public interface UaaContext {
      * contain an OpenID Connect id_token and/or a refresh token
      * @return the token for this context
      */
-    CompositeAccessToken getToken();
+    CompositeToken getToken();
 
     /**
      * Returns the token request that was used to acquire the token

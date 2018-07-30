@@ -17,7 +17,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -469,9 +469,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             url.append("&access_token=").append(encode(accessToken.getValue()));
         }
 
-        if (accessToken instanceof CompositeAccessToken &&
-          authorizationRequest.getResponseTypes().contains(CompositeAccessToken.ID_TOKEN)) {
-            url.append("&").append(CompositeAccessToken.ID_TOKEN).append("=").append(encode(((CompositeAccessToken) accessToken).getIdTokenValue()));
+        if (accessToken instanceof CompositeToken &&
+          authorizationRequest.getResponseTypes().contains(CompositeToken.ID_TOKEN)) {
+            url.append("&").append(CompositeToken.ID_TOKEN).append("=").append(encode(((CompositeToken) accessToken).getIdTokenValue()));
         }
 
         if (authorizationRequest.getResponseTypes().contains("code")) {

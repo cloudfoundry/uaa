@@ -17,7 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -377,9 +377,9 @@ public class SamlLoginWithLocalIdpIT {
                                                                      "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                                                                      "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
 
-        ResponseEntity<CompositeAccessToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
+        ResponseEntity<CompositeToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
                                                                              HttpMethod.POST, new HttpEntity<>(postBody, headers),
-                                                                             CompositeAccessToken.class);
+                                                                             CompositeToken.class);
 
         assertEquals(HttpStatus.OK, token.getStatusCode());
         assertTrue(token.hasBody());

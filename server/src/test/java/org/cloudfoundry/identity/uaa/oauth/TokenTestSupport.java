@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -293,10 +292,10 @@ public class TokenTestSupport {
         return defaultUser;
     }
 
-    public CompositeAccessToken getCompositeAccessToken(List<String> scopes) {
+    public CompositeToken getCompositeAccessToken(List<String> scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
 
-        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeAccessToken.ID_TOKEN)));
+        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeToken.ID_TOKEN)));
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
@@ -307,7 +306,7 @@ public class TokenTestSupport {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        return (CompositeAccessToken) accessToken;
+        return (CompositeToken) accessToken;
     }
 
     public String getIdTokenAsString(List<String> scopes) {
@@ -315,7 +314,7 @@ public class TokenTestSupport {
     }
 
     public Jwt getIdToken(List<String> scopes) {
-        CompositeAccessToken accessToken = getCompositeAccessToken(scopes);
+        CompositeToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
         SignatureVerifier verifier = KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);

@@ -963,7 +963,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
           .param("state", state);
 
         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
-        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
           .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
@@ -1488,7 +1488,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password");
         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
-        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))

@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -247,8 +247,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 generateUniqueTokenId());
 
         Collection<GrantedAuthority> clientScopes = getClientPermissions(client);
-        CompositeAccessToken accessToken =
-            createCompositeAccessToken(
+        CompositeToken compositeToken =
+            createCompositeToken(
                     accessTokenId,
                     user.getId(),
                     user,
@@ -266,7 +266,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     authenticationData);
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate), refreshTokenId);
-        return persistRevocableToken(accessTokenId, accessToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
     }
 
     private void checkForApproval(String userid,
@@ -304,24 +304,24 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
 
-    private CompositeAccessToken createCompositeAccessToken(String tokenId,
-                                                            String userId,
-                                                            UaaUser user,
-                                                            Date userAuthenticationTime,
-                                                            Collection<GrantedAuthority> clientScopes,
-                                                            String clientId,
-                                                            Set<String> resourceIds,
-                                                            String refreshToken,
-                                                            Map<String, String> additionalAuthorizationAttributes,
-                                                            Map<String, Object> additionalRootClaims,
-                                                            Set<String> responseTypes,
-                                                            String revocableHashSignature,
-                                                            boolean forceIdTokenCreation,
-                                                            boolean revocable,
-                                                            UserAuthenticationData userAuthenticationData) throws AuthenticationException {
-        CompositeAccessToken compositeAccessToken = new CompositeAccessToken(tokenId);
-        compositeAccessToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
-        compositeAccessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
+    private CompositeToken createCompositeToken(String tokenId,
+                                                String userId,
+                                                UaaUser user,
+                                                Date userAuthenticationTime,
+                                                Collection<GrantedAuthority> clientScopes,
+                                                String clientId,
+                                                Set<String> resourceIds,
+                                                String refreshToken,
+                                                Map<String, String> additionalAuthorizationAttributes,
+                                                Map<String, Object> additionalRootClaims,
+                                                Set<String> responseTypes,
+                                                String revocableHashSignature,
+                                                boolean forceIdTokenCreation,
+                                                boolean revocable,
+                                                UserAuthenticationData userAuthenticationData) throws AuthenticationException {
+        CompositeToken compositeToken = new CompositeToken(tokenId);
+        compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
+        compositeToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         Set<String> requestedScopes = userAuthenticationData.scopes;
         String grantType = userAuthenticationData.grantType;
@@ -331,10 +331,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("No scopes were granted");
         }
 
-        compositeAccessToken.setScope(requestedScopes);
+        compositeToken.setScope(requestedScopes);
 
         ConcurrentMap<String, Object> info = new ConcurrentHashMap<>();
-        info.put(JTI, compositeAccessToken.getValue());
+        info.put(JTI, compositeToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
@@ -344,11 +344,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(NONCE, nonce);
         }
 
-        compositeAccessToken.setAdditionalInformation(info);
+        compositeToken.setAdditionalInformation(info);
 
         String content;
         Map<String, ?> jwtAccessToken = createJWTAccessToken(
-            compositeAccessToken,
+                compositeToken,
             userId,
             user,
             userAuthenticationTime,
@@ -368,7 +368,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
-        compositeAccessToken.setValue(token);
+        compositeToken.setValue(token);
         if (shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, forceIdTokenCreation)) {
             String idTokenContent = null;
             try {
@@ -377,12 +377,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, KeyInfo.getActiveKey().getSigner()).getEncoded();
-            compositeAccessToken.setIdTokenValue(encodedIdTokenContent);
+            compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
-        publish(new TokenIssuedEvent(compositeAccessToken, SecurityContextHolder.getContext().getAuthentication()));
+        publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication()));
 
-        return compositeAccessToken;
+        return compositeToken;
     }
 
     private boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String grantType, Set<String> responseTypes, boolean forceIdTokenCreation) {
@@ -396,7 +396,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        boolean idTokenExplicitlyRequested = requestedScopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN);
+        boolean idTokenExplicitlyRequested = requestedScopes.contains("openid") && responseTypes.contains(CompositeToken.ID_TOKEN);
         return forceIdTokenCreation || idTokenExplicitlyRequested || clientHasOpenIdScope;
     }
 
@@ -590,8 +590,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 tokenId);
 
-        CompositeAccessToken accessToken =
-            createCompositeAccessToken(
+        CompositeToken accessToken =
+            createCompositeToken(
                 tokenId,
                 userId,
                 user,
@@ -627,13 +627,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    public CompositeAccessToken persistRevocableToken(String tokenId,
-                                                      CompositeAccessToken token,
-                                                      CompositeExpiringOAuth2RefreshToken refreshToken,
-                                                      String clientId,
-                                                      String userId,
-                                                      boolean opaque,
-                                                      boolean revocable) {
+    public CompositeToken persistRevocableToken(String tokenId,
+                                                CompositeToken token,
+                                                CompositeExpiringOAuth2RefreshToken refreshToken,
+                                                String clientId,
+                                                String userId,
+                                                boolean opaque,
+                                                boolean revocable) {
 
         String scope = token.getScope().toString();
         long now = System.currentTimeMillis();
@@ -682,7 +682,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        CompositeAccessToken result = new CompositeAccessToken(opaque ? tokenId : token.getValue());
+        CompositeToken result = new CompositeToken(opaque ? tokenId : token.getValue());
         result.setIdTokenValue(token.getIdTokenValue());
         result.setExpiration(token.getExpiration());
         result.setAdditionalInformation(token.getAdditionalInformation());
@@ -824,7 +824,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken = tokenValidation.getJwt().getEncoded();
 
         // Expiry is verified by check_token
-        CompositeAccessToken token = new CompositeAccessToken(accessToken);
+        CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
         Long exp = Long.valueOf(claims.get(EXP).toString());
         if (null != exp) {

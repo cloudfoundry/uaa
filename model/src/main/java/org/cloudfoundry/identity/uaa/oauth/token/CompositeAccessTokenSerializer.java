@@ -27,20 +27,20 @@ import java.util.Map;
 import java.util.Set;
 
 
-public final class CompositeAccessTokenSerializer extends StdSerializer<CompositeAccessToken> {
+public final class CompositeAccessTokenSerializer extends StdSerializer<CompositeToken> {
 
     public CompositeAccessTokenSerializer() {
-        super(CompositeAccessToken.class);
+        super(CompositeToken.class);
     }
 
     @Override
-    public void serialize(CompositeAccessToken token, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    public void serialize(CompositeToken token, JsonGenerator jgen, SerializerProvider provider) throws IOException {
 
         jgen.writeStartObject();
         jgen.writeStringField(OAuth2AccessToken.ACCESS_TOKEN, token.getValue());
         jgen.writeStringField(OAuth2AccessToken.TOKEN_TYPE, token.getTokenType());
-        if (token instanceof CompositeAccessToken && token.getIdTokenValue() != null) {
-            jgen.writeStringField(CompositeAccessToken.ID_TOKEN, token.getIdTokenValue());
+        if (token instanceof CompositeToken && token.getIdTokenValue() != null) {
+            jgen.writeStringField(CompositeToken.ID_TOKEN, token.getIdTokenValue());
         }
         OAuth2RefreshToken refreshToken = token.getRefreshToken();
         if (refreshToken != null) {

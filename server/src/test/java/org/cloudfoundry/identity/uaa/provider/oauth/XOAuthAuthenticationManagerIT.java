@@ -26,11 +26,10 @@ import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -418,7 +417,7 @@ public class XOAuthAuthenticationManagerIT {
     @Test
     public void unable_to_resolve_to_single_provider() throws Exception {
         String issuer = "http://oidc10.oms.identity.team/oauth/token";
-        CompositeAccessToken token = getCompositeAccessToken();
+        CompositeToken token = getCompositeAccessToken();
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
@@ -432,7 +431,7 @@ public class XOAuthAuthenticationManagerIT {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProvider();
         exception.expect(InsufficientAuthenticationException.class);
         exception.expectMessage("Issuer is missing in id_token");
-        CompositeAccessToken token = getCompositeAccessToken(Arrays.asList(ClaimConstants.ISS));
+        CompositeToken token = getCompositeAccessToken(Arrays.asList(ClaimConstants.ISS));
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         //perform test
         getAuthenticationData(xCodeToken);
@@ -440,7 +439,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void origin_is_resolved_based_on_issuer_and_id_token() throws Exception {
-        CompositeAccessToken token = getCompositeAccessToken();
+        CompositeToken token = getCompositeAccessToken();
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(getProvider()));
         //perform test
@@ -459,7 +458,7 @@ public class XOAuthAuthenticationManagerIT {
         String contextPathURL = "http://contextPath.url";
         when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(issuerURL);
         claims.put("iss", issuerURL);
-        CompositeAccessToken token = getCompositeAccessToken();
+        CompositeToken token = getCompositeAccessToken();
         IdentityProvider idp = xoAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue(), contextPathURL);
 
         assertNotNull(idp);
@@ -474,7 +473,7 @@ public class XOAuthAuthenticationManagerIT {
     public void if_internal_idp_use_local_keys() throws Exception {
         String contextPathURL = "http://contextPath.url";
         claims.put("iss", UAA_ISSUER_URL);
-        CompositeAccessToken token = getCompositeAccessToken();
+        CompositeToken token = getCompositeAccessToken();
         String idToken = token.getIdTokenValue();
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
@@ -1088,7 +1087,7 @@ public class XOAuthAuthenticationManagerIT {
         claims.put("iss", UAA_ISSUER_URL);
         String username = "unique_value";
         claims.put("sub", username);
-        CompositeAccessToken token = getCompositeAccessToken();
+        CompositeToken token = getCompositeAccessToken();
         String idToken = token.getIdTokenValue();
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
@@ -1143,20 +1142,20 @@ public class XOAuthAuthenticationManagerIT {
             .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 
-    private CompositeAccessToken getCompositeAccessToken() throws MalformedURLException {
+    private CompositeToken getCompositeAccessToken() throws MalformedURLException {
         return getCompositeAccessToken(emptyList());
     }
 
-    private CompositeAccessToken getCompositeAccessToken(List<String> removeClaims) throws MalformedURLException {
+    private CompositeToken getCompositeAccessToken(List<String> removeClaims) throws MalformedURLException {
         removeClaims.stream().forEach(c -> claims.remove(c));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         identityProvider = getProvider();
 
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
-        compositeAccessToken.setIdTokenValue(idTokenJwt);
-        return compositeAccessToken;
+        CompositeToken compositeToken = new CompositeToken("accessToken");
+        compositeToken.setIdTokenValue(idTokenJwt);
+        return compositeToken;
     }
 
     private String getIdTokenResponse() throws MalformedURLException {

@@ -15,17 +15,17 @@
 package org.cloudfoundry.identity.client;
 
 import org.cloudfoundry.identity.client.token.TokenRequest;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 public class UaaContextImpl implements UaaContext {
-    private CompositeAccessToken token;
+    private CompositeToken token;
     private TokenRequest request;
     private OAuth2RestTemplate template;
 
-    public UaaContextImpl(TokenRequest request, OAuth2RestTemplate template, CompositeAccessToken token) {
+    public UaaContextImpl(TokenRequest request, OAuth2RestTemplate template, CompositeToken token) {
         this.request = request;
         this.template = template;
         this.token = token;
@@ -75,7 +75,7 @@ public class UaaContextImpl implements UaaContext {
      * {@inheritDoc}
      */
     @Override
-    public CompositeAccessToken getToken() {
+    public CompositeToken getToken() {
         return token;
     }
 }

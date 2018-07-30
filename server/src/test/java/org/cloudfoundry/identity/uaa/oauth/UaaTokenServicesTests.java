@@ -26,7 +26,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -149,7 +149,7 @@ public class UaaTokenServicesTests {
     public ExpectedException expectedEx = ExpectedException.none();
 
     private Set<String> thousandScopes;
-    private CompositeAccessToken persistToken;
+    private CompositeToken persistToken;
     private Date expiration;
 
     private TokenTestSupport tokenSupport;
@@ -177,7 +177,7 @@ public class UaaTokenServicesTests {
         for (int i=0; i<1000; i++) {
             thousandScopes.add(String.valueOf(i));
         }
-        persistToken = new CompositeAccessToken("token-value");
+        persistToken = new CompositeToken("token-value");
         expiration = new Date(System.currentTimeMillis() + 10000);
         persistToken.setScope(thousandScopes);
         persistToken.setExpiration(expiration);
@@ -198,7 +198,7 @@ public class UaaTokenServicesTests {
     public void test_opaque_tokens_are_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(false);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
-        CompositeAccessToken result = tokenServices.persistRevocableToken("id",
+        CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
             new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, "rid"),
             "clientId",
@@ -258,7 +258,7 @@ public class UaaTokenServicesTests {
     @Test
     public void test_jwt_no_token_is_not_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
-        CompositeAccessToken result = tokenServices.persistRevocableToken("id",
+        CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
             new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
             "clientId",
@@ -275,7 +275,7 @@ public class UaaTokenServicesTests {
     @Test
     public void test_opaque_refresh_token_is_persisted() throws Exception {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
-        CompositeAccessToken result = tokenServices.persistRevocableToken("id",
+        CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
             new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
             "clientId",
@@ -297,7 +297,7 @@ public class UaaTokenServicesTests {
     public void is_opaque_token_required() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
@@ -480,7 +480,7 @@ public class UaaTokenServicesTests {
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        assertTrue("Token is not a composite token", accessToken instanceof CompositeAccessToken);
+        assertTrue("Token is not a composite token", accessToken instanceof CompositeToken);
         assertThat("Token value should be equal to or lesser than 36 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
     }
@@ -539,7 +539,7 @@ public class UaaTokenServicesTests {
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        CompositeAccessToken castAccessToken = (CompositeAccessToken)accessToken;
+        CompositeToken castAccessToken = (CompositeToken)accessToken;
         assertThat(castAccessToken.getIdTokenValue(), is(notNullValue()));
         validateAccessAndRefreshToken(accessToken);
     }
@@ -1874,7 +1874,7 @@ public class UaaTokenServicesTests {
     public void test_validateToken_method(Consumer<Void> setup) throws Exception {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
@@ -1885,8 +1885,8 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertNotNull(accessToken);
-        assertTrue("Token should be composite token", accessToken instanceof CompositeAccessToken);
-        CompositeAccessToken composite = (CompositeAccessToken)accessToken;
+        assertTrue("Token should be composite token", accessToken instanceof CompositeToken);
+        CompositeToken composite = (CompositeToken)accessToken;
         assertThat("id_token should be JWT, thus longer than 36 characters", composite.getIdTokenValue().length(), greaterThan(36));
         assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
@@ -1899,7 +1899,7 @@ public class UaaTokenServicesTests {
     public void testLoad_Opaque_AuthenticationForAUser() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
@@ -1910,8 +1910,8 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         assertNotNull(accessToken);
-        assertTrue("Token should be composite token", accessToken instanceof CompositeAccessToken);
-        CompositeAccessToken composite = (CompositeAccessToken)accessToken;
+        assertTrue("Token should be composite token", accessToken instanceof CompositeToken);
+        CompositeToken composite = (CompositeToken)accessToken;
         assertThat("id_token should be JWT, thus longer than 36 characters", composite.getIdTokenValue().length(), greaterThan(36));
         assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));

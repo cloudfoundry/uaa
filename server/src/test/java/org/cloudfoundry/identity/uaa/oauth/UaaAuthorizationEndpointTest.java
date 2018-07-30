@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.Authentication;
@@ -107,7 +107,7 @@ public class UaaAuthorizationEndpointTest {
             }
         });
         authorizationRequest.setState("California");
-        CompositeAccessToken accessToken = new CompositeAccessToken("TOKEN_VALUE+=");
+        CompositeToken accessToken = new CompositeToken("TOKEN_VALUE+=");
         accessToken.setIdTokenValue("idTokenValue");
         UaaPrincipal principal = new UaaPrincipal("userid", "username", "email", "origin", "extid", "zoneid");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(true, "clientid", "origin", "SOMESESSIONID");
@@ -138,7 +138,7 @@ public class UaaAuthorizationEndpointTest {
                 put("prompt", "none");
             }
         });
-        CompositeAccessToken accessToken = new CompositeAccessToken("TOKEN_VALUE+=");
+        CompositeToken accessToken = new CompositeToken("TOKEN_VALUE+=");
         UaaPrincipal principal = new UaaPrincipal("userid", "username", "email", "origin", "extid", "zoneid");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(true, "clientid", "origin", "SOMESESSIONID");
         Authentication authUser = new UaaAuthentication(principal, Collections.emptyList(), details);

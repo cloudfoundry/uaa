@@ -27,7 +27,7 @@ import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.client.token.TokenRequest;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -209,7 +209,7 @@ public class UaaContextFactory {
         form.add(OAuth2Utils.RESPONSE_TYPE, responseType);
         form.add("code", request.getAuthorizationCode());
 
-        ResponseEntity<CompositeAccessToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeAccessToken.class);
+        ResponseEntity<CompositeToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeToken.class);
         return new UaaContextImpl(request, null, token.getBody());
     }
 
@@ -251,7 +251,7 @@ public class UaaContextFactory {
                 protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
                     getRestTemplate(); // force initialization
                     MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeToken.class, Arrays.asList(converter));
                 }
             }
         );
@@ -271,7 +271,7 @@ public class UaaContextFactory {
         OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
         skipSslValidation(tokenRequest, template, providers);
         OAuth2AccessToken token = template.getAccessToken();
-        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
+        return new UaaContextImpl(tokenRequest, template, (CompositeToken) token);
     }
 
     protected UaaContext authenticateSaml2BearerAssertion(final TokenRequest request) {
@@ -288,7 +288,7 @@ public class UaaContextFactory {
         form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_SAML2_BEARER);
         form.add("assertion", request.getAuthCodeAPIToken());
 
-        ResponseEntity<CompositeAccessToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeAccessToken.class);
+        ResponseEntity<CompositeToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeToken.class);
         return new UaaContextImpl(request, null, token.getBody());
     }
 
@@ -314,7 +314,7 @@ public class UaaContextFactory {
                 protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
                     getRestTemplate(); // force initialization
                     MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeToken.class, Arrays.asList(converter));
                 }
             }
         );
@@ -327,7 +327,7 @@ public class UaaContextFactory {
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         skipSslValidation(tokenRequest, template, providers);
         OAuth2AccessToken token = template.getAccessToken();
-        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
+        return new UaaContextImpl(tokenRequest, template, (CompositeToken) token);
     }
 
     /**
@@ -369,7 +369,7 @@ public class UaaContextFactory {
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         skipSslValidation(request, template, null);
         OAuth2AccessToken token = template.getAccessToken();
-        CompositeAccessToken result = new CompositeAccessToken(token);
+        CompositeToken result = new CompositeToken(token);
         return new UaaContextImpl(request, template, result);
     }
 

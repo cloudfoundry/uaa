@@ -20,7 +20,7 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
 @JsonSerialize(using = CompositeAccessTokenSerializer.class)
 @JsonDeserialize(using = CompositeAccessTokenDeserializer.class)
-public class CompositeAccessToken extends DefaultOAuth2AccessToken {
+public class CompositeToken extends DefaultOAuth2AccessToken {
 
     public static String ID_TOKEN = "id_token";
 
@@ -34,11 +34,11 @@ public class CompositeAccessToken extends DefaultOAuth2AccessToken {
 
     private String idTokenValue;
 
-    public CompositeAccessToken(String accessTokenValue) {
+    public CompositeToken(String accessTokenValue) {
         super(accessTokenValue);
     }
 
-    public CompositeAccessToken(OAuth2AccessToken accessToken) {
+    public CompositeToken(OAuth2AccessToken accessToken) {
         super(accessToken);
     }
 

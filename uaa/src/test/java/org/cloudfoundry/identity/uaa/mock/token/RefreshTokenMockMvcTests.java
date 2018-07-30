@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -50,7 +49,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.CompositeToken.ID_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -285,8 +284,8 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
-        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
-        String idTokenJwt = compositeAccessToken.getIdTokenValue();
+        CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
+        String idTokenJwt = compositeToken.getIdTokenValue();
         assertRefreshIdTokenCorrect(originalIdTokenJwt, idTokenJwt);
     }
 
@@ -303,8 +302,8 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
-        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
-        String idTokenJwt = compositeAccessToken.getIdTokenValue();
+        CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
+        String idTokenJwt = compositeToken.getIdTokenValue();
         assertRefreshIdTokenCorrect(originalIdTokenJwt, idTokenJwt);
     }
 
@@ -334,8 +333,8 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
-        CompositeAccessToken compositeAccessToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeAccessToken.class);
-        assertNull(compositeAccessToken.getIdTokenValue());
+        CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
+        assertNull(compositeToken.getIdTokenValue());
     }
 
     protected int countTokens(String clientId, String userId) {
