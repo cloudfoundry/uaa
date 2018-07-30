@@ -27,10 +27,17 @@ public class CurrentUserCookieRequestFilterTest {
 
     private CurrentUserCookieRequestFilter filter;
     private CurrentUserCookieFactory currentUserCookieFactory;
+    private FilterChain filterChain;
+    private MockHttpServletRequest req;
+    private MockHttpServletResponse res;
 
     @Before
     public void setup() {
+        SecurityContextHolder.clearContext();
         currentUserCookieFactory = mock(CurrentUserCookieFactory.class);
+        filterChain = mock(FilterChain.class);
+        req = new MockHttpServletRequest();
+        res = new MockHttpServletResponse();
         filter = new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
 
@@ -43,9 +50,6 @@ public class CurrentUserCookieRequestFilterTest {
     public void whenUserIsAuthenticated_addsCurrentUserCookie() throws ServletException, IOException, CurrentUserCookieFactory.CurrentUserCookieEncodingException {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        FilterChain filterChain = mock(FilterChain.class);
-        MockHttpServletRequest req = new MockHttpServletRequest();
-        MockHttpServletResponse res = new MockHttpServletResponse();
         when(currentUserCookieFactory.getCookie(any(UaaPrincipal.class))).thenReturn(new Cookie("Current-User", "current-user-cookie-value"));
 
         filter.doFilterInternal(req, res, filterChain);
@@ -56,9 +60,6 @@ public class CurrentUserCookieRequestFilterTest {
 
     @Test
     public void whenUserIsNotAuthenticated_clearsCurrentUserCookie() throws IOException, ServletException {
-        FilterChain filterChain = mock(FilterChain.class);
-        MockHttpServletRequest req = new MockHttpServletRequest();
-        MockHttpServletResponse res = new MockHttpServletResponse();
         when(currentUserCookieFactory.getNullCookie()).thenReturn(new Cookie("Current-User", null));
 
         filter.doFilterInternal(req, res, filterChain);
@@ -71,9 +72,6 @@ public class CurrentUserCookieRequestFilterTest {
     public void whenCurrentUserExceptionOccurs_respondWithInternalServerError() throws CurrentUserCookieFactory.CurrentUserCookieEncodingException, ServletException, IOException {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        FilterChain filterChain = mock(FilterChain.class);
-        MockHttpServletRequest req = new MockHttpServletRequest();
-        MockHttpServletResponse res = new MockHttpServletResponse();
         when(currentUserCookieFactory.getCookie(any(UaaPrincipal.class))).thenThrow(currentUserCookieFactory.new CurrentUserCookieEncodingException(null));
 
         filter.doFilterInternal(req, res, filterChain);
