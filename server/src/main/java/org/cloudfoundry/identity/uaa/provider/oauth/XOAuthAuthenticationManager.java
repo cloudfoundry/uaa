@@ -43,7 +43,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -212,9 +211,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             }
 
             authenticationData.setUsername(username);
-            Collection<String> groupWhiteList = config.getExternalGroupsWhitelist();
 
-            List<? extends GrantedAuthority> authorities = extractXOAuthUserAuthorities(attributeMappings, claims, groupWhiteList);
+            List<? extends GrantedAuthority> authorities = extractXOAuthUserAuthorities(attributeMappings, claims);
             authorities = mapAuthorities(codeToken.getOrigin(), authorities);
             authenticationData.setAuthorities(authorities);
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
@@ -344,7 +342,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return null;
     }
 
-    protected List<? extends GrantedAuthority> extractXOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims, Collection<String> groupWhiteList) {
+    private List<? extends GrantedAuthority> extractXOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims) {
         List<String> groupNames = new LinkedList<>();
         if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof String) {
             groupNames.add((String) attributeMappings.get(GROUP_ATTRIBUTE_NAME));
@@ -362,9 +360,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 scopes.addAll((Collection<? extends String>) roles);
             }
         }
-        logger.debug("Filtering XOauth scopes:"+scopes);
-        scopes = UaaStringUtils.retainAllMatches(scopes, groupWhiteList);
-        logger.debug("Filtered XOauth scopes:"+scopes);
 
         List<XOAuthUserAuthority> authorities = new ArrayList<>();
         for (String scope : scopes) {
