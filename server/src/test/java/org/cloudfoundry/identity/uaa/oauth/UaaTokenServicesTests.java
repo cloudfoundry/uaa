@@ -200,7 +200,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void test_opaque_tokens_are_persisted() throws Exception {
+    public void test_opaque_tokens_are_persisted() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(false);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeToken result = tokenServices.persistRevocableToken("id",
@@ -261,7 +261,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void test_jwt_no_token_is_not_persisted() throws Exception {
+    public void test_jwt_no_token_is_not_persisted() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
@@ -278,7 +278,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void test_opaque_refresh_token_is_persisted() throws Exception {
+    public void test_opaque_refresh_token_is_persisted() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
@@ -788,7 +788,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void createAccessToken_usingRefreshGrant_inOtherZone() throws Exception {
+    public void createAccessToken_usingRefreshGrant_inOtherZone() {
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
         identityZone.setConfig(
@@ -1167,13 +1167,13 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void create_id_token_with_amr_claim() throws Exception {
+    public void create_id_token_with_amr_claim() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
         assertTrue(idTokenJwt.getClaims().contains("\"amr\":[\"ext\",\"rba\",\"mfa\"]"));
     }
 
     @Test
-    public void create_id_token_with_acr_claim() throws Exception {
+    public void create_id_token_with_acr_claim() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
         assertTrue(idTokenJwt.getClaims().contains("\"" + ClaimConstants.ACR + "\":{\"values\":[\""));
     }
@@ -1185,7 +1185,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void create_id_token_with_profile_scope() throws Exception {
+    public void create_id_token_with_profile_scope() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, PROFILE));
         assertTrue(idTokenJwt.getClaims().contains("\"given_name\":\"" + tokenSupport.defaultUser.getGivenName() + "\""));
         assertTrue(idTokenJwt.getClaims().contains("\"family_name\":\"" + tokenSupport.defaultUser.getFamilyName() + "\""));
@@ -1193,7 +1193,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void create_id_token_without_profile_scope() throws Exception {
+    public void create_id_token_without_profile_scope() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
         assertFalse(idTokenJwt.getClaims().contains("\"given_name\":"));
         assertFalse(idTokenJwt.getClaims().contains("\"family_name\":"));
