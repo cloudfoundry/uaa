@@ -514,7 +514,10 @@ public class LoginInfoEndpoint {
             boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
             boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
-            if (discoveryEnabled && !model.containsAttribute("login_hint")) {
+            if (discoveryEnabled) {
+                if (model.containsAttribute("login_hint")) {
+                    return goToPasswordPage(null, model);
+                }
                 boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
                     && !discoveryPerformed;
@@ -704,6 +707,7 @@ public class LoginInfoEndpoint {
         if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
             if (matchedIdp.getType().equals(UAA)) {
+                model.addAttribute("login_hint", new UaaLoginHint("uaa").toString());
                 return goToPasswordPage(email, model);
             } else {
                 String redirectUrl;
