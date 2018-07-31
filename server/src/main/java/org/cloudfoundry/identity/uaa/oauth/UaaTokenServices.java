@@ -191,7 +191,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
         }
 
-        String userid = (String) refreshTokenClaims.get(USER_ID);
+        String userId = (String) refreshTokenClaims.get(USER_ID);
         String refreshTokenId = (String) refreshTokenClaims.get(JTI);
         String accessTokenId = generateUniqueTokenId();
 
@@ -199,7 +199,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Boolean revocableClaim = (Boolean)refreshTokenClaims.get(REVOCABLE);
         boolean revocable = opaque || (revocableClaim == null ? false : revocableClaim);
 
-        UaaUser user = userDatabase.retrieveUserById(userid);
+        UaaUser user = userDatabase.retrieveUserById(userId);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
         Integer refreshTokenExpiry = (Integer) refreshTokenClaims.get(EXP);
@@ -227,7 +227,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
         String grantType = refreshTokenClaims.get(GRANT_TYPE).toString();
-        checkForApproval(userid, clientId, requestedScopes,
+        checkForApproval(userId, clientId, requestedScopes,
                         getAutoApprovedScopes(grantType, tokenScopes, client)
         );
 
@@ -262,8 +262,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authenticationMethodsAsSet(refreshTokenClaims),
                 null,
                 requestedScopes,
-                rolesAsSet(userid),
-                getUserAttributes(userid),
+                rolesAsSet(userId),
+                getUserAttributes(userId),
                 nonce,
                 grantType,
                 generateUniqueTokenId());
@@ -317,7 +317,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return authenticationMethods == null ? Sets.newHashSet() : Sets.newHashSet(authenticationMethods);
     }
 
-    private void checkForApproval(String userid,
+    private void checkForApproval(String userId,
                                   String clientId,
                                   Collection<String> requestedScopes,
                                   Collection<String> autoApprovedScopes) {
@@ -328,7 +328,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // auto approved, not expired,
         // not DENIED and not approved more recently than when this access token
         // was issued.
-        List<Approval> approvals = approvalStore.getApprovals(userid, clientId, IdentityZoneHolder.get().getId());
+        List<Approval> approvals = approvalStore.getApprovals(userId, clientId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED) {
                 if (!approval.isCurrentlyActive()) {
