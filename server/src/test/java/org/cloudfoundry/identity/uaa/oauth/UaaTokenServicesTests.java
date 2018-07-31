@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -31,32 +32,23 @@ import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.*;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatchers;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -66,59 +58,24 @@ import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.*;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+import java.util.*;
 
-import static java.util.Collections.EMPTY_SET;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singleton;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_AUTHORITIES;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_CREDENTIALS;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_ID_NO_REFRESH_TOKEN_GRANT;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.IMPLICIT;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ISSUER_URI;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PROFILE;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.REFRESH_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ROLES;
+import static java.util.Collections.*;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.clientId;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.email;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.expiry;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuedAt;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuerUri;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.jwtId;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.origin;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.revocationSignature;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.scope;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.subject;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.userId;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.username;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.validFor;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.zoneId;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.*;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -126,22 +83,17 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.hamcrest.text.IsEmptyString.isEmptyString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(Parameterized.class)
@@ -258,6 +210,77 @@ public class UaaTokenServicesTests {
         verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
+    }
+
+    @Test
+    public void refreshAccessToken_buildsIdTokenWithRoleInformation() throws Exception {
+        IdTokenCreator idTokenCreator = mock(IdTokenCreator.class);
+        when(idTokenCreator.create(any(), any(), any())).thenReturn(mock(IdToken.class));
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setScope(Sets.newHashSet("openid"));
+
+        ClientServicesExtension clientServicesExtension = mock(ClientServicesExtension.class);
+        when(clientServicesExtension.loadClientByClientId(eq(TokenTestSupport.CLIENT_ID), anyString()))
+                .thenReturn(clientDetails);
+
+        TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
+        when(tokenValidityResolver.resolve(TokenTestSupport.CLIENT_ID)).thenReturn(new Date());
+
+        TokenValidation tokenValidation = mock(TokenValidation.class);
+        TokenValidationService tokenValidationService = mock(TokenValidationService.class);
+        when(tokenValidationService.validateToken(anyString(), anyBoolean())).thenReturn(tokenValidation);
+        HashMap<String, Object> claims = Maps.newHashMap();
+        String userId = "userid";
+        claims.put(ClaimConstants.USER_ID, userId);
+        claims.put(ClaimConstants.CID, TokenTestSupport.CLIENT_ID);
+        claims.put(ClaimConstants.EXP, 1);
+        claims.put(ClaimConstants.GRANTED_SCOPES, Lists.newArrayList("read", "write", "openid"));
+        claims.put(ClaimConstants.GRANT_TYPE, "password");
+        claims.put(ClaimConstants.AUD, Lists.newArrayList(TokenTestSupport.CLIENT_ID));
+        when(tokenValidation.getClaims()).thenReturn(claims);
+        Jwt jwt = mock(Jwt.class);
+        when(tokenValidation.getJwt()).thenReturn(jwt);
+        when(jwt.getEncoded()).thenReturn("encoded");
+
+        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+        when(userDatabase.retrieveUserById(userId))
+                .thenReturn(new UaaUser(new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com")));
+
+        ArgumentCaptor<UserAuthenticationData> userAuthenticationDataArgumentCaptor =
+                ArgumentCaptor.forClass(UserAuthenticationData.class);
+
+        UaaTokenServices uaaTokenServices = new UaaTokenServices(
+                idTokenCreator,
+                mock(TokenEndpointBuilder.class),
+                clientServicesExtension,
+                mock(RevocableTokenProvisioning.class),
+                tokenValidationService,
+                mock(RefreshTokenCreator.class),
+                mock(TimeService.class),
+                tokenValidityResolver,
+                userDatabase,
+                mock(ApprovalStore.class),
+                Sets.newHashSet(),
+                new TokenPolicy());
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setRoles(Lists.newArrayList("custom_role"));
+        MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
+        userAttributes.put("multi_value", Arrays.asList("value1", "value2"));
+        userAttributes.add("single_value", "value3");
+
+        userInfo.setUserAttributes(userAttributes);
+        when(userDatabase.getUserInfo(userId)).thenReturn(userInfo);
+
+        uaaTokenServices.refreshAccessToken(getOAuth2AccessToken().getRefreshToken().getValue(), getRefreshTokenRequest());
+
+        verify(idTokenCreator).create(eq(TokenTestSupport.CLIENT_ID), eq(userId), userAuthenticationDataArgumentCaptor.capture());
+        UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
+        Set<String> expectedRoles = Sets.newHashSet("custom_role");
+        assertEquals(expectedRoles, userData.roles);
+
+        assertEquals(userAttributes, userData.userAttributes);
     }
 
     @Test

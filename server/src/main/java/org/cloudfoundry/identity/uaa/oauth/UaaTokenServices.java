@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
@@ -63,6 +64,8 @@ import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
@@ -177,7 +180,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .validateToken(refreshTokenValue, false)
                 .checkJti();
         Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
-        refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         @SuppressWarnings("unchecked")
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
@@ -201,7 +203,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
         Integer refreshTokenExpiry = (Integer) refreshTokenClaims.get(EXP);
-        long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
+        long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000L;
 
         if (new Date(refreshTokenExpireDate).before(new Date(timeService.getCurrentTimeMillis()))) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireDate));
@@ -255,26 +257,25 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
             );
 
-        ArrayList<String> authenticationMethods = (ArrayList<String>) refreshTokenClaims.get(AMR);
         UserAuthenticationData authenticationData = new UserAuthenticationData(
                 AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
-                authenticationMethods == null ? Sets.newHashSet() : Sets.newHashSet(authenticationMethods),
+                authenticationMethodsAsSet(refreshTokenClaims),
                 null,
                 requestedScopes,
-                null,
-                null,
+                rolesAsSet(userid),
+                getUserAttributes(userid),
                 nonce,
                 grantType,
                 generateUniqueTokenId());
 
-        Collection<GrantedAuthority> clientScopes = getClientPermissions(client);
+        refreshTokenValue = tokenValidation.getJwt().getEncoded();
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
                     user.getId(),
                     user,
                     AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
-                    clientScopes,
+                    getClientPermissions(client),
                     clientId,
                     audience /*request.createOAuth2Request(client).getResourceIds()*/,
                     refreshTokenValue,
@@ -287,7 +288,33 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     authenticationData);
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate), refreshTokenId);
+
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
+    }
+
+    private MultiValueMap<String, String> getUserAttributes(String userId) {
+        UserInfo userInfo = userDatabase.getUserInfo(userId);
+        if (userInfo != null) {
+            return userInfo.getUserAttributes();
+        } else {
+            return new LinkedMultiValueMap<>();
+        }
+    }
+
+
+    private HashSet<String> rolesAsSet(String userId) {
+        UserInfo userInfo = userDatabase.getUserInfo(userId);
+        if (userInfo != null) {
+            ArrayList<String> roles = (ArrayList<String>) userInfo.getRoles();
+            return roles == null ? Sets.newHashSet() : Sets.newHashSet(roles);
+        } else {
+            return Sets.newHashSet();
+        }
+    }
+
+    private HashSet<String> authenticationMethodsAsSet(Map<String, Object> refreshTokenClaims) {
+        ArrayList<String> authenticationMethods = (ArrayList<String>) refreshTokenClaims.get(AMR);
+        return authenticationMethods == null ? Sets.newHashSet() : Sets.newHashSet(authenticationMethods);
     }
 
     private void checkForApproval(String userid,
@@ -370,28 +397,26 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String content;
         Map<String, ?> jwtAccessToken = createJWTAccessToken(
                 compositeToken,
-            userId,
-            user,
-            userAuthenticationTime,
-            clientScopes,
-            requestedScopes,
-            clientId,
-            resourceIds,
-            grantType,
-            revocableHashSignature,
-            revocable,
-            additionalRootClaims
-        );
+                userId,
+                user,
+                userAuthenticationTime,
+                clientScopes,
+                requestedScopes,
+                clientId,
+                resourceIds,
+                grantType,
+                revocableHashSignature,
+                revocable,
+                additionalRootClaims);
         try {
             content = JsonUtils.writeValueAsString(jwtAccessToken);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
-        // This setter copies the value and returns. Don't change.
         compositeToken.setValue(token);
         if (shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, forceIdTokenCreation)) {
-            String idTokenContent = null;
+            String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
             } catch (RuntimeException | IdTokenCreationException e) {
