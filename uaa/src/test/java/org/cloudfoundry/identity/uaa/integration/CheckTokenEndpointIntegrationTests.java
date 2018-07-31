@@ -16,12 +16,8 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -62,11 +58,7 @@ public class CheckTokenEndpointIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Test
-    public void testDecodeToken() throws Exception {
-
-        // TODO Fix to use json API rather than HTML
-        // TODO: should be able to handle just TEXT_HTML
-
+    public void testDecodeToken() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -163,7 +155,6 @@ public class CheckTokenEndpointIntegrationTests {
 
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        //System.err.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
@@ -176,8 +167,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testTokenKey() throws Exception {
-
+    public void testTokenKey() {
         HttpHeaders headers = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app",
                         "appclientsecret");
@@ -190,15 +180,12 @@ public class CheckTokenEndpointIntegrationTests {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        // System.err.println(map);
         assertNotNull(map.get("alg"));
         assertNotNull(map.get("value"));
-
     }
 
     @Test
-    public void testUnauthorized() throws Exception {
-
+    public void testUnauthorized() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -211,12 +198,10 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
         assertTrue(map.containsKey("error"));
-
     }
 
     @Test
     public void testForbidden() throws Exception {
-
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -230,11 +215,10 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
         assertTrue(map.containsKey("error"));
-
     }
 
     @Test
-    public void testInvalidScope() throws Exception {
+    public void testInvalidScope() {
         OAuth2AccessToken accessToken = getAdminToken();
 
         String requestBody = String.format("token=%s&scopes=%s", accessToken.getValue(), "uaa.resource%");
@@ -256,7 +240,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testValidPasswordGrant() throws Exception {
+    public void testValidPasswordGrant() {
         OAuth2AccessToken accessToken = getUserToken(null);
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
@@ -280,7 +264,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testAddidionalAttributes() throws Exception {
+    public void testAddidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
@@ -304,7 +288,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testInvalidAddidionalAttributes() throws Exception {
+    public void testInvalidAddidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();

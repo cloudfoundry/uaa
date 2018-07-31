@@ -73,4 +73,8 @@ public class TokenValidationService {
 
         return tokenValidation;
     }
+
+    public void setUserDatabase(UaaUserDatabase userDatabase) {
+        this.userDatabase = userDatabase;
+    }
 }

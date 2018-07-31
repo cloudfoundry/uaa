@@ -31,27 +31,19 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.AdditionalMatchers;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -59,26 +51,15 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -124,13 +105,13 @@ public class CheckTokenEndpointTests {
     private MockHttpServletRequest request = new MockHttpServletRequest();
 
     IdentityZone zone;
+    private UaaUserDatabase userDatabase;
+    private TokenEndpointBuilder tokenEndpointBuilder;
+    private TokenValidationService tokenValidationService;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {
-                "abc", false
-            },
             {
                 "-----BEGIN RSA PRIVATE KEY-----\n" +
                     "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
@@ -282,20 +263,24 @@ public class CheckTokenEndpointTests {
         clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
 
+        tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost:8080/uaa");
+        userDatabase = mock(UaaUserDatabase.class);
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
         tokenServices = new UaaTokenServices(
                 mock(IdTokenCreator.class),
-                new TokenEndpointBuilder("http://localhost:8080/uaa"),
+                tokenEndpointBuilder,
                 clientDetailsService,
                 tokenProvisioning,
-                mock(TokenValidationService.class),
+                tokenValidationService,
                 mock(RefreshTokenCreator.class),
                 timeService,
                 new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
-                mock(UaaUserDatabase.class),
+                userDatabase,
                 approvalStore,
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy());
-        mockUserDatabase(userId, user);
+
+        resetAndMockUserDatabase(userId, user);
         endpoint.setTokenServices(tokenServices);
     }
 
@@ -310,11 +295,10 @@ public class CheckTokenEndpointTests {
         tokenPolicy.setKeys(keys);
     }
 
-    private void mockUserDatabase(String userId, UaaUser user) {
-        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+    private void resetAndMockUserDatabase(String userId, UaaUser user) {
+        reset(userDatabase);
         when(userDatabase.retrieveUserById(eq(userId))).thenReturn(user);
-        when(userDatabase.retrieveUserById(AdditionalMatchers.not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
-        tokenServices.setUserDatabase(userDatabase);
+        when(userDatabase.retrieveUserById(not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
     }
 
     @Test
@@ -376,7 +360,7 @@ public class CheckTokenEndpointTests {
             IdentityZoneHolder.get().getId(),
             "changedsalt",
             new Date(System.currentTimeMillis() - 2000));
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -399,7 +383,7 @@ public class CheckTokenEndpointTests {
             IdentityZoneHolder.get().getId(),
             "salt",
             new Date(System.currentTimeMillis() - 2000));
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -422,7 +406,7 @@ public class CheckTokenEndpointTests {
             IdentityZoneHolder.get().getId(),
             "salt",
             new Date(System.currentTimeMillis() - 2000));
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -447,7 +431,7 @@ public class CheckTokenEndpointTests {
             "salt",
             new Date(System.currentTimeMillis() - 2000));
 
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -533,7 +517,7 @@ public class CheckTokenEndpointTests {
     public void revokingScopesFromUser_invalidatesToken() throws Exception {
         setAccessToken(tokenServices.createAccessToken(authentication));
         user = user.authorities(UaaAuthority.NONE_AUTHORITIES);
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
     }
 
@@ -557,7 +541,7 @@ public class CheckTokenEndpointTests {
             defaultClient
         );
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
-        mockUserDatabase(userId, user);
+        resetAndMockUserDatabase(userId, user);
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
             Collections.singleton("scim.read")).createOAuth2Request(), null);
         setAccessToken(tokenServices.createAccessToken(authentication));
@@ -625,7 +609,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testIssuerInResults() throws Exception {
-        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
         setAccessToken(tokenServices.createAccessToken(authentication));
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         assertNotNull("iss field is not present", result.getIss());
@@ -636,7 +620,7 @@ public class CheckTokenEndpointTests {
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
             IdentityZoneHolder.set(zone);
-            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
             setAccessToken(tokenServices.createAccessToken(authentication));
             Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
             assertNotNull("iss field is not present", result.getIss());
@@ -663,7 +647,7 @@ public class CheckTokenEndpointTests {
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
-            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
@@ -686,7 +670,7 @@ public class CheckTokenEndpointTests {
                     "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
             setAccessToken(tokenServices.createAccessToken(authentication));
             endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         } finally {
@@ -708,7 +692,7 @@ public class CheckTokenEndpointTests {
             "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
             "-----END RSA PRIVATE KEY-----");
         configureDefaultZoneKeys(keys);
-        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
         setAccessToken(tokenServices.createAccessToken(authentication));
 
         keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
@@ -732,7 +716,7 @@ public class CheckTokenEndpointTests {
                 "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                 "-----END RSA PRIVATE KEY-----");
             configureDefaultZoneKeys(keys);
-            tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
+            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
             setAccessToken(tokenServices.createAccessToken(authentication));
 
             keys.remove("oldKey");
@@ -834,13 +818,17 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void validateIssuedAtIsSmallerThanExpiredAt() throws Exception {
-        setAccessToken(tokenServices.createAccessToken(authentication));
+        createAndSetAccessToken();
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList(), request);
         Integer iat = result.getIat();
         assertNotNull(iat);
         Long exp = result.getExp();
         assertNotNull(exp);
         assertTrue(iat < exp);
+    }
+
+    private void createAndSetAccessToken() {
+        setAccessToken(tokenServices.createAccessToken(authentication));
     }
 
     @Test

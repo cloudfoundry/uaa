@@ -12,8 +12,7 @@ public class TokenEndpointBuilder {
     private String issuer;
 
     public TokenEndpointBuilder(String issuerUrlBase) throws Exception {
-        new URL(issuerUrlBase); // validate issuer url is valid
-        this.issuer = issuerUrlBase;
+        setIssuer(issuerUrlBase);
     }
 
     public String getTokenEndpoint() {
@@ -27,5 +26,10 @@ public class TokenEndpointBuilder {
 
     public String getIssuer() {
         return issuer;
+    }
+
+    public void setIssuer(String issuer) throws Exception {
+        new URL(issuer); // validate issuer url is valid
+        this.issuer = issuer;
     }
 }
