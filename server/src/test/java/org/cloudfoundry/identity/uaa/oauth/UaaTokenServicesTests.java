@@ -1843,64 +1843,6 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void validate_token_happy_path() throws Exception {
-        test_validateToken_method(ignore -> {});
-    }
-
-    @Test
-    public void validate_token_user_gone() throws Exception {
-        expectedEx.expect(InvalidTokenException.class);
-        expectedEx.expectMessage("Token bears a non-existent user ID: " + tokenSupport.userId);
-        test_validateToken_method(ignore -> tokenSupport.userDatabase.clear());
-    }
-
-    @Test
-    public void validate_token_client_gone() throws Exception {
-        expectedEx.expect(InvalidTokenException.class);
-        expectedEx.expectMessage("Invalid client ID "+tokenSupport.defaultClient.getClientId());
-        test_validateToken_method(ignore -> tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), emptyMap()));
-    }
-
-    @Test
-    public void opaque_tokens_validate_signature() throws Exception {
-        expectedEx.expect(InvalidTokenException.class);
-        expectedEx.expectMessage("Token header claim [kid] references unknown signing key : [testKey]");
-
-        Consumer<Void> setup = (ignore) -> {
-            Map < String, String > keys = new HashMap<>();
-            keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
-            tokenSupport.tokenPolicy.setKeys(keys);
-            tokenSupport.tokenPolicy.setActiveKeyId("otherKey");
-            IdentityZoneHolder.get().getConfig().setTokenPolicy(tokenSupport.tokenPolicy);
-        };
-
-        test_validateToken_method(setup);
-    }
-    public void test_validateToken_method(Consumer<Void> setup) throws Exception {
-        tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
-        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
-        authorizationRequest.setRequestParameters(azParameters);
-        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        assertNotNull(accessToken);
-        assertTrue("Token should be composite token", accessToken instanceof CompositeToken);
-        CompositeToken composite = (CompositeToken)accessToken;
-        assertThat("id_token should be JWT, thus longer than 36 characters", composite.getIdTokenValue().length(), greaterThan(36));
-        assertThat("Opaque access token must be shorter than 37 characters", accessToken.getValue().length(), lessThanOrEqualTo(36));
-        assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
-
-        setup.accept(null);
-        tokenServices.validateToken(accessToken.getValue(), true);
-    }
-
-    @Test
     public void testLoad_Opaque_AuthenticationForAUser() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
@@ -1922,11 +1864,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
         String accessTokenValue = tokenProvisioning.retrieve(composite.getValue(), IdentityZoneHolder.get().getId()).getValue();
-        Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue, true).getClaims();
+        Map<String,Object> accessTokenClaims = tokenSupport.tokenValidationService.validateToken(accessTokenValue, true).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
         String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
-        Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue, false).getClaims();
+        Map<String,Object> refreshTokenClaims = tokenSupport.tokenValidationService.validateToken(refreshTokenValue, false).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 
 
@@ -1995,7 +1937,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken compositeToken = tokenServices.createAccessToken(authentication);
-        TokenValidation refreshToken = tokenServices.validateToken(compositeToken.getRefreshToken().getValue(), false);
+        TokenValidation refreshToken = tokenSupport.tokenValidationService.validateToken(compositeToken.getRefreshToken().getValue(), false);
 
         String refreshTokenValue = tokenProvisioning.retrieve(refreshToken.getClaims().get("jti").toString(), IdentityZoneHolder.get().getId()).getValue();
 

@@ -44,7 +44,6 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DuplicateKeyException;
@@ -64,10 +63,8 @@ import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -176,7 +173,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        TokenValidation tokenValidation = validateToken(refreshTokenValue, false).checkJti();
+        TokenValidation tokenValidation = tokenValidationService
+                .validateToken(refreshTokenValue, false)
+                .checkJti();
         Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
@@ -759,7 +758,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         TokenValidation tokenValidation =
-          validateToken(accessToken, true).checkJti();
+          tokenValidationService.validateToken(accessToken, true)
+          .checkJti();
 
         Map<String, Object> claims = tokenValidation.getClaims();
 
@@ -832,7 +832,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
         TokenValidation tokenValidation =
-          validateToken(accessToken, true).checkJti();
+                tokenValidationService.validateToken(accessToken, true).checkJti();
 
         Map<String, Object> claims = tokenValidation.getClaims();
         accessToken = tokenValidation.getJwt().getEncoded();
@@ -872,11 +872,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         BaseClientDetails clientDetails = (BaseClientDetails) client;
 
         return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, clientDetails.getAutoApproveScopes());
-    }
-
-    protected TokenValidation validateToken(String token, boolean isAccessToken) {
-        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
-        return tokenValidationService.validateToken(token, isAccessToken);
     }
 
     /**

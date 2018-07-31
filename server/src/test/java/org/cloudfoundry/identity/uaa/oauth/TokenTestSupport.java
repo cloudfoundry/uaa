@@ -173,6 +173,7 @@ public class TokenTestSupport {
     final Map<String, RevocableToken> tokens = new HashMap<>();
     private final RefreshTokenCreator refreshTokenCreator;
     public final TimeService timeService;
+    public final TokenValidationService tokenValidationService;
 
     public void clear() {
         tokens.clear();
@@ -259,7 +260,7 @@ public class TokenTestSupport {
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         timeService = mock(TimeService.class);
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        TokenValidationService tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
         IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
