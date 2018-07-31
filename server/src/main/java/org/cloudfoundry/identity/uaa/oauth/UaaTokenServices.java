@@ -344,7 +344,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // issued OR if those scopes are auto approved
         if (!approvedScopes.containsAll(requestedScopes)) {
             logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
-            Set<String> unapprovedScopes = new HashSet<String>(requestedScopes);
+            Set<String> unapprovedScopes = new HashSet<>(requestedScopes);
             unapprovedScopes.removeAll(approvedScopes);
             throw new InvalidTokenException("Invalid token (some requested scopes are not approved): "
                             + unapprovedScopes);
@@ -481,7 +481,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(OAuth2AccessToken.SCOPE, requestedScopes);
         claims.put(CLIENT_ID, clientId);
         claims.put(CID, clientId);
-        claims.put(AZP, clientId); //openId Connect
+        claims.put(AZP, clientId);
         if (revocable) {
             claims.put(REVOCABLE, true);
         }
@@ -519,8 +519,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
-        // TODO: different values for audience in the AT and RT. Need to sync
-        // them up
+        // TODO: different values for audience in the AT and RT. Need to sync them up
         claims.put(AUD, resourceIds);
 
         for (String excludedClaim : getExcludedClaims()) {
