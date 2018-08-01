@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -115,6 +116,7 @@ public class UaaTokenServicesTests {
 
     private Calendar expiresAt = Calendar.getInstance();
     private Calendar updatedAt = Calendar.getInstance();
+    private Set<String> acrValue = Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
 
     public UaaTokenServicesTests(TestTokenEnhancer enhancer, String testname) {
         this.tokenEnhancer = enhancer;
@@ -214,7 +216,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test
-    public void refreshAccessToken_buildsIdTokenWithRoleInformation() throws Exception {
+    public void refreshAccessToken_buildsIdToken_withRolesAndAttributesAndACR() throws Exception {
         IdTokenCreator idTokenCreator = mock(IdTokenCreator.class);
         when(idTokenCreator.create(any(), any(), any())).thenReturn(mock(IdToken.class));
 
@@ -239,7 +241,11 @@ public class UaaTokenServicesTests {
         claims.put(ClaimConstants.GRANTED_SCOPES, Lists.newArrayList("read", "write", "openid"));
         claims.put(ClaimConstants.GRANT_TYPE, "password");
         claims.put(ClaimConstants.AUD, Lists.newArrayList(TokenTestSupport.CLIENT_ID));
+        HashMap<Object, Object> acrMap = Maps.newHashMap();
+        acrMap.put(IdToken.ACR_VALUES_KEY, acrValue);
+        claims.put(ClaimConstants.ACR, acrMap);
         when(tokenValidation.getClaims()).thenReturn(claims);
+        when(tokenValidation.checkJti()).thenReturn(tokenValidation);
         Jwt jwt = mock(Jwt.class);
         when(tokenValidation.getJwt()).thenReturn(jwt);
         when(jwt.getEncoded()).thenReturn("encoded");
@@ -277,14 +283,15 @@ public class UaaTokenServicesTests {
         userInfo.setUserAttributes(userAttributes);
         when(userDatabase.getUserInfo(userId)).thenReturn(userInfo);
 
-        uaaTokenServices.refreshAccessToken(getOAuth2AccessToken().getRefreshToken().getValue(), getRefreshTokenRequest());
+        String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
+        uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
         verify(idTokenCreator).create(eq(TokenTestSupport.CLIENT_ID), eq(userId), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
         assertEquals(expectedRoles, userData.roles);
-
         assertEquals(userAttributes, userData.userAttributes);
+        assertEquals(acrValue, userData.contextClassRef);
     }
 
     @Test

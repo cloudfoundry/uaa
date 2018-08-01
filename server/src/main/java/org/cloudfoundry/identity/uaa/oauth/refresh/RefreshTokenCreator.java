@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.openid.IdToken.ACR_VALUES_KEY;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.springframework.util.StringUtils.hasText;
@@ -80,7 +81,7 @@ public class RefreshTokenCreator {
             }
             if (null != tokenRequestData.acr && !tokenRequestData.acr.isEmpty()) {
                 HashMap<Object, Object> acrMap = Maps.newHashMap();
-                acrMap.put("values", tokenRequestData.acr);
+                acrMap.put(ACR_VALUES_KEY, tokenRequestData.acr);
                 claims.put(ACR, acrMap);
             }
             if (null != additionalAuthorizationAttributes) {

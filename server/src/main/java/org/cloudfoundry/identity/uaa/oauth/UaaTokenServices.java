@@ -93,6 +93,8 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
+import static org.cloudfoundry.identity.uaa.oauth.openid.IdToken.ACR_VALUES_KEY;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
@@ -295,7 +297,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UserAuthenticationData authenticationData = new UserAuthenticationData(
                 AuthTimeDateConverter.authTimeToDate((Integer) refreshTokenClaims.get(AUTH_TIME)),
                 authenticationMethodsAsSet(refreshTokenClaims),
-                null,
+                getAcrAsSet(refreshTokenClaims),
                 requestedScopes,
                 rolesAsSet(userId),
                 getUserAttributes(userId),
@@ -325,6 +327,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate), refreshTokenId);
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
+    }
+
+    private Set<String> getAcrAsSet(Map<String, Object> refreshTokenClaims) {
+        Map<String, Object> acrFromRefreshToken = (Map<String, Object>) refreshTokenClaims.get(ACR);
+        if (acrFromRefreshToken == null) {
+            return Sets.newHashSet();
+        }
+        return (Set<String>) acrFromRefreshToken.get(ACR_VALUES_KEY);
     }
 
     private MultiValueMap<String, String> getUserAttributes(String userId) {

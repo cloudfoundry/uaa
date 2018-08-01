@@ -31,6 +31,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class IdToken {
+    public static final String ACR_VALUES_KEY = "values";
     public final String sub;
     public final List<String> aud;
     public final String iss;
@@ -127,7 +128,7 @@ public class IdToken {
             return null;
         }
         HashMap<String, Set<String>> acrMap = new HashMap<>();
-        acrMap.put("values", acr);
+        acrMap.put(ACR_VALUES_KEY, acr);
         return acrMap;
     }
 
