@@ -151,51 +151,8 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
         assertEquals(0, clientEvents.size());
     }
 
-    @Test
-    public void clientAuthenticationFailureAuditSucceeds() throws Exception {
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        Thread.sleep(100);
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        verifyZeroInteractions(template);
-    }
-
-
-    @Test
-    public void clientAuthenticationFailureDeletesOldData() throws Exception {
-        long now = System.currentTimeMillis();
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        // Set the created column to 25 hours past
-        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        verifyZeroInteractions(template);
-    }
-
-    @Test
-    public void clientAuthenticationSuccessResetsData() throws Exception {
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        auditService.log(getAuditEvent(ClientAuthenticationSuccess, "client", "testman"), getAuditEvent(ClientAuthenticationSuccess, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        verifyZeroInteractions(template);
-    }
-
-    @Test
-    public void clientSecretChangeSuccessResetsData() throws Exception {
-        auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        auditService.log(getAuditEvent(SecretChangeSuccess, "client", "testman"), getAuditEvent(SecretChangeSuccess, "client", "testman").getIdentityZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='client'", Integer.class), is(0));
-        verifyZeroInteractions(template);
-    }
-
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
         return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId(), null, null);
-    }
-
-    private AuditEvent getAuditEventForAltZone(AuditEventType type, String principal, String data) {
-        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), "test-zone", null, null);
     }
 
 }
