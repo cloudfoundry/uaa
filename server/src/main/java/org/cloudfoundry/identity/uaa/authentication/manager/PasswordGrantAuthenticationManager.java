@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import com.google.common.base.Functions;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -15,7 +16,6 @@ import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -64,21 +64,26 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         UaaLoginHint uaaLoginHint = zoneAwareAuthzAuthenticationManager.extractLoginHint(authentication);
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
-        UaaLoginHint loginHintToUse = null;
+        UaaLoginHint loginHintToUse;
+        Map<String, IdentityProvider> identityProviderMap = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).collect(Collectors.toMap(IdentityProvider::getOriginKey, Functions.identity()));
+        List<String> possibleProviders;
+        if (allowedProviders == null) {
+            possibleProviders = new ArrayList<>(identityProviderMap.keySet());
+        } else {
+            possibleProviders = allowedProviders.stream().filter(identityProviderMap::containsKey).collect(Collectors.toList());
+        }
         if (uaaLoginHint == null) {
-            if (defaultProvider == null) {
-                if (allowedProviders != null) {
-                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
-                }
+            if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
+                loginHintToUse = new UaaLoginHint(defaultProvider);
             } else {
-                if (allowedProviders == null || allowedProviders.contains(defaultProvider)) {
-                    loginHintToUse = new UaaLoginHint(defaultProvider);
-                } else {
-                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
-                }
+                loginHintToUse = getUaaLoginHintForChainedAuth(possibleProviders);
             }
         } else {
-            loginHintToUse = uaaLoginHint;
+            if (possibleProviders.contains(uaaLoginHint.getOrigin())) {
+                loginHintToUse = uaaLoginHint;
+            } else {
+                throw new ProviderConfigurationException("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.");
+            }
         }
         if (loginHintToUse != null) {
             zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
@@ -86,7 +91,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, getOidcIdentityProviderDefinitionForPasswordGrant(loginHintToUse));
+            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)identityProviderMap.get(loginHintToUse.getOrigin()).getConfig());
         }
     }
 
@@ -101,7 +106,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else if (allowedProviders.contains(OriginKeys.LDAP)) {
             loginHintToUse = new UaaLoginHint(OriginKeys.LDAP);
         } else {
-            throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
+            throw new BadCredentialsException("No single identity provider could be selected.");
         }
         return loginHintToUse;
     }
@@ -181,22 +186,15 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return authResult;
     }
 
-    private OIDCIdentityProviderDefinition getOidcIdentityProviderDefinitionForPasswordGrant(UaaLoginHint uaaLoginHint) {
-        //Get IDP
-        IdentityProvider idp = null;
-        try {
-            idp = identityProviderProvisioning.retrieveByOrigin(uaaLoginHint.getOrigin(), IdentityZoneHolder.get().getId());
-        } catch (DataAccessException e) {
-            throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
+    private boolean providerSupportsPasswordGrant(IdentityProvider provider) {
+        if (OriginKeys.UAA.equals(provider.getType()) || OriginKeys.LDAP.equals(provider.getType())) {
+            return true;
         }
-        if (!idp.isActive() || !OriginKeys.OIDC10.equals(idp.getType()) || !(idp.getConfig() instanceof OIDCIdentityProviderDefinition)) {
-            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
+        if (!OriginKeys.OIDC10.equals(provider.getType()) || !(provider.getConfig() instanceof OIDCIdentityProviderDefinition)) {
+            return false;
         }
-        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
-        if (!config.isPasswordGrantEnabled()) {
-            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
-        }
-        return config;
+        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition) provider.getConfig();
+        return config.isPasswordGrantEnabled();
     }
 
 

@@ -19,14 +19,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -69,6 +67,8 @@ public class PasswordGrantAuthenticationManagerTest {
     private ClientServicesExtension clientDetailsService;
 
     private IdentityProvider idp;
+    IdentityProvider uaaProvider;
+    IdentityProvider ldapProvider;
     private OIDCIdentityProviderDefinition idpConfig;
     private ClientDetails clientDetails;
 
@@ -82,15 +82,23 @@ public class PasswordGrantAuthenticationManagerTest {
 
         idp = mock(IdentityProvider.class);
         idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(idp.getOriginKey()).thenReturn("oidcprovider");
         when(idp.getConfig()).thenReturn(idpConfig);
-        when(idp.isActive()).thenReturn(true);
         when(idp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
         when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
         when(idpConfig.getRelyingPartyId()).thenReturn("identity");
         when(idpConfig.getRelyingPartySecret()).thenReturn("identitysecret");
 
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(idp);
+        uaaProvider = mock(IdentityProvider.class);
+        when(uaaProvider.getType()).thenReturn(OriginKeys.UAA);
+        when(uaaProvider.getOriginKey()).thenReturn(OriginKeys.UAA);
+        ldapProvider = mock(IdentityProvider.class);
+        when(ldapProvider.getType()).thenReturn(OriginKeys.LDAP);
+        when(ldapProvider.getOriginKey()).thenReturn(OriginKeys.LDAP);
+
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(idp, uaaProvider, ldapProvider));
+
 
         Authentication clientAuth = mock(Authentication.class);
         when(clientAuth.getName()).thenReturn("clientid");
@@ -177,31 +185,8 @@ public class PasswordGrantAuthenticationManagerTest {
 
     @Test
     public void testOIDCPasswordGrantProviderNotFound() {
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenThrow(mock(DataAccessException.class));
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
-        when(loginHint.getOrigin()).thenReturn("oidcprovider");
-        Authentication auth = mock(Authentication.class);
-        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
-
-        try {
-            instance.authenticate(auth);
-            fail();
-        } catch (ProviderNotFoundException e) {
-            assertEquals("The origin provided in the login hint is invalid.", e.getMessage());
-        }
-    }
-
-    @Test
-    public void testOIDCPasswordGrantProviderNotActive() {
-        IdentityProvider localIdp = mock(IdentityProvider.class);
-        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(localIdp.getConfig()).thenReturn(idpConfig);
-        when(localIdp.isActive()).thenReturn(false);
-        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
-
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
-        UaaLoginHint loginHint = mock(UaaLoginHint.class);
-        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        when(loginHint.getOrigin()).thenReturn("oidcprovider2");
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
@@ -209,7 +194,7 @@ public class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (ProviderConfigurationException e) {
-            assertEquals("The origin provided does not match an active OpenID Connect provider.", e.getMessage());
+            assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
     }
 
@@ -217,11 +202,12 @@ public class PasswordGrantAuthenticationManagerTest {
     public void testOIDCPasswordGrantProviderTypeNotOidc() {
         IdentityProvider localIdp = mock(IdentityProvider.class);
         OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
         when(localIdp.getConfig()).thenReturn(idpConfig);
         when(localIdp.isActive()).thenReturn(true);
         when(localIdp.getType()).thenReturn(OriginKeys.SAML);
 
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
@@ -231,7 +217,7 @@ public class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (ProviderConfigurationException e) {
-            assertEquals("The origin provided does not match an active OpenID Connect provider.", e.getMessage());
+            assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
     }
 
@@ -239,12 +225,12 @@ public class PasswordGrantAuthenticationManagerTest {
     public void testOIDCPasswordGrantProviderDoesNotSupportPassword() {
         IdentityProvider localIdp = mock(IdentityProvider.class);
         OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
         when(localIdp.getConfig()).thenReturn(idpConfig);
-        when(localIdp.isActive()).thenReturn(true);
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(false);
 
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
@@ -254,7 +240,7 @@ public class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (ProviderConfigurationException e) {
-            assertEquals("External OpenID Connect provider is not configured for password grant.", e.getMessage());
+            assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
     }
 
@@ -262,12 +248,12 @@ public class PasswordGrantAuthenticationManagerTest {
     public void testOIDCPasswordGrantProviderNoRelyingPartyCredentials() {
         IdentityProvider localIdp = mock(IdentityProvider.class);
         OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
         when(localIdp.getConfig()).thenReturn(idpConfig);
-        when(localIdp.isActive()).thenReturn(true);
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
 
-        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
@@ -611,6 +597,30 @@ public class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
+    public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedSingleIdpDoesNotSupportPassword() {
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("oidcprovider"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getConfig()).thenReturn(idpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(false);
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
+
+        try {
+            instance.authenticate(auth);
+            fail();
+        } catch (BadCredentialsException e) {
+            assertEquals("No single identity provider could be selected.", e.getMessage());
+        }
+    }
+
+    @Test
     public void testOIDCPasswordGrant_NoLoginHintDefaultNotAllowedSingleIdpUAA() {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
         Authentication auth = mock(Authentication.class);
@@ -666,11 +676,20 @@ public class PasswordGrantAuthenticationManagerTest {
         Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("oidcprovider", "oidcprovider2"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
 
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider2");
+        when(localIdp.getConfig()).thenReturn(idpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
+
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, idp, localIdp));
+
         try {
             instance.authenticate(auth);
             fail();
         } catch (BadCredentialsException e) {
-            assertEquals("Multiple allowed identity providers were found. No single identity provider could be selected.", e.getMessage());
+            assertEquals("No single identity provider could be selected.", e.getMessage());
         }
     }
 
