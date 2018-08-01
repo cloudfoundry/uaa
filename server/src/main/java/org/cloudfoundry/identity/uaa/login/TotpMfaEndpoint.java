@@ -36,6 +36,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -90,7 +91,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     @RequestMapping(value = {"/register"}, method = RequestMethod.GET)
     public String generateQrUrl(Model model,
                                 @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials)
-        throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
+      throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         MfaProvider provider = getMfaProvider();
         if (mfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {
@@ -105,8 +106,8 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = {"/manual"}, method = RequestMethod.GET)
     public String manualRegistration(
-        Model model,
-        @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials
+      Model model,
+      @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials
     ) throws UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         MfaProvider provider = getMfaProvider();
@@ -135,7 +136,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
                                      @RequestParam("code") String code,
                                      @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials,
                                      SessionStatus sessionStatus)
-        throws UaaPrincipalIsNotInSession {
+      throws UaaPrincipalIsNotInSession {
         UaaAuthentication uaaAuth = getUaaAuthentication();
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
 
@@ -178,6 +179,13 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     @ExceptionHandler(UaaPrincipalIsNotInSession.class)
     public ModelAndView handleUaaPrincipalIsNotInSession() {
         return new ModelAndView("redirect:/login", Collections.emptyMap());
+    }
+
+    @ExceptionHandler(AuthenticationPolicyRejectionException.class)
+    public ModelAndView handleMFALockedOut() {
+        SecurityContextHolder.getContext().setAuthentication(null);
+
+        return new ModelAndView("redirect:/login?error=account_locked", Collections.emptyMap());
     }
 
     private ModelAndView renderEnterCodePage(Model model, UaaPrincipal uaaPrincipal) {

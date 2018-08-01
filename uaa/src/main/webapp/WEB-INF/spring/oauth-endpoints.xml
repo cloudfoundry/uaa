@@ -633,7 +633,7 @@
         <property name="lockoutAfterFailures"
                   value="5"/>
         <property name="countFailuresWithin"
-                  value="1200"/>
+                  value="90"/>
         <property name="lockoutPeriodSeconds"
                   value="300"/>
     </bean>
