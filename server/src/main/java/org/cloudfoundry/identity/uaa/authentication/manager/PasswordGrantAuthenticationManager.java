@@ -12,10 +12,10 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -50,13 +50,15 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private RestTemplateConfig restTemplateConfig;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private ClientServicesExtension clientDetailsService;
+    private XOAuthProviderConfigurator xoauthProviderProvisioning;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, ClientServicesExtension clientDetailsService) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, ClientServicesExtension clientDetailsService, XOAuthProviderConfigurator xoauthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
         this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
         this.clientDetailsService = clientDetailsService;
+        this.xoauthProviderProvisioning = xoauthProviderProvisioning;
     }
 
     @Override
@@ -64,21 +66,26 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         UaaLoginHint uaaLoginHint = zoneAwareAuthzAuthenticationManager.extractLoginHint(authentication);
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
-        UaaLoginHint loginHintToUse = null;
+        UaaLoginHint loginHintToUse;
+        List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).collect(Collectors.toList());
+        List<String> possibleProviders;
+        if (allowedProviders == null) {
+            possibleProviders = identityProviders;
+        } else {
+            possibleProviders = allowedProviders.stream().filter(identityProviders::contains).collect(Collectors.toList());
+        }
         if (uaaLoginHint == null) {
-            if (defaultProvider == null) {
-                if (allowedProviders != null) {
-                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
-                }
+            if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
+                loginHintToUse = new UaaLoginHint(defaultProvider);
             } else {
-                if (allowedProviders == null || allowedProviders.contains(defaultProvider)) {
-                    loginHintToUse = new UaaLoginHint(defaultProvider);
-                } else {
-                    loginHintToUse = getUaaLoginHintForChainedAuth(allowedProviders);
-                }
+                loginHintToUse = getUaaLoginHintForChainedAuth(possibleProviders);
             }
         } else {
-            loginHintToUse = uaaLoginHint;
+            if (possibleProviders.contains(uaaLoginHint.getOrigin())) {
+                loginHintToUse = uaaLoginHint;
+            } else {
+                throw new ProviderConfigurationException("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.");
+            }
         }
         if (loginHintToUse != null) {
             zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
@@ -86,7 +93,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, getOidcIdentityProviderDefinitionForPasswordGrant(loginHintToUse));
+            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)xoauthProviderProvisioning.retrieveByOrigin(loginHintToUse.getOrigin(), IdentityZoneHolder.get().getId()).getConfig());
         }
     }
 
@@ -101,7 +108,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else if (allowedProviders.contains(OriginKeys.LDAP)) {
             loginHintToUse = new UaaLoginHint(OriginKeys.LDAP);
         } else {
-            throw new BadCredentialsException("Multiple allowed identity providers were found. No single identity provider could be selected.");
+            throw new BadCredentialsException("No single identity provider could be selected.");
         }
         return loginHintToUse;
     }
@@ -181,22 +188,15 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return authResult;
     }
 
-    private OIDCIdentityProviderDefinition getOidcIdentityProviderDefinitionForPasswordGrant(UaaLoginHint uaaLoginHint) {
-        //Get IDP
-        IdentityProvider idp = null;
-        try {
-            idp = identityProviderProvisioning.retrieveByOrigin(uaaLoginHint.getOrigin(), IdentityZoneHolder.get().getId());
-        } catch (DataAccessException e) {
-            throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
+    private boolean providerSupportsPasswordGrant(IdentityProvider provider) {
+        if (OriginKeys.UAA.equals(provider.getType()) || OriginKeys.LDAP.equals(provider.getType())) {
+            return true;
         }
-        if (!idp.isActive() || !OriginKeys.OIDC10.equals(idp.getType()) || !(idp.getConfig() instanceof OIDCIdentityProviderDefinition)) {
-            throw new ProviderConfigurationException("The origin provided does not match an active OpenID Connect provider.");
+        if (!OriginKeys.OIDC10.equals(provider.getType()) || !(provider.getConfig() instanceof OIDCIdentityProviderDefinition)) {
+            return false;
         }
-        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition)idp.getConfig();
-        if (!config.isPasswordGrantEnabled()) {
-            throw new ProviderConfigurationException("External OpenID Connect provider is not configured for password grant.");
-        }
-        return config;
+        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition) provider.getConfig();
+        return config.isPasswordGrantEnabled();
     }
 
 
