@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -1628,8 +1629,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
 
         //create zone and clients
-        BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
-                                                         "uaa.resource");
+        BaseClientDetails client =
+                new BaseClientDetails("limited-client", null, "openid", AUTHORIZATION_CODE, "uaa.resource");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         client.addAdditionalInformation("foo", "bar");
@@ -1797,8 +1798,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateAndDeleteLimitedClientInNewZoneUsingZoneEndpoint() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
-        BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
-                                                         "uaa.resource");
+        BaseClientDetails client =
+                new BaseClientDetails("limited-client", null, "openid", AUTHORIZATION_CODE, "uaa.resource");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         client.addAdditionalInformation("foo", "bar");
@@ -1844,8 +1845,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateAndDeleteLimitedClientInUAAZoneReturns403() throws Exception {
-        BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
-                                                         "uaa.resource");
+        BaseClientDetails client =
+                new BaseClientDetails("limited-client", null, "openid", AUTHORIZATION_CODE, "uaa.resource");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         getMockMvc().perform(
@@ -1870,8 +1871,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateAdminClientInNewZoneUsingZoneEndpointReturns400() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
-        BaseClientDetails client = new BaseClientDetails("admin-client", null, null, "client_credentials",
-                                                         "clients.write");
+        BaseClientDetails client =
+                new BaseClientDetails("admin-client", null, null, "client_credentials", "clients.write");
         client.setClientSecret("secret");
         getMockMvc().perform(
             post("/identity-zones/" + zone.getId() + "/clients")

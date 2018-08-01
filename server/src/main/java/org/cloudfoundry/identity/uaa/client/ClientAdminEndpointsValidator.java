@@ -19,8 +19,8 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -45,16 +46,16 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public static final Set<String> VALID_GRANTS =
         new HashSet<>(
-            Arrays.asList(
-                "implicit",
-                "password",
-                "client_credentials",
-                "authorization_code",
-                "refresh_token",
-                GRANT_TYPE_USER_TOKEN,
-                GRANT_TYPE_SAML2_BEARER,
-                GRANT_TYPE_JWT_BEARER
-            )
+                Arrays.asList(
+                        "implicit",
+                        "password",
+                        "client_credentials",
+                        AUTHORIZATION_CODE,
+                        "refresh_token",
+                        GRANT_TYPE_USER_TOKEN,
+                        GRANT_TYPE_SAML2_BEARER,
+                        GRANT_TYPE_JWT_BEARER
+                )
         );
 
     private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
@@ -120,7 +121,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         checkRequestedGrantTypes(requestedGrantTypes);
 
-        if ((requestedGrantTypes.contains("authorization_code") || requestedGrantTypes.contains("password"))
+        if ((requestedGrantTypes.contains(AUTHORIZATION_CODE) || requestedGrantTypes.contains("password"))
                         && !requestedGrantTypes.contains("refresh_token")) {
             logger.debug("requested grant type missing refresh_token: " + clientId);
 
@@ -150,7 +151,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 }
             }
 
-            if (requestedGrantTypes.contains("implicit") && requestedGrantTypes.contains("authorization_code")) {
+            if (requestedGrantTypes.contains("implicit")
+                    && requestedGrantTypes.contains(AUTHORIZATION_CODE)) {
                 throw new InvalidClientDetailsException(
                                 "Not allowed: implicit grant type is not allowed together with authorization_code");
             }
@@ -233,8 +235,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (create) {
             // Only check for missing secret if client is being created.
-            if (requestedGrantTypes.contains("client_credentials") || requestedGrantTypes
-                            .contains("authorization_code")) {
+            if (requestedGrantTypes.contains("client_credentials")
+                    || requestedGrantTypes.contains(AUTHORIZATION_CODE)) {
                 if(!StringUtils.hasText(client.getClientSecret())) {
                     logger.debug("Client secret is required for client_credentials and authorization_code grant types");
                     throw new InvalidClientDetailsException(
@@ -251,7 +253,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     public void validateClientRedirectUri(ClientDetails client) {
         Set<String> uris = client.getRegisteredRedirectUri();
 
-        for(String grant_type: Arrays.asList("authorization_code", "implicit")) {
+        for(String grant_type: Arrays.asList(AUTHORIZATION_CODE, "implicit")) {
             if(client.getAuthorizedGrantTypes().contains(grant_type)) {
 
                 if (isMissingRedirectUris(uris)) {

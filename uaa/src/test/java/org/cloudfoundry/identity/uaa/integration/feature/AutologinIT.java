@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -211,7 +212,7 @@ public class AutologinIT {
 
         MultiValueMap<String,String> tokenParams = new LinkedMultiValueMap<>();
         tokenParams.add("response_type", "token");
-        tokenParams.add("grant_type", "authorization_code");
+        tokenParams.add("grant_type", AUTHORIZATION_CODE);
         tokenParams.add("code", newCode);
         tokenParams.add("redirect_uri", appUrl);
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);

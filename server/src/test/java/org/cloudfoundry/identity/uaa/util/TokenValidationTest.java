@@ -58,6 +58,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_S
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
@@ -125,7 +126,7 @@ public class TokenValidationTest {
           entry("client_id", "app"),
           entry("cid", "app"),
           entry("azp", "app"),
-          entry("grant_type", "authorization_code"),
+          entry("grant_type", AUTHORIZATION_CODE),
           entry("user_id", "a7f07bf6-e720-4652-8999-e980189cef54"),
           entry("origin", "uaa"),
           entry("user_name", "marissa"),
@@ -143,7 +144,7 @@ public class TokenValidationTest {
         signer = new MacSigner(macSigningKeySecret);
 
         clientDetailsService = new InMemoryClientServicesExtentions();
-        uaaClient = new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "");
+        uaaClient = new BaseClientDetails("app", "acme", "acme.dev", AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
         clientDetailsService.setClientDetailsStore(IdentityZone.getUaa().getId(),
           Collections.singletonMap(CLIENT_ID, uaaClient));
@@ -477,7 +478,7 @@ public class TokenValidationTest {
         clientDetailsService.setClientDetailsStore(
           Collections.singletonMap(
             "app",
-            new BaseClientDetails("app", "acme", "a.different.scope", "authorization_code", "")
+            new BaseClientDetails("app", "acme", "a.different.scope", AUTHORIZATION_CODE, "")
           )
         );
 

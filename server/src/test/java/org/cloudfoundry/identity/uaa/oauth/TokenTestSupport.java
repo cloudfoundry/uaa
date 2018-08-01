@@ -70,6 +70,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,15 +78,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class TokenTestSupport {
-
     public static final String PASSWORD = "password";
     public static final String CLIENT_ID = "client";
     public static final String CLIENT_ID_NO_REFRESH_TOKEN_GRANT = "client_without_refresh_grant";
     public static final String GRANT_TYPE = "grant_type";
     public static final String CLIENT_CREDENTIALS = "client_credentials";
-    public static final String AUTHORIZATION_CODE = "authorization_code";
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String IMPLICIT = "implicit";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";

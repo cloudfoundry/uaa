@@ -61,7 +61,11 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.*;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
@@ -69,7 +73,19 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -77,10 +93,35 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITIES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -90,23 +131,16 @@ import static org.springframework.util.StringUtils.hasText;
  *
  */
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices, ApplicationEventPublisherAware {
-
+    private static final String CODE = "code";
+    private static final String OPENID = "openid";
     private final Log logger = LogFactory.getLog(getClass());
-
     private UaaUserDatabase userDatabase;
-
     private ClientServicesExtension clientDetailsService;
-
     private ApprovalStore approvalStore;
-
     private ApplicationEventPublisher applicationEventPublisher;
-
     private TokenPolicy tokenPolicy;
-
     private RevocableTokenProvisioning tokenProvisioning;
-
     private Set<String> excludedClaims;
-
     private UaaTokenEnhancer uaaTokenEnhancer = null;
     private IdTokenCreator idTokenCreator;
     private RefreshTokenCreator refreshTokenCreator;
@@ -172,9 +206,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid refresh token (empty token)");
         }
 
-        if (!"refresh_token".equals(request.getRequestParameters().get("grant_type"))) {
-            throw new InvalidGrantException("Invalid grant type: "
-                            + request.getRequestParameters().get("grant_type"));
+        String grantType = request.getRequestParameters().get(GRANT_TYPE);
+        if (!"refresh_token".equals(grantType)) {
+            throw new InvalidGrantException("Invalid grant type: " + grantType);
         }
 
         TokenValidation tokenValidation = tokenValidationService
@@ -219,17 +253,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // The user may not request scopes that were not part of the refresh
         // token
         if (tokenScopes.isEmpty() || !tokenScopes.containsAll(requestedScopes)) {
-            throw new InvalidScopeException("Unable to narrow the scope of the client authentication to "
-                            + requestedScopes + ".", new HashSet<>(tokenScopes));
+            throw new InvalidScopeException("Unable to narrow the scope of the client authentication to " + requestedScopes + ".",
+                    new HashSet<>(tokenScopes));
         }
 
         // from this point on, we only care about the scopes requested, not what
         // is in the refresh token
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
-        String grantType = refreshTokenClaims.get(GRANT_TYPE).toString();
+        String refreshGrantType = refreshTokenClaims.get(GRANT_TYPE).toString();
         checkForApproval(userId, clientId, requestedScopes,
-                        getAutoApprovedScopes(grantType, tokenScopes, client)
+                        getAutoApprovedScopes(refreshGrantType, tokenScopes, client)
         );
 
         String nonce = (String) refreshTokenClaims.get(NONCE);
@@ -266,7 +300,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 rolesAsSet(userId),
                 getUserAttributes(userId),
                 nonce,
-                grantType,
+                refreshGrantType,
                 generateUniqueTokenId());
 
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
@@ -597,7 +631,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String clientId = oAuth2Request.getClientId();
         Set<String> userScopes = oAuth2Request.getScope();
         Map<String, String> requestParameters = oAuth2Request.getRequestParameters();
-        String grantType = requestParameters.get("grant_type");
+        String grantType = requestParameters.get(GRANT_TYPE);
 
         Set<String> modifiableUserScopes = new LinkedHashSet<>(userScopes);
 
@@ -615,10 +649,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 requestParameters.get("authorities")
             );
 
-        if ("authorization_code".equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
-            "code".equals(requestParameters.get(OAuth2Utils.RESPONSE_TYPE)) &&
+        if (TokenConstants.AUTHORIZATION_CODE.equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
+            CODE.equals(requestParameters.get(OAuth2Utils.RESPONSE_TYPE)) &&
             requestParameters.get(OAuth2Utils.SCOPE)!=null &&
-            Arrays.asList(requestParameters.get(OAuth2Utils.SCOPE).split(" ")).contains("openid")) {
+            Arrays.asList(requestParameters.get(OAuth2Utils.SCOPE).split(" ")).contains(OPENID)) {
             wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
         }
 
@@ -634,23 +668,25 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 tokenId);
 
+        String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;
+
         CompositeToken accessToken =
-            createCompositeToken(
-                tokenId,
-                userId,
-                user,
-                userAuthenticationTime,
-                clientScopes,
-                    clientId,
-                oAuth2Request.getResourceIds(),
-                    refreshToken != null ? refreshToken.getValue() : null,
-                    additionalAuthorizationAttributes,
-                additionalRootClaims,
-                responseTypes,
-                revocableHashSignature,
-                wasIdTokenRequestedThroughAuthCodeScopeParameter,
-                    accessTokenRevocable,
-                    authenticationData);
+                createCompositeToken(
+                        tokenId,
+                        userId,
+                        user,
+                        userAuthenticationTime,
+                        clientScopes,
+                        clientId,
+                        oAuth2Request.getResourceIds(),
+                        refreshTokenValue,
+                        additionalAuthorizationAttributes,
+                        additionalRootClaims,
+                        responseTypes,
+                        revocableHashSignature,
+                        wasIdTokenRequestedThroughAuthCodeScopeParameter,
+                        accessTokenRevocable,
+                        authenticationData);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, opaque, accessTokenRevocable);
     }
@@ -754,7 +790,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (responseTypes!=null && responseTypes.size()==1) {
             String storedResponseType = responseTypes.iterator().next();
             String requesedResponseType = authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.RESPONSE_TYPE);
-            if ("code".equals(storedResponseType) &&
+            if (CODE.equals(storedResponseType) &&
                 requesedResponseType!=null) {
                 responseTypes = OAuth2Utils.parseParameterList(requesedResponseType);
             }

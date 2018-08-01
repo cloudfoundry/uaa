@@ -93,6 +93,7 @@ import java.util.Set;
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
@@ -373,7 +374,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         } else if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
             return "implicit";
         }
-        return "authorization_code";
+        return AUTHORIZATION_CODE;
     }
 
     // We need explicit approval from the user.
@@ -422,7 +423,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             switch (grantType) {
                 case "implicit":
                     return getTokenGranter().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
-                case "authorization_code":
+                case AUTHORIZATION_CODE:
                     return getHybridTokenGranterForAuthCode().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
                 default:
                     throw new OAuth2Exception(OAuth2Exception.INVALID_GRANT);

@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -585,7 +586,7 @@ public class ScimGroupEndpointsIntegrationTests {
         formData.clear();
         formData.add("client_id", clientId);
         formData.add("redirect_uri", "http://redirect.uri");
-        formData.add("grant_type", "authorization_code");
+        formData.add("grant_type", AUTHORIZATION_CODE);
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));

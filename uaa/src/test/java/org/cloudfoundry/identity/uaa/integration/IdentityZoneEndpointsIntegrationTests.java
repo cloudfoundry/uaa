@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -140,7 +141,7 @@ public class IdentityZoneEndpointsIntegrationTests {
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
-        BaseClientDetails clientDetails = new BaseClientDetails("test123", null,"openid", "authorization_code", "uaa.resource");
+        BaseClientDetails clientDetails = new BaseClientDetails("test123", null,"openid", AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("testSecret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(OriginKeys.UAA));
 

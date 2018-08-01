@@ -80,6 +80,7 @@ import java.util.Objects;
 import static java.lang.String.format;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.springframework.security.oauth2.common.AuthenticationScheme.header;
 
 public class UaaContextFactory {
@@ -200,7 +201,7 @@ public class UaaContextFactory {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
-        form.add(OAuth2Utils.GRANT_TYPE, "authorization_code");
+        form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.AUTHORIZATION_CODE);
         form.add(OAuth2Utils.REDIRECT_URI, request.getRedirectUri().toString());
         String responseType = "token";
         if (request.wantsIdToken()) {
@@ -285,7 +286,7 @@ public class UaaContextFactory {
         MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
         form.add(OAuth2Utils.CLIENT_ID, request.getClientId());
         form.add("client_secret", request.getClientSecret());
-        form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_SAML2_BEARER);
+        form.add(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         form.add("assertion", request.getAuthCodeAPIToken());
 
         ResponseEntity<CompositeToken> token = template.exchange(request.getTokenEndpoint(), HttpMethod.POST, new HttpEntity<>(form, headers), CompositeToken.class);

@@ -59,4 +59,6 @@ public class TokenConstants {
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";
     public static final String ID_TOKEN_HINT_PROMPT_NONE = "none";
+
+    public static final String AUTHORIZATION_CODE = "authorization_code";
 }

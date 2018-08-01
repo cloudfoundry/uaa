@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
@@ -43,7 +44,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             if (clientDetails.getAuthorizedGrantTypes().contains("client_credentials") ||
-                clientDetails.getAuthorizedGrantTypes().contains("authorization_code") ||
+                clientDetails.getAuthorizedGrantTypes().contains(AUTHORIZATION_CODE) ||
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN) ||
                 clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_SAML2_BEARER) ||

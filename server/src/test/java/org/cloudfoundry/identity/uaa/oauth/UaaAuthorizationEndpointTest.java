@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -63,7 +64,7 @@ public class UaaAuthorizationEndpointTest {
     @Test
     public void testGetGrantType_code_is_auth_code() {
         responseTypes.add("code");
-        assertEquals("authorization_code", uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertEquals(AUTHORIZATION_CODE, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
     }
 
     @Test
@@ -84,7 +85,7 @@ public class UaaAuthorizationEndpointTest {
     public void testGetGrantType_code_and_id_token_is_authorization_code() {
         responseTypes.add("code");
         responseTypes.add("id_token");
-        assertEquals("authorization_code", uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertEquals(AUTHORIZATION_CODE, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
     }
 
     @Test

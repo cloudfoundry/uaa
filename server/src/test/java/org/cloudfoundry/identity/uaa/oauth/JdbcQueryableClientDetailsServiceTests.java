@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.junit.Assert.assertEquals;
 
 public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
@@ -52,7 +53,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
                 "myRedirectUri", "scim.read,scim.write", 100, 200);
         addClient("admin", "secret", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
                 "client_credentials", "myRedirectUri", "clients.read,clients.write,scim.read,scim.write", 100, 200);
-        addClient("app", "secret", "cc", "cc.read,scim.read,openid", "authorization_code", "myRedirectUri",
+        addClient("app", "secret", "cc", "cc.read,scim.read,openid", AUTHORIZATION_CODE, "myRedirectUri",
                 "cc.read,scim.read,openid", 100, 500);
     }
 

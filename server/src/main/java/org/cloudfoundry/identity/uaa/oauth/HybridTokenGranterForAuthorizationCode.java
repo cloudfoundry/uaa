@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
@@ -29,13 +28,13 @@ import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.util.Assert;
 
-public class HybridTokenGranterForAuthorizationCode extends AbstractTokenGranter {
-    private static final String GRANT_TYPE = "authorization_code";
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 
+public class HybridTokenGranterForAuthorizationCode extends AbstractTokenGranter {
     public HybridTokenGranterForAuthorizationCode(AuthorizationServerTokenServices tokenServices,
                                                   ClientServicesExtension clientDetailsService,
                                                   OAuth2RequestFactory requestFactory) {
-        super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE);
+        super(tokenServices, clientDetailsService, requestFactory, AUTHORIZATION_CODE);
     }
 
     @Override

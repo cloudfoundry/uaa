@@ -15,12 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import java.security.Security;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
@@ -36,7 +30,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,11 +43,18 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
+
+import java.security.Security;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -208,16 +208,21 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testMFARegistrationHonorsRedirectUri() throws Exception {
-        ClientDetailsModification client = MockMvcUtils.utils()
-          .getClientDetailsModification("auth-client-id", "secret",
-            Collections.emptyList(), Arrays.asList("openid"), Arrays.asList("authorization_code"), "uaa.resource",
-            Collections.singleton("http://example.com"));
-        client.setAutoApproveScopes(Arrays.asList("openid"));
+        ClientDetailsModification client =
+                MockMvcUtils.utils().getClientDetailsModification(
+                        "auth-client-id",
+                        "secret",
+                        Collections.emptyList(),
+                        Collections.singletonList("openid"),
+                        Collections.singletonList(AUTHORIZATION_CODE),
+                        "uaa.resource",
+                        Collections.singleton("http://example.com"));
+        client.setAutoApproveScopes(Collections.singletonList("openid"));
         Map<String, String> information = new HashMap<>();
         information.put("autoapprove", "true");
         client.setAdditionalInformation(information);
 
-        BaseClientDetails authcodeClient = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, IdentityZone.getUaa(), status().isCreated());
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, IdentityZone.getUaa(), status().isCreated());
 
         //Not using param function because params won't end up in paramsMap.
         String oauthUrl = "/oauth/authorize?client_id=auth-client-id&client_secret=secret&redirect_uri=http://example.com";

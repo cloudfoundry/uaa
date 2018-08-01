@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -144,7 +145,7 @@ public class RefreshTokenSupportIntegrationTests {
         formData.clear();
         formData.add("client_id", resource.getClientId());
         formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
-        formData.add("grant_type", "authorization_code");
+        formData.add("grant_type", AUTHORIZATION_CODE);
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",

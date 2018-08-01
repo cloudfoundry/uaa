@@ -34,6 +34,7 @@ import java.util.Map;
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.hasRequiredUserAuthorities;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
@@ -74,7 +75,7 @@ public class UaaTokenUtilsTest {
 
         //no grant type - always is a user token
         assertTrue(isUserToken(claims));
-        for (String grantType : Arrays.asList("password","implicit","authorization_code")) {
+        for (String grantType : Arrays.asList("password","implicit",AUTHORIZATION_CODE)) {
             claims.put(GRANT_TYPE, grantType);
             assertTrue(isUserToken(claims));
         }

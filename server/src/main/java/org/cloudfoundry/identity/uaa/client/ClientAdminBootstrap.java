@@ -50,6 +50,8 @@ import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
 public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
 
@@ -206,8 +208,8 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             if (client.getAuthorities().isEmpty()) {
                 client.setAuthorities(Collections.singleton(UaaAuthority.UAA_NONE));
             }
-            if (client.getAuthorizedGrantTypes().contains("authorization_code")) {
-                client.getAuthorizedGrantTypes().add("refresh_token");
+            if (client.getAuthorizedGrantTypes().contains(AUTHORIZATION_CODE)) {
+                client.getAuthorizedGrantTypes().add(GRANT_TYPE_REFRESH_TOKEN);
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                             "redirect-uri", "secret", "id", "override", "access-token-validity",
@@ -231,7 +233,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
                 }
             }
 
-            for (String s : Arrays.asList("authorization_code", "implicit")) {
+            for (String s : Arrays.asList(AUTHORIZATION_CODE, "implicit")) {
                 if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
                     throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
                 }
