@@ -17,29 +17,40 @@ package org.cloudfoundry.identity.uaa.mfa;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.LockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MissingMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 
 import com.jayway.jsonassert.JsonAssert;
+import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -98,6 +109,10 @@ public class StatelessMfaAuthenticationFilterTests {
     private UaaUserDatabase userDatabase;
     private UaaUser user;
     private ApplicationEventPublisher publisher;
+    private JdbcAuditService jdbcAuditServiceMock;
+    private LockoutPolicyRetriever lockoutPolicyRetriever;
+    private TimeService timeService;
+    private CommonLoginPolicy commonLoginPolicy;
 
     @After
     public void teardown() throws Exception {
@@ -126,22 +141,35 @@ public class StatelessMfaAuthenticationFilterTests {
 
         mfaProvider = mock(MfaProviderProvisioning.class);
         when(mfaProvider.retrieveByName(anyString(), anyString())).thenReturn(
-            new MfaProvider().setName("mfa-provider-name").setId("mfa-provider-id").setType(GOOGLE_AUTHENTICATOR)
+          new MfaProvider().setName("mfa-provider-name").setId("mfa-provider-id").setType(GOOGLE_AUTHENTICATOR)
         );
 
         userDatabase = mock(UaaUserDatabase.class);
         user = new UaaUser(
-            new UaaUserPrototype()
-                .withUsername(uaaPrincipal.getName())
-                .withEmail(uaaPrincipal.getEmail())
-                .withId(uaaPrincipal.getId())
+          new UaaUserPrototype()
+            .withUsername(uaaPrincipal.getName())
+            .withEmail(uaaPrincipal.getEmail())
+            .withId(uaaPrincipal.getId())
         );
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         publisher = mock(ApplicationEventPublisher.class);
+        jdbcAuditServiceMock = mock(JdbcAuditService.class);
 
         filter = new StatelessMfaAuthenticationFilter(googleAuthenticator, grantTypes, mfaProvider, userDatabase);
         filter.setApplicationEventPublisher(publisher);
+
+        lockoutPolicyRetriever = mock(LockoutPolicyRetriever.class);
+        LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 5, 60);
+        when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
+
+        boolean mfaLockoutPolicyEnabled = true;
+        timeService = mock(TimeService.class);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1l);
+        commonLoginPolicy = new CommonLoginPolicy(jdbcAuditServiceMock, lockoutPolicyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, mfaLockoutPolicyEnabled);
+        filter.setCommonLoginPolicy(commonLoginPolicy);
+
+
         chain = mock(FilterChain.class);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
@@ -152,19 +180,17 @@ public class StatelessMfaAuthenticationFilterTests {
         request.setParameter("username", "marissa");
         request.setParameter("password", "koala");
         request.setParameter(MFA_CODE, "123456");
-
-
     }
 
     @Test
-    public void only_password_grant_type() throws Exception {
+    public void only_password_grant_type() {
         assertTrue(filter.isGrantTypeSupported("password"));
         assertFalse(filter.isGrantTypeSupported("other"));
     }
 
     @Test
     public void non_password_grants_ignored() throws Exception {
-        request.setParameter(GRANT_TYPE,"other-than-password");
+        request.setParameter(GRANT_TYPE, "other-than-password");
         filter.doFilterInternal(request, response, chain);
         verifyZeroInteractions(googleAuthenticator);
         verify(chain).doFilter(same(request), same(response));
@@ -212,7 +238,7 @@ public class StatelessMfaAuthenticationFilterTests {
         filter.doFilterInternal(request, response, chain);
         verify(googleAuthenticator).isValidCode(any(), eq(123456));
         verify(chain).doFilter(same(request), same(response));
-        assertThat(uaaAuthentication.getAuthenticationMethods(), containsInAnyOrder("pwd","otp","mfa"));
+        assertThat(uaaAuthentication.getAuthenticationMethods(), containsInAnyOrder("pwd", "otp", "mfa"));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationSuccessEvent.class));
         verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
 
@@ -232,8 +258,8 @@ public class StatelessMfaAuthenticationFilterTests {
         filter.doFilterInternal(request, response, chain);
         assertThat(response.getStatus(), equalTo(400));
         JsonAssert.with(response.getContentAsString())
-            .assertThat("error", equalTo("invalid_request"))
-            .assertThat("error_description", equalTo("A multi-factor authentication code is required to complete the request"));
+          .assertThat("error", equalTo("invalid_request"))
+          .assertThat("error_description", equalTo("A multi-factor authentication code is required to complete the request"));
         verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
         verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
@@ -252,14 +278,14 @@ public class StatelessMfaAuthenticationFilterTests {
         filter.doFilterInternal(request, response, chain);
         assertThat(response.getStatus(), equalTo(401));
         JsonAssert.with(response.getContentAsString())
-            .assertThat("error", equalTo("unauthorized"))
-            .assertThat("error_description", equalTo("Bad credentials"));
+          .assertThat("error", equalTo("unauthorized"))
+          .assertThat("error_description", equalTo("Bad credentials"));
         verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
         verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
     }
 
-    private void checkMfaCode() throws ServletException, IOException {
+    private void checkMfaCode() {
         try {
             filter.checkMfaCode(request);
         } catch (Exception x) {
@@ -284,8 +310,8 @@ public class StatelessMfaAuthenticationFilterTests {
         assertThat(response.getHeader(HttpHeaders.CONTENT_TYPE), equalTo(MediaType.APPLICATION_JSON_VALUE));
         assertNotNull(response.getContentAsString());
         JsonAssert.with(response.getContentAsString())
-            .assertThat("error", equalTo("invalid_request"))
-            .assertThat("error_description", equalTo("User must register a multi-factor authentication token"));
+          .assertThat("error", equalTo("invalid_request"))
+          .assertThat("error_description", equalTo("User must register a multi-factor authentication token"));
         verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
         verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
@@ -297,19 +323,86 @@ public class StatelessMfaAuthenticationFilterTests {
         filter.doFilterInternal(request, response, chain);
         verifyZeroInteractions(googleAuthenticator);
         verifyZeroInteractions(mfaProvider);
-        verify(chain).doFilter(same(request),same(response));
+        verify(chain).doFilter(same(request), same(response));
         verifyZeroInteractions(publisher);
     }
 
 
+    @After
+    public void unfreezeTime() {
+        DateTimeUtils.setCurrentMillisSystem();
+    }
+
+    @Test
+    public void when_valid_mfa_auth_code_given_but_mfa_is_locked_out_should_fail() {
+        long fixedTime = 1L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
+
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
+
+        LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 1, 5);
+        when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
+
+        request.setParameter(MFA_CODE, "123456");
+
+        exception.expect(RuntimeException.class);
+        filter.checkMfaCode(request);
+    }
+
+    @Test
+    public void when_valid_mfa_auth_code_given_but_mfa_policy_is_disabled_should_not_fail() {
+        boolean mfaPolicyEnabled = false;
+        commonLoginPolicy = new CommonLoginPolicy(jdbcAuditServiceMock, lockoutPolicyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, mfaPolicyEnabled);
+        filter.setCommonLoginPolicy(commonLoginPolicy);
+
+        long fixedTime = 1L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
+
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
+
+        LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 1, 5);
+        when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
+
+        request.setParameter(MFA_CODE, "123456");
+
+        filter.checkMfaCode(request);
+    }
+
+    @Test
+    public void when_valid_mfa_auth_code_given_with_previously_failed_mfa_auth_attempts_but_not_locked_out_should_pass() {
+        long fixedTime = 1L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
+
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
+
+        LockoutPolicy lockoutPolicy = new LockoutPolicy(1, 2, 5);
+        when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
+
+        request.setParameter(MFA_CODE, "123456");
+
+        filter.checkMfaCode(request);
+    }
+
+    @Test
+    public void when_valid_mfa_auth_code_given_with_previously_failed_mfa_auth_attempts_interleaved_with_successful_mfa_auth_event_but_not_locked_out_should_pass() {
+        long fixedTime = 1L;
+        when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
 
 
+        AuditEvent failedMfaEvent = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue()).getAuditEvent();
+        AuditEvent successfulMfaEvent = new MfaAuthenticationSuccessEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue()).getAuditEvent();
+        ArrayList<AuditEvent> events = Lists.newArrayList(failedMfaEvent, failedMfaEvent, successfulMfaEvent, failedMfaEvent);
+        when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(events);
 
+        LockoutPolicy lockoutPolicy = new LockoutPolicy(1, 3, 5);
+        when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
 
+        request.setParameter(MFA_CODE, "123456");
 
-
-
-
-
+        filter.checkMfaCode(request);
+    }
 
 }
