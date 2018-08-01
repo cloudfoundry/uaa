@@ -408,6 +408,23 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void discoverIdentityProviderWritesLoginHintIfOnlyUaa() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        UaaIdentityProviderDefinition uaaConfig = new UaaIdentityProviderDefinition();
+        uaaConfig.setEmailDomain(Collections.singletonList("fake.com"));
+        uaaProvider.setConfig(uaaConfig);
+        uaaProvider.setType(OriginKeys.UAA);
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(uaaProvider));
+
+        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, model, session, request);
+
+        String loginHint = "{\"origin\":\"uaa\"}";
+        assertEquals(loginHint, model.get("login_hint"));
+    }
+
+    @Test
     public void use_login_url_if_present() throws Exception {
         check_links_urls(IdentityZone.getUaa());
     }
@@ -1009,7 +1026,7 @@ public class LoginInfoEndpointTests {
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
-        assertEquals("login", redirect);
+        assertEquals("idp_discovery/password", redirect);
     }
 
     @Test
