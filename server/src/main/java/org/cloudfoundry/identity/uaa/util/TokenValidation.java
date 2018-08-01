@@ -433,18 +433,18 @@ public abstract class TokenValidation {
         return claims;
     }
 
-    public TokenValidation checkAccessToken() {
+    public TokenValidation checkJti() {
         Object jti = this.getClaims().get(JTI);
         if (jti == null) {
             throw new InvalidTokenException("The token must contain a jti claim.", null);
         }
 
-        if (jti.toString().endsWith(REFRESH_TOKEN_SUFFIX)) {
-            throw new InvalidTokenException("Invalid access token.", null);
-        }
+        validateJtiValue(jti.toString());
 
         return this;
     }
+
+    protected abstract void validateJtiValue(String jtiValue);
 
     public ClientDetails getClientDetails(ClientServicesExtension clientDetailsService) {
         String clientId = (String) claims.get(CID);
@@ -474,6 +474,13 @@ public abstract class TokenValidation {
         }
 
         @Override
+        protected void validateJtiValue(String jtiValue) {
+            if (jtiValue.endsWith(REFRESH_TOKEN_SUFFIX)) {
+                throw new InvalidTokenException("Invalid access token.", null);
+            }
+        }
+
+        @Override
         String getClaimName() {
             return SCOPE;
         }
@@ -487,6 +494,13 @@ public abstract class TokenValidation {
     private static class RefreshTokenValidation extends TokenValidation {
         public RefreshTokenValidation(String tokenJwtValue) {
             super(tokenJwtValue);
+        }
+
+        @Override
+        protected void validateJtiValue(String jtiValue) {
+            if (!jtiValue.endsWith(REFRESH_TOKEN_SUFFIX)) {
+                throw new InvalidTokenException("Invalid refresh token.", null);
+            }
         }
 
         @Override

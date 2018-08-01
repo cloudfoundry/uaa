@@ -4100,6 +4100,29 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         }
     }
 
+    @Test
+    public void testRefreshGrantWithAccessToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param("grant_type", "client_credentials")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
+        String accessToken = (String) bodyMap.get("access_token");
+        assertNotNull(accessToken);
+
+        doRefreshGrant(accessToken, clientId, SECRET, status().isUnauthorized());
+    }
+
     protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) throws Exception {
         String tokenKey = "access_token";
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));

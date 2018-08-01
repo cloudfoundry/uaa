@@ -37,7 +37,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.jwt.crypto.sign.Signer;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -313,7 +312,7 @@ public class TokenValidationTest {
           .checkRevocationSignature(Collections.singletonList("fa1c787d"))
           .checkAudience("acme", "app")
           .checkRevocableTokenStore(revocableTokenProvisioning)
-          .checkAccessToken();
+          .checkJti();
 
         assertTrue(true);
     }
@@ -325,8 +324,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid access token.");
 
-        buildAccessTokenValidator(getToken())
-          .checkAccessToken();
+        buildAccessTokenValidator(getToken()).checkJti();
     }
 
     @Test
@@ -335,7 +333,7 @@ public class TokenValidationTest {
         content.put(JTI, "8b14f193" + dashR + "-8212-4af2-9927-e3ae903f94a6");
 
         buildAccessTokenValidator(getToken())
-          .checkAccessToken();
+          .checkJti();
     }
 
     @Test
@@ -346,7 +344,7 @@ public class TokenValidationTest {
         expectedException.expectMessage("The token must contain a jti claim.");
 
         buildAccessTokenValidator(getToken())
-          .checkAccessToken();
+          .checkJti();
     }
 
     @Test

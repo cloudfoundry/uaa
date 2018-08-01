@@ -154,7 +154,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        TokenValidation tokenValidation = validateToken(refreshTokenValue, false);
+        TokenValidation tokenValidation = validateToken(refreshTokenValue, false).checkJti();
         Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
@@ -743,8 +743,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         TokenValidation tokenValidation =
-          validateToken(accessToken, true)
-          .checkAccessToken();
+          validateToken(accessToken, true).checkJti();
 
         Map<String, Object> claims = tokenValidation.getClaims();
 
@@ -817,8 +816,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
         TokenValidation tokenValidation =
-          validateToken(accessToken, true)
-            .checkAccessToken();
+          validateToken(accessToken, true).checkJti();
 
         Map<String, Object> claims = tokenValidation.getClaims();
         accessToken = tokenValidation.getJwt().getEncoded();

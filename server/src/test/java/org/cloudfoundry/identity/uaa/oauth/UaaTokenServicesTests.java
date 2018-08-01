@@ -2120,6 +2120,14 @@ public class UaaTokenServicesTests {
         assertThat(refreshTokenClaims.getGrantedScopes(), containsInAnyOrder(accessToken.getScope().toArray()));
     }
 
+    @Test
+    public void refreshAccessToken_withAccessToken() {
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("Invalid refresh token.");
+
+        tokenServices.refreshAccessToken(getOAuth2AccessToken().getValue(), getRefreshTokenRequest());
+    }
+
     private BaseClientDetails cloneClient(ClientDetails client) {
         return new BaseClientDetails(client);
     }
