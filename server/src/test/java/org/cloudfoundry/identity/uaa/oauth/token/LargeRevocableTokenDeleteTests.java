@@ -85,7 +85,6 @@ public class LargeRevocableTokenDeleteTests extends JdbcTestBase {
                 writer.newLine();
             }
             half = System.currentTimeMillis();
-            System.out.println("\nData generation completed in " + (half - start) + " ms");
         }
         provisioning = new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter);
 
@@ -101,9 +100,7 @@ public class LargeRevocableTokenDeleteTests extends JdbcTestBase {
                                                "uaa",
                                                file.getAbsolutePath());
 
-        System.out.println("Command:\n"+pb.toString());
         pb.start().waitFor();
-        System.out.println("\nDatabase load completed in "+ (System.currentTimeMillis()- half) + " ms. Total time "+(System.currentTimeMillis()-start)+" ms.");
     }
 
     @Test

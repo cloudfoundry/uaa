@@ -201,7 +201,6 @@ public class UaaMetricsFilterTests {
     public void idle_counter() throws Exception {
         final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         lock.writeLock().lock();
-        System.out.println("LOCK[MAIN] - Lock");
         setRequestData("/oauth/token");
         final FilterChain chain = mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
@@ -209,10 +208,8 @@ public class UaaMetricsFilterTests {
         doAnswer(invocation -> {
             try {
                 lock.writeLock().lock();
-                System.out.println("LOCK[THREAD] - Lock");
             } finally {
                 lock.writeLock().unlock();
-                System.out.println("LOCK[THREAD] - Unlock");
                 return null;
             }
         }).when(chain).doFilter(same(request), same(response));
@@ -228,12 +225,10 @@ public class UaaMetricsFilterTests {
         Thread.sleep(50);
         assertEquals(1, filter.getInflightCount());
         lock.writeLock().unlock();
-        System.out.println("LOCK[MAIN] - Unlock");
         Thread.sleep(25);
         assertEquals(0, filter.getInflightCount());
         long idleTime = filter.getIdleTime();
         assertThat(idleTime, greaterThan(20l));
-        System.out.println("Total idle time was:"+idleTime);
         Thread.sleep(10);
         assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
     }
@@ -255,7 +250,6 @@ public class UaaMetricsFilterTests {
         }
         Map<String, String> summary = filter.getSummary();
         MetricsQueue metricSummary = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
-        System.out.println("metricSummary = " + metricSummary);
         assertEquals(2, metricSummary.getTotals().getCount());
     }
 

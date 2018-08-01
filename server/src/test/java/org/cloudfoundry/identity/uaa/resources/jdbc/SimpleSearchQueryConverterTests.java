@@ -78,12 +78,6 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void print_query() throws Exception {
-        SCIMFilter filter = converter.scimFilter(validQuery);
-        printFilterAttributes(filter, new AtomicInteger(0));
-    }
-
-    @Test
     public void simple_value_extract() throws Exception {
         for (String query : Arrays.asList(
             "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
@@ -145,18 +139,4 @@ public class SimpleSearchQueryConverterTests {
             }
         }
     }
-
-    public void printFilterAttributes(SCIMFilter filter, AtomicInteger pos) {
-        if (filter.getFilterAttribute() != null) {
-            String name = filter.getFilterAttribute().getAttributeName();
-            if (filter.getFilterAttribute().getSubAttributeName() != null) {
-                name = name + "." + filter.getFilterAttribute().getSubAttributeName();
-            }
-            System.out.println((pos.incrementAndGet()) + ". Attribute name:" + name);
-        }
-        for (SCIMFilter subfilter : ofNullable(filter.getFilterComponents()).orElse(emptyList())) {
-            printFilterAttributes(subfilter, pos);
-        }
-    }
-
 }

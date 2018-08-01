@@ -1923,7 +1923,6 @@ public class UaaTokenServicesTests {
         params.put("grant_type", "refresh_token");
         params.put("client_id",CLIENT_ID);
         OAuth2AccessToken newAccessToken = tokenServices.refreshAccessToken(composite.getRefreshToken().getValue(), new TokenRequest(params, CLIENT_ID, Collections.EMPTY_SET, "refresh_token"));
-        System.out.println("newAccessToken = " + newAccessToken);
     }
 
     @Test

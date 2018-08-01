@@ -134,7 +134,6 @@ public class JdbcScimGroupExternalMembershipManager
 
                     }
                 });
-                System.out.println("update count = " + result);
             } catch (DuplicateKeyException e) {
                 // we should not throw, if the mapping exist, we should leave it
                 // there.

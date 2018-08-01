@@ -123,7 +123,6 @@ public class CachingPasswordEncoderTest  {
         long cacheTime = nanoStop - nanoStart;
         //assert that the cache is at least 10 times faster
         assertTrue(bcryptTime > (10 * cacheTime));
-        System.out.println("CachingPasswordEncoder - Bcrypt Time:"+((double)bcryptTime / 1000000000.0) + " sec. Cache Time:"+((double)cacheTime / 1000000000.0)+" sec.");
     }
 
     @Test
@@ -188,6 +187,5 @@ public class CachingPasswordEncoderTest  {
         //assert that the cache is at least 10 times faster
         assertFalse(bcryptTime > (10 * cacheTime));
         assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
-        System.out.println("CachingPasswordEncoder[disabled] - Bcrypt Time:"+((double)bcryptTime / 1000000000.0) + " sec. Cache Time:"+((double)cacheTime / 1000000000.0)+" sec.");
     }
 }

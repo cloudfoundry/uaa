@@ -144,7 +144,6 @@ public class UaaMetricsEmitterIT {
             try {
                 serverSocket.receive(receivePacket);
                 String message = new String(receivePacket.getData()).trim();
-                System.out.println("message = " + message);
                 fragments.stream().forEach(fragment -> {
                     if (message.startsWith(fragment)) {
                         results.put(fragment, message);

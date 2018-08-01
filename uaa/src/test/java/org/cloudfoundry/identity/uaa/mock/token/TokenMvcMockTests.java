@@ -831,8 +831,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .getResponse()
             .getContentAsString();
 
-        System.out.println("json = " + json);
-
         getMockMvc().perform(post.param("scope","uaa.admin"))
             .andDo(print())
             .andExpect(status().isBadRequest());
