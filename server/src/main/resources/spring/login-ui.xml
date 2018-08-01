@@ -619,6 +619,7 @@
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <property name="userDatabase" ref="userDatabase" />
+        <property name="mfaPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
     <bean id="mfaCompleteUrl" class="java.lang.String">

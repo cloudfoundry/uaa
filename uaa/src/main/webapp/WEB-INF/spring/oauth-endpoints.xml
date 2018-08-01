@@ -269,6 +269,7 @@
         </constructor-arg>
         <constructor-arg name="mfaProvider" ref="mfaProviderProvisioning"/>
         <constructor-arg name="userDb" ref="userDatabase"/>
+        <constructor-arg name="commonLoginPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
     <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
@@ -628,13 +629,29 @@
                   value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
     </bean>
 
+    <bean id="defaultMfaLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
+        <property name="lockoutAfterFailures"
+                  value="5"/>
+        <property name="countFailuresWithin"
+                  value="1200"/>
+        <property name="lockoutPeriodSeconds"
+                  value="300"/>
+    </bean>
+
+
     <bean id="globalUserLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
         <constructor-arg ref="identityProviderProvisioning"/>
         <property name="defaultLockoutPolicy" ref="defaultUserLockoutPolicy" />
     </bean>
 
+    <bean id="globalMfaLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
+        <constructor-arg ref="identityProviderProvisioning"/>
+        <property name="defaultLockoutPolicy" ref="defaultMfaLockoutPolicy" />
+    </bean>
+
     <bean id="globalPeriodLockoutPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
         <constructor-arg ref="globalUserLoginPolicy" />
+        <constructor-arg ref="mfaGlobalUserLoginPolicy" />
     </bean>
 
     <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
@@ -642,6 +659,15 @@
         <constructor-arg index="1" ref="globalUserLockoutPolicyRetriever"/>
         <constructor-arg index="2" value="UserAuthenticationSuccess"/>
         <constructor-arg index="3" value="UserAuthenticationFailure"/>
+        <constructor-arg index="4" ref="timeService" />
+        <constructor-arg index="5" value="true"/>
+    </bean>
+
+    <bean id="mfaGlobalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
+        <constructor-arg index="0" ref="jdbcAuditService"/>
+        <constructor-arg index="1" ref="globalMfaLockoutPolicyRetriever"/>
+        <constructor-arg index="2" value="MfaAuthenticationSuccess"/>
+        <constructor-arg index="3" value="MfaAuthenticationFailure"/>
         <constructor-arg index="4" ref="timeService" />
         <constructor-arg index="5" value="true"/>
     </bean>

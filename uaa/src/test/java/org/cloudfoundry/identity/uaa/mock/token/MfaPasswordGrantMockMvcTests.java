@@ -80,7 +80,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
         validateAuthEvents(
             asList(
-                UserAuthenticationSuccessEvent.class,
                 MfaAuthenticationSuccessEvent.class
             ), "marissa"
         );
@@ -123,7 +122,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(jsonPath("error_description").value(containsString("Bad credentials")));
         validateAuthEvents(
             asList(
-                UserAuthenticationFailureEvent.class,
                 MfaAuthenticationFailureEvent.class
             ), "marissa"
         );
@@ -150,7 +148,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(jsonPath("error_description").value(containsString("register a multi-factor")));
         validateAuthEvents(
             asList(
-                UserAuthenticationFailureEvent.class,
                 MfaAuthenticationFailureEvent.class
             ), "marissa"
         );

@@ -15,10 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
@@ -68,6 +70,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     private String mfaCompleteUrl = "/login/mfa/completed";
     private ApplicationEventPublisher eventPublisher;
     private UaaUserDatabase userDatabase;
+    private CommonLoginPolicy mfaPolicy;
 
     @ModelAttribute("uaaMfaCredentials")
     public UserGoogleMfaCredentials getUaaMfaCredentials() throws UaaPrincipalIsNotInSession {
@@ -135,6 +138,11 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
         throws UaaPrincipalIsNotInSession {
         UaaAuthentication uaaAuth = getUaaAuthentication();
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
+
+        if (!this.mfaPolicy.isAllowed(uaaPrincipal.getId()).isAllowed()) {
+            throw new AuthenticationPolicyRejectionException("Your account has been locked because of too many failed attempts to login.");
+        }
+
         try {
             Integer codeValue = Integer.valueOf(code);
             if (mfaCredentialsProvisioning.isValidCode(credentials, codeValue)) {
@@ -223,6 +231,10 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
         } catch (UsernameNotFoundException e) {
         }
         return null;
+    }
+
+    public void setMfaPolicy(CommonLoginPolicy mfaPolicy) {
+        this.mfaPolicy = mfaPolicy;
     }
 
     public class UaaPrincipalIsNotInSession extends Exception {

@@ -18,10 +18,13 @@ package org.cloudfoundry.identity.uaa.login;
 
 import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
@@ -50,9 +53,11 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -76,6 +81,7 @@ public class TotpMfaEndpointTest {
     private ApplicationEventPublisher publisher;
     private ArgumentCaptor<ApplicationEvent> eventCaptor;
     private UaaUserDatabase userDb;
+    private CommonLoginPolicy mockMfaPolicy;
 
     @Before
     public void setup() {
@@ -110,13 +116,17 @@ public class TotpMfaEndpointTest {
         doNothing().when(publisher).publishEvent(eventCaptor.capture());
 
         userDb = mock(UaaUserDatabase.class);
+        mockMfaPolicy = mock(CommonLoginPolicy.class);
+        when(mockMfaPolicy.isAllowed(anyString())).thenReturn(new LoginPolicy.Result(true, 0));
+
 
         endpoint.setApplicationEventPublisher(publisher);
         endpoint.setUserDatabase(userDb);
+        endpoint.setMfaPolicy(mockMfaPolicy);
     }
 
     @After
-    public void cleanUp() throws Exception {
+    public void cleanUp() {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false).setProviderName(null);
         SecurityContextHolder.clearContext();
     }
@@ -235,6 +245,32 @@ public class TotpMfaEndpointTest {
         );
 
         assertEquals("mfa/enter_code", returnView.getViewName());
+        verifyZeroInteractions(sessionStatus);
+        verifyMfaEvent(MfaAuthenticationFailureEvent.class);
+    }
+
+    @Test
+    public void testValidOTPReturnsErrorWhenLockedOut() throws Exception{
+        exception.expect(AuthenticationPolicyRejectionException.class);
+        int code = 1234;
+
+
+        when(mockMfaPolicy.isAllowed(anyString())).thenReturn(new LoginPolicy.Result(false, 0));
+
+        when(userGoogleMfaCredentialsProvisioning.isValidCode(ArgumentMatchers.any(UserGoogleMfaCredentials.class), eq(code))).thenReturn(true);
+        when(uaaAuthentication.getPrincipal()).thenReturn(new UaaPrincipal(userId, "Marissa", null, "uaa", null, null), null, null);
+        when(mfaProviderProvisioning.retrieveByName(mfaProvider.getName(), IdentityZoneHolder.get().getId())).thenReturn(mfaProvider);
+        when(userDb.retrieveUserByName("Marissa", "uaa")).thenReturn(new UaaUser(new UaaUserPrototype().withUsername("Marissa").withOrigin("uaa").withId("1234").withEmail("marissa@example.com")));
+        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
+        SessionStatus sessionStatus = mock(SessionStatus.class);
+
+        endpoint.validateCode(
+          mock(Model.class),
+          Integer.toString(code),
+          mock(UserGoogleMfaCredentials.class),
+          sessionStatus
+        );
+
         verifyZeroInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }

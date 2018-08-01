@@ -33,7 +33,6 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -172,6 +171,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         assertEquals(14, eventCaptor.getAllValues().size());
         assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
+
+
 
     @Test
     public void testMFARegistrationHonorsRedirectUri() throws Exception {

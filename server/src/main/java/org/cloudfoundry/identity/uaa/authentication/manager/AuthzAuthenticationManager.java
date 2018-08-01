@@ -54,7 +54,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private final PasswordEncoder encoder;
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
-    private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+    private AccountLoginPolicy accountLoginPolicy;
     private IdentityProviderProvisioning providerProvisioning;
 
     private String origin;
