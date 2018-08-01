@@ -58,18 +58,21 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
     private final Set<String> supportedGrantTypes;
     private final MfaProviderProvisioning mfaProvider;
     private final UaaUserDatabase userDb;
+    private final CommonLoginPolicy commonLoginPolicy;
+
     private ApplicationEventPublisher publisher;
-    private CommonLoginPolicy commonLoginPolicy;
 
     public StatelessMfaAuthenticationFilter(UserGoogleMfaCredentialsProvisioning provisioning,
                                             Set<String> supportedGrantTypes,
                                             MfaProviderProvisioning mfaProvider,
-                                            UaaUserDatabase userDb) {
+                                            UaaUserDatabase userDb,
+                                            CommonLoginPolicy commonLoginPolicy) {
         this.provisioning = provisioning;
         this.supportedGrantTypes = supportedGrantTypes;
         this.mfaProvider = mfaProvider;
         this.userDb = userDb;
-    }
+        this.commonLoginPolicy = commonLoginPolicy;
+}
 
     public boolean isGrantTypeSupported(String type) {
         return supportedGrantTypes.contains(type);
@@ -93,12 +96,10 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
         } catch (MissingMfaCodeException | UserMfaConfigDoesNotExistException e) {
             UaaUser user = getUaaUser();
             publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null"));
-            publishEvent(new UserAuthenticationFailureEvent(user, getAuthentication()));
             handleException(new JsonError(400, "invalid_request", e.getMessage()), response);
         } catch (InvalidMfaCodeException e) {
             UaaUser user = getUaaUser();
             publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null"));
-            publishEvent(new UserAuthenticationFailureEvent(user, getAuthentication()));
             handleException(new JsonError(401, "unauthorized", "Bad credentials"), response);
         }
     }
@@ -187,11 +188,6 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
-    }
-
-
-    public void setCommonLoginPolicy(CommonLoginPolicy commonLoginPolicy) {
-        this.commonLoginPolicy = commonLoginPolicy;
     }
 
     public static class JsonError {

@@ -115,7 +115,7 @@ public class StatelessMfaAuthenticationFilterTests {
     private CommonLoginPolicy commonLoginPolicy;
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         IdentityZoneHolder.clear();
     }
 
@@ -156,19 +156,18 @@ public class StatelessMfaAuthenticationFilterTests {
         publisher = mock(ApplicationEventPublisher.class);
         jdbcAuditServiceMock = mock(JdbcAuditService.class);
 
-        filter = new StatelessMfaAuthenticationFilter(googleAuthenticator, grantTypes, mfaProvider, userDatabase);
-        filter.setApplicationEventPublisher(publisher);
-
         lockoutPolicyRetriever = mock(LockoutPolicyRetriever.class);
         LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 5, 60);
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(lockoutPolicy);
 
-        boolean mfaLockoutPolicyEnabled = true;
         timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(1l);
-        commonLoginPolicy = new CommonLoginPolicy(jdbcAuditServiceMock, lockoutPolicyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, mfaLockoutPolicyEnabled);
-        filter.setCommonLoginPolicy(commonLoginPolicy);
 
+        boolean mfaLockoutPolicyEnabled = true;
+        commonLoginPolicy = new CommonLoginPolicy(jdbcAuditServiceMock, lockoutPolicyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, mfaLockoutPolicyEnabled);
+
+        filter = new StatelessMfaAuthenticationFilter(googleAuthenticator, grantTypes, mfaProvider, userDatabase, commonLoginPolicy);
+        filter.setApplicationEventPublisher(publisher);
 
         chain = mock(FilterChain.class);
         request = new MockHttpServletRequest();
@@ -260,9 +259,8 @@ public class StatelessMfaAuthenticationFilterTests {
         JsonAssert.with(response.getContentAsString())
           .assertThat("error", equalTo("invalid_request"))
           .assertThat("error_description", equalTo("A multi-factor authentication code is required to complete the request"));
-        verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
-        verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
+        verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
     }
 
     @Test
@@ -280,9 +278,8 @@ public class StatelessMfaAuthenticationFilterTests {
         JsonAssert.with(response.getContentAsString())
           .assertThat("error", equalTo("unauthorized"))
           .assertThat("error_description", equalTo("Bad credentials"));
-        verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
-        verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
+        verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
     }
 
     private void checkMfaCode() {
@@ -295,7 +292,7 @@ public class StatelessMfaAuthenticationFilterTests {
     }
 
     @Test
-    public void user_config_is_missing() throws Exception {
+    public void user_config_is_missing() {
         when(googleAuthenticator.getUserGoogleMfaCredentials(anyString(), anyString())).thenReturn(null);
         exception.expect(UserMfaConfigDoesNotExistException.class);
         exception.expectMessage("User must register a multi-factor authentication token");
@@ -312,9 +309,8 @@ public class StatelessMfaAuthenticationFilterTests {
         JsonAssert.with(response.getContentAsString())
           .assertThat("error", equalTo("invalid_request"))
           .assertThat("error_description", equalTo("User must register a multi-factor authentication token"));
-        verify(publisher, times(1)).publishEvent(any(UserAuthenticationFailureEvent.class));
         verify(publisher, times(1)).publishEvent(any(MfaAuthenticationFailureEvent.class));
-        verify(publisher, times(2)).publishEvent(any(ApplicationEvent.class));
+        verify(publisher, times(1)).publishEvent(any(ApplicationEvent.class));
     }
 
     @Test
@@ -354,7 +350,8 @@ public class StatelessMfaAuthenticationFilterTests {
     public void when_valid_mfa_auth_code_given_but_mfa_policy_is_disabled_should_not_fail() {
         boolean mfaPolicyEnabled = false;
         commonLoginPolicy = new CommonLoginPolicy(jdbcAuditServiceMock, lockoutPolicyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, mfaPolicyEnabled);
-        filter.setCommonLoginPolicy(commonLoginPolicy);
+        filter = new StatelessMfaAuthenticationFilter(googleAuthenticator, grantTypes, mfaProvider, userDatabase, commonLoginPolicy);
+        filter.setApplicationEventPublisher(publisher);
 
         long fixedTime = 1L;
         when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
