@@ -351,12 +351,6 @@ public class UaaTokenServicesTests {
         tokenServices.refreshAccessToken(null, null);
     }
 
-    @Test(expected = InvalidGrantException.class)
-    public void testInvalidGrantType() {
-        AuthorizationRequest ar = mock(AuthorizationRequest.class);
-        tokenServices.refreshAccessToken("", tokenSupport.requestFactory.createTokenRequest(ar,"dsdada"));
-    }
-
     @Test
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();

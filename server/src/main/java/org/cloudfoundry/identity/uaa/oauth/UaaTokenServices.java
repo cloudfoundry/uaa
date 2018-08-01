@@ -208,11 +208,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid refresh token (empty token)");
         }
 
-        String grantType = request.getRequestParameters().get(GRANT_TYPE);
-        if (!"refresh_token".equals(grantType)) {
-            throw new InvalidGrantException("Invalid grant type: " + grantType);
-        }
-
         TokenValidation tokenValidation = tokenValidationService
                 .validateToken(refreshTokenValue, false)
                 .checkJti();

@@ -43,6 +43,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
@@ -59,6 +60,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
@@ -336,6 +338,27 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
         assertNull(compositeToken.getIdTokenValue());
+    }
+
+    @Test
+    public void refreshTokenGrantType_requiresAuthorizedGrantType() throws Exception {
+        client = setUpClients("clientwithrefresh", "", "scim.me", "password,refresh_token", true);
+        ClientDetails clientWithoutRefresh = setUpClients("passwordclient", "", "scim.me", "password", true);
+        user = setUpUser("joe-user", "", OriginKeys.UAA, "uaa");
+        String refreshToken = getRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
+
+        getMockMvc().perform(
+            post("/oauth/token")
+                    .header("Host", "localhost")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                    .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                    .param(REFRESH_TOKEN, refreshToken)
+                    .param("client_secret", SECRET)
+                    .param(OAuth2Utils.CLIENT_ID, clientWithoutRefresh.getClientId()))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error_description").value("Unauthorized grant type: refresh_token"));
     }
 
     protected int countTokens(String clientId, String userId) {
