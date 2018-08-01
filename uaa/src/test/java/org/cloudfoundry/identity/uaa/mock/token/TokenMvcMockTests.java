@@ -4053,8 +4053,30 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull("Token should have been stored in the DB", revocableToken);
     }
 
+    @Test
+    public void testRefreshGrantWithAccessToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param("grant_type", "password")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
 
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
+        String accessToken = (String) bodyMap.get("access_token");
+        assertNotNull(accessToken);
+
+        doRefreshGrant(accessToken, clientId, SECRET, status().is5xxServerError());
+    }
 
     public Map<String,Object> testRevocablePasswordGrantTokenForDefaultZone(Map<String, String> parameters) throws Exception {
         String username = generator.generate()+"@test.org";
