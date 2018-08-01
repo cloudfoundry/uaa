@@ -98,10 +98,13 @@ public class AuthzAuthenticationManagerTests {
         publisher = mock(ApplicationEventPublisher.class);
         eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         doNothing().when(publisher).publishEvent(eventCaptor.capture());
+        AccountLoginPolicy mockAccountLoginPolicy = mock(AccountLoginPolicy.class);
+        when(mockAccountLoginPolicy.isAllowed(any(), any())).thenReturn(true);
 
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
+        mgr.setAccountLoginPolicy(mockAccountLoginPolicy);
     }
 
     @After
