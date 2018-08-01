@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import com.google.common.base.Functions;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -13,6 +12,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -50,13 +50,15 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private RestTemplateConfig restTemplateConfig;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private ClientServicesExtension clientDetailsService;
+    private XOAuthProviderConfigurator xoauthProviderProvisioning;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, ClientServicesExtension clientDetailsService) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, ClientServicesExtension clientDetailsService, XOAuthProviderConfigurator xoauthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
         this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
         this.clientDetailsService = clientDetailsService;
+        this.xoauthProviderProvisioning = xoauthProviderProvisioning;
     }
 
     @Override
@@ -65,12 +67,12 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
         UaaLoginHint loginHintToUse;
-        Map<String, IdentityProvider> identityProviderMap = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).collect(Collectors.toMap(IdentityProvider::getOriginKey, Functions.identity()));
+        List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).collect(Collectors.toList());
         List<String> possibleProviders;
         if (allowedProviders == null) {
-            possibleProviders = new ArrayList<>(identityProviderMap.keySet());
+            possibleProviders = identityProviders;
         } else {
-            possibleProviders = allowedProviders.stream().filter(identityProviderMap::containsKey).collect(Collectors.toList());
+            possibleProviders = allowedProviders.stream().filter(identityProviders::contains).collect(Collectors.toList());
         }
         if (uaaLoginHint == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
@@ -91,7 +93,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)identityProviderMap.get(loginHintToUse.getOrigin()).getConfig());
+            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)xoauthProviderProvisioning.retrieveByOrigin(loginHintToUse.getOrigin(), IdentityZoneHolder.get().getId()).getConfig());
         }
     }
 

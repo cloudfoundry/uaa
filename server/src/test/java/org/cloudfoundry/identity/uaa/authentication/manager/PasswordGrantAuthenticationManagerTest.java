@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -65,6 +66,7 @@ public class PasswordGrantAuthenticationManagerTest {
     private RestTemplateConfig restTemplateConfig;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private ClientServicesExtension clientDetailsService;
+    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
     private IdentityProvider idp;
     IdentityProvider uaaProvider;
@@ -79,6 +81,7 @@ public class PasswordGrantAuthenticationManagerTest {
         restTemplateConfig = mock(RestTemplateConfig.class);
         xoAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
         clientDetailsService = mock(ClientServicesExtension.class);
+        xoAuthProviderConfigurator = mock(XOAuthProviderConfigurator.class);
 
         idp = mock(IdentityProvider.class);
         idpConfig = mock(OIDCIdentityProviderDefinition.class);
@@ -98,7 +101,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(ldapProvider.getOriginKey()).thenReturn(OriginKeys.LDAP);
 
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(idp, uaaProvider, ldapProvider));
-
+        when(xoAuthProviderConfigurator.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(idp);
 
         Authentication clientAuth = mock(Authentication.class);
         when(clientAuth.getName()).thenReturn("clientid");
@@ -107,7 +110,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(clientDetails.getAdditionalInformation()).thenReturn(mock(Map.class));
         when(clientDetailsService.loadClientByClientId("clientid", "uaa")).thenReturn(clientDetails);
 
-        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, xoAuthAuthenticationManager, clientDetailsService);
+        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, xoAuthAuthenticationManager, clientDetailsService, xoAuthProviderConfigurator);
     }
 
     @After
@@ -254,6 +257,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
 
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
+        when(xoAuthProviderConfigurator.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(localIdp);
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
@@ -611,6 +615,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(false);
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
+        when(xoAuthProviderConfigurator.retrieveByOrigin("oidcprovider","uaa")).thenReturn(localIdp);
 
         try {
             instance.authenticate(auth);
