@@ -19,6 +19,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
+
 /**
  * An audit service that subscribes to audit events but only saves enough data
  * to answer queries about consecutive
@@ -50,12 +53,20 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         switch (auditEvent.getType()) {
+            case MfaAuthenticationSuccess:
+                resetAuthenticationEvents(auditEvent, zoneId, MfaAuthenticationFailure);
+
+                break;
             case UserAuthenticationSuccess:
             case PasswordChangeSuccess:
+                resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
+                break;
             case UserAccountUnlockedEvent:
-                getJdbcTemplate().update("delete from sec_audit where principal_id=? and identity_zone_id=?", auditEvent.getPrincipalId(), zoneId);
+                resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
+                resetAuthenticationEvents(auditEvent, zoneId, MfaAuthenticationFailure);
                 break;
             case UserAuthenticationFailure:
+            case MfaAuthenticationFailure:
                 periodicDelete();
                 super.log(auditEvent, zoneId);
                 break;
@@ -63,6 +74,11 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
                 break;
         }
     }
+
+    private void resetAuthenticationEvents(AuditEvent auditEvent, String zoneId, AuditEventType eventType) {
+        getJdbcTemplate().update("delete from sec_audit where principal_id=? and identity_zone_id=? and event_type=?", auditEvent.getPrincipalId(), zoneId, eventType.getCode());
+    }
+
 
     protected void periodicDelete() {
         long now = timeService.getCurrentTimeMillis();
