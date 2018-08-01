@@ -86,6 +86,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -517,7 +518,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovalsForUser(user.getId(), IdentityZoneHolder.get().getId()));
         Set<Approval> active = new HashSet<Approval>(approvals);
         for (Approval approval : approvals) {
-            if (!approval.isCurrentlyActive()) {
+            if (!approval.isActiveAsOf(new Date())) {
                 active.remove(approval);
             }
         }

@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +42,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,10 +63,16 @@ public class CheckTokenEndpoint implements InitializingBean {
     private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
 
     private ResourceServerTokenServices resourceServerTokenServices;
+    private TimeService timeService;
+
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
+
     public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
         this.resourceServerTokenServices = resourceServerTokenServices;
+    }
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 
     private Boolean allowQueryString = null;
@@ -102,7 +110,7 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new InvalidTokenException("Token was not recognised");
         }
 
-        if (token.isExpired()) {
+        if (token.getExpiration() != null && token.getExpiration().before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Token has expired");
         }
 

@@ -240,7 +240,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Integer refreshTokenExpiry = (Integer) refreshTokenClaims.get(EXP);
         long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000L;
 
-        if (new Date(refreshTokenExpireDate).before(new Date(timeService.getCurrentTimeMillis()))) {
+        if (new Date(refreshTokenExpireDate).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireDate));
         }
 
@@ -366,7 +366,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         List<Approval> approvals = approvalStore.getApprovals(userId, clientId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED) {
-                if (!approval.isCurrentlyActive()) {
+                if (!approval.isActiveAsOf(timeService.getCurrentDate())) {
                     logger.debug("Approval " + approval + " has expired. Need to re-approve.");
                     throw new InvalidTokenException("Invalid token (approvals expired)");
                 }
@@ -826,7 +826,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXP).toString());
-        if (new Date(expiration * 1000L).before(new Date(timeService.getCurrentTimeMillis()))) {
+        if (new Date(expiration * 1000L).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
         }
 
@@ -906,9 +906,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != scopes && scopes.size() > 0) {
             token.setScope(new HashSet<>(scopes));
         }
-        String clientId = claims.get(CID).toString();
+        String clientId = (String)claims.get(CID);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-        String userId = claims.get(USER_ID).toString();
+        String userId = (String)claims.get(USER_ID);
         // Only check user access tokens
         if (null != userId) {
             @SuppressWarnings("unchecked")

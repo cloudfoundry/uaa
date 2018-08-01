@@ -64,7 +64,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Before
     public void createData() {
-        user1= syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaa().getId()));
+        user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaa().getId()));
         client1 = setUpClients(generator.generate(), null, scopes, AUTHORIZATION_CODE, false);
     }
 

@@ -59,6 +59,7 @@
 
     <bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
         <property name="tokenServices" ref="tokenServices" />
+        <property name="timeService" ref="timeService" />
         <property name="allowQueryString" ref="allowQueryStringForTokens"/>
     </bean>
 

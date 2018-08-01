@@ -251,6 +251,9 @@ public class UaaTokenServicesTests {
         ArgumentCaptor<UserAuthenticationData> userAuthenticationDataArgumentCaptor =
                 ArgumentCaptor.forClass(UserAuthenticationData.class);
 
+        TimeService timeService = mock(TimeService.class);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
+        when(timeService.getCurrentDate()).thenCallRealMethod();
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
                 idTokenCreator,
                 mock(TokenEndpointBuilder.class),
@@ -258,7 +261,7 @@ public class UaaTokenServicesTests {
                 mock(RevocableTokenProvisioning.class),
                 tokenValidationService,
                 mock(RefreshTokenCreator.class),
-                mock(TimeService.class),
+                timeService,
                 tokenValidityResolver,
                 userDatabase,
                 mock(ApprovalStore.class),

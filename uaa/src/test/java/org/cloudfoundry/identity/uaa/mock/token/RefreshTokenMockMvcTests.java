@@ -106,6 +106,7 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Before
     public void before() throws Exception {
         timeService = mock(TimeServiceImpl.class);
+        when(timeService.getCurrentDate()).thenCallRealMethod();
         UaaTokenServices uaaTokenServices = getWebApplicationContext().getBean(UaaTokenServices.class);
         RefreshTokenCreator refreshTokenCreator = getWebApplicationContext().getBean(RefreshTokenCreator.class);
         IdTokenCreator idTokenCreator = getWebApplicationContext().getBean(IdTokenCreator.class);

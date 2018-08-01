@@ -257,6 +257,7 @@ public class TokenTestSupport {
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         timeService = mock(TimeService.class);
+        when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);

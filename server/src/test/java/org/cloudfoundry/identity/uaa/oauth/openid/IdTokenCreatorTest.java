@@ -173,6 +173,7 @@ public class IdTokenCreatorTest {
         when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
         TimeService timeService = mock(TimeService.class);
+        when(timeService.getCurrentDate()).thenCallRealMethod();
         when(timeService.getCurrentTimeMillis()).thenReturn(1L);
         tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), timeService, tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
     }

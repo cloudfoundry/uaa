@@ -76,7 +76,7 @@ public class IdTokenCreator {
                           String userId,
                           UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
         Date expiryDate = tokenValidityResolver.resolve(clientId);
-        Date issuedAt = new Date(timeService.getCurrentTimeMillis());
+        Date issuedAt = timeService.getCurrentDate();
 
         UaaUser uaaUser;
         try {

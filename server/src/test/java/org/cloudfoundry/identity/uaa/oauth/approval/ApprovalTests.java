@@ -16,6 +16,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -193,13 +194,13 @@ public class ApprovalTests {
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(THIRTY_MINTUES))
-            .setStatus(Approval.ApprovalStatus.APPROVED).isCurrentlyActive());
+            .setStatus(Approval.ApprovalStatus.APPROVED).isActiveAsOf(new Date()));
         int expiresIn = -1;
         assertFalse(new Approval()
             .setUserId("u1")
             .setClientId("c1")
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(expiresIn))
-            .setStatus(Approval.ApprovalStatus.APPROVED).isCurrentlyActive());
+            .setStatus(Approval.ApprovalStatus.APPROVED).isActiveAsOf(new Date()));
     }
 }
