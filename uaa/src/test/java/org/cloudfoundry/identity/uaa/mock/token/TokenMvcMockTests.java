@@ -4170,9 +4170,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param("grant_type", "client_credentials")
+                .param("grant_type", "password")
                 .param("client_id", clientId)
-                .param("client_secret", SECRET))
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
