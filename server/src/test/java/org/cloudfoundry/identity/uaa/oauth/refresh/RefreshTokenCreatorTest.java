@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,6 +19,8 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 
 import java.util.*;
 
+import static com.jayway.jsonassert.impl.matcher.IsMapContainingKey.hasKey;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -71,16 +72,26 @@ public class RefreshTokenCreatorTest {
             .withOrigin("uaa")
         );
         Date authTime = new Date(1000L);
-        HashSet<String> scopes = Sets.newHashSet();
-        HashSet<String> resourceIds = Sets.newHashSet();
-        HashMap<String, Object> externalAttributes = Maps.newHashMap();
         HashSet<String> authenticationMethods = Sets.newHashSet("pwd");
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", scopes, authenticationMethods, null, resourceIds, "someclient", false, authTime, externalAttributes);
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                "refresh_token",
+                Sets.newHashSet(),
+                authenticationMethods,
+                null,
+                Sets.newHashSet(),
+                "someclient",
+                false,
+                authTime,
+                Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"),
+                Maps.newHashMap());
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
-        assertThat(UaaTokenUtils.getClaims(refreshToken.getValue()).get(AUTH_TIME), is(1));
-        assertThat((List<String>) UaaTokenUtils.getClaims(refreshToken.getValue()).get(AMR), hasItem("pwd"));
+        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
+        assertThat(refreshClaims.get(AUTH_TIME), is(1));
+        assertThat((List<String>) refreshClaims.get(AMR), hasItem("pwd"));
+        assertThat((Map<String, List<String>>) refreshClaims.get(ACR), hasKey("values"));
+        assertThat(((Map<String, List<String>>) refreshClaims.get(ACR)).get("values"), hasItem("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"));
     }
 
     @Test
@@ -96,25 +107,25 @@ public class RefreshTokenCreatorTest {
                 .withOrigin("uaa")
         );
         Date authTime = null;
-        HashSet<String> scopes = Sets.newHashSet();
-        HashSet<String> resourceIds = Sets.newHashSet();
-        HashMap<String, Object> externalAttributes = Maps.newHashMap();
         HashSet<String> authenticationMethods = Sets.newHashSet();
         RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                 "refresh_token",
-                scopes,
+                Sets.newHashSet(),
                 authenticationMethods,
                 null,
-                resourceIds,
+                Sets.newHashSet(),
                 "someclient",
                 false,
                 authTime,
-                externalAttributes);
+                Sets.newHashSet(),
+                Maps.newHashMap());
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
-        assertFalse(UaaTokenUtils.getClaims(refreshToken.getValue()).containsKey(AUTH_TIME));
-        assertFalse(UaaTokenUtils.getClaims(refreshToken.getValue()).containsKey(AMR));
+        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
+        assertFalse(refreshClaims.containsKey(AUTH_TIME));
+        assertFalse(refreshClaims.containsKey(AMR));
+        assertFalse(refreshClaims.containsKey(ACR));
     }
 
     @Test
@@ -127,7 +138,16 @@ public class RefreshTokenCreatorTest {
         );
 
         HashSet<String> authenticationMethods = Sets.newHashSet();
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token", Sets.newHashSet(), authenticationMethods, null, Sets.newHashSet(), "someclient", false, new Date(), Maps.newHashMap());
+        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData("refresh_token",
+                Sets.newHashSet(),
+                authenticationMethods,
+                null,
+                Sets.newHashSet(),
+                "someclient",
+                false,
+                new Date(),
+                null,
+                Maps.newHashMap());
 
         refreshTokenCreator.setRestrictRefreshGrant(true);
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");

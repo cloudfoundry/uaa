@@ -13,15 +13,18 @@ public class RefreshTokenRequestData {
     public final String clientId;
     public final boolean revocable;
     public final Date authTime;
+    public final Set<String> acr;
     public final Map<String, Object> externalAttributes;
 
     public RefreshTokenRequestData(String grantType,
                                    Set<String> scopes,
-                                   Set<String> authenticationMethods, String authorities,
+                                   Set<String> authenticationMethods,
+                                   String authorities,
                                    Set<String> resourceIds,
                                    String clientId,
                                    boolean revocable,
                                    Date authTime,
+                                   Set<String> acr,
                                    Map<String, Object> externalAttributes) {
         this.grantType = grantType;
         this.scopes = scopes;
@@ -31,6 +34,7 @@ public class RefreshTokenRequestData {
         this.clientId = clientId;
         this.revocable = revocable;
         this.authTime = authTime;
+        this.acr = acr;
         this.externalAttributes = externalAttributes;
     }
 

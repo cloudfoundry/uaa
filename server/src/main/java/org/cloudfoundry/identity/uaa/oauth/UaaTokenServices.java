@@ -588,6 +588,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 oAuth2Request.getClientId(),
                 refreshTokenRevocable,
                 userAuthenticationTime,
+                authNContextClassRef,
                 additionalRootClaims
             );
             refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, revocableHashSignature);

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.refresh;
 
+import com.google.common.collect.Maps;
 import org.cloudfoundry.identity.uaa.oauth.*;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -76,6 +77,11 @@ public class RefreshTokenCreator {
             }
             if (null != tokenRequestData.authTime) {
                 response.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
+            }
+            if (null != tokenRequestData.acr && !tokenRequestData.acr.isEmpty()) {
+                HashMap<Object, Object> acrMap = Maps.newHashMap();
+                acrMap.put("values", tokenRequestData.acr);
+                response.put(ACR, acrMap);
             }
             if (null != additionalAuthorizationAttributes) {
                 response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
