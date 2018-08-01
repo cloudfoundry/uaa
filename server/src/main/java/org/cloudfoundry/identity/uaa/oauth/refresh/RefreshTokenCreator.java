@@ -59,54 +59,54 @@ public class RefreshTokenCreator {
     private String buildJwtToken(UaaUser user, RefreshTokenRequestData tokenRequestData, String revocableHashSignature, String grantType, Map<String, String> additionalAuthorizationAttributes, Date expirationDate, String tokenId) {
         String content;
         try {
-            Map<String, Object> response = new LinkedHashMap<>();
+            Map<String, Object> claims = new LinkedHashMap<>();
 
-            response.put(JTI, tokenId);
-            response.put(SUB, user.getId());
-            response.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-            response.put(EXP, expirationDate.getTime() / 1000);
-            response.put(CID, tokenRequestData.clientId);
-            response.put(CLIENT_ID, tokenRequestData.clientId);
-            response.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
-            response.put(ZONE_ID, IdentityZoneHolder.get().getId());
-            response.put(AUD, tokenRequestData.resourceIds);
-            response.put(GRANTED_SCOPES, tokenRequestData.scopes);
+            claims.put(JTI, tokenId);
+            claims.put(SUB, user.getId());
+            claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
+            claims.put(EXP, expirationDate.getTime() / 1000);
+            claims.put(CID, tokenRequestData.clientId);
+            claims.put(CLIENT_ID, tokenRequestData.clientId);
+            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+            claims.put(ZONE_ID, IdentityZoneHolder.get().getId());
+            claims.put(AUD, tokenRequestData.resourceIds);
+            claims.put(GRANTED_SCOPES, tokenRequestData.scopes);
 
             if (null != tokenRequestData.authenticationMethods && !tokenRequestData.authenticationMethods.isEmpty()) {
-                response.put(AMR, tokenRequestData.authenticationMethods);
+                claims.put(AMR, tokenRequestData.authenticationMethods);
             }
             if (null != tokenRequestData.authTime) {
-                response.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
+                claims.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
             }
             if (null != tokenRequestData.acr && !tokenRequestData.acr.isEmpty()) {
                 HashMap<Object, Object> acrMap = Maps.newHashMap();
                 acrMap.put("values", tokenRequestData.acr);
-                response.put(ACR, acrMap);
+                claims.put(ACR, acrMap);
             }
             if (null != additionalAuthorizationAttributes) {
-                response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+                claims.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
             }
             if (null != tokenRequestData.externalAttributes) {
-                response.putAll(tokenRequestData.externalAttributes);
+                claims.putAll(tokenRequestData.externalAttributes);
             }
             if (null != grantType) {
-                response.put(GRANT_TYPE, grantType);
+                claims.put(GRANT_TYPE, grantType);
             }
             if (null != user) {
-                response.put(USER_NAME, user.getUsername());
-                response.put(ORIGIN, user.getOrigin());
-                response.put(USER_ID, user.getId());
+                claims.put(USER_NAME, user.getUsername());
+                claims.put(ORIGIN, user.getOrigin());
+                claims.put(USER_ID, user.getId());
             }
 
             if (tokenRequestData.revocable) {
-                response.put(ClaimConstants.REVOCABLE, true);
+                claims.put(ClaimConstants.REVOCABLE, true);
             }
 
             if (hasText(revocableHashSignature)) {
-                response.put(REVOCATION_SIGNATURE, revocableHashSignature);
+                claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
             }
 
-            content = JsonUtils.writeValueAsString(response);
+            content = JsonUtils.writeValueAsString(claims);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
