@@ -3848,9 +3848,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull("Token should have been stored in the DB", revocableToken);
     }
 
-
-
-
     public Map<String,Object> testRevocablePasswordGrantTokenForDefaultZone(Map<String, String> parameters) throws Exception {
         String username = generator.generate()+"@test.org";
         String clientId = "testclient" + generator.generate();
