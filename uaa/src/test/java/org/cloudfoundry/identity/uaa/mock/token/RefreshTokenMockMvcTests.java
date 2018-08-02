@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -24,13 +25,20 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -40,9 +48,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.AdditionalMatchers.not;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -121,6 +134,69 @@ public class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @After
     public void reset() {
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void refreshTokenGrant_rejectsAccessTokens_ClientCredentialsGrantType() throws Exception {
+        createClientAndUser();
+        String tokenResponse = getMockMvc().perform(
+                post("/oauth/token")
+                        .header("Host", zone.getSubdomain() + ".localhost")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                        .param(OAuth2Utils.GRANT_TYPE, "client_credentials")
+                        .param("client_secret", SECRET)
+                        .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String accessToken = (String)JsonUtils.readValue(tokenResponse, new TypeReference<Map<String, Object>>() {}).get("access_token");
+
+        getMockMvc().perform(
+            post("/oauth/token")
+                    .header("Host", zone.getSubdomain() + ".localhost")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                    .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                    .param(REFRESH_TOKEN, accessToken)
+                    .param("client_secret", SECRET)
+                    .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void refreshTokenGrant_rejectsAccessTokens_PasswordGrantType() throws Exception {
+        createClientAndUser();
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Host", zone.getSubdomain() + ".localhost")
+                .header("Authorization", "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                .param("grant_type", "password")
+                .param("client_id", client.getClientId())
+                .param("client_secret", SECRET)
+                .param("username", user.getUserName())
+                .param("password", SECRET))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {});
+        String accessToken = (String) bodyMap.get("access_token");
+
+        MockHttpServletResponse refreshResponse = getMockMvc().perform(
+                post("/oauth/token")
+                        .header("Host", zone.getSubdomain() + ".localhost")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                        .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                        .param(REFRESH_TOKEN, accessToken)
+                        .param("client_secret", SECRET)
+                        .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
+                .andReturn()
+                .getResponse();
+
+        assertTrue(refreshResponse.getStatus() >= 400);
     }
 
     @Test
