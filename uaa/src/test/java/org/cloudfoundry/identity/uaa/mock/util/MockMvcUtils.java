@@ -122,6 +122,7 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -1149,7 +1150,7 @@ public final class MockMvcUtils {
             oauthTokenPost.header("Host", zone.getSubdomain() + ".localhost");
         }
         if (opaque) {
-            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         }
 
         MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
@@ -1186,7 +1187,7 @@ public final class MockMvcUtils {
           .session(session)
           .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
           .param(OAuth2Utils.RESPONSE_TYPE, "code")
-          .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+          .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
           .param(OAuth2Utils.STATE, state)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -1287,7 +1288,7 @@ public final class MockMvcUtils {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }
         if (opaque) {
-            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         }
         MvcResult result = mockMvc.perform(oauthTokenPost)
           .andDo(print())

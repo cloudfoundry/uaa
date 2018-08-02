@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -74,9 +73,9 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.*;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -172,17 +171,17 @@ public class UaaTokenServicesTests {
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
         assertEquals(RevocableToken.TokenType.ACCESS_TOKEN, rt.getAllValues().get(0).getResponseType());
-        assertEquals(RevocableToken.TokenFormat.OPAQUE.name(), rt.getAllValues().get(0).getFormat());
+        assertEquals(OPAQUE.getStringValue(), rt.getAllValues().get(0).getFormat());
         assertEquals("id", result.getValue());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(1).getResponseType());
-        assertEquals(RevocableToken.TokenFormat.OPAQUE.name(), rt.getAllValues().get(1).getFormat());
+        assertEquals(OPAQUE.getStringValue(), rt.getAllValues().get(1).getFormat());
         assertEquals("rid", result.getRefreshToken().getValue());
     }
 
     @Test
     public void test_refresh_tokens_are_uniquely_persisted() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(true);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(OPAQUE.getStringValue());
         tokenServices.persistRevocableToken("id",
             persistToken,
             new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
@@ -313,7 +312,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void test_opaque_refresh_token_is_persisted() {
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(OPAQUE.getStringValue());
         CompositeToken result = tokenServices.persistRevocableToken("id",
             persistToken,
             new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
@@ -327,7 +326,7 @@ public class UaaTokenServicesTests {
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());
-        assertEquals(RevocableToken.TokenFormat.OPAQUE.name(), rt.getAllValues().get(0).getFormat());
+        assertEquals(OPAQUE.getStringValue(), rt.getAllValues().get(0).getFormat());
         assertEquals("refresh-token-value", rt.getAllValues().get(0).getValue());
         assertNotEquals("refresh-token-value", result.getRefreshToken().getValue());
     }
@@ -448,7 +447,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void test_refresh_token_is_opaque_when_requested() {
-        OAuth2AccessToken accessToken = performPasswordGrant(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        OAuth2AccessToken accessToken = performPasswordGrant(OPAQUE.getStringValue());
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 
         String refreshTokenValue = accessToken.getRefreshToken().getValue();
@@ -467,12 +466,12 @@ public class UaaTokenServicesTests {
 
     @Test
     public void test_using_opaque_parameter_on_refresh_grant() {
-        OAuth2AccessToken accessToken = performPasswordGrant(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        OAuth2AccessToken accessToken = performPasswordGrant(OPAQUE.getStringValue());
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         String refreshTokenValue = refreshToken.getValue();
 
         Map<String,String> parameters = new HashMap<>();
-        parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE);
+        parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         TokenRequest refreshTokenRequest = getRefreshTokenRequest(parameters);
 
         //validate both opaque and JWT refresh tokenSupport.tokens
@@ -505,7 +504,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
@@ -1878,7 +1877,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1928,7 +1927,7 @@ public class UaaTokenServicesTests {
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
 
-        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;

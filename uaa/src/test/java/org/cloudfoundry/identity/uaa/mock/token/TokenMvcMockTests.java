@@ -131,9 +131,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZA
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -179,7 +179,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
-
     private String BADSECRET = "badsecret";
     private TestClient testClient;
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -600,7 +599,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
                                                    .param(OAuth2Utils.GRANT_TYPE, "password")
                                                    .param(OAuth2Utils.CLIENT_ID, clientId)
-                                                   .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                                                   .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                                                    .param("client_secret", SECRET)
                                                    .param("username", username)
                                                    .param("password", SECRET))
@@ -623,7 +622,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
                 .param(REFRESH_TOKEN, refreshTokenId)
-                .param(REQUEST_TOKEN_FORMAT, OPAQUE))
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue()))
 
             .andDo(print())
             .andExpect(status().isUnauthorized())
@@ -645,7 +644,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                  .param(OAuth2Utils.RESPONSE_TYPE, "token")
                                  .param(OAuth2Utils.GRANT_TYPE, "password")
                                  .param(OAuth2Utils.CLIENT_ID, clientId)
-                                 .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                                  .param("client_secret", SECRET)
                                  .param("username", username)
                                  .param("password", SECRET))
@@ -670,7 +669,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
                 .param(REFRESH_TOKEN, refreshTokenId)
-                .param(REQUEST_TOKEN_FORMAT, OPAQUE))
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue()))
 
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
@@ -1558,8 +1557,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
 
 
-        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
-        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
+        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())).andExpect(status().isOk());
+        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())).andExpect(status().isOk());
     }
 
     @Test
@@ -4083,7 +4082,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void testPasswordGrantTokenForDefaultZone_Opaque() throws Exception {
         Map<String,String> parameters = new HashedMap();
-        parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE);
+        parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         String tokenKey = "access_token";
         Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));

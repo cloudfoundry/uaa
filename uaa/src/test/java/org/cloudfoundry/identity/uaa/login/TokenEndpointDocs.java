@@ -66,8 +66,8 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthA
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
@@ -106,7 +106,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to `"+ OPAQUE+"` to retrieve an opaque and revocable token.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to `"+ OPAQUE.getStringValue() +"` to retrieve an opaque and revocable token.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
 
@@ -183,7 +183,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(GRANT_TYPE, AUTHORIZATION_CODE)
             .param(RESPONSE_TYPE, "token")
             .param("code", code)
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(REDIRECT_URI, redirect);
 
         Snippet requestParameters = requestParameters(
@@ -220,7 +220,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(CLIENT_ID, "login")
             .param("client_secret", "loginsecret")
             .param(GRANT_TYPE, "client_credentials")
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token");
 
         Snippet requestParameters = requestParameters(
@@ -252,7 +252,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(GRANT_TYPE, "client_credentials")
             .param(RESPONSE_TYPE, "token")
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .header("Authorization", "Basic " + clientAuthorization);
 
         Snippet requestParameters = requestParameters(
@@ -286,7 +286,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(GRANT_TYPE, "password")
             .param("username", user.getUserName())
             .param("password", user.getPassword())
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token")
             .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
@@ -329,7 +329,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token")
             .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
@@ -508,7 +508,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(GRANT_TYPE, "password")
             .param("username", user.getUserName())
             .param("password", user.getPassword())
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token");
 
         Snippet requestParameters = requestParameters(
@@ -566,7 +566,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .header("Authorization", "Basic " + clientAuthorization)
             .param(GRANT_TYPE, "password")
             .param("passcode", passcode)
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token");
 
         Snippet requestParameters = requestParameters(
@@ -603,7 +603,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(GRANT_TYPE, "password")
             .param("username", user.getUserName())
             .param("password", user.getPassword())
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token");
 
         MvcResult mvcResult = getMockMvc().perform(postForToken).andExpect(status().isOk()).andReturn();
@@ -615,7 +615,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(CLIENT_ID, "app")
             .param("client_secret", "appclientsecret")
             .param(GRANT_TYPE, "refresh_token")
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param("refresh_token", refreshToken.getValue());
 
         Snippet requestParameters = requestParameters(
@@ -686,7 +686,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(GRANT_TYPE, AUTHORIZATION_CODE)
             .param(RESPONSE_TYPE, "id_token")
             .param("code", code)
-            .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+            .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(REDIRECT_URI, redirect);
 
         Snippet requestParameters = requestParameters(

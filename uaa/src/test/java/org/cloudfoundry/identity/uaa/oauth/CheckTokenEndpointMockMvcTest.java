@@ -66,7 +66,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
                 .param("response_type", "id_token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))

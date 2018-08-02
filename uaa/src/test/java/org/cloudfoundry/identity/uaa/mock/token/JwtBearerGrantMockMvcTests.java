@@ -153,7 +153,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .param("client_id", client.getClientId())
             .param("client_secret", client.getClientSecret())
             .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
-            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
             .param("response_type", "token id_token")
             .param("scope", "openid")
             .param("assertion", assertion);
@@ -227,7 +227,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         return details;
     }
 
-    public String getTokenVerificationKey(IdentityZone zone) throws Exception {
+    public String getTokenVerificationKey(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         try {
             return KeyInfo.getActiveKey().getVerifierKey();

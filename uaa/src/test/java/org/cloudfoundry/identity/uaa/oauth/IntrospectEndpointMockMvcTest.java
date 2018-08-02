@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.web.util.HtmlUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -45,7 +46,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .param("response_type", "id_token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))

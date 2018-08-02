@@ -49,7 +49,6 @@ public class TokenConstants {
     }
 
     public static final String REQUEST_TOKEN_FORMAT = "token_format";
-    public static final String OPAQUE = "opaque";
     public static final String GRANT_TYPE_USER_TOKEN = "user_token";
     public static final String GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
     public static final String USER_TOKEN_REQUESTING_CLIENT_ID = "requesting_client_id";

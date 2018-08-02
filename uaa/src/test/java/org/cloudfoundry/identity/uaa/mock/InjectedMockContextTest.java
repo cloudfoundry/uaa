@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.junit.Assume.assumeTrue;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
@@ -144,7 +145,7 @@ public class InjectedMockContextTest implements Contextable {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", username)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .param("scope", scope);
             if (subdomain != null && !subdomain.equals(""))
                 oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
@@ -165,7 +166,7 @@ public class InjectedMockContextTest implements Contextable {
                 .param("client_id", clientId)
                 .param("username", username)
                 .param("password", password)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .param("scope", scope);
             MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
             OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);

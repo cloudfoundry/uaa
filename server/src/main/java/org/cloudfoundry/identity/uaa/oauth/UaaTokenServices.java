@@ -119,11 +119,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
-import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -227,7 +227,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String refreshTokenId = (String) refreshTokenClaims.get(JTI);
         String accessTokenId = generateUniqueTokenId();
 
-        boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
+        boolean opaque = OPAQUE.getStringValue().equals(request.getRequestParameters().get(REQUEST_TOKEN_FORMAT));
         Boolean revocableClaim = (Boolean)refreshTokenClaims.get(REVOCABLE);
         boolean revocable = opaque || (revocableClaim == null ? false : revocableClaim);
 
@@ -609,7 +609,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean opaque = opaqueTokenRequired(authentication);
         boolean accessTokenRevocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
-        boolean refreshTokenRevocable = accessTokenRevocable || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
+        boolean refreshTokenRevocable = accessTokenRevocable || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
 
         Map<String,Object> additionalRootClaims = null;
         if (uaaTokenEnhancer != null) {
@@ -728,7 +728,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setClientId(clientId)
                 .setExpiresAt(token.getExpiration().getTime())
                 .setIssuedAt(now)
-                .setFormat(opaque ? OPAQUE.name() : JWT.name())
+                .setFormat(opaque ? OPAQUE.getStringValue() : JWT.getStringValue())
                 .setResponseType(RevocableToken.TokenType.ACCESS_TOKEN)
                 .setZoneId(IdentityZoneHolder.get().getId())
                 .setUserId(userId)
@@ -742,7 +742,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        boolean refreshTokenOpaque = opaque || TokenConstants.TokenFormat.OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
+        boolean refreshTokenOpaque = opaque || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
         boolean refreshTokenRevocable = refreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
         boolean refreshTokenUnique = IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenUnique();
         if (refreshToken != null && refreshTokenRevocable) {
@@ -751,7 +751,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setClientId(clientId)
                 .setExpiresAt(refreshToken.getExpiration().getTime())
                 .setIssuedAt(now)
-                .setFormat(refreshTokenOpaque ? OPAQUE.name() : JWT.name())
+                .setFormat(refreshTokenOpaque ? OPAQUE.getStringValue() : JWT.getStringValue())
                 .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN)
                 .setZoneId(IdentityZoneHolder.get().getId())
                 .setUserId(userId)
@@ -779,7 +779,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     boolean opaqueTokenRequired(OAuth2Authentication authentication) {
         Map<String, String> parameters = authentication.getOAuth2Request().getRequestParameters();
-        return TokenConstants.OPAQUE.equals(parameters.get(REQUEST_TOKEN_FORMAT)) ||
+        return OPAQUE.getStringValue().equals(parameters.get(REQUEST_TOKEN_FORMAT)) ||
             GRANT_TYPE_USER_TOKEN.equals(parameters.get(GRANT_TYPE));
     }
 
