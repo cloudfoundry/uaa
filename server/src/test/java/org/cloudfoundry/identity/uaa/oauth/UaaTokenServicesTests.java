@@ -346,7 +346,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        assertTrue(tokenServices.opaqueTokenRequired(authentication));
+        assertTrue(tokenServices.isOpaqueTokenRequired(authentication));
     }
 
     @Test(expected = InvalidTokenException.class)
