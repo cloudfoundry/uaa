@@ -27,7 +27,7 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import java.util.Arrays;
 
 import static java.util.Collections.singleton;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -55,7 +55,7 @@ public class UaaUserApprovalHandlerTests {
     @Test
     public void testNotAutoApprove() {
         BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", AUTHORIZATION_CODE, "uaa.none");
+                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
@@ -63,7 +63,7 @@ public class UaaUserApprovalHandlerTests {
     @Test
     public void testAutoApproveAll() {
         BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", AUTHORIZATION_CODE, "uaa.none");
+                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         client.setAutoApproveScopes(singleton("true"));
             Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
@@ -72,7 +72,7 @@ public class UaaUserApprovalHandlerTests {
     @Test
     public void testAutoApproveByScope() {
         BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", AUTHORIZATION_CODE, "uaa.none");
+                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         client.setAutoApproveScopes(singleton("read"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));

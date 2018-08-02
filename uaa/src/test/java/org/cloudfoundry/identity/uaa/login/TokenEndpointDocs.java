@@ -63,7 +63,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityC
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -180,7 +180,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "login")
             .param("client_secret", "loginsecret")
-            .param(GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(RESPONSE_TYPE, "token")
             .param("code", code)
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -683,7 +683,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "login")
             .param("client_secret", "loginsecret")
-            .param(GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(RESPONSE_TYPE, "id_token")
             .param("code", code)
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())

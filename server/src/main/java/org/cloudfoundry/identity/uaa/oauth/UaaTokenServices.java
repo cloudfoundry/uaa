@@ -119,8 +119,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
@@ -473,7 +476,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String grantType, Set<String> responseTypes, boolean forceIdTokenCreation) {
         boolean clientHasOpenIdScope = false;
-        if(null != clientScopes && !"client_credentials".equals(grantType)) {
+        if(null != clientScopes && !GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
             for (GrantedAuthority scope : clientScopes) {
                 if (scope.getAuthority().equals("openid")) {
                     clientHasOpenIdScope = true;
@@ -514,7 +517,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(SUB, clientId);
-        if ("client_credentials".equals(grantType)) {
+        if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
             claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
 
@@ -622,7 +625,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 oAuth2Request.getGrantType(),
                 oAuth2Request.getScope(),
                 authenticationMethods,
-                oAuth2Request.getRequestParameters().get("authorities"),
+                oAuth2Request.getRequestParameters().get(REQUEST_AUTHORITIES),
                 oAuth2Request.getResourceIds(),
                 oAuth2Request.getClientId(),
                 refreshTokenRevocable,
@@ -651,10 +654,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Map<String, String> additionalAuthorizationAttributes =
             new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(
-                requestParameters.get("authorities")
+                requestParameters.get(REQUEST_AUTHORITIES)
             );
 
-        if (TokenConstants.AUTHORIZATION_CODE.equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
+        if (TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
             CODE.equals(requestParameters.get(OAuth2Utils.RESPONSE_TYPE)) &&
             requestParameters.get(OAuth2Utils.SCOPE)!=null &&
             Arrays.asList(requestParameters.get(OAuth2Utils.SCOPE).split(" ")).contains(OPENID)) {
@@ -853,8 +856,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             AuthorityUtils.commaSeparatedStringToAuthorityList(
                 StringUtils.collectionToCommaDelimitedString(defaultUserAuthorities)
             );
-        if (claims.containsKey("authorities")) {
-            Object authoritiesFromClaims = claims.get("authorities");
+        if (claims.containsKey(AUTHORITIES)) {
+            Object authoritiesFromClaims = claims.get(AUTHORITIES);
             if (authoritiesFromClaims instanceof String) {
                 authorities = AuthorityUtils.commaSeparatedStringToAuthorityList((String) authoritiesFromClaims);
             }
@@ -927,7 +930,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
         // ALL requested scopes are considered auto-approved for password grant
-        if (grantType != null && "password".equals(grantType.toString())) {
+        if (grantType != null && GRANT_TYPE_PASSWORD.equals(grantType.toString())) {
             return new HashSet<>(tokenScopes);
         }
         BaseClientDetails clientDetails = (BaseClientDetails) client;

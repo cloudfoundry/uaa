@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -65,7 +65,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     @Before
     public void createData() {
         user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaa().getId()));
-        client1 = setUpClients(generator.generate(), null, scopes, AUTHORIZATION_CODE, false);
+        client1 = setUpClients(generator.generate(), null, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
     }
 
 

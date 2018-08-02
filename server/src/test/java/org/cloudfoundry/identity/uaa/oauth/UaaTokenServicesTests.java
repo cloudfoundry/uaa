@@ -72,7 +72,11 @@ import static java.util.Collections.*;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
@@ -379,7 +383,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -412,7 +416,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -490,7 +494,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, PASSWORD);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
         azParameters.put(REQUEST_TOKEN_FORMAT, tokenFormat);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
@@ -505,7 +509,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
-        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -532,7 +536,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -564,7 +568,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
@@ -581,7 +585,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID_NO_REFRESH_TOKEN_GRANT,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -601,7 +605,7 @@ public class UaaTokenServicesTests {
             AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
             authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
             Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-            azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+            azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
             authorizationRequest.setRequestParameters(azParameters);
             Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -619,7 +623,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, PASSWORD);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -642,7 +646,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, PASSWORD);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -663,7 +667,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, PASSWORD);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -809,7 +813,7 @@ public class UaaTokenServicesTests {
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         refreshAuthorizationRequest.setRequestParameters(requestParameters);
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
         return tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token");
     }
@@ -832,7 +836,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -874,7 +878,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -896,7 +900,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -918,7 +922,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -946,7 +950,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -969,7 +973,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.readScope);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1016,7 +1020,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1038,7 +1042,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1077,7 +1081,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1099,7 +1103,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
@@ -1138,7 +1142,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1160,7 +1164,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1172,7 +1176,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, IMPLICIT);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_IMPLICIT);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1243,7 +1247,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopesThatDontExist);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, IMPLICIT);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_IMPLICIT);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1277,7 +1281,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1340,7 +1344,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1358,7 +1362,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.readScope);
         reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
@@ -1390,7 +1394,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1407,7 +1411,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest expandedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.expandedScopes);
         expandedScopeAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(expandedScopeAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         expandedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
@@ -1427,7 +1431,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1460,7 +1464,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1479,7 +1483,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
@@ -1515,7 +1519,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1525,7 +1529,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         try {
@@ -1541,7 +1545,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1567,7 +1571,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1594,7 +1598,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1604,7 +1608,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1631,7 +1635,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1641,7 +1645,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1662,7 +1666,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1672,7 +1676,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
@@ -1683,7 +1687,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1693,7 +1697,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
@@ -1715,7 +1719,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1762,7 +1766,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1813,7 +1817,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1849,7 +1853,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -1876,7 +1880,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
@@ -1925,7 +1929,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
 
         azParameters.put(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
@@ -1954,7 +1958,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
 
         azParameters.put(REQUEST_TOKEN_FORMAT, JWT.getStringValue());
 
@@ -1977,7 +1981,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -2008,7 +2012,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
@@ -2030,7 +2034,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         azParameters.put("authorities","{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
@@ -2075,7 +2079,7 @@ public class UaaTokenServicesTests {
     public void createRefreshToken_JwtDoesNotContainScopeClaim() {
         AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         Map<String, String> authzParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        authzParameters.put(GRANT_TYPE, PASSWORD);
+        authzParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
         authzParameters.put(REQUEST_TOKEN_FORMAT, JWT.toString());
         authorizationRequest.setRequestParameters(authzParameters);
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;

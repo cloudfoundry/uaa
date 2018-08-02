@@ -38,7 +38,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -60,7 +59,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
@@ -133,11 +132,11 @@ public class ProfileControllerTests extends TestClassNullifier {
 
         Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(allApprovals);
 
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write",AUTHORIZATION_CODE, "");
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
 
-        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write",AUTHORIZATION_CODE, "");
+        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         Mockito.when(clientDetailsService.loadClientByClientId("other-client", "uaa")).thenReturn(otherClient);
     }
@@ -154,7 +153,7 @@ public class ProfileControllerTests extends TestClassNullifier {
 
     @Test
     public void testGetProfileNoAppName() throws Exception {
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write",AUTHORIZATION_CODE, "");
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
         testGetProfile("app");
     }

@@ -35,7 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
@@ -79,7 +79,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
 
     @Before
     public void setup() {
-        client = new BaseClientDetails("id", "", "openid", AUTHORIZATION_CODE, "", redirectUrl);
+        client = new BaseClientDetails("id", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUrl);
         clientDetailsService = mock(ClientServicesExtension.class);
         redirectResolver = mock(RedirectResolver.class);
         calculator = mock(OpenIdSessionStateCalculator.class);

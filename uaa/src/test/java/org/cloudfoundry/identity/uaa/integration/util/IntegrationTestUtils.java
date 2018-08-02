@@ -108,7 +108,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
@@ -1305,7 +1305,7 @@ public class IntegrationTestUtils {
 
         formData.clear();
         formData.add("client_id", clientId);
-        formData.add("grant_type", AUTHORIZATION_CODE);
+        formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
         if (hasText(redirectUri)) {
             formData.add("redirect_uri", redirectUri);
         }

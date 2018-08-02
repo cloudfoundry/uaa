@@ -39,7 +39,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -51,7 +50,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -214,7 +213,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
                         "secret",
                         Collections.emptyList(),
                         Collections.singletonList("openid"),
-                        Collections.singletonList(AUTHORIZATION_CODE),
+                        Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE),
                         "uaa.resource",
                         Collections.singleton("http://example.com"));
         client.setAutoApproveScopes(Collections.singletonList("openid"));

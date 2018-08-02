@@ -103,8 +103,7 @@ public class ClientBasicAuthenticationFilterTests {
 
     @Test
     public void doesContinueWithFilterChain_EvenIfClientSecretExpired() throws IOException, ServletException, ParseException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials",
-                               "http://localhost:5000/uaadb" );
+        BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials", "http://localhost:5000/uaadb" );
 
 
         Calendar expiredDate = Calendar.getInstance();

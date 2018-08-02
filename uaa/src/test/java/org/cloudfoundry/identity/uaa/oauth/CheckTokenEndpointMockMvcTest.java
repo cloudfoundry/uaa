@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.util.HtmlUtils;
 
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -63,7 +63,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", CLIENT_ID)
                 .param("client_secret", CLIENT_SECRET)
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())

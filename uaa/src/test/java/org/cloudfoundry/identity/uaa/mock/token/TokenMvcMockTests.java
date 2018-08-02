@@ -69,7 +69,6 @@ import org.junit.Test;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -123,11 +122,11 @@ import static org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils.getClaimsFor
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
@@ -287,7 +286,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             builder
                 .param("client_id", "cf")
                 .param("client_secret", "")
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
                 .accept(APPLICATION_JSON)
@@ -331,7 +330,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
 
         String clientId = "testclient"+ generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
         clientDetails.setClientSecret(SECRET);
         clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
         clientDetailsService.addClientDetails(clientDetails);
@@ -362,7 +361,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
 
         String clientId = "testclient"+ generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
         clientDetails.setAutoApproveScopes(Arrays.asList("true"));
         clientDetails.setClientSecret(SECRET);
         clientDetailsService.addClientDetails(clientDetails);
@@ -391,7 +390,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("code", code)
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
-                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
@@ -484,7 +483,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", clientId)
                 .param("client_secret", clientSecret)
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", password)
                 .accept(APPLICATION_JSON)
@@ -520,7 +519,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", "cf")
                 .param("client_secret", "")
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
                 .accept(APPLICATION_JSON)
@@ -555,7 +554,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", "cf")
                 .param("client_secret", "")
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("passcode", code)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
@@ -863,7 +862,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void token_endpoint_should_return_Basic_WWW_Authenticate_Header() throws Exception {
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.user", "uaa.user", AUTHORIZATION_CODE, true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+        setUpClients(clientId, "uaa.user", "uaa.user", GRANT_TYPE_AUTHORIZATION_CODE, true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -889,7 +888,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                  .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                                  .accept(MediaType.APPLICATION_JSON_VALUE)
                                  .param(OAuth2Utils.RESPONSE_TYPE, "token")
-                                 .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                                  .param(OAuth2Utils.CLIENT_ID, clientId)
                                  .param("code", code)
                                  .param("state", state))
@@ -904,7 +903,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     public void getOauthToken_usingAuthCode_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
         String clientId = "testclient"+ generator.generate();
-        setUpClients(clientId, "uaa.user", "uaa.user", AUTHORIZATION_CODE, true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+        setUpClients(clientId, "uaa.user", "uaa.user", GRANT_TYPE_AUTHORIZATION_CODE, true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user";
@@ -934,7 +933,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
-                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", "secret")
                 .param("code", code)
@@ -950,7 +949,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void testRefreshTokenNotPresentWhenClientDoesNotHaveGrantType() throws Exception {
-        BaseClientDetails clientWithoutRefreshTokenGrant = setUpClients("testclient"+generator.generate(), "", "openid", AUTHORIZATION_CODE, true);
+        BaseClientDetails clientWithoutRefreshTokenGrant = setUpClients("testclient"+generator.generate(), "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, true);
         String username = "testuser"+ generator.generate();
         String userScopes = "uaa.user,other.scope,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
@@ -971,7 +970,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.CLIENT_ID, clientWithoutRefreshTokenGrant.getClientId())
             .param("client_secret", "secret")
             .param("code", code);
@@ -1016,7 +1015,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
           .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
           .accept(MediaType.APPLICATION_JSON_VALUE)
           .param(OAuth2Utils.RESPONSE_TYPE, "token")
-          .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+          .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param("client_secret", "secret")
           .param("code", code)
@@ -1318,7 +1317,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", "cf")
                 .param("client_secret", "")
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
                 .accept(APPLICATION_JSON)
@@ -1491,7 +1490,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .accept(APPLICATION_JSON)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param("code", code))
             .andExpect(status().isOk())
@@ -1568,7 +1567,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
             String clientId = "testclient" + generator.generate();
             String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-            setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, true);
+            setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, true);
             String username = "testuser" + generator.generate();
             String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
             ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1603,7 +1602,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void testOpenIdTokenHybridFlowWithNoImplicitGrant() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-        setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, true);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, true);
         String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1666,7 +1665,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenientWhenAppNotApproved() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-        setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, false);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
         String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1702,7 +1701,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrictWhenAppNotApproved() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-        setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, false);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
         String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1769,7 +1768,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void invalidScopeErrorMessageIsNotShowingAllClientScopes() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "openid";
-        setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, true);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, true);
 
         String username = "testuser"+ generator.generate();
         ScimUser developer = setUpUser(username, "scim.write", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
@@ -1801,7 +1800,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     public void invalidScopeErrorMessageIsNotShowingAllUserScopes() throws Exception {
         String clientId = "testclient"+ generator.generate();
         String scopes = "openid,password.write,cloud_controller.read,scim.userids,password.write,something.else";
-        setUpClients(clientId, scopes, scopes, AUTHORIZATION_CODE, true);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPE_AUTHORIZATION_CODE, true);
 
         String username = "testuser"+ generator.generate();
         ScimUser developer = setUpUser(username, "openid", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
@@ -2362,7 +2361,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param("code", code)
             .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
@@ -2419,7 +2418,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param("code", code)
             .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
@@ -2475,7 +2474,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param("code", code)
             .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
@@ -2530,7 +2529,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param("code", code)
             .param(SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
@@ -2582,7 +2581,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
             .accept(APPLICATION_JSON)
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("code", code)
             .param(OAuth2Utils.STATE, state))
@@ -2634,7 +2633,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         result = getMockMvc().perform(post("/oauth/token")
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
             .accept(APPLICATION_JSON)
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("code", code)
             .param(OAuth2Utils.STATE, state))
@@ -2686,7 +2685,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         result = getMockMvc().perform(post("/oauth/token")
             .accept(APPLICATION_JSON)
             .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("code", code))
@@ -2797,8 +2796,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
         nineYearsAhead.add(Calendar.YEAR, 9);
         assertTrue("Expiration Date should be more than 9 years ahead.", new Date(expirationTime*1000l).after(new Date(nineYearsAhead.getTimeInMillis())));
-
-
     }
 
     @Test
@@ -2816,7 +2813,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/token")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", developer.getUserName())
                 .param("password", SECRET)
                 .accept(APPLICATION_JSON)
@@ -3936,7 +3933,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .header("Authorization", basicDigestHeaderValue)
             .header("Accept", MediaType.APPLICATION_JSON_VALUE)
             .session(session)
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, "identity")
@@ -3950,7 +3947,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authRequest = post("/oauth/token")
             .header("Authorization", basicDigestHeaderValue)
             .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-            .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param("code", code)
             .param(OAuth2Utils.CLIENT_ID, "identity")
@@ -3988,7 +3985,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", basicDigestHeaderValue)
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
-                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param("prompt", "login")
@@ -4029,7 +4026,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", basicDigestHeaderValue)
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
-                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param("max_age", "1")
@@ -4044,7 +4041,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", basicDigestHeaderValue)
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
-                .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param("max_age", "1")

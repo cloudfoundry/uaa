@@ -121,7 +121,7 @@ import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -1185,7 +1185,7 @@ public final class MockMvcUtils {
           .header("Authorization", basicDigestHeaderValue)
           .header("Accept", MediaType.APPLICATION_JSON_VALUE)
           .session(session)
-          .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+          .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
           .param(OAuth2Utils.RESPONSE_TYPE, "code")
           .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
           .param(OAuth2Utils.STATE, state)
@@ -1203,7 +1203,7 @@ public final class MockMvcUtils {
         authRequest = post("/oauth/token")
           .header("Authorization", basicDigestHeaderValue)
           .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-          .param(OAuth2Utils.GRANT_TYPE, AUTHORIZATION_CODE)
+          .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
           .param(OAuth2Utils.RESPONSE_TYPE, "token")
           .param("code", code)
           .param(OAuth2Utils.CLIENT_ID, clientId)

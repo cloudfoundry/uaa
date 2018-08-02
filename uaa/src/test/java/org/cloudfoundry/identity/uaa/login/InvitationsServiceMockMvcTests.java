@@ -49,7 +49,7 @@ import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertEquals;
@@ -144,7 +144,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         assertNotNull(inviteSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
         String clientId = "authclient-"+new RandomValueStringGenerator().generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid",AUTHORIZATION_CODE,"",redirectUri);
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"",redirectUri);
         client.setClientSecret("secret");
         String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "", null);
         MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);

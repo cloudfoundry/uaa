@@ -70,7 +70,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -79,13 +80,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TokenTestSupport {
-    public static final String PASSWORD = "password";
     public static final String CLIENT_ID = "client";
     public static final String CLIENT_ID_NO_REFRESH_TOKEN_GRANT = "client_without_refresh_grant";
     public static final String GRANT_TYPE = "grant_type";
-    public static final String CLIENT_CREDENTIALS = "client_credentials";
-    public static final String REFRESH_TOKEN = "refresh_token";
-    public static final String IMPLICIT = "implicit";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";
     public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
     public static final String READ = "read";
@@ -119,7 +116,7 @@ public class TokenTestSupport {
             new UaaUserPrototype()
                 .withId(userId)
                 .withUsername(username)
-                .withPassword(PASSWORD)
+                .withPassword(GRANT_TYPE_PASSWORD)
                 .withEmail(email)
                 .withAuthorities(defaultUserAuthorities)
                 .withGivenName("Marissa")
@@ -221,7 +218,7 @@ public class TokenTestSupport {
             CLIENT_ID_NO_REFRESH_TOKEN_GRANT,
             SCIM+","+CLIENTS,
             READ+","+WRITE+","+OPENID+",uaa.offline_token",
-            AUTHORIZATION_CODE,
+                GRANT_TYPE_AUTHORIZATION_CODE,
             CLIENT_AUTHORITIES);
 
         Map<String, BaseClientDetails> clientDetailsMap = new HashMap<>();

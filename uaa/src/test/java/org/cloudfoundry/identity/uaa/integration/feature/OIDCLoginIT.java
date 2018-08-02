@@ -67,7 +67,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -339,7 +339,7 @@ public class OIDCLoginIT {
         serverRunning.setHostName("localhost");
 
         String clientId = "client" + new RandomValueStringGenerator(5).generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, null, "openid", AUTHORIZATION_CODE, "openid", baseUrl);
+        BaseClientDetails client = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
         client.setClientSecret("clientsecret");
         client.setAutoApproveScopes(Collections.singletonList("true"));
         IntegrationTestUtils.createClient(adminToken, baseUrl, client);

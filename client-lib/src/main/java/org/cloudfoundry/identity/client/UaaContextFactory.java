@@ -201,7 +201,7 @@ public class UaaContextFactory {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String,String> form = new LinkedMultiValueMap<>();
-        form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.AUTHORIZATION_CODE);
+        form.add(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE);
         form.add(OAuth2Utils.REDIRECT_URI, request.getRedirectUri().toString());
         String responseType = "token";
         if (request.wantsIdToken()) {

@@ -28,13 +28,13 @@ import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.util.Assert;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 
 public class HybridTokenGranterForAuthorizationCode extends AbstractTokenGranter {
     public HybridTokenGranterForAuthorizationCode(AuthorizationServerTokenServices tokenServices,
                                                   ClientServicesExtension clientDetailsService,
                                                   OAuth2RequestFactory requestFactory) {
-        super(tokenServices, clientDetailsService, requestFactory, AUTHORIZATION_CODE);
+        super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_AUTHORIZATION_CODE);
     }
 
     @Override

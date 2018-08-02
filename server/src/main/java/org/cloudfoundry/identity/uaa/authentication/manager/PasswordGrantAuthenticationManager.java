@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 public class PasswordGrantAuthenticationManager implements AuthenticationManager {
@@ -140,7 +141,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         headers.add("Authorization","Basic "+Base64Utils.encodeToString(auth.getBytes()));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "password");
+        params.add("grant_type", GRANT_TYPE_PASSWORD);
         params.add("response_type","id_token");
         params.add("username", userName);
         params.add("password", password);

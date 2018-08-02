@@ -129,8 +129,8 @@ public class RefreshTokenCreator {
      */
     protected boolean isRefreshTokenSupported(String grantType, Set<String> scope) {
         if (!isRestrictRefreshGrant) {
-            return AUTHORIZATION_CODE.equals(grantType) ||
-                "password".equals(grantType) ||
+            return GRANT_TYPE_AUTHORIZATION_CODE.equals(grantType) ||
+                GRANT_TYPE_PASSWORD.equals(grantType) ||
                 GRANT_TYPE_USER_TOKEN.equals(grantType) ||
                 GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
                 GRANT_TYPE_SAML2_BEARER.equals(grantType);

@@ -23,7 +23,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -38,7 +38,7 @@ public class ClientInfoEndpointTests {
 
     private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
 
-    private BaseClientDetails foo = new BaseClientDetails("foo", "none", "read,write", AUTHORIZATION_CODE, "uaa.none");
+    private BaseClientDetails foo = new BaseClientDetails("foo", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
 
     {
         foo.setClientSecret("bar");

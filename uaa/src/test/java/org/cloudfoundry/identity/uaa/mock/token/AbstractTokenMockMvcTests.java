@@ -62,6 +62,7 @@ import org.springframework.util.StringUtils;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -220,7 +221,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             IdentityZoneHolder.set(zone);
         }
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
-        if (!"implicit".equals(grantTypes)) {
+        if (!GRANT_TYPE_IMPLICIT.equals(grantTypes)) {
             c.setClientSecret(SECRET);
         }
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));

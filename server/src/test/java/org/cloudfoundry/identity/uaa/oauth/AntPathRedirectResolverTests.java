@@ -21,7 +21,7 @@ import org.springframework.security.oauth2.common.exceptions.RedirectMismatchExc
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -42,7 +42,7 @@ public class AntPathRedirectResolverTests {
 
     @Test
     public void testClientMissingRedirectUri() {
-        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid",AUTHORIZATION_CODE,"");
+        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"");
         try {
             resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
             fail();
@@ -54,7 +54,7 @@ public class AntPathRedirectResolverTests {
 
     @Test
     public void testClientWithInvalidRedirectUri() {
-        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid",AUTHORIZATION_CODE,"", "*, */*");
+        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"", "*, */*");
         try {
             resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
             fail();

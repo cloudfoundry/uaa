@@ -93,7 +93,8 @@ import java.util.Set;
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
@@ -370,11 +371,11 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     protected String deriveGrantTypeFromResponseType(Set<String> responseTypes) {
         if (responseTypes.contains("token")) {
-            return "implicit";
+            return GRANT_TYPE_IMPLICIT;
         } else if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
-            return "implicit";
+            return GRANT_TYPE_IMPLICIT;
         }
-        return AUTHORIZATION_CODE;
+        return GRANT_TYPE_AUTHORIZATION_CODE;
     }
 
     // We need explicit approval from the user.
@@ -393,7 +394,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     ) {
         OAuth2AccessToken accessToken;
         try {
-            TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, "implicit");
+            TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, GRANT_TYPE_IMPLICIT);
             OAuth2Request storedOAuth2Request = getOAuth2RequestFactory().createOAuth2Request(authorizationRequest);
             accessToken = getAccessTokenForImplicitGrantOrHybrid(tokenRequest, storedOAuth2Request, grantType);
             if (accessToken == null) {
@@ -421,9 +422,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         // one thread removes the token request before another has a chance to redeem it.
         synchronized (this.implicitLock) {
             switch (grantType) {
-                case "implicit":
+                case GRANT_TYPE_IMPLICIT:
                     return getTokenGranter().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
-                case AUTHORIZATION_CODE:
+                case GRANT_TYPE_AUTHORIZATION_CODE:
                     return getHybridTokenGranterForAuthCode().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
                 default:
                     throw new OAuth2Exception(OAuth2Exception.INVALID_GRANT);

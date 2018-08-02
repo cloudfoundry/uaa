@@ -54,6 +54,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 /**
@@ -155,7 +156,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
         if ((scopes == null || scopes.isEmpty())) {
-            if ("client_credentials".equals(grantType)) {
+            if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
                 // The client authorities should be a list of requestedScopes
                 scopes = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
             }
@@ -166,7 +167,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             }
         }
 
-        if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
+        if (!GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType) && securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
             Collection<? extends GrantedAuthority> authorities = uaaUser.getAuthorities();
@@ -209,7 +210,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public void validateParameters(Map<String, String> parameters, ClientDetails clientDetails) {
         if (parameters.containsKey("scope")) {
             Set<String> validScope = clientDetails.getScope();
-            if ("client_credentials".equals(parameters.get("grant_type"))) {
+            if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(parameters.get("grant_type"))) {
                 validScope = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
             }
             Set<Pattern> validWildcards = constructWildcards(validScope);
@@ -364,7 +365,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
-        boolean clientCredentials = "client_credentials".equals(requestParameters.get(GRANT_TYPE));
+        boolean clientCredentials = GRANT_TYPE_CLIENT_CREDENTIALS.equals(requestParameters.get(GRANT_TYPE));
         Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
         if ((scopes == null || scopes.isEmpty())) {
             // If no scopes are specified in the incoming data, use the default values registered with the client
