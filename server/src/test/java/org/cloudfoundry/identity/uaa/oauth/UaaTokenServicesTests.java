@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.hamcrest.CoreMatchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
@@ -72,12 +73,9 @@ import static java.util.Collections.*;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.*;
@@ -768,6 +766,8 @@ public class UaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken.getAdditionalInformation().get(JTI).toString(), not(CoreMatchers.endsWith("-r")));
+        assertNull(refreshedAccessToken.getAdditionalInformation().get(GRANTED_SCOPES));
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
@@ -799,6 +799,8 @@ public class UaaTokenServicesTests {
 
         //Then
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken.getAdditionalInformation().get(JTI).toString(), not(CoreMatchers.endsWith("-r")));
+        assertNull(refreshedAccessToken.getAdditionalInformation().get(GRANTED_SCOPES));
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
@@ -930,6 +932,8 @@ public class UaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken.getAdditionalInformation().get(JTI).toString(), not(CoreMatchers.endsWith("-r")));
+        assertNull(refreshedAccessToken.getAdditionalInformation().get(GRANTED_SCOPES));
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
@@ -981,10 +985,12 @@ public class UaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken.getAdditionalInformation().get(JTI).toString(), not(CoreMatchers.endsWith("-r")));
+        assertNull(refreshedAccessToken.getAdditionalInformation().get(GRANTED_SCOPES));
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
         assertThat(accessToken.getRefreshToken(), is(not(nullValue())));
-     }
+    }
 
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() throws InterruptedException {
@@ -1050,6 +1056,8 @@ public class UaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
+        assertThat(refreshedAccessToken.getAdditionalInformation().get(JTI).toString(), not(CoreMatchers.endsWith("-r")));
+        assertNull(refreshedAccessToken.getAdditionalInformation().get(GRANTED_SCOPES));
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
         assertThat(accessToken.getRefreshToken(), is(not(nullValue())));

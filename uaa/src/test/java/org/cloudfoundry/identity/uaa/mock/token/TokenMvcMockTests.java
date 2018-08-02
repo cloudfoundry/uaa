@@ -55,12 +55,14 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -4180,6 +4182,36 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(accessToken);
 
         doRefreshGrant(accessToken, clientId, SECRET, status().isUnauthorized());
+    }
+
+    @Test
+    public void testRefreshGrant_returnsValidAccessToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param("grant_type", "password")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
+        String refreshToken = (String) bodyMap.get("refresh_token");
+
+        assertNotNull(refreshToken);
+
+        body = doRefreshGrant(refreshToken, clientId, SECRET, status().isOk()).getResponse().getContentAsString();
+        CompositeToken tokenResponse = JsonUtils.readValue(body, CompositeToken.class);
+        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenResponse.getValue());
+
+        assertThat(claims.get(JTI).toString(), not(endsWith("-r")));
     }
 
     protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) throws Exception {

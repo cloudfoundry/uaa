@@ -140,6 +140,13 @@ import static org.springframework.util.StringUtils.hasText;
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices, ApplicationEventPublisherAware {
     private static final String CODE = "code";
     private static final String OPENID = "openid";
+    private static final List<String> NON_ADDITIONAL_ROOT_CLAIMS = Arrays.asList(
+            JTI, SUB, AUTHORITIES, OAuth2AccessToken.SCOPE,
+            CLIENT_ID, CID, AZP, REVOCABLE,
+            GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
+            EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
+            EXP, ISS, ZONE_ID, AUD
+    );
     private final Log logger = LogFactory.getLog(getClass());
     private UaaUserDatabase userDatabase;
     private ClientServicesExtension clientDetailsService;
@@ -256,8 +263,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // The user may not request scopes that were not part of the refresh token
         if (tokenScopes.isEmpty() || !tokenScopes.containsAll(requestedScopes)) {
-            throw new InvalidScopeException("Unable to narrow the scope of the client authentication to " + requestedScopes + ".",
-                    new HashSet<>(tokenScopes));
+            throw new InvalidScopeException(
+                    "Unable to narrow the scope of the client authentication to " + requestedScopes + ".",
+                    new HashSet<>(tokenScopes)
+            );
         }
 
         // ensure all requested scopes are approved: either automatically or
@@ -266,16 +275,22 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userId,
                 clientId,
                 requestedScopes,
-                getAutoApprovedScopes(refreshGrantType, tokenScopes, client));
+                getAutoApprovedScopes(refreshGrantType, tokenScopes, client)
+        );
 
         throwIfInvalidRevocationHashSignature(revocableHashSignature, user, client);
 
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        refreshTokenClaims.entrySet()
-            .stream()
-            .forEach(
-                entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
-            );
+        if (uaaTokenEnhancer != null) {
+            refreshTokenClaims.entrySet()
+                    .stream()
+                    .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
+                    .forEach(
+                            entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
+                    );
+            // `granted_scopes` claim should not be present in an access token
+            refreshTokenClaims.remove(GRANTED_SCOPES);
+        }
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(
                 AuthTimeDateConverter.authTimeToDate(authTime),
@@ -286,7 +301,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 getUserAttributes(userId),
                 nonce,
                 refreshGrantType,
-                generateUniqueTokenId());
+                generateUniqueTokenId()
+        );
 
         String accessTokenId = generateUniqueTokenId();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
@@ -306,9 +322,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     revocableHashSignature,
                     false,
                     isRevocable,
-                    authenticationData);
+                    authenticationData
+            );
 
-        CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireMillis), refreshTokenId);
+        CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
+                refreshTokenValue, new Date(refreshTokenExpireMillis), refreshTokenId
+        );
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable);
     }
