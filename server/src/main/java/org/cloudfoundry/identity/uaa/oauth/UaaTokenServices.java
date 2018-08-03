@@ -57,6 +57,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -793,8 +794,20 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         result.setAdditionalInformation(token.getAdditionalInformation());
         result.setScope(token.getScope());
         result.setTokenType(token.getTokenType());
-        result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenOpaque ? refreshToken == null ? null : refreshToken.getJti() : refreshToken.getValue()));
+        result.setRefreshToken(buildRefreshTokenResponse(refreshToken, refreshTokenOpaque));
         return result;
+    }
+
+    private OAuth2RefreshToken buildRefreshTokenResponse(CompositeExpiringOAuth2RefreshToken refreshToken, boolean refreshTokenOpaque) {
+        if (refreshToken == null) {
+            return null;
+        } else {
+            if (refreshTokenOpaque) {
+                return new DefaultOAuth2RefreshToken(refreshToken.getJti());
+            } else {
+                return new DefaultOAuth2RefreshToken(refreshToken.getValue());
+            }
+        }
     }
 
     boolean isOpaqueTokenRequired(OAuth2Authentication authentication) {
