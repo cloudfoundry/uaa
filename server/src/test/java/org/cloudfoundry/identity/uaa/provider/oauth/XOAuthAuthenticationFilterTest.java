@@ -41,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -90,7 +90,7 @@ public class XOAuthAuthenticationFilterTest {
         when(request.getParameter("code")).thenReturn("the_code");
 
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("id", "username", "email@email.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId()), EMPTY_LIST, new UaaAuthenticationDetails(request));
-        Mockito.when(xOAuthAuthenticationManager.authenticate(anyObject())).thenReturn(authentication);
+        Mockito.when(xOAuthAuthenticationManager.authenticate(any())).thenReturn(authentication);
 
         FilterChain chain = mock(FilterChain.class);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -121,7 +121,7 @@ public class XOAuthAuthenticationFilterTest {
         when(request.getParameter("code")).thenReturn("the_code");
 
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("id", "username", "email@email.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId()), EMPTY_LIST, new UaaAuthenticationDetails(request));
-        Mockito.when(xOAuthAuthenticationManager.authenticate(anyObject())).thenReturn(authentication);
+        Mockito.when(xOAuthAuthenticationManager.authenticate(any())).thenReturn(authentication);
 
         FilterChain chain = mock(FilterChain.class);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -155,7 +155,7 @@ public class XOAuthAuthenticationFilterTest {
         when(request.getServletPath()).thenReturn("/login/callback/the_origin");
         when(request.getParameter("code")).thenReturn("the_code");
 
-        Mockito.doThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "error from oauth server")).when(xOAuthAuthenticationManager).authenticate(anyObject());
+        Mockito.doThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "error from oauth server")).when(xOAuthAuthenticationManager).authenticate(any());
         filter.doFilter(request, response, chain);
         Assert.assertThat(response.getHeader("Location"), Matchers.containsString(request.getContextPath() + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider%3A"));
     }

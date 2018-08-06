@@ -41,7 +41,7 @@ dependencies {
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.10.19'
+  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
   testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
 }
 

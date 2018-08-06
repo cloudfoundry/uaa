@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.UsernamePasswordExtr
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -53,7 +53,7 @@ public class UsernamePasswordExtractingAuthenticationManagerTests {
     public void testAuthenticate() {
         Authentication expected = new TestingAuthenticationToken("bar", "foo",
                         AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
-        Mockito.when(delegate.authenticate(Matchers.any(UsernamePasswordAuthenticationToken.class)))
+        Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
                         .thenReturn(expected);
         Authentication output = manager.authenticate(new TestingAuthenticationToken("foo", "bar"));
         assertSame(expected, output);
@@ -63,7 +63,7 @@ public class UsernamePasswordExtractingAuthenticationManagerTests {
     public void testUsernamePassword() {
         Authentication expected = new UsernamePasswordAuthenticationToken("bar", "foo",
                         AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
-        Mockito.when(delegate.authenticate(Matchers.any(UsernamePasswordAuthenticationToken.class)))
+        Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
                         .thenReturn(expected);
         Authentication output = manager.authenticate(expected);
         assertSame(expected, output);

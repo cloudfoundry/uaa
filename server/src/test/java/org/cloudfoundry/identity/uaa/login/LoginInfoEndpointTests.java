@@ -99,12 +99,12 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -517,7 +517,7 @@ public class LoginInfoEndpointTests {
     public void saml_links_for_json() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyObject(), anyObject())).thenReturn(idps);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(any(), any())).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
@@ -562,7 +562,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void no_usernamePasswordBoxes_if_internalAuth_and_ldap_disabled() throws Exception {
-        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyList(), anyObject())).thenReturn(idps);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyList(), any())).thenReturn(idps);
 
         IdentityProvider ldapIdentityProvider = new IdentityProvider();
         ldapIdentityProvider.setActive(false);
@@ -1404,7 +1404,7 @@ public class LoginInfoEndpointTests {
         endpoint.setBaseUrl("http://someurl");
         SamlIdentityProviderConfigurator emptyConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(emptyConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.EMPTY_LIST);
-        when(emptyConfigurator.getIdentityProviderDefinitionsForZone(anyObject())).thenReturn(Collections.EMPTY_LIST);
+        when(emptyConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(Collections.EMPTY_LIST);
         endpoint.setIdpDefinitions(emptyConfigurator);
         IdentityZoneHolder.get().getConfig().setPrompts(prompts);
         endpoint.setProviderProvisioning(identityProviderProvisioning);

@@ -45,10 +45,10 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -103,7 +103,7 @@ public class EmailInvitationsServiceTests {
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
@@ -171,7 +171,7 @@ public class EmailInvitationsServiceTests {
         user.setOrigin(OriginKeys.UAA);
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId("client-not-found");
 
@@ -196,7 +196,7 @@ public class EmailInvitationsServiceTests {
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId", "uaa")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
@@ -220,7 +220,7 @@ public class EmailInvitationsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
         Map<String,String> userData = new HashMap<>();

@@ -30,7 +30,7 @@ import java.util.Collections;
 
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**

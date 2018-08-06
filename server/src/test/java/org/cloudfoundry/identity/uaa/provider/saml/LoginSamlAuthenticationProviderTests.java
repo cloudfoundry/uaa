@@ -114,7 +114,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -261,7 +261,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
 
-        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
 
         timeService = mock(TimeService.class);
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
@@ -548,7 +548,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         ScimUser scimUser = getInvitedUser();
 
         SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
-        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
         getAuthentication();
 
         UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
@@ -570,7 +570,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         ScimUser scimUser = getInvitedUser();
 
         SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
-        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
         try {
             getAuthentication();
             fail();
@@ -616,7 +616,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerProvisioning.update(provider, IdentityZoneHolder.get().getId());
 
         SAMLCredential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
-        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
         getAuthentication();
 
         user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -625,7 +625,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertFalse(user.isVerified());
 
         credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null, true);
-        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
         getAuthentication();
 
         user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);

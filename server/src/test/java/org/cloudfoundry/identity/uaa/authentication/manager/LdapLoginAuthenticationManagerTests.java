@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
@@ -50,8 +50,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -182,12 +182,12 @@ public class LdapLoginAuthenticationManagerTests {
         definition.setAutoAddGroups(true);
         UaaUser result = am.userAuthenticated(auth, user, userFromRequest);
         assertSame(dbUser, result);
-        verify(publisher, times(1)).publishEvent(Matchers.<ApplicationEvent>anyObject());
+        verify(publisher, times(1)).publishEvent(ArgumentMatchers.any());
 
         definition.setAutoAddGroups(false);
         result = am.userAuthenticated(auth, userFromRequest, user);
         assertSame(dbUser, result);
-        verify(publisher, times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());
+        verify(publisher, times(2)).publishEvent(ArgumentMatchers.any());
     }
 
     @Test

@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +75,7 @@ public class SocialClientUserDetailsSourceTests{
         map.put(USER_NAME, USER_NAME);
         map.put(LOGIN, LOGIN);
         map.put(SCREEN_NAME, SCREEN_NAME);
-        when(restTemplate.getForObject(anyString(), Matchers.<Class<Object>>any())).thenReturn(map);
+        when(restTemplate.getForObject(anyString(), ArgumentMatchers.any())).thenReturn(map);
     }
 
     @Test

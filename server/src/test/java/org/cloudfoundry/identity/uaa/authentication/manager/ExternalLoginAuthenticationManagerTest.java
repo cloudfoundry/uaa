@@ -44,10 +44,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -468,7 +468,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         providerDefinition.setStoreCustomAttributes(false);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         providerDefinition.setStoreCustomAttributes(true);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
@@ -481,14 +481,14 @@ public class ExternalLoginAuthenticationManagerTest  {
         reset(manager.getUserDatabase());
         manager.setProviderProvisioning(null);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         manager.setProviderProvisioning(providerProvisioning);
         //empty attributes does not store it
         reset(manager.getUserDatabase());
         userAttributes.clear();
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
     }
 
     @Test

@@ -35,7 +35,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import java.util.Arrays;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;

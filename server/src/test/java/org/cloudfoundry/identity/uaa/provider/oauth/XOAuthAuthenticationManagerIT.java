@@ -55,7 +55,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
@@ -111,10 +111,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -446,7 +446,7 @@ public class XOAuthAuthenticationManagerIT {
         getAuthenticationData(xCodeToken);
 
         ArgumentCaptor<String> idTokenCaptor = ArgumentCaptor.forClass(String.class);
-        verify(xoAuthAuthenticationManager, times(1)).resolveOriginProvider(idTokenCaptor.capture(), anyObject());
+        verify(xoAuthAuthenticationManager, times(1)).resolveOriginProvider(idTokenCaptor.capture(), any());
         verify(provisioning, never()).retrieveByOrigin(anyString(), anyString());
         verify(xoAuthProviderConfigurator, times(1)).retrieveByIssuer(eq("http://oidc10.oms.identity.team/oauth/token"), anyString());
         assertEquals(token.getIdTokenValue(), idTokenCaptor.getValue());
@@ -483,8 +483,8 @@ public class XOAuthAuthenticationManagerIT {
         xoAuthAuthenticationManager
             .getExternalAuthenticationDetails(xCodeToken);
 
-        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), anyObject());
-        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), anyObject());
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any());
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any());
         verify(xoAuthAuthenticationManager, times(1)).getTokenKeyForUaaOrigin();
     }
 
@@ -545,9 +545,9 @@ public class XOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xoAuthAuthenticationManager.authenticate(xCodeToken);
 
-        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), anyObject());
-        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), anyObject());
-        verify(xoAuthAuthenticationManager, never()).getRestTemplate(anyObject());
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any());
+        verify(xoAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any());
+        verify(xoAuthAuthenticationManager, never()).getRestTemplate(any());
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
@@ -996,7 +996,7 @@ public class XOAuthAuthenticationManagerIT {
                 userDatabase.addUser(user);
             }
             return null;
-        }).when(publisher).publishEvent(Matchers.any(ApplicationEvent.class));
+        }).when(publisher).publishEvent(ArgumentMatchers.any(ApplicationEvent.class));
     }
 
     @Test

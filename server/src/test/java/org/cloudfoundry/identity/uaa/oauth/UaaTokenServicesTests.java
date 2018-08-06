@@ -95,7 +95,7 @@ import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.hamcrest.text.IsEmptyString.isEmptyString;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 

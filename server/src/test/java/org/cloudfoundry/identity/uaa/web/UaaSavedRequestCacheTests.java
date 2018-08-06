@@ -44,8 +44,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -115,7 +115,7 @@ public class UaaSavedRequestCacheTests {
 
         spy.doFilter(request, response, chain);
         verify(spy, times(1)).shouldSaveFormRedirectParameter(request);
-        verify(spy, times(1)).saveClientRedirect(anyObject(), anyString());
+        verify(spy, times(1)).saveClientRedirect(any(), anyString());
 
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
@@ -123,7 +123,7 @@ public class UaaSavedRequestCacheTests {
 
         spy.doFilter(request, response, chain);
         verify(spy, times(2)).shouldSaveFormRedirectParameter(request);
-        verify(spy, times(1)).saveClientRedirect(anyObject(), anyString());
+        verify(spy, times(1)).saveClientRedirect(any(), anyString());
         verify(chain, times(2)).doFilter(request, response);
 
     }
