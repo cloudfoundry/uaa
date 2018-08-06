@@ -3437,12 +3437,11 @@ Internal Login: ``POST /login.do``
     302 - Found
     200 - Success
 
-Logout: `GET /logout.do`
+Logout: ``GET /logout.do``
 ------------------------
 
 The UAA can act as a Single Sign On server for the Cloud Foundry
-platform (and possibly user apps as well), so if a user logs out he
-logs out of all the apps.
+platform (and possibly user apps as well), so if a user logs out they log out of all the apps.
 
 OAuth2 Authorization Confirmation: ``GET /oauth/authorize/confirm_access``
 --------------------------------------------------------------------------
