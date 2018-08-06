@@ -32,10 +32,7 @@ import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.AdditionalMatchers.leq;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -167,7 +164,7 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void test_delta_method() throws Exception {
+    public void test_delta_method() {
         String name = "metric.name";
         assertEquals(5l, uaaMetricsEmitter.getMetricDelta(name, 5l));
         assertEquals(0l, uaaMetricsEmitter.getMetricDelta(name, 5l));
@@ -175,7 +172,7 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void vm_vitals() throws Exception {
+    public void vm_vitals() {
         uaaMetricsEmitter.emitVmVitals();
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.count"), gt(0l));
         Mockito.verify(statsDClient).gauge(eq("vitals.vm.cpu.load"), geq(0l));
@@ -196,14 +193,14 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void testNotifications() throws Exception {
+    public void testNotifications() {
         uaaMetricsEmitter.enableNotification();
         emitter.sendNotification(new Notification("/api", 45L, 0));
         Mockito.verify(statsDClient).time("requests.api.latency", 45L);
     }
 
     @Test
-    public void jvm_vitals() throws Exception {
+    public void jvm_vitals() {
         uaaMetricsEmitter.emitJvmVitals();
         Mockito.verify(statsDClient).gauge(eq("vitals.jvm.cpu.load"), and(geq(0l), leq(100l)));
         Mockito.verify(statsDClient).gauge(eq("vitals.jvm.thread.count"), and(gt(1l), leq(1000l)));
@@ -223,7 +220,7 @@ public class UaaMetricsEmitterTests {
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
         Mockito.verify(statsDClient).gauge("audit_service.user_not_found_count", 1);
-        Mockito.verify(statsDClient, times(6)).gauge(anyString(), anyInt());
+        Mockito.verify(statsDClient, times(6)).gauge(anyString(), anyLong());
     }
 
     @Test
@@ -231,12 +228,7 @@ public class UaaMetricsEmitterTests {
         mBeanMap2.put("UaaAudit", null);
         Mockito.when(metricsUtils.pullUpMap("cloudfoundry.identity", "*", server)).thenReturn((Map)mBeanMap2);
         uaaMetricsEmitter.emitMetrics();
-        Mockito.verify(statsDClient, times(0)).gauge(anyString(), anyInt());
-    }
-
-    public void test(Collection<?> c) {
-        Collection<String> cs = null;
-        test(cs);
+        Mockito.verify(statsDClient, times(0)).gauge(anyString(), anyLong());
     }
 
     String staticContentJson = "{\n" +
