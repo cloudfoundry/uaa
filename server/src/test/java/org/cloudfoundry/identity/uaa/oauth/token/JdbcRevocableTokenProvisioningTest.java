@@ -18,6 +18,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -73,7 +75,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     @Before
     public void createData() {
         JdbcTemplate template = spy(jdbcTemplate);
-        dao = spy(new JdbcRevocableTokenProvisioning(template, limitSqlAdapter));
+        dao = spy(new JdbcRevocableTokenProvisioning(template, limitSqlAdapter, new TimeServiceImpl()));
         createData("test-token-id", "test-user-id", "test-client-id");
     }
 

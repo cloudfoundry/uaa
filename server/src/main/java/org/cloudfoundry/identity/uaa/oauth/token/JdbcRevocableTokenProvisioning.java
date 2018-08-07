@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -53,15 +54,19 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected final RowMapper<RevocableToken> rowMapper;
     protected final JdbcTemplate template;
     protected final LimitSqlAdapter limitSqlAdapter;
+    private TimeService timeService;
 
     protected AtomicLong lastExpiredCheck = new AtomicLong(0);
     protected long expirationCheckInterval = 30000; //30 seconds
     private long maxExpirationRuntime = 2500l;
 
-    public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
+    public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate,
+                                          LimitSqlAdapter limitSqlAdapter,
+                                          TimeService timeService) {
         this.rowMapper =  new RevocableTokenRowMapper();
         this.template = jdbcTemplate;
         this.limitSqlAdapter = limitSqlAdapter;
+        this.timeService = timeService;
     }
 
     @Override
@@ -75,7 +80,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
             checkExpired();
         }
         RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, zoneId);
-        if (checkExpired && result.getExpiresAt() < System.currentTimeMillis()) {
+        if (checkExpired && result.getExpiresAt() < timeService.getCurrentTimeMillis()) {
             delete(id, 0, zoneId);
             throw new EmptyResultDataAccessException("Token expired.", 1);
         }
@@ -187,7 +192,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     public void checkExpired() {
-        long now = System.currentTimeMillis();
+        long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastExpiredCheck.get();
         if ((now - lastCheck) > getExpirationCheckInterval() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
             if (runDeleteExpired(now)) {
@@ -210,7 +215,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         do {
             removed = template.update(sql, now);
             logger.info("Removed " + removed + " expired revocable tokens.");
-        } while (removed > 0 && (System.currentTimeMillis()-now)< maxExpirationRuntime);
+        } while (removed > 0 && (timeService.getCurrentTimeMillis()-now)< maxExpirationRuntime);
         return removed >= maxRows;
     }
 
@@ -244,5 +249,9 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
             revocableToken.setZoneId(rs.getString(pos++));
             return revocableToken;
         }
+    }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 }

@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -86,7 +87,7 @@ public class LargeRevocableTokenDeleteTests extends JdbcTestBase {
             }
             half = System.currentTimeMillis();
         }
-        provisioning = new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter);
+        provisioning = new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl());
 
         ProcessBuilder pb = new ProcessBuilder("/usr/bin/mysqlimport",
                                                "--fields-terminated-by", ",",

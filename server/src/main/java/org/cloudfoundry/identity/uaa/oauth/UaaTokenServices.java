@@ -232,7 +232,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String userId = (String) refreshTokenClaims.get(USER_ID);
         String refreshTokenId = (String) refreshTokenClaims.get(JTI);
-        Integer refreshTokenExpiry = (Integer) refreshTokenClaims.get(EXP);
+        Integer refreshTokenExpirySeconds = (Integer) refreshTokenClaims.get(EXP);
         String clientId = (String) refreshTokenClaims.get(CID);
         Boolean revocableClaim = (Boolean) refreshTokenClaims.get(REVOCABLE);
         String refreshGrantType = refreshTokenClaims.get(GRANT_TYPE).toString();
@@ -257,7 +257,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = userDatabase.retrieveUserById(userId);
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
-        long refreshTokenExpireMillis = refreshTokenExpiry.longValue() * 1000L;
+        long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }
@@ -742,7 +742,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 boolean isRevocable) {
 
         String scope = token.getScope().toString();
-        long now = System.currentTimeMillis();
+        long now = timeService.getCurrentTimeMillis();
         if (isRevocable) {
             RevocableToken revocableAccessToken = new RevocableToken()
                 .setTokenId(tokenId)
@@ -763,8 +763,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        boolean refreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
-        boolean refreshTokenRevocable = refreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+        boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
+        boolean refreshTokenRevocable = isRefreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
         boolean refreshTokenUnique = IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenUnique();
         if (refreshToken != null && refreshTokenRevocable) {
             RevocableToken revocableRefreshToken = new RevocableToken()
@@ -772,7 +772,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setClientId(clientId)
                 .setExpiresAt(refreshToken.getExpiration().getTime())
                 .setIssuedAt(now)
-                .setFormat(refreshTokenOpaque ? OPAQUE.getStringValue() : JWT.getStringValue())
+                .setFormat(isRefreshTokenOpaque ? OPAQUE.getStringValue() : JWT.getStringValue())
                 .setResponseType(REFRESH_TOKEN)
                 .setZoneId(IdentityZoneHolder.get().getId())
                 .setUserId(userId)
@@ -794,15 +794,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         result.setAdditionalInformation(token.getAdditionalInformation());
         result.setScope(token.getScope());
         result.setTokenType(token.getTokenType());
-        result.setRefreshToken(buildRefreshTokenResponse(refreshToken, refreshTokenOpaque));
+        result.setRefreshToken(buildRefreshTokenResponse(refreshToken, isRefreshTokenOpaque));
         return result;
     }
 
-    private OAuth2RefreshToken buildRefreshTokenResponse(CompositeExpiringOAuth2RefreshToken refreshToken, boolean refreshTokenOpaque) {
+    private OAuth2RefreshToken buildRefreshTokenResponse(CompositeExpiringOAuth2RefreshToken refreshToken, boolean isRefreshTokenOpaque) {
         if (refreshToken == null) {
             return null;
         } else {
-            if (refreshTokenOpaque) {
+            if (isRefreshTokenOpaque) {
                 return new DefaultOAuth2RefreshToken(refreshToken.getJti());
             } else {
                 return new DefaultOAuth2RefreshToken(refreshToken.getValue());

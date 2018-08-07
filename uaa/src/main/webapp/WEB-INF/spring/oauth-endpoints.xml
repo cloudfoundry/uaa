@@ -510,6 +510,7 @@
     <bean id="revocableTokenProvisioning" class="org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
         <constructor-arg name="limitSqlAdapter" ref="limitSqlAdapter"/>
+        <constructor-arg name="timeService" ref="timeService" />
         <property name="maxExpirationRuntime" value="${delete.expirationRunTime:2500}"/>
     </bean>
 

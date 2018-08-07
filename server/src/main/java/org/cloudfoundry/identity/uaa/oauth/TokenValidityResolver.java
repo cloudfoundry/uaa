@@ -34,4 +34,8 @@ public class TokenValidityResolver {
 
         return new DateTime(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds).toDate();
     }
+
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
+    }
 }

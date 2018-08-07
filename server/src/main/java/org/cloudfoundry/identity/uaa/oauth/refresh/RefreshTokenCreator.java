@@ -52,12 +52,24 @@ public class RefreshTokenCreator {
         Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId);
         String tokenId = UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX;
 
-        String jwtToken = buildJwtToken(user, tokenRequestData, revocableHashSignature, grantType, additionalAuthorizationAttributes, expirationDate, tokenId);
+        String jwtToken = buildJwtToken(user,
+                tokenRequestData,
+                revocableHashSignature,
+                grantType,
+                additionalAuthorizationAttributes,
+                expirationDate,
+                tokenId);
 
         return new CompositeExpiringOAuth2RefreshToken(jwtToken, expirationDate, tokenId);
     }
 
-    private String buildJwtToken(UaaUser user, RefreshTokenRequestData tokenRequestData, String revocableHashSignature, String grantType, Map<String, String> additionalAuthorizationAttributes, Date expirationDate, String tokenId) {
+    private String buildJwtToken(UaaUser user,
+                                 RefreshTokenRequestData tokenRequestData,
+                                 String revocableHashSignature,
+                                 String grantType,
+                                 Map<String, String> additionalAuthorizationAttributes,
+                                 Date expirationDate,
+                                 String tokenId) {
         String content;
         try {
             Map<String, Object> claims = new LinkedHashMap<>();
