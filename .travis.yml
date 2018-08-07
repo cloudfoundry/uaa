@@ -120,6 +120,7 @@ cache:
 branches:
   except:
   - ci-passed
+  - standalone-passed
 
 install:
 - sudo apt-get -qy install lsof
