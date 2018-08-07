@@ -14,6 +14,9 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
+import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -43,12 +46,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
@@ -60,6 +58,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
@@ -69,6 +68,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -361,6 +361,31 @@ public class TokenValidationTest {
           .checkRevocationSignature(Collections.singletonList("fa1c787d"))
           .checkAudience("acme", "app")
           .checkRevocableTokenStore(revocableTokenProvisioning);
+    }
+
+    @Test
+    public void buildIdTokenValidator_performsSignatureValidation() {
+        ChainedSignatureVerifier signatureVerifier = mock(ChainedSignatureVerifier.class);
+        buildIdTokenValidator(getToken(), signatureVerifier);
+
+        verify(signatureVerifier).verify(any(), any());
+    }
+
+    @Test
+    public void idTokenValidator_rejectsTokensWithRefreshTokenSuffix() {
+        expectedException.expect(InvalidTokenException.class);
+
+        content.put(JTI, "asdfsafsa-r");
+        buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class)).checkJti();
+    }
+
+    @Test
+    public void idTokenValidator_findsScopesFromScopeClaim() {
+        content.put(SCOPE, Lists.newArrayList("openid"));
+        content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
+
+        Optional<List<String>> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class)).getScopes();
+        assertThat(scopes.get(), equalTo(Lists.newArrayList("openid")));
     }
 
     @Test

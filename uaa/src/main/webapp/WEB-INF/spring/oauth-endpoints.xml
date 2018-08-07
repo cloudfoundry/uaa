@@ -398,7 +398,7 @@
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
-        <property name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>

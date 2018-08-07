@@ -225,7 +225,7 @@ public class XOAuthAuthenticationManagerIT {
               nonTrustingRestTemplate
             )
         );
-        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate));
+        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);

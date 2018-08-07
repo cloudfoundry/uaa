@@ -78,11 +78,21 @@ public abstract class TokenValidation {
     private final String token;
 
     public static TokenValidation buildAccessTokenValidator(String tokenJwtValue) {
-        return new AccessTokenValidation(tokenJwtValue);
+        AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue);
+        validator.checkSignature();
+        return validator;
     }
 
     public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue) {
-        return new RefreshTokenValidation(tokenJwtValue);
+        RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue);
+        refreshTokenValidation.checkSignature();
+        return refreshTokenValidation;
+    }
+
+    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier) {
+        IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue);
+        idTokenValidation.checkSignature(verifier);
+        return idTokenValidation;
     }
 
     abstract String getClaimName();
@@ -94,8 +104,6 @@ public abstract class TokenValidation {
 
         this.claims = UaaTokenUtils.getClaims(token);
         this.tokenJwt = JwtHelper.decode(token);
-
-        checkSignature();
     }
 
     private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
@@ -514,7 +522,27 @@ public abstract class TokenValidation {
         @Override
         Optional<List<String>> getScopes() {
             return readScopesFromClaim(getClaimName());
+        }
+    }
 
+    private static class IdTokenValidation extends TokenValidation {
+        public IdTokenValidation(String tokenJwtValue) {
+            super(tokenJwtValue);
+        }
+
+        @Override
+        String getClaimName() { return SCOPE; }
+
+        @Override
+        Optional<List<String>> getScopes() {
+            return readScopesFromClaim(getClaimName());
+        }
+
+        @Override
+        protected void validateJtiValue(String jtiValue) {
+            if (jtiValue.endsWith(REFRESH_TOKEN_SUFFIX)) {
+                throw new InvalidTokenException("Invalid access token.", null);
+            }
         }
     }
 }
