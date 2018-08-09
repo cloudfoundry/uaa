@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -39,6 +40,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -47,53 +49,228 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
-
-
     private static final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-        "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
-        "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
-        "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
-        "VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc\n" +
-        "usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W\n" +
-        "SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op\n" +
-        "zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY\n" +
-        "pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw\n" +
-        "UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa\n" +
-        "Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO\n" +
-        "BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2\n" +
-        "RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK\n" +
-        "/sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z\n" +
-        "cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j\n" +
-        "UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA\n" +
-        "jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/\n" +
-        "+YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr\n" +
-        "RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4\n" +
-        "PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna\n" +
-        "cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I\n" +
-        "aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4\n" +
-        "DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq\n" +
-        "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
-        "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
-        "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
-        "-----END RSA PRIVATE KEY-----";
+      "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
+      "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
+      "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
+      "VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc\n" +
+      "usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W\n" +
+      "SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op\n" +
+      "zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY\n" +
+      "pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw\n" +
+      "UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa\n" +
+      "Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO\n" +
+      "BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2\n" +
+      "RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK\n" +
+      "/sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z\n" +
+      "cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j\n" +
+      "UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA\n" +
+      "jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/\n" +
+      "+YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr\n" +
+      "RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4\n" +
+      "PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna\n" +
+      "cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I\n" +
+      "aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4\n" +
+      "DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq\n" +
+      "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
+      "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
+      "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
+      "-----END RSA PRIVATE KEY-----";
     private static final String verifyKey = "-----BEGIN PUBLIC KEY-----\n" +
-        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
-        "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
-        "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
-        "LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\n" +
-        "kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\n" +
-        "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
-        "JwIDAQAB\n" +
-        "-----END PUBLIC KEY-----";
+      "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
+      "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
+      "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
+      "LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\n" +
+      "kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\n" +
+      "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
+      "JwIDAQAB\n" +
+      "-----END PUBLIC KEY-----";
     private BaseClientDetails defaultClient;
     private IdentityZone testZone;
 
     @Before
-    public void setUp() throws Exception {
-        setUp(signKey);
+    public void setSigningKeyAndDefaultClient() throws Exception {
+        setSigningKeyAndDefaultClient(signKey);
     }
 
-    public void setUp(String signKey) throws Exception {
+    @Test
+    public void checkTokenKey() throws Exception {
+        MvcResult result = getMockMvc()
+          .perform(
+            get("/token_key")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+              .header("Authorization", getBasicAuth(defaultClient))
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    @Test
+    public void checkTokenKeyReturnETag() throws Exception {
+        getMockMvc().perform(
+          get("/token_key")
+            .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+            .accept(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(header().string("ETag", any(String.class)))
+          .andReturn();
+    }
+
+    @Test
+    public void checkTokenKeyReturns304IfResourceUnchanged() throws Exception {
+        getMockMvc().perform(
+          get("/token_key")
+            .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+            .header("If-None-Match", testZone.getLastModified().getTime()))
+          .andExpect(status().isNotModified())
+          .andReturn();
+    }
+
+    @Test
+    public void checkTokenKey_IsNotFromDefaultZone() throws Exception {
+        MvcResult nonDefaultZoneResponse = getMockMvc()
+          .perform(
+            get("/token_key")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+              .header("Authorization", getBasicAuth(defaultClient))
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+        Map<String, Object> nonDefaultKey = JsonUtils.readValue(nonDefaultZoneResponse.getResponse().getContentAsString(), Map.class);
+        VerificationKeyResponse nonDefaultKeyResponse = new VerificationKeyResponse(nonDefaultKey);
+
+        MvcResult defaultZoneResponse = getMockMvc()
+          .perform(
+            get("/token_key")
+              .accept(MediaType.APPLICATION_JSON)
+              .header("Authorization", getBasicAuth(defaultClient))
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> defaultKey = JsonUtils.readValue(defaultZoneResponse.getResponse().getContentAsString(), Map.class);
+        VerificationKeyResponse defaultKeyResponse = new VerificationKeyResponse(defaultKey);
+
+        assertNotEquals(nonDefaultKeyResponse.getValue(), defaultKeyResponse.getValue());
+    }
+
+    @Test
+    public void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser() throws Exception {
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+          "",
+          "foo,bar",
+          "client_credentials,password",
+          "uaa.none");
+        client.setClientSecret("secret");
+        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
+
+        MvcResult result = getMockMvc().perform(
+          get("/token_key")
+            .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", getBasicAuth(client)))
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    @Test
+    public void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser_withoutCorrectScope() throws Exception {
+        setSigningKeyAndDefaultClient("key");
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+          "",
+          "foo,bar",
+          "client_credentials,password",
+          "uaa.none");
+        client.setClientSecret("secret");
+        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
+
+        getMockMvc()
+          .perform(
+            get("/token_key")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+              .header("Authorization", getBasicAuth(client))
+          )
+          .andExpect(status().isForbidden())
+          .andReturn();
+    }
+
+    @Test
+    public void checkTokenKey_asUnauthenticatedUser() throws Exception {
+        MvcResult result = getMockMvc()
+          .perform(
+            get("/token_key")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    @Test
+    public void checkTokenKeys() throws Exception {
+        MvcResult result = getMockMvc()
+          .perform(
+            get("/token_keys")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+              .header("Authorization", getBasicAuth(defaultClient))
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKeys(keys);
+    }
+
+    @Test
+    public void checkTokenKeysReturnETag() throws Exception {
+        getMockMvc().perform(
+          get("/token_keys")
+            .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+            .accept(MediaType.APPLICATION_JSON))
+          .andExpect(status().isOk())
+          .andExpect(header().string("ETag", any(String.class)))
+          .andReturn();
+    }
+
+    @Test
+    public void checkTokenKeysReturns304IfResourceUnchanged() throws Exception {
+        getMockMvc().perform(
+          get("/token_keys")
+            .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+            .header("If-None-Match", testZone.getLastModified().getTime()))
+          .andExpect(status().isNotModified())
+          .andReturn();
+    }
+
+    @Test
+    public void checkTokenKeys_asUnauthenticatedUser() throws Exception {
+        MvcResult result = getMockMvc()
+          .perform(
+            get("/token_keys")
+              .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
+              .accept(MediaType.APPLICATION_JSON)
+          )
+          .andExpect(status().isOk())
+          .andReturn();
+
+        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKeys(keys);
+    }
+
+    private void setSigningKeyAndDefaultClient(String signKey) throws Exception {
         String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         testZone = new IdentityZone();
@@ -108,148 +285,12 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(defaultClient, subdomain);
     }
 
-    @Test
-    public void checkTokenKeyValues() throws Exception {
-        MvcResult result = getMockMvc().perform(
-            get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", getBasicAuth(defaultClient)))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        validateKey(key);
-    }
-
-    @Test
-    public void get_token_asymmetric_but_authenticated() throws Exception {
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
-                                                         "",
-                                                         "foo,bar",
-                                                         "client_credentials,password",
-                                                         "uaa.none");
-        client.setClientSecret("secret");
-        getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
-
-        MvcResult result = getMockMvc().perform(
-            get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", getBasicAuth(client)))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        validateKey(key);
-    }
-
     private String getBasicAuth(BaseClientDetails client) {
         return "Basic "
-            + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
+          + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
     }
 
-    @Test
-    public void get_token_symmetric_authenticated_but_missing_scope() throws Exception {
-        setUp("key");
-        try {
-            BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
-                                                             "",
-                                                             "foo,bar",
-                                                             "client_credentials,password",
-                                                             "uaa.none");
-            client.setClientSecret("secret");
-            getWebApplicationContext().getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
-
-            getMockMvc().perform(
-                get("/token_key")
-                    .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                    .accept(MediaType.APPLICATION_JSON)
-                    .header("Authorization", getBasicAuth(client)))
-                .andExpect(status().isForbidden())
-                .andReturn();
-        } finally {
-            setUp(signKey);
-        }
-    }
-
-    @Test
-    public void checkTokenKeyValuesAnonymous() throws Exception {
-        MvcResult result = getMockMvc().perform(
-            get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        validateKey(key);
-    }
-
-    @Test
-    public void checkTokenKeysValues() throws Exception {
-        MvcResult result = getMockMvc().perform(
-            get("/token_keys")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", getBasicAuth(defaultClient)))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        validateKeys(keys);
-    }
-
-    @Test
-    public void checkTokenKeysValuesAnonymous() throws Exception {
-        MvcResult result = getMockMvc().perform(
-            get("/token_keys")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain()+".localhost"))
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andReturn();
-
-        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        validateKeys(keys);
-    }
-
-    @Test
-    public void endpointsReturnETag() throws Exception {
-        getMockMvc().perform(
-            get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(header().string("ETag", any(String.class)))
-            .andReturn();
-
-        getMockMvc().perform(
-            get("/token_keys")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(header().string("ETag", any(String.class)))
-            .andReturn();
-    }
-
-    @Test
-    public void return304IfResourceUnchanged() throws Exception {
-        getMockMvc().perform(
-            get("/token_key")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
-                .header("If-None-Match", testZone.getLastModified().getTime()))
-            .andExpect(status().isNotModified())
-            .andReturn();
-
-        getMockMvc().perform(
-            get("/token_keys")
-                .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
-                .header("If-None-Match", testZone.getLastModified().getTime()))
-            .andExpect(status().isNotModified())
-            .andReturn();
-    }
-
-    public void validateKey(Map<String,Object> key) {
+    private void validateKey(Map<String, Object> key) {
         Object kty = key.get("kty");
         assertNotNull(kty);
         assertTrue(kty instanceof String);
@@ -317,8 +358,8 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     }
 
-    public void validateKeys(Map<String, Object> response) {
-        List<Map<String, Object>> keys = (List<Map<String, Object>>)response.get("keys");
+    private void validateKeys(Map<String, Object> response) {
+        List<Map<String, Object>> keys = (List<Map<String, Object>>) response.get("keys");
         assertNotNull(keys);
 
         Map<String, ? extends Map<String, Object>> keysMap = keys.stream().collect(new MapCollector<>(k -> (String) k.get("kid"), k -> k));
