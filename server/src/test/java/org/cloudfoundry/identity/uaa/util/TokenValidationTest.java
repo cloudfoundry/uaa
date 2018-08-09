@@ -366,7 +366,7 @@ public class TokenValidationTest {
     @Test
     public void buildIdTokenValidator_performsSignatureValidation() {
         ChainedSignatureVerifier signatureVerifier = mock(ChainedSignatureVerifier.class);
-        buildIdTokenValidator(getToken(), signatureVerifier);
+        buildIdTokenValidator(getToken(), signatureVerifier, "https://localhost");
 
         verify(signatureVerifier).verify(any(), any());
     }
@@ -376,7 +376,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
 
         content.put(JTI, "asdfsafsa-r");
-        buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class)).checkJti();
+        buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), "https://localhost").checkJti();
     }
 
     @Test
@@ -384,7 +384,7 @@ public class TokenValidationTest {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
 
-        Optional<List<String>> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class)).getScopes();
+        Optional<List<String>> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), "https://localhost").getScopes();
         assertThat(scopes.get(), equalTo(Lists.newArrayList("openid")));
     }
 
