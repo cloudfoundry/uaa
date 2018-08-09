@@ -104,12 +104,15 @@ class JwtHeaderHelper {
 
     static HeaderParametersImpl parseParams(byte[] header) {
         Map<String, String> map = parseMap(utf8Decode(header));
-        String alg = map.get("alg"), enc = map.get("enc"), iv = map.get("iv"),
-                typ = map.get("typ");
+        String typ = map.get("typ");
         if (typ != null && !"JWT".equalsIgnoreCase(typ)) {
             throw new IllegalArgumentException("typ is not \"JWT\"");
         }
+        String alg = map.get("alg");
+        String enc = map.get("enc");
+        String iv = map.get("iv");
         String kid = map.get("kid");
+
         return new HeaderParametersImpl(alg, enc, iv, kid);
     }
 
