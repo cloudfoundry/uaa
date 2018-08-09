@@ -91,7 +91,6 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setSigningKeyAndDefaultClient() throws Exception {
-        KeyInfoService.setUaaBaseURL("http://uaa.example.com");
         setSigningKeyAndDefaultClient(signKey);
     }
 

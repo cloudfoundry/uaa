@@ -30,7 +30,7 @@ public class JwtTokenUtils {
 
         String kid = tokenJwt.getHeader().getKid();
         assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(KeyInfoService.getKey(kid).getVerifier());
+        tokenJwt.verifySignature(new KeyInfoService("https://some-uaa").getKey(kid).getVerifier());
 
         return claims;
     }

@@ -95,8 +95,6 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUpContext() throws Exception {
-        KeyInfoService.setUaaBaseURL("http://uaa.example.com");
-
         clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
         groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");

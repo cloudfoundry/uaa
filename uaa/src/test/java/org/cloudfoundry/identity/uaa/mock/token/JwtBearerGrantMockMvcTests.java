@@ -230,7 +230,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     public String getTokenVerificationKey(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         try {
-            return KeyInfoService.getActiveKey().getVerifierKey();
+            return new KeyInfoService("https://someurl").getActiveKey().verifierKey();
         } finally {
             IdentityZoneHolder.clear();
         }
