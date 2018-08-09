@@ -702,7 +702,7 @@ public class LoginInfoEndpoint {
         if (StringUtils.hasText(loginHint)) {
             model.addAttribute("login_hint", loginHint);
         }
-        List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email);
+        List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email, false);
 
         if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
