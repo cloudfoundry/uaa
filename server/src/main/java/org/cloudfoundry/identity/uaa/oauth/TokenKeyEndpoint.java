@@ -52,6 +52,10 @@ public class TokenKeyEndpoint {
     protected final Log logger = LogFactory.getLog(getClass());
     private KeyInfoService keyInfoService;
 
+    public TokenKeyEndpoint(KeyInfoService keyInfoService) {
+        this.keyInfoService = keyInfoService;
+    }
+
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
@@ -146,7 +150,4 @@ public class TokenKeyEndpoint {
         return false;
     }
 
-    public void setKeyInfoService(KeyInfoService keyInfoService) {
-        this.keyInfoService = keyInfoService;
-    }
 }

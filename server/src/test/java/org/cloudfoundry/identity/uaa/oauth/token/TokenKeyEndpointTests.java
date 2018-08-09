@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 public class TokenKeyEndpointTests {
 
-    private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint();
+    private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint(new KeyInfoService("https://localhost.uaa"));
     private Authentication validUaaResource;
     private final String SIGNING_KEY_1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +

@@ -263,9 +263,9 @@ class RsaKeyInfo extends KeyInfo {
 
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
         if (rsaKey != null) {
-            Base64 base64 = new Base64(true);
-            String n = base64.encodeAsString(rsaKey.getModulus().toByteArray());
-            String e = base64.encodeAsString(rsaKey.getPublicExponent().toByteArray());
+            java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
+            String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
+            String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
             result.put("n", n);
             result.put("e", e);
         }

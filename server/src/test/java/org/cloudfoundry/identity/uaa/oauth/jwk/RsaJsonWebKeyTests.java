@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.map.HashedMap;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -58,7 +57,6 @@ public class RsaJsonWebKeyTests {
 
     @Test
     public void create_key_from_pem_string() {
-        Base64 base64 = new Base64(true);
         KeyInfo keyInfo = KeyInfoBuilder.build("id", sampleRsaPrivateKey, ISSUER);
         assertEquals("RSA", keyInfo.type());
         assertNotNull(keyInfo.getVerifier());
@@ -76,13 +74,13 @@ public class RsaJsonWebKeyTests {
 
         BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
         BigInteger modulus = ((RSAPublicKey) pk).getModulus();
-        assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
-        assertEquals(base64.encodeAsString(modulus.toByteArray()), key.getKeyProperties().get("n"));
+        java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
+        assertEquals(encoder.encodeToString(exponent.toByteArray()), key.getKeyProperties().get("e"));
+        assertEquals(encoder.encodeToString(modulus.toByteArray()), key.getKeyProperties().get("n"));
     }
 
     @Test
     public void create_key_from_public_pem_string() {
-        Base64 base64 = new Base64(true);
         KeyInfo keyInfo = KeyInfoBuilder.build("id", sampleRsaPrivateKey, ISSUER);
         assertEquals("RSA", keyInfo.type());
         assertNotNull(keyInfo.getVerifier());
@@ -101,8 +99,9 @@ public class RsaJsonWebKeyTests {
         BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
         BigInteger modulus = ((RSAPublicKey) pk).getModulus();
 
-        assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
-        assertEquals(base64.encodeAsString(modulus.toByteArray()), key.getKeyProperties().get("n"));
+        java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
+        assertEquals(encoder.encodeToString(exponent.toByteArray()), key.getKeyProperties().get("e"));
+        assertEquals(encoder.encodeToString(modulus.toByteArray()), key.getKeyProperties().get("n"));
     }
 
     @Test
