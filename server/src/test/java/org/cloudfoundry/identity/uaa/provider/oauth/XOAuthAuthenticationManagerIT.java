@@ -57,7 +57,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
@@ -222,13 +221,11 @@ public class XOAuthAuthenticationManagerIT {
             nonTrustingRestTemplate
           )
         );
-        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder));
+        xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), UAA_ISSUER_URL));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         xoAuthAuthenticationManager.setTokenEndpointBuilder(tokenEndpointBuilder);
-        xoAuthAuthenticationManager.setKeyInfoService(new KeyInfoService(UAA_ISSUER_URL));
-        xoAuthAuthenticationManager.setUaaUrl(UAA_ISSUER_URL);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
           entry("sub", "12345"),

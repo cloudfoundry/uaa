@@ -123,11 +123,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
                                        RestTemplate trustingRestTemplate,
                                        RestTemplate nonTrustingRestTemplate,
-                                       TokenEndpointBuilder tokenEndpointBuilder) {
+                                       TokenEndpointBuilder tokenEndpointBuilder,
+                                       KeyInfoService keyInfoService,
+                                       String uaaUrl) {
         super(providerProvisioning);
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+        this.keyInfoService = keyInfoService;
+        this.uaaUrl = uaaUrl;
     }
 
     @Override
@@ -629,14 +633,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     public KeyInfoService getKeyInfoService() {
         return keyInfoService;
-    }
-
-    public void setKeyInfoService(KeyInfoService keyInfoService) {
-        this.keyInfoService = keyInfoService;
-    }
-
-    public void setUaaUrl(String uaaUrl) {
-        this.uaaUrl = uaaUrl;
     }
 
     protected static class AuthenticationData {

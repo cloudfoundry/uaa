@@ -394,15 +394,16 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
+    <bean id="xOauthAuthenticationManager"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="uaaUrl" value="${uaa.url}"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
-        <property name="keyInfoService" ref="keyInfoService"/>
-        <property name="uaaUrl" value="${uaa.url}"/>
     </bean>
 
     <bean id="xOauthCallbackAuthenticationFilter" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">

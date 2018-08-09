@@ -120,7 +120,7 @@ public class KeyInfoServiceTests {
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        assertThat(key.keyURL(), is("https://localhost/uaa"));
+        assertThat(key.keyURL(), is("https://localhost/uaa/token_keys"));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class KeyInfoServiceTests {
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        assertThat(key.keyURL(), is("https://subdomain.localhost/uaa"));
+        assertThat(key.keyURL(), is("https://subdomain.localhost/uaa/token_keys"));
     }
 
     @Test
