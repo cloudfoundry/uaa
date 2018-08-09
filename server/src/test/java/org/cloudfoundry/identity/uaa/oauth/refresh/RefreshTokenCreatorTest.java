@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.refresh;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -43,7 +44,7 @@ public class RefreshTokenCreatorTest {
         validityResolver = mock(TokenValidityResolver.class);
         when(validityResolver.resolve("someclient")).thenReturn(new Date());
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
-        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl());
+        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret")));
     }

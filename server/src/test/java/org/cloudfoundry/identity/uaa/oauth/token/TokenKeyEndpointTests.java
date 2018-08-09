@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
@@ -75,7 +75,6 @@ public class TokenKeyEndpointTests {
 
     @Before
     public void setUp() throws Exception {
-        KeyInfo.setUaaBaseURL("http://uaa.example.com/");
         validUaaResource = new UsernamePasswordAuthenticationToken("client_id", null, Collections.singleton(new SimpleGrantedAuthority("uaa.resource")));
     }
 

@@ -18,7 +18,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -230,7 +230,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     public String getTokenVerificationKey(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         try {
-            return KeyInfo.getActiveKey().getVerifierKey();
+            return KeyInfoService.getActiveKey().getVerifierKey();
         } finally {
             IdentityZoneHolder.clear();
         }

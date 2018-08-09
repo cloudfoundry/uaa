@@ -163,6 +163,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private TimeService timeService;
     private TokenValidityResolver accessTokenValidityResolver;
     private TokenValidationService tokenValidationService;
+    private KeyInfoService keyInfoService;
 
     public UaaTokenServices(IdTokenCreator idTokenCreator,
                             TokenEndpointBuilder tokenEndpointBuilder,
@@ -175,7 +176,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             UaaUserDatabase userDatabase,
                             ApprovalStore approvalStore,
                             Set<String> excludedClaims,
-                            TokenPolicy globalTokenPolicy){
+                            TokenPolicy globalTokenPolicy,
+                            KeyInfoService keyInfoService){
         this.idTokenCreator = idTokenCreator;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.clientDetailsService = clientDetailsService;
@@ -188,6 +190,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.approvalStore = approvalStore;
         this.excludedClaims = excludedClaims;
         this.tokenPolicy = globalTokenPolicy;
+        this.keyInfoService = keyInfoService;
     }
 
     public Set<String> getExcludedClaims() {
@@ -474,7 +477,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
         if (shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, isForceIdTokenCreation)) {
             String idTokenContent;
@@ -483,7 +486,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             } catch (RuntimeException | IdTokenCreationException e) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
-            String encodedIdTokenContent = JwtHelper.encode(idTokenContent, KeyInfo.getActiveKey().getSigner()).getEncoded();
+            String encodedIdTokenContent = JwtHelper.encode(idTokenContent, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
@@ -508,7 +511,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private KeyInfo getActiveKeyInfo() {
-        return ofNullable(KeyInfo.getActiveKey())
+        return ofNullable(keyInfoService.getActiveKey())
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 
@@ -1005,5 +1008,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+    }
+
+    public void setKeyInfoService(KeyInfoService keyInfoService) {
+        this.keyInfoService = keyInfoService;
     }
 }

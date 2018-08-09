@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,15 +23,18 @@ public class TokenValidationService {
     private TokenEndpointBuilder tokenEndpointBuilder;
     private UaaUserDatabase userDatabase;
     private ClientServicesExtension clientServicesExtension;
+    private String uaaUrl;
 
     public TokenValidationService(RevocableTokenProvisioning revocableTokenProvisioning,
                                   TokenEndpointBuilder tokenEndpointBuilder,
                                   UaaUserDatabase userDatabase,
-                                  ClientServicesExtension clientServicesExtension) {
+                                  ClientServicesExtension clientServicesExtension,
+                                  String uaaUrl) {
         this.revocableTokenProvisioning = revocableTokenProvisioning;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.userDatabase = userDatabase;
         this.clientServicesExtension = clientServicesExtension;
+        this.uaaUrl = uaaUrl;
     }
 
     public TokenValidation validateToken(String token, boolean isAccessToken) {
@@ -47,7 +49,7 @@ public class TokenValidationService {
         }
 
         TokenValidation tokenValidation = isAccessToken ?
-                buildAccessTokenValidator(token) : buildRefreshTokenValidator(token);
+                buildAccessTokenValidator(token, uaaUrl) : buildRefreshTokenValidator(token, uaaUrl);
         tokenValidation
                 .checkRevocableTokenStore(revocableTokenProvisioning)
                 .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());

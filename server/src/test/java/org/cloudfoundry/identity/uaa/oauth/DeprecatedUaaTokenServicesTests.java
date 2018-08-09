@@ -108,6 +108,7 @@ public class DeprecatedUaaTokenServicesTests {
     private Set<String> acrValue = Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
 
     private UaaTokenServices tokenServices;
+    private KeyInfoService keyInfoService;
 
     public DeprecatedUaaTokenServicesTests(TestTokenEnhancer enhancer, String testname) {
         this.tokenEnhancer = enhancer;
@@ -120,10 +121,8 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Before
     public void setUp() throws Exception {
-        KeyInfo.setUaaBaseURL("http://localhost");
-
         tokenSupport = new TokenTestSupport(tokenEnhancer);
-
+        keyInfoService = new KeyInfoService("https://uaa.url");
         thousandScopes = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
             thousandScopes.add(String.valueOf(i));
@@ -134,6 +133,7 @@ public class DeprecatedUaaTokenServicesTests {
         persistToken.setExpiration(expiration);
 
         tokenServices = tokenSupport.getUaaTokenServices();
+        tokenServices.setKeyInfoService(keyInfoService);
         tokenProvisioning = tokenSupport.getTokenProvisioning();
         when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
     }
@@ -263,7 +263,9 @@ public class DeprecatedUaaTokenServicesTests {
           userDatabase,
           mock(ApprovalStore.class),
           Sets.newHashSet(),
-          new TokenPolicy());
+          new TokenPolicy(),
+          new KeyInfoService(DEFAULT_ISSUER)
+        );
 
         UserInfo userInfo = new UserInfo();
         userInfo.setRoles(Lists.newArrayList("custom_role"));
@@ -710,7 +712,7 @@ public class DeprecatedUaaTokenServicesTests {
         tokenJwtHeaderMap.put("iv", JwtHelper.decode(refreshTokenJwt).getHeader().getIv());
         tokenJwtHeaderMap.put("typ", JwtHelper.decode(refreshTokenJwt).getHeader().getTyp());
 
-        String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, KeyInfo.getKey(kid).getSigner());
+        String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, keyInfoService.getKey(kid).getSigner());
 
         //When
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim, getRefreshTokenRequest());

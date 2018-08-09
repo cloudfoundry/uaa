@@ -25,13 +25,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -96,7 +95,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUpContext() throws Exception {
-        KeyInfo.setUaaBaseURL("http://uaa.example.com");
+        KeyInfoService.setUaaBaseURL("http://uaa.example.com");
 
         clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");

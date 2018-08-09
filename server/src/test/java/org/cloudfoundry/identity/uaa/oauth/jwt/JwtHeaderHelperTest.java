@@ -66,7 +66,8 @@ public class JwtHeaderHelperTest {
 
     @Test
     public void createFromSigner() {
-        JwtHeader header = JwtHeaderHelper.create(new CommonSigner("fake-key", "HMAC", null));
+        final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
+        JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
         assertThat(header.parameters.typ, is("JWT"));
         assertThat(header.parameters.kid, is("fake-key"));
@@ -77,7 +78,8 @@ public class JwtHeaderHelperTest {
 
     @Test
     public void createFromSignerWithEmptyKeyId() {
-        JwtHeader header = JwtHeaderHelper.create(new CommonSigner(null, "HMAC", null));
+        final CommonSigner hmac = new CommonSigner(null, "HMAC", null);
+        JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
         assertThat(header.parameters.typ, is("JWT"));
         assertThat(header.parameters.kid, is(nullValue()));

@@ -169,6 +169,7 @@ public class TokenTestSupport {
     private final RefreshTokenCreator refreshTokenCreator;
     public final TimeService timeService;
     public final TokenValidationService tokenValidationService;
+    private KeyInfoService keyInfoService;
 
     public void clear() {
         tokens.clear();
@@ -256,11 +257,12 @@ public class TokenTestSupport {
         timeService = mock(TimeService.class);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService);
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, DEFAULT_ISSUER);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
         IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
-        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService);
+        keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
+        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService, keyInfoService);
         tokenServices = new UaaTokenServices(
                 idTokenCreator,
                 tokenEndpointBuilder,
@@ -273,7 +275,9 @@ public class TokenTestSupport {
                 userDatabase,
                 approvalStore,
                 Sets.newHashSet(),
-                tokenPolicy);
+                tokenPolicy,
+                keyInfoService
+        );
 
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
@@ -319,7 +323,7 @@ public class TokenTestSupport {
     public Jwt getIdToken(List<String> scopes) {
         CompositeToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier();
+        SignatureVerifier verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 

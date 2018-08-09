@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -30,7 +30,7 @@ public class JwtTokenUtils {
 
         String kid = tokenJwt.getHeader().getKid();
         assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(KeyInfo.getKey(kid).getVerifier());
+        tokenJwt.verifySignature(KeyInfoService.getKey(kid).getVerifier());
 
         return claims;
     }

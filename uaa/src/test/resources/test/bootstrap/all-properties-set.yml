@@ -508,6 +508,14 @@ oauth:
       scope: openid,oauth.approvals
       secret: login-secret
       id: login
+    jku_test:
+      authorities: uaa.none
+      authorized-grant-types: password,client_credentials
+      autoapprove: true
+      override: true
+      scope: openid
+      secret: secret
+      id: jku_test
     notifications:
       authorities: cloud_controller.admin,scim.read
       authorized-grant-types: client_credentials

@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -26,14 +26,12 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -44,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -77,20 +74,22 @@ public abstract class TokenValidation {
     private final Jwt tokenJwt;
     private final String token;
 
-    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue) {
-        AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue);
+    private final String uaaUrl;
+
+    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue, String uaaUrl) {
+        AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue, uaaUrl);
         validator.checkSignature();
         return validator;
     }
 
-    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue) {
-        RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue);
+    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue, String uaaUrl) {
+        RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue, uaaUrl);
         refreshTokenValidation.checkSignature();
         return refreshTokenValidation;
     }
 
-    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier) {
-        IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue);
+    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, String uaaUrl) {
+        IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, uaaUrl);
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
     }
@@ -99,11 +98,12 @@ public abstract class TokenValidation {
 
     abstract Optional<List<String>> getScopes();
 
-    private TokenValidation(String token) {
+    private TokenValidation(String token, String uaaUrl) {
         this.token = token;
 
         this.claims = UaaTokenUtils.getClaims(token);
         this.tokenJwt = JwtHelper.decode(token);
+        this.uaaUrl = uaaUrl;
     }
 
     private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
@@ -112,7 +112,8 @@ public abstract class TokenValidation {
             throw new InvalidTokenException("kid claim not found in JWT token header");
         }
 
-        KeyInfo signingKey = KeyInfo.getKey(kid);
+        KeyInfoService keyInfoService = new KeyInfoService(uaaUrl);
+        KeyInfo signingKey = keyInfoService.getKey(kid);
         if (signingKey == null) {
             throw new InvalidTokenException(String.format(
               "Token header claim [kid] references unknown signing key : [%s]", kid
@@ -477,8 +478,8 @@ public abstract class TokenValidation {
     }
 
     private static class AccessTokenValidation extends TokenValidation {
-        public AccessTokenValidation(String tokenJwtValue) {
-            super(tokenJwtValue);
+        public AccessTokenValidation(String tokenJwtValue, String uaaUrl) {
+            super(tokenJwtValue, uaaUrl);
         }
 
         @Override
@@ -500,8 +501,8 @@ public abstract class TokenValidation {
     }
 
     private static class RefreshTokenValidation extends TokenValidation {
-        public RefreshTokenValidation(String tokenJwtValue) {
-            super(tokenJwtValue);
+        public RefreshTokenValidation(String tokenJwtValue, String uaaUrl) {
+            super(tokenJwtValue, uaaUrl);
         }
 
         @Override
@@ -526,8 +527,8 @@ public abstract class TokenValidation {
     }
 
     private static class IdTokenValidation extends TokenValidation {
-        public IdTokenValidation(String tokenJwtValue) {
-            super(tokenJwtValue);
+        public IdTokenValidation(String tokenJwtValue, String uaaUrl) {
+            super(tokenJwtValue, uaaUrl);
         }
 
         @Override

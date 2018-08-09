@@ -14,11 +14,13 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -38,7 +40,7 @@ import static org.mockito.Mockito.when;
 * @author Joel D'sa
 *
 */
-public class KeyInfoTests {
+public class KeyInfoServiceTests {
     private static final String SIGNING_KEY = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIICXAIBAAKBgQDErZsZY70QAa7WdDD6eOv3RLBA4I5J0zZOiXMzoFB5yh64q0sm\n" +
       "ESNtV4payOYE5TnHxWjMo0y7gDsGjI1omAG6wgfyp63I9WcLX7FDLyee43fG5+b9\n" +
@@ -56,9 +58,16 @@ public class KeyInfoTests {
       "-----END RSA PRIVATE KEY-----";
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
+    private KeyInfoService keyInfoService;
+
     @BeforeClass
     public static void setupLegacyKey() {
-        LegacyTokenKey.setLegacySigningKey("testLegacyKey");
+        LegacyTokenKey.setLegacySigningKey("testLegacyKey", "https://localhost/uaa");
+    }
+
+    @Before
+    public void setup() {
+        keyInfoService = new KeyInfoService("https://localhost/uaa");
     }
 
     @Test
@@ -66,7 +75,7 @@ public class KeyInfoTests {
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
 
-        KeyInfo key = KeyInfo.getKey(keyId);
+        KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -93,7 +102,7 @@ public class KeyInfoTests {
                 "-----END RSA PRIVATE KEY-----";
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
-        KeyInfo key = KeyInfo.getKey(keyId);
+        KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -103,22 +112,19 @@ public class KeyInfoTests {
 
     @Test
     public void testSignedProviderAsymmetricKeysShouldAddKeyURL() {
-        KeyInfo.setUaaBaseURL("http://localhost/uaa");
         String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
 
-        KeyInfo key = KeyInfo.getKey(keyId);
+        KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        assertThat(key.getSigner().keyURL(), is("http://localhost/uaa"));
+        assertThat(key.keyURL(), is("https://localhost/uaa"));
     }
 
     @Test
     public void testSignedProviderAsymmetricKeysShouldAddKeyURL_ForCorrectZone() {
-        KeyInfo.setUaaBaseURL("http://localhost/uaa");
-
         String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
         IdentityZoneHolder.clear();
@@ -135,19 +141,19 @@ public class KeyInfoTests {
         zone.setConfig(config);
         when(provisioning.retrieve("uaa")).thenReturn(zone);
 
-        KeyInfo key = KeyInfo.getKey(keyId);
+        KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        assertThat(key.getSigner().keyURL(), is("http://subdomain.localhost/uaa"));
+        assertThat(key.keyURL(), is("https://subdomain.localhost/uaa"));
     }
 
     @Test
     public void testActiveKeyFallsBackToLegacyKey() {
         configureDefaultZoneKeys(Collections.emptyMap());
 
-        assertEquals(KeyInfo.getActiveKey().getKeyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
-        assertEquals(KeyInfo.getActiveKey().getSigningKey(), "testLegacyKey");
+        assertEquals(keyInfoService.getActiveKey().keyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
+        assertEquals(keyInfoService.getActiveKey().verifierKey(), "testLegacyKey");
     }
 
     private void configureDefaultZoneKeys(Map<String,String> keys) {

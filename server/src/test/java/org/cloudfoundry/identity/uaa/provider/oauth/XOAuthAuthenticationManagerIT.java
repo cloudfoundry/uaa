@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -746,9 +748,7 @@ public class XOAuthAuthenticationManagerIT {
         config.setTokenKeyUrl(new URL("http://oidc10.oms.identity.team/token_key"));
         config.setTokenKey(null);
 
-        KeyInfo key = new KeyInfo();
-        key.setKeyId("correctKey");
-        key.setSigningKey(PRIVATE_KEY, null);
+        KeyInfo key = KeyInfoBuilder.build("correctKey", PRIVATE_KEY, null);
         VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
         String response = JsonUtils.writeValueAsString(verificationKeyResponse);
 
@@ -1068,9 +1068,7 @@ public class XOAuthAuthenticationManagerIT {
     }
 
     private String getKeyJson(String signingKey, String keyId, boolean list) {
-        KeyInfo key = new KeyInfo();
-        key.setKeyId(keyId);
-        key.setSigningKey(signingKey, null);
+        KeyInfo key = KeyInfoBuilder.build(keyId, signingKey, null);
         VerificationKeyResponse keyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
         Object verificationKeyResponse = list ? new VerificationKeysListResponse(Collections.singletonList(keyResponse)) : keyResponse;
         return JsonUtils.writeValueAsString(verificationKeyResponse);

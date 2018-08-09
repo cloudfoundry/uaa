@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token.matchers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -19,18 +20,16 @@ import static org.junit.Assert.assertNotNull;
 public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatcher<T> {
 
     protected Matcher<?> value;
-    public static ThreadLocal<Map<String,RevocableToken>> revocableTokens = new ThreadLocal<Map<String,RevocableToken>>() {
-        @Override
-        protected Map<String,RevocableToken> initialValue() {
-            return emptyMap();
-        }
-    };
+    public static ThreadLocal<Map<String,RevocableToken>> revocableTokens = ThreadLocal.withInitial(() -> emptyMap());
+    private KeyInfoService keyInfoService;
 
     public AbstractOAuth2AccessTokenMatchers(Matcher<?> value) {
+        this();
         this.value = value;
     }
 
     protected AbstractOAuth2AccessTokenMatchers() {
+        keyInfoService = new KeyInfoService("https://localhost/uaa");
     }
 
     protected String getToken(String token) {
@@ -61,7 +60,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to decode token", e);
         }
-        tokenJwt.verifySignature(KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier());
+        tokenJwt.verifySignature(keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier());
         return claims;
     }
 }

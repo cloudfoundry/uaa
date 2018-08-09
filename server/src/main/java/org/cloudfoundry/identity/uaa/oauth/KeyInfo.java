@@ -1,31 +1,16 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.bouncycastle.asn1.ASN1Sequence;
-import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
+import org.springframework.security.jwt.crypto.sign.Signer;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -44,170 +29,133 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.springframework.security.jwt.codec.Codecs.b64Decode;
 import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
-public class KeyInfo {
+public abstract class KeyInfo {
+    public abstract void verify();
+
+    public abstract SignatureVerifier getVerifier();
+
+    public abstract Signer getSigner();
+
+    public abstract String keyId();
+
+    public abstract String keyURL();
+
+    public abstract String type();
+
+    public abstract String verifierKey();
+
+    public abstract Map<String, Object> getJwkMap();
+
+    public abstract String algorithm();
+
+    protected String validateAndConstructTokenKeyUrl(String keyUrl) {
+        if (!UaaUrlUtils.isUrl(keyUrl)) {
+            throw new IllegalArgumentException("Invalid Key URL");
+        }
+
+        return UriComponentsBuilder.fromHttpUrl(keyUrl).scheme("https").path("/token_keys").build().toUriString();
+    }
+}
+
+class HmacKeyInfo extends KeyInfo {
+    private Signer signer;
+    private SignatureVerifier verifier;
+    private final String keyId;
+    private final String keyUrl;
+    private final String verifierKey;
+
+    public HmacKeyInfo(String keyId, String signingKey, String keyUrl) {
+        this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
+
+        this.signer = new MacSigner(signingKey);
+        this.verifier = new MacSigner(signingKey);
+
+        this.keyId = keyId;
+        this.verifierKey = signingKey;
+    }
+
+    @Override
+    public void verify() {
+
+    }
+
+    @Override
+    public SignatureVerifier getVerifier() {
+        return this.verifier;
+    }
+
+    @Override
+    public Signer getSigner() {
+        return this.signer;
+    }
+
+    @Override
+    public String keyId() {
+        return this.keyId;
+    }
+
+    @Override
+    public String keyURL() {
+        return this.keyUrl;
+    }
+
+    @Override
+    public String type() {
+        return MAC.name();
+    }
+
+    @Override
+    public String verifierKey() {
+        return this.verifierKey;
+    }
+
+    @Override
+    public Map<String, Object> getJwkMap() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("alg", this.signer.algorithm());
+        result.put("value", this.verifierKey);
+        //new values per OpenID and JWK spec
+        result.put("use", JsonWebKey.KeyUse.sig.name());
+        result.put("kid", this.keyId);
+        result.put("kty", MAC.name());
+        return result;
+    }
+
+    @Override
+    public String algorithm() {
+        return JwtAlgorithms.sigAlg(verifier.algorithm());
+    }
+}
+
+class RsaKeyInfo extends KeyInfo {
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
     private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
-    private static String uaaBaseURL;
-    private String keyId;
-    private String verifierKey = new RandomValueStringGenerator().generate();
-    private String signingKey = verifierKey;
-    private Signer signer = new CommonSigner(null, verifierKey, null);
-    private SignatureVerifier verifier = new MacSigner(signingKey);
-    private String type = "MAC";
-    private RSAPublicKey rsaPublicKey;
+    private final String keyId;
+    private final String keyUrl;
 
-    public static Long getLastModified() {
-        return IdentityZoneHolder.get().getLastModified().getTime();
-    }
+    private Signer signer;
+    private SignatureVerifier verifier;
+    private String verifierKey;
 
-    public static KeyInfo getKey(String keyId) {
-        return getKeys().get(keyId);
-    }
+    public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
+        this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
-    public static Map<String, KeyInfo> getKeys() {
-        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
-            config = IdentityZoneHolder.getUaaZone().getConfig();
-        }
+        KeyPair keyPair = parseKeyPair(signingKey);
+        RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
+        String pemEncodePublicKey = pemEncodePublicKey(rsaPublicKey);
 
-        Map<String, KeyInfo> keys = new HashMap<>();
-        for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
-            KeyInfo keyInfo = new KeyInfo();
-            keyInfo.setKeyId(entry.getKey());
-            keyInfo.setSigningKey(entry.getValue(), addSubdomainToUrl(uaaBaseURL));
-
-            keys.put(entry.getKey(), keyInfo);
-        }
-
-        if(keys.isEmpty()) {
-            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, LegacyTokenKey.getLegacyTokenKeyInfo());
-        }
-
-        return keys;
-    }
-
-    public static KeyInfo getActiveKey() {
-        return getKeys().get(getActiveKeyId());
-    }
-
-    private static String getActiveKeyId() {
-        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
-        String activeKeyId = config.getTokenPolicy().getActiveKeyId();
-
-        Map<String, KeyInfo> keys;
-        if(!StringUtils.hasText(activeKeyId) && (keys = getKeys()).size() == 1) {
-            activeKeyId = keys.keySet().stream().findAny().get();
-        }
-
-        if(!StringUtils.hasText(activeKeyId)) {
-            activeKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
-        }
-
-        if(!StringUtils.hasText(activeKeyId)) {
-            activeKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
-        }
-
-        return activeKeyId;
-    }
-
-    public static void setUaaBaseURL(String uaaBaseURL) {
-        KeyInfo.uaaBaseURL = uaaBaseURL;
-    }
-
-    public Signer getSigner() {
-        return signer;
-    }
-
-    /**
-     * @return the verifierKey
-     */
-    public String getVerifierKey() {
-        return verifierKey;
-    }
-
-    public String getSigningKey() {
-        return signingKey;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public RSAPublicKey getRsaPublicKey() {
-        return rsaPublicKey;
-    }
-
-    /**
-     * @return true if the KeyInfo represents an asymmetric (RSA) key pair
-     */
-    public boolean isAssymetricKey() {
-        return isAssymetricKey(verifierKey);
-    }
-
-    public SignatureVerifier getVerifier() {
-        return verifier;
-    }
-
-    /**
-     * @return true if the string represents an asymmetric (RSA) key
-     */
-    public static boolean isAssymetricKey(String key) {
-        return key.startsWith("-----BEGIN");
-    }
-
-    /**
-     * Sets the JWT signing key and corresponding key for verifying siugnatures produced by this class.
-     * <p>
-     * The signing key can be either a simple MAC key or an RSA
-     * key. RSA keys should be in OpenSSH format,
-     * as produced by <tt>ssh-keygen</tt>.
-     *
-     * @param signingKey the key to be used for signing JWTs.
-     * @param keyURL
-     */
-    public void setSigningKey(String signingKey, String keyURL) {
-        if (StringUtils.isEmpty(signingKey)) {
-            throw new IllegalArgumentException("Signing key cannot be empty");
-        }
-
-        Assert.hasText(signingKey);
-        signingKey = signingKey.trim();
-
-        this.signingKey = signingKey;
-        this.signer = new CommonSigner(keyId, signingKey, keyURL);
-
-        if (isAssymetricKey(signingKey)) {
-            KeyPair keyPair = KeyInfo.parseKeyPair(signingKey);
-            rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
-            verifierKey = pemEncodePublicKey(rsaPublicKey);
-            type = "RSA";
-        } else {
-            // Assume it's an HMAC key
-            this.verifierKey = signingKey;
-            type = "MAC";
-        }
-
-        verifier = new CommonSignatureVerifier(verifierKey);
-    }
-
-    public String getKeyId() {
-        return keyId;
-    }
-
-    public void setKeyId(String keyId) {
-        if(!StringUtils.hasText(keyId)){
-            throw new IllegalArgumentException("KeyId should not be null or empty");
-        }
+        this.signer = new RsaSigner(signingKey);
+        this.verifier = new RsaVerifier(pemEncodePublicKey);
         this.keyId = keyId;
-        this.signer = new CommonSigner(keyId, signingKey, "http://localhost/uaa");
+        this.verifierKey = pemEncodePublicKey;
     }
 
-    public static KeyPair parseKeyPair(String pemData) {
+    private KeyPair parseKeyPair(String pemData) {
         Matcher m = PEM_DATA.matcher(pemData.trim());
 
         if (!m.matches()) {
@@ -230,14 +178,14 @@ public class KeyInfo {
                 org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
                 RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
                 RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(
-                    key.getModulus(),
-                    key.getPublicExponent(),
-                    key.getPrivateExponent(),
-                    key.getPrime1(),
-                    key.getPrime2(),
-                    key.getExponent1(),
-                    key.getExponent2(),
-                    key.getCoefficient()
+                  key.getModulus(),
+                  key.getPublicExponent(),
+                  key.getPrivateExponent(),
+                  key.getPrime1(),
+                  key.getPrime2(),
+                  key.getExponent1(),
+                  key.getExponent2(),
+                  key.getCoefficient()
                 );
                 publicKey = fact.generatePublic(pubSpec);
                 privateKey = fact.generatePrivate(privSpec);
@@ -254,21 +202,80 @@ public class KeyInfo {
             }
 
             return new KeyPair(publicKey, privateKey);
-        }
-        catch (InvalidKeySpecException e) {
+        } catch (InvalidKeySpecException e) {
             throw new RuntimeException(e);
-        }
-        catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static String pemEncodePublicKey(PublicKey publicKey) {
+    private String pemEncodePublicKey(PublicKey publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();
         String base64encoded = new String(base64encoder.encode(data));
 
         return begin + base64encoded + end;
+    }
+
+    @Override
+    public void verify() {
+    }
+
+    @Override
+    public SignatureVerifier getVerifier() {
+        return this.verifier;
+    }
+
+    @Override
+    public Signer getSigner() {
+        return this.signer;
+    }
+
+    @Override
+    public String keyId() {
+        return this.keyId;
+    }
+
+    @Override
+    public String keyURL() {
+        return this.keyUrl;
+    }
+
+    @Override
+    public String type() {
+        return RSA.name();
+    }
+
+    @Override
+    public String verifierKey() {
+        return this.verifierKey;
+    }
+
+    @Override
+    public Map<String, Object> getJwkMap() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("alg", this.signer.algorithm());
+        result.put("value", this.verifierKey);
+        //new values per OpenID and JWK spec
+        result.put("use", JsonWebKey.KeyUse.sig.name());
+        result.put("kid", this.keyId);
+        result.put("kty", RSA.name());
+
+        RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
+        if (rsaKey != null) {
+            Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+            String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
+            String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
+            result.put("n", n);
+            result.put("e", e);
+        }
+
+        return result;
+    }
+
+    @Override
+    public String algorithm() {
+        return JwtAlgorithms.sigAlg(verifier.algorithm());
     }
 }

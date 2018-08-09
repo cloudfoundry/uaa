@@ -15,6 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -54,38 +56,40 @@ public class ChainedSignatureVerifierTests {
     private JsonWebKey validKey;
     private JsonWebKey invalidKey;
     private ChainedSignatureVerifier verifier;
+    private KeyInfo keyInfo;
 
 
     @Before
     public void setup() {
         rsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOQIBAAJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdpY8Ada9pZfxXz1PZSqv9T\n" +
-            "PTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQABAkBoR39y4rw0/QsY3PKQD5xo\n" +
-            "hYSZCMCmJUI/sFCuECevIFY4h6q9KBP+4Set96f7Bgs9wJWVvCMx/nJ6guHAjsIB\n" +
-            "AiEAywVOoCGIZ2YzARXWYcMRYZ89hxoHh8kZ+QMthRSZieECIQCP/GWQYgyofAQA\n" +
-            "BtM8YwThXEV+S3KtuCn4IAQ89gqdGQIgULBASpZpPyc4OEM0nFBKFTGT46EtwwLj\n" +
-            "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
-            "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
-            "-----END RSA PRIVATE KEY-----";
-        signer = new CommonSigner("valid", rsaSigningKey, "http://localhost/uaa");
+          "MIIBOQIBAAJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdpY8Ada9pZfxXz1PZSqv9T\n" +
+          "PTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQABAkBoR39y4rw0/QsY3PKQD5xo\n" +
+          "hYSZCMCmJUI/sFCuECevIFY4h6q9KBP+4Set96f7Bgs9wJWVvCMx/nJ6guHAjsIB\n" +
+          "AiEAywVOoCGIZ2YzARXWYcMRYZ89hxoHh8kZ+QMthRSZieECIQCP/GWQYgyofAQA\n" +
+          "BtM8YwThXEV+S3KtuCn4IAQ89gqdGQIgULBASpZpPyc4OEM0nFBKFTGT46EtwwLj\n" +
+          "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
+          "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
+          "-----END RSA PRIVATE KEY-----";
 
         invalidRsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
-            "GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy\n" +
-            "sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw\n" +
-            "gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu\n" +
-            "xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex\n" +
-            "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
-            "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
-            "-----END RSA PRIVATE KEY-----";
+          "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
+          "GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy\n" +
+          "sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw\n" +
+          "gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu\n" +
+          "xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex\n" +
+          "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
+          "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
+          "-----END RSA PRIVATE KEY-----";
 
         invalidSigner = new CommonSigner("invalid", invalidRsaSigningKey, "http://localhost/uaa");
 
         content = new RandomValueStringGenerator(1024 * 4).generate();
-        signedValidContent = JwtHelper.encode(content, signer);
+        keyInfo = KeyInfoBuilder.build("valid", rsaSigningKey, "http://localhost/uaa");
 
-        validKey = JsonWebKeyHelper.fromPEMPrivateKey(rsaSigningKey);
-        invalidKey = JsonWebKeyHelper.fromPEMPrivateKey(invalidRsaSigningKey);
+        signedValidContent = JwtHelper.encode(content, keyInfo);
+
+        validKey = new JsonWebKey(KeyInfoBuilder.build(null, rsaSigningKey, null).getJwkMap());
+        invalidKey = new JsonWebKey(KeyInfoBuilder.build(null, invalidRsaSigningKey, null).getJwkMap());
     }
 
     @Test
@@ -120,8 +124,8 @@ public class ChainedSignatureVerifierTests {
 
     @Test
     public void check_that_we_use_common_signer() {
-        Map<String,Object> p = new HashMap<>();
-        p.put("kty",MAC.name());
+        Map<String, Object> p = new HashMap<>();
+        p.put("kty", MAC.name());
         p.put("kid", "macid");
         p.put("value", "test-mac-key");
         JsonWebKey macKey = new JsonWebKey(p);
@@ -131,21 +135,21 @@ public class ChainedSignatureVerifierTests {
         assertEquals(3, delegates.size());
         int pos = 0;
         for (SignatureVerifier v : delegates) {
-            assertTrue("Checking "+(pos++), v instanceof CommonSignatureVerifier);
+            assertTrue("Checking " + (pos++), v instanceof CommonSignatureVerifier);
         }
     }
 
     @Test
     public void unsupported_key_types_are_ignored() {
-        Map<String,Object> p = new HashMap<>();
-        p.put("kty","EC");
+        Map<String, Object> p = new HashMap<>();
+        p.put("kty", "EC");
         p.put("kid", "ecid");
         p.put("x", "test-ec-key-x");
         p.put("y", "test-ec-key-y");
         p.put("use", "sig");
         p.put("crv", "test-crv");
-        Map<String,Object> q = new HashMap<>();
-        q.put("kty","oct");
+        Map<String, Object> q = new HashMap<>();
+        q.put("kty", "oct");
         q.put("k", "octkeyvalue");
         JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(validKey, p, q)), JsonWebKeySet.class);
         verifier = new ChainedSignatureVerifier(keySet);
@@ -154,21 +158,21 @@ public class ChainedSignatureVerifierTests {
         assertEquals(1, delegates.size());
         int pos = 0;
         for (SignatureVerifier v : delegates) {
-            assertTrue("Checking "+(pos++), v instanceof CommonSignatureVerifier);
+            assertTrue("Checking " + (pos++), v instanceof CommonSignatureVerifier);
         }
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void no_supported_key_types_causes_error() {
-        Map<String,Object> p = new HashMap<>();
-        p.put("kty","EC");
+        Map<String, Object> p = new HashMap<>();
+        p.put("kty", "EC");
         p.put("kid", "ecid");
         p.put("x", "test-ec-key-x");
         p.put("y", "test-ec-key-y");
         p.put("use", "sig");
         p.put("crv", "test-crv");
-        Map<String,Object> q = new HashMap<>();
-        q.put("kty","oct");
+        Map<String, Object> q = new HashMap<>();
+        q.put("kty", "oct");
         q.put("k", "octkeyvalue");
         JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(p, q)), JsonWebKeySet.class);
         verifier = new ChainedSignatureVerifier(keySet);
@@ -176,8 +180,8 @@ public class ChainedSignatureVerifierTests {
 
     @Test
     public void test_multi_key_both_valid() {
-        Map<String,Object> p = new HashMap<>();
-        p.put("kty",MAC.name());
+        Map<String, Object> p = new HashMap<>();
+        p.put("kty", MAC.name());
         p.put("value", "mac-content");
         JsonWebKey jsonWebKey = new JsonWebKey(p);
 

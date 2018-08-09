@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.jwt.BinaryFormat;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
@@ -55,10 +56,10 @@ public class JwtHelper {
         return new JwtImpl(header, claims, crypto);
     }
 
-    public static Jwt encode(CharSequence content, Signer signer) {
-        JwtHeader header = JwtHeaderHelper.create(signer);
+    public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
+        JwtHeader header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
         byte[] claims = utf8Encode(content);
-        byte[] crypto = signer
+        byte[] crypto = keyInfo.getSigner()
           .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
         return new JwtImpl(header, claims, crypto);
     }
@@ -76,9 +77,8 @@ class JwtHeaderHelper {
         return new JwtHeader(decodedBytes, JsonUtils.readValue(decodedBytes, HeaderParameters.class));
     }
 
-    static JwtHeader create(Signer signer) {
-        HeaderParameters headerParameters =
-          new HeaderParameters(signer.algorithm(), null, null, signer.keyId(), signer.keyURL());
+    static JwtHeader create(String algorithm, String kid, String jku) {
+        HeaderParameters headerParameters = new HeaderParameters(algorithm, null, null, kid, jku);
 
         return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
     }

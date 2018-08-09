@@ -14,8 +14,6 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 
 public class CommonSigner implements Signer {
@@ -24,15 +22,7 @@ public class CommonSigner implements Signer {
     private String keyURL;
 
     public CommonSigner(String keyId, String signingKey, String keyURL) {
-        org.springframework.security.jwt.crypto.sign.Signer signer;
-        if (signingKey == null) {
-            throw new IllegalArgumentException(signingKey);
-        } else if(KeyInfo.isAssymetricKey(signingKey)) {
-            signer = new RsaSigner(signingKey);
-        } else {
-            signer = new MacSigner(signingKey);
-        }
-        delegate = signer;
+        delegate = new RsaSigner(signingKey);
         this.keyId = keyId;
         this.keyURL = keyURL;
     }

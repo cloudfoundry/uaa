@@ -170,7 +170,7 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("kid claim not found in JWT token header");
 
-        TokenValidation.buildAccessTokenValidator(getToken());
+        TokenValidation.buildAccessTokenValidator(getToken(), "https://localhost");
     }
 
     @Test
@@ -180,14 +180,14 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("Token header claim [kid] references unknown signing key : [garbage]");
 
-        TokenValidation.buildAccessTokenValidator(getToken());
+        TokenValidation.buildAccessTokenValidator(getToken(), "https://localhost");
     }
 
     @Test
     public void testGetClientById() {
         String token = getToken();
 
-        ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token)
+        ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token, "https://localhost")
           .getClientDetails(clientDetailsService);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
@@ -202,14 +202,14 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID " + invalidClientId);
 
-        TokenValidation.buildAccessTokenValidator(token).getClientDetails(clientDetailsService);
+        TokenValidation.buildAccessTokenValidator(token, "https://localhost").getClientDetails(clientDetailsService);
     }
 
     @Test
     public void testGetUserById() {
         String token = getToken();
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token).getUserDetails(userDb);
+        UaaUser user = TokenValidation.buildAccessTokenValidator(token, "https://localhost").getUserDetails(userDb);
 
         assertThat(user, notNullValue());
         assertThat(user.getUsername(), equalTo("marissa"));
@@ -221,7 +221,7 @@ public class TokenValidationTest {
         content.put("grant_type", "client_credentials");
         String token = getToken();
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token).getUserDetails(userDb);
+        UaaUser user = TokenValidation.buildAccessTokenValidator(token, "https://localhost").getUserDetails(userDb);
 
         assertThat(user, nullValue());
     }
@@ -235,7 +235,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Token bears a non-existent user ID: " + invalidUserId);
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token).getUserDetails(userDb);
+        UaaUser user = TokenValidation.buildAccessTokenValidator(token, "https://localhost").getUserDetails(userDb);
     }
 
     private String getToken() {
@@ -252,7 +252,7 @@ public class TokenValidationTest {
 
     @Test
     public void validate_required_groups_is_invoked() throws Exception {
-        TokenValidation validation = spy(buildAccessTokenValidator(getToken()));
+        TokenValidation validation = spy(buildAccessTokenValidator(getToken(), "https://localhost"));
 
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
@@ -283,7 +283,7 @@ public class TokenValidationTest {
 
     @Test
     public void required_groups_are_present() throws Exception {
-        TokenValidation validation = buildAccessTokenValidator(getToken());
+        TokenValidation validation = buildAccessTokenValidator(getToken(), "https://localhost");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
         validation.checkClientAndUser(uaaClient, uaaUser);
@@ -292,7 +292,7 @@ public class TokenValidationTest {
 
     @Test
     public void required_groups_are_missing() throws Exception {
-        TokenValidation validation = buildAccessTokenValidator(getToken());
+        TokenValidation validation = buildAccessTokenValidator(getToken(), "https://localhost");
         uaaUserGroups.add("group-missing-from-user");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
@@ -304,7 +304,7 @@ public class TokenValidationTest {
 
     @Test
     public void testValidateAccessToken() throws Exception {
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkIssuer("http://localhost:8080/uaa/oauth/token")
           .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
           .checkExpiry(oneSecondBeforeTheTokenExpires)
@@ -325,7 +325,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid access token.");
 
-        buildAccessTokenValidator(getToken()).checkJti();
+        buildAccessTokenValidator(getToken(), "https://localhost").checkJti();
     }
 
     @Test
@@ -333,7 +333,7 @@ public class TokenValidationTest {
         String dashR = "-r";
         content.put(JTI, "8b14f193" + dashR + "-8212-4af2-9927-e3ae903f94a6");
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkJti();
     }
 
@@ -344,14 +344,14 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("The token must contain a jti claim.");
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkJti();
     }
 
     @Test
     public void validateToken_Without_Email_And_Username_should_not_throw_exception() throws Exception {
         buildAccessTokenValidator(
-          getToken(Arrays.asList(EMAIL, USER_NAME)))
+          getToken(Arrays.asList(EMAIL, USER_NAME)), "https://localhost")
           .checkSignature(verifier)
           .checkIssuer("http://localhost:8080/uaa/oauth/token")
           .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
@@ -394,7 +394,7 @@ public class TokenValidationTest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkSignature(verifier);
     }
 
@@ -402,20 +402,20 @@ public class TokenValidationTest {
     public void invalidJwt() throws Exception {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator("invalid.jwt.token");
+        buildAccessTokenValidator("invalid.jwt.token", "https://localhost");
     }
 
     @Test
     public void tokenWithInvalidIssuer() throws Exception {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken()).checkIssuer("http://wrong.issuer/");
+        buildAccessTokenValidator(getToken(), "https://localhost").checkIssuer("http://wrong.issuer/");
     }
 
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() throws Exception {
         content = null;
-        TokenValidation validation = buildAccessTokenValidator(getToken());
+        TokenValidation validation = buildAccessTokenValidator(getToken(), "https://localhost");
 
         expectedException.expect(InvalidTokenException.class);
         validation.checkIssuer("http://localhost:8080/uaa/oauth/token");
@@ -424,7 +424,7 @@ public class TokenValidationTest {
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() throws Exception {
         content = null;
-        TokenValidation validation = buildAccessTokenValidator(getToken());
+        TokenValidation validation = buildAccessTokenValidator(getToken(), "https://localhost");
 
         expectedException.expect(InvalidTokenException.class);
         validation.checkExpiry(oneSecondBeforeTheTokenExpires);
@@ -434,7 +434,7 @@ public class TokenValidationTest {
     public void expiredToken() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkExpiry(oneSecondAfterTheTokenExpires);
     }
 
@@ -443,7 +443,7 @@ public class TokenValidationTest {
         UaaUserDatabase userDb = new InMemoryUaaUserDatabase(Collections.emptySet());
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkUser(userDb::retrieveUserById);
 
     }
@@ -458,7 +458,7 @@ public class TokenValidationTest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkUser(userDb::retrieveUserById);
     }
 
@@ -466,7 +466,7 @@ public class TokenValidationTest {
     public void tokenHasInsufficientScope() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkScopesWithin("a.different.scope");
     }
 
@@ -474,7 +474,7 @@ public class TokenValidationTest {
     public void tokenHasIntegerScope() {
         this.content.put(SCOPE, Lists.newArrayList("a.different.scope", 1, "another.different.scope", null));
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkScopesWithin("a.different.scope", "1", "another.different.scope");
     }
 
@@ -482,7 +482,7 @@ public class TokenValidationTest {
     public void tokenContainsRevokedScope() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkScopesWithin("a.different.scope");
     }
 
@@ -493,7 +493,7 @@ public class TokenValidationTest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkClient(clientDetailsService::loadClientByClientId);
     }
 
@@ -509,7 +509,7 @@ public class TokenValidationTest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkClient(clientDetailsService::loadClientByClientId);
     }
 
@@ -517,16 +517,16 @@ public class TokenValidationTest {
     public void clientRevocationHashChanged() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkRevocationSignature(Collections.singletonList("New-Hash"));
     }
 
     @Test
     public void clientRevocationHashChanged_and_Should_Pass() {
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkRevocationSignature(Arrays.asList("fa1c787d", "New-Hash"));
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkRevocationSignature(Arrays.asList("New-Hash", "fa1c787d"));
     }
 
@@ -534,7 +534,7 @@ public class TokenValidationTest {
     public void incorrectAudience() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkAudience("app", "somethingelse");
     }
 
@@ -542,7 +542,7 @@ public class TokenValidationTest {
     public void emptyAudience() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkAudience("");
     }
 
@@ -557,7 +557,7 @@ public class TokenValidationTest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkRevocableTokenStore(revocableTokenProvisioning);
     }
 
@@ -569,7 +569,7 @@ public class TokenValidationTest {
 
         content.remove("revocable");
 
-        buildAccessTokenValidator(getToken())
+        buildAccessTokenValidator(getToken(), "https://localhost")
           .checkRevocableTokenStore(revocableTokenProvisioning);
 
         verifyZeroInteractions(revocableTokenProvisioning);
@@ -584,7 +584,7 @@ public class TokenValidationTest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken)
+        buildRefreshTokenValidator(refreshToken, "https://localhost")
           .checkScopesWithin("some-granted-scope");
     }
 
@@ -597,7 +597,7 @@ public class TokenValidationTest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken)
+        buildRefreshTokenValidator(refreshToken, "https://localhost")
           .checkScopesWithin("some-granted-scope");
     }
 
@@ -610,7 +610,7 @@ public class TokenValidationTest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken)
+        buildRefreshTokenValidator(refreshToken, "https://localhost")
           .checkScopesWithin("some-granted-scope");
     }
 
@@ -624,7 +624,7 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("Some required granted_scopes are missing: some-granted-scope");
 
-        buildRefreshTokenValidator(refreshToken)
+        buildRefreshTokenValidator(refreshToken, "https://localhost")
             .checkScopesWithin((Collection) content.get(SCOPE));
     }
 
@@ -636,7 +636,7 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("The token does not bear a scope claim.");
 
-        buildAccessTokenValidator(refreshToken)
+        buildAccessTokenValidator(refreshToken, "https://localhost")
             .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
     }
 }

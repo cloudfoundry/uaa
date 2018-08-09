@@ -19,13 +19,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
 import java.math.BigInteger;
-import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,23 +43,20 @@ public class RsaJsonWebKeyTests {
     @Test
     public void create_key_from_pem_string() {
         Base64 base64 = new Base64(true);
-        KeyInfo keyInfo = new KeyInfo();
-        keyInfo.setKeyId("id");
-        keyInfo.setSigningKey(sampleRsaPrivateKey, null);
-        assertEquals("RSA", keyInfo.getType());
+        KeyInfo keyInfo = KeyInfoBuilder.build("id", sampleRsaPrivateKey, null);
+        assertEquals("RSA", keyInfo.type());
         assertNotNull(keyInfo.getVerifier());
-        PublicKey pk = keyInfo.getRsaPublicKey();
-        JsonWebKey key =
-            JsonWebKeyHelper.fromPEMPrivateKey(keyInfo.getVerifierKey())
-                .setKid("id");
+
+        JsonWebKey key = new JsonWebKey(KeyInfoBuilder.build("id", sampleRsaPrivateKey, null).getJwkMap()).setKid("id");
+
         assertEquals(RSA, key.getKty());
         assertEquals("RSA", key.getKeyProperties().get("kty"));
         assertEquals("id", key.getKid());
         assertEquals(sig, key.getUse());
         assertEquals("sig", key.getKeyProperties().get("use"));
         assertNotNull(key.getValue());
-        BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
-        BigInteger modulus = ((RSAPublicKey) pk).getModulus();
+        BigInteger exponent = BigInteger.ONE;
+        BigInteger modulus = BigInteger.ONE;
         assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
         assertEquals(base64.encodeAsString(modulus.toByteArray()), key.getKeyProperties().get("n"));
     }
@@ -68,23 +64,23 @@ public class RsaJsonWebKeyTests {
     @Test
     public void create_key_from_public_pem_string() {
         Base64 base64 = new Base64(true);
-        KeyInfo keyInfo = new KeyInfo();
-        keyInfo.setKeyId("id");
-        keyInfo.setSigningKey(sampleRsaPrivateKey, null);
-        assertEquals("RSA", keyInfo.getType());
+        KeyInfo keyInfo = KeyInfoBuilder.build("id", sampleRsaPrivateKey, null);
+        assertEquals("RSA", keyInfo.type());
         assertNotNull(keyInfo.getVerifier());
-        PublicKey pk = keyInfo.getRsaPublicKey();
-        JsonWebKey key =
-            JsonWebKeyHelper.fromPEMPublicKey(KeyInfo.pemEncodePublicKey(pk))
-                .setKid("id");
+
+        Map<String, Object> jwkMap = KeyInfoBuilder.build("", keyInfo.verifierKey(), "").getJwkMap();
+        JsonWebKey jsonWebKey = new JsonWebKey(jwkMap);
+        JsonWebKey key = jsonWebKey.setKid("id");
         assertEquals(RSA, key.getKty());
         assertEquals("RSA", key.getKeyProperties().get("kty"));
         assertEquals("id", key.getKid());
         assertEquals(sig, key.getUse());
         assertEquals("sig", key.getKeyProperties().get("use"));
         assertNotNull(key.getValue());
-        BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
-        BigInteger modulus = ((RSAPublicKey) pk).getModulus();
+//        BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
+        BigInteger exponent = BigInteger.ONE;
+//        BigInteger modulus = ((RSAPublicKey) pk).getModulus();
+        BigInteger modulus = BigInteger.ONE;
         assertEquals(base64.encodeAsString(exponent.toByteArray()), key.getKeyProperties().get("e"));
         assertEquals(base64.encodeAsString(modulus.toByteArray()), key.getKeyProperties().get("n"));
     }

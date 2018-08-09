@@ -24,17 +24,20 @@ public class RefreshTokenCreator {
     private final TokenValidityResolver refreshTokenValidityResolver;
     private final TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
+    private KeyInfoService keyInfoService;
 
     private final String UAA_REFRESH_TOKEN = "uaa.offline_token";
 
     public RefreshTokenCreator(boolean isRestrictRefreshGrant,
                                TokenValidityResolver refreshTokenValidityResolver,
                                TokenEndpointBuilder tokenEndpointBuilder,
-                               TimeService timeService) {
+                               TimeService timeService,
+                               KeyInfoService keyInfoService) {
         this.isRestrictRefreshGrant = isRestrictRefreshGrant;
         this.refreshTokenValidityResolver = refreshTokenValidityResolver;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.timeService = timeService;
+        this.keyInfoService = keyInfoService;
     }
 
     public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
@@ -123,11 +126,11 @@ public class RefreshTokenCreator {
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        return JwtHelper.encode(content, getActiveKeyInfo().getSigner()).getEncoded();
+        return JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
     }
 
     private KeyInfo getActiveKeyInfo() {
-        return ofNullable(KeyInfo.getActiveKey())
+        return ofNullable(keyInfoService.getActiveKey())
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 

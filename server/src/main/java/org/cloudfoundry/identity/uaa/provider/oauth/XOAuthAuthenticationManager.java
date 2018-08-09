@@ -23,6 +23,8 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -73,6 +75,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -112,11 +115,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
 
-
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private KeyInfoService keyInfoService;
 
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
+    private String uaaUrl; //TODO: inject via spring
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
                                        RestTemplate trustingRestTemplate,
@@ -498,7 +502,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     protected String hmacSignAndEncode(String data, String key) throws Exception {
-        Signer signer = new CommonSigner("",key, "http://localhost/uaa");
+        Signer signer = KeyInfoBuilder.build("", key, "").getSigner();
         return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 
@@ -509,10 +513,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         TokenValidation validation;
         if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
             tokenKey = getTokenKeyForUaaOrigin();
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey));
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey), uaaUrl);
         } else {
             tokenKey = getTokenKeyFromOAuth(config);
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey))
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey), uaaUrl)
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());
         }
@@ -520,7 +524,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     protected JsonWebKeySet<JsonWebKey> getTokenKeyForUaaOrigin() {
-        Map<String, KeyInfo> keys = KeyInfo.getKeys();
+        Map<String, KeyInfo> keys = keyInfoService.getKeys();
         List<Map<String, Object>> resultMaps = keys.values().stream()
             .map(TokenKeyEndpoint::getResultMap)
             .collect(Collectors.toList());
@@ -528,11 +532,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config) {
+
         String tokenKey = config.getTokenKey();
         if (StringUtils.hasText(tokenKey)) {
             Map<String, Object> p = new HashMap<>();
             p.put("value", tokenKey);
-            p.put("kty", KeyInfo.isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
+            p.put("kty", KeyInfoBuilder.build("", tokenKey, "").type());
             logger.debug("Key configured, returning.");
             return new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(p)));
         }
@@ -618,6 +623,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+    }
+
+    public KeyInfoService getKeyInfoService() {
+        return keyInfoService;
+    }
+
+    public void setKeyInfoService(KeyInfoService keyInfoService) {
+        this.keyInfoService = keyInfoService;
     }
 
     protected static class AuthenticationData {

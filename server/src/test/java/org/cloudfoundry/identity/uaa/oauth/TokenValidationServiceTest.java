@@ -73,7 +73,9 @@ public class TokenValidationServiceTest {
                 revocableTokenProvisioning,
                 tokenEndpointBuilder,
                 userDatabase,
-                clientServicesExtension);
+                clientServicesExtension,
+                "http://localhost:8080/uaa"
+        );
     }
 
     @After
