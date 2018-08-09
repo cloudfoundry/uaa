@@ -22,10 +22,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -82,12 +82,31 @@ public class UaaTokenServicesTests {
 
         UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
         UaaPrincipal principal = new UaaPrincipal(uaaUser);
-        UaaAuthentication userAuthentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+        UaaAuthentication userAuthentication = new UaaAuthentication(principal, null, EMPTY_LIST, null, true, System.currentTimeMillis());
         OAuth2Authentication auth2Authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
 
         Jwt jwtToken = JwtHelper.decode(accessToken.getIdTokenValue());
+        assertThat(jwtToken.getHeader().getJku(), startsWith(uaaUrl));
+        assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
+    }
+
+    @Test
+    public void ensureJKUHeaderIsSetWhenBuildingARefreshToken() {
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList("oauth.approvals"));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+        UaaPrincipal principal = new UaaPrincipal(uaaUser);
+        UaaAuthentication userAuthentication = new UaaAuthentication(principal, null, EMPTY_LIST, null, true, System.currentTimeMillis());
+        OAuth2Authentication auth2Authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+
+        Jwt jwtToken = JwtHelper.decode(accessToken.getRefreshToken().getValue());
         assertThat(jwtToken.getHeader().getJku(), startsWith(uaaUrl));
         assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
     }

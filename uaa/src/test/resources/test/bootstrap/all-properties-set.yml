@@ -95,7 +95,7 @@ jwt:
       enabled: false
     refresh:
       format: opaque
-      restrict_grant: true
+      restrict_grant: false
       unique: true
     revocable: true
 ldap:
@@ -510,10 +510,10 @@ oauth:
       id: login
     jku_test:
       authorities: uaa.none
-      authorized-grant-types: password,client_credentials
+      authorized-grant-types: password,client_credentials,refresh_token
       autoapprove: true
       override: true
-      scope: openid
+      scope: openid,oauth.approvals
       secret: secret
       id: jku_test
     notifications:
