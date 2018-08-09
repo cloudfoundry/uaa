@@ -35,12 +35,12 @@ public class UaaBaseSuite {
     }
 
     @BeforeClass
-    public static void suiteIsActive() throws Exception {
+    public static void suiteIsActive() {
         suiteActive = true;
     }
 
     @AfterClass
-    public static void suiteIsNotActive() throws Exception {
+    public static void suiteIsNotActive() {
         suiteActive = false;
     }
 

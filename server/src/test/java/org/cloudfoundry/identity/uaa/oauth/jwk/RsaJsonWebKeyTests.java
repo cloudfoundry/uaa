@@ -39,15 +39,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 public class RsaJsonWebKeyTests {
-
-    public static final String ISSUER = "http://localhost:8080/issuer";
+    private static final String ISSUER = "http://localhost:8080/issuer";
 
     @Test
     public void create_key_from_pem_string() {
         Base64 base64 = new Base64(true);
         KeyInfo keyInfo = new KeyInfo();
         keyInfo.setKeyId("id");
-        keyInfo.setSigningKey(sampleRsaPrivateKey);
+        keyInfo.setSigningKey(sampleRsaPrivateKey, null);
         assertEquals("RSA", keyInfo.getType());
         assertNotNull(keyInfo.getVerifier());
         PublicKey pk = keyInfo.getRsaPublicKey();
@@ -71,7 +70,7 @@ public class RsaJsonWebKeyTests {
         Base64 base64 = new Base64(true);
         KeyInfo keyInfo = new KeyInfo();
         keyInfo.setKeyId("id");
-        keyInfo.setSigningKey(sampleRsaPrivateKey);
+        keyInfo.setSigningKey(sampleRsaPrivateKey, null);
         assertEquals("RSA", keyInfo.getType());
         assertNotNull(keyInfo.getVerifier());
         PublicKey pk = keyInfo.getRsaPublicKey();
@@ -151,7 +150,7 @@ public class RsaJsonWebKeyTests {
         assertEquals(new VerificationKeyResponse(p1), new VerificationKeyResponse(p2));
     }
 
-    public void test_create_with_error(Map p) {
+    private void test_create_with_error(Map p) {
         try {
             new VerificationKeyResponse(p);
             fail("Creation of key with properties:"+p+" should fail.");
@@ -159,7 +158,7 @@ public class RsaJsonWebKeyTests {
     }
 
 
-    public JsonWebKeySet<JsonWebKey> deserialize_azure_keys(String json) {
+    private JsonWebKeySet<JsonWebKey> deserialize_azure_keys(String json) {
         JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(json, new TypeReference<JsonWebKeySet<JsonWebKey>>() {});
         assertNotNull(keys);
         assertNotNull(keys.getKeys());
@@ -172,7 +171,7 @@ public class RsaJsonWebKeyTests {
         return keys;
     }
 
-    protected static final String sampleRsaPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    private static final String sampleRsaPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3\n" +
         "AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU\n" +
         "JN1i1aSUlunPS/NCz+BKwwKFP9Ss3rNImE9Uc2LMvGy153LHFVW2zrjhTwIDAQAB\n" +
@@ -188,7 +187,7 @@ public class RsaJsonWebKeyTests {
         "waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==\n" +
         "-----END RSA PRIVATE KEY-----";
 
-    protected static final String sampleRsaKeys = "{\n" +
+    private static final String sampleRsaKeys = "{\n" +
         "    \"keys\": [\n" +
         "        {\n" +
         "            \"e\": \"AQAB\",\n" +

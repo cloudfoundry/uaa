@@ -22,11 +22,11 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.EventListener;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
-
     private static volatile XmlWebApplicationContext webApplicationContext;
 
     public static Class<?>[] suiteClasses() {
@@ -35,28 +35,34 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         //Class<?>[] result = new Class[] {IdentityProviderEndpointsMockMvcTests.class, SamlIDPRefreshMockMvcTests.class};
         //for now, sort the test classes until we have figured out all
         //test poisoning that is occurring
-        Arrays.sort(result, (o1, o2) -> o1.getSimpleName().compareTo(o2.getSimpleName()));
+        Arrays.sort(result, Comparator.comparing(Class::getSimpleName));
         return result;
     }
 
     public DefaultConfigurationTestSuite() {
     }
 
-
-    public static void clearDatabase() throws Exception {
+    public static void clearDatabase() {
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(getMockEnvironment());
-        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.setConfigLocations("classpath:spring/env.xml", "classpath:spring/data-source.xml");
         webApplicationContext.refresh();
         webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
     }
 
     @BeforeClass
-    public static void setUpContextVoid() throws Exception {
+    public static void setUpContextVoid() {
         setUpContext();
     }
-    public static XmlWebApplicationContext setUpContext() throws Exception {
+
+    @AfterClass
+    public static void destroyMyContext() {
+        webApplicationContext.destroy();
+        webApplicationContext = null;
+    }
+
+    public static XmlWebApplicationContext setUpContext() {
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = getMockEnvironment();
         webApplicationContext.setEnvironment(mockEnvironment);
@@ -66,7 +72,8 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
                 //no op
             }
         });
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "endpoint_test_config.yml,uaa.yml,login.yml,required_configuration.yml");
+        new YamlServletProfileInitializerContextInitializer()
+          .initializeContext(webApplicationContext, "endpoint_test_config.yml,uaa.yml,login.yml,required_configuration.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
@@ -74,7 +81,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         return webApplicationContext;
     }
 
-    protected static MockEnvironment getMockEnvironment() {
+    private static MockEnvironment getMockEnvironment() {
         MockEnvironment mockEnvironment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
             mockEnvironment.setProperty("spring_profiles", System.getProperty("spring.profiles.active"));
@@ -83,12 +90,4 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         }
         return mockEnvironment;
     }
-
-    @AfterClass
-    public static void destroyMyContext() throws Exception {
-        //webApplicationContext.getBean(Flyway.class).clean();
-        webApplicationContext.destroy();
-        webApplicationContext = null;
-    }
-
 }

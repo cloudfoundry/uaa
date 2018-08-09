@@ -41,35 +41,35 @@ public class CommonSignerTest {
 
     @Test
     public void test_rsa_key_null_id() {
-        CommonSigner signer = new CommonSigner(null, rsaSigningKey);
+        CommonSigner signer = new CommonSigner(null, rsaSigningKey, "http://localhost/uaa");
         assertEquals("RS256", signer.algorithm());
         assertNull(signer.keyId());
     }
 
     @Test
     public void test_rsa_key_with_id() {
-        CommonSigner signer = new CommonSigner("id", rsaSigningKey);
+        CommonSigner signer = new CommonSigner("id", rsaSigningKey, "http://localhost/uaa");
         assertEquals("RS256", signer.algorithm());
         assertEquals("id", signer.keyId());
     }
 
     @Test
     public void test_mac_key_null_id() {
-        CommonSigner signer = new CommonSigner(null, macSigningKey);
+        CommonSigner signer = new CommonSigner(null, macSigningKey, "http://localhost/uaa");
         assertEquals("HS256", signer.algorithm());
         assertNull(signer.keyId());
     }
 
     @Test
     public void test_mac_key_with_id() {
-        CommonSigner signer = new CommonSigner("id", macSigningKey);
+        CommonSigner signer = new CommonSigner("id", macSigningKey, "http://localhost/uaa");
         assertEquals("HS256", signer.algorithm());
         assertEquals("id", signer.keyId());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void null_key_is_rejected() {
-        new CommonSigner("id", null);
+        new CommonSigner("id", null, "http://localhost/uaa");
     }
 
 }

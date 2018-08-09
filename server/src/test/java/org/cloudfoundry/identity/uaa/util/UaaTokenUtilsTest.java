@@ -1,15 +1,3 @@
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
@@ -48,7 +36,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 public class UaaTokenUtilsTest {
 
     @Test
-    public void testRevocationHash() throws Exception {
+    public void testRevocationHash() {
         List<String> salts = new LinkedList<>();
         for (int i=0; i<3; i++) {
             salts.add(new RandomValueStringGenerator().generate());
@@ -98,7 +86,7 @@ public class UaaTokenUtilsTest {
    }
 
     @Test
-    public void required_user_groups_null_args_are_ok() throws Exception {
+    public void required_user_groups_null_args_are_ok() {
         assertTrue(hasRequiredUserAuthorities(null, null));
         assertTrue(hasRequiredUserAuthorities(emptySet(), null));
         assertTrue(hasRequiredUserAuthorities(null, emptySet()));
@@ -106,7 +94,7 @@ public class UaaTokenUtilsTest {
     }
 
     @Test
-    public void test_required_user_authorities_invalid() throws Exception {
+    public void test_required_user_authorities_invalid() {
         List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3","scope4");
         List<GrantedAuthority> userGroups = Arrays.asList(
             new SimpleGrantedAuthority("scope1"),
@@ -119,7 +107,7 @@ public class UaaTokenUtilsTest {
     }
 
     @Test
-    public void test_required_user_authorities_valid() throws Exception {
+    public void test_required_user_authorities_valid() {
         List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
         List<GrantedAuthority> userGroups = Arrays.asList(
             new SimpleGrantedAuthority("scope1"),
@@ -132,14 +120,14 @@ public class UaaTokenUtilsTest {
 
 
     @Test
-    public void test_required_user_groups_invalid() throws Exception {
+    public void test_required_user_groups_invalid() {
         List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3", "scope5");
         List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
         assertFalse(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
     }
 
     @Test
-    public void test_required_user_groups_valid() throws Exception {
+    public void test_required_user_groups_valid() {
         List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
         List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
         assertTrue(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
@@ -168,7 +156,7 @@ public class UaaTokenUtilsTest {
 
     @Test(expected = InvalidTokenException.class)
     public void getClaims_throwsExceptionWhenClaimsCannotBeRead() {
-        Signer signer = new CommonSigner("foo", "bar");
+        Signer signer = new CommonSigner("foo", "bar", "http://localhost/uaa");
         Jwt encoded = JwtHelper.encode("great content", signer);
         UaaTokenUtils.getClaims(encoded.getEncoded());
     }

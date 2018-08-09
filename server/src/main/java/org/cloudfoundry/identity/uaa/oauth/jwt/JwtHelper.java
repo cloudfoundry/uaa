@@ -1,31 +1,10 @@
-/*
- * Copyright 2006-2011 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.jwt.BinaryFormat;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.CharBuffer;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
 import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
@@ -76,13 +55,6 @@ public class JwtHelper {
         return new JwtImpl(header, claims, crypto);
     }
 
-    public static Jwt decodeAndVerify(String token, SignatureVerifier verifier) {
-        Jwt jwt = decode(token);
-        jwt.verifySignature(verifier);
-
-        return jwt;
-    }
-
     public static Jwt encode(CharSequence content, Signer signer) {
         JwtHeader header = JwtHeaderHelper.create(signer);
         byte[] claims = utf8Encode(content);
@@ -106,7 +78,7 @@ class JwtHeaderHelper {
 
     static JwtHeader create(Signer signer) {
         HeaderParameters headerParameters =
-          new HeaderParameters(signer.algorithm(), null, null, signer.keyId());
+          new HeaderParameters(signer.algorithm(), null, null, signer.keyId(), signer.keyURL());
 
         return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
     }

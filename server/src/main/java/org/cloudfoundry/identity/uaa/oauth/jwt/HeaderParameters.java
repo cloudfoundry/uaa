@@ -9,9 +9,11 @@ public class HeaderParameters {
     @JsonProperty
     String enc;
     @JsonProperty
-    String kid;
-    @JsonProperty
     String iv;
+    @JsonProperty
+    String jku;
+    @JsonProperty
+    String kid;
     @JsonProperty
     String typ;
 
@@ -24,6 +26,7 @@ public class HeaderParameters {
                      String enc,
                      String iv,
                      String kid,
+                     String jku,
                      String typ) {
         if (alg == null) {
             throw new IllegalArgumentException("alg is required");
@@ -31,6 +34,7 @@ public class HeaderParameters {
         this.alg = alg;
         this.enc = enc;
         this.iv = iv;
+        this.jku = jku;
         this.kid = kid;
         this.typ = typ;
     }
@@ -38,8 +42,13 @@ public class HeaderParameters {
     HeaderParameters(String alg,
                      String enc,
                      String iv,
-                     String kid) {
-        this(alg, enc, iv, kid, JWT);
+                     String kid,
+                     String jku) {
+        this(alg, enc, iv, kid, jku, JWT);
+    }
+
+    public String getAlg() {
+        return alg;
     }
 
     public void setAlg(String alg) {
@@ -50,16 +59,36 @@ public class HeaderParameters {
         this.alg = alg;
     }
 
+    public String getEnc() {
+        return enc;
+    }
+
     public void setEnc(String enc) {
         this.enc = enc;
+    }
+
+    public void setIv(String iv) {
+        this.iv = iv;
+    }
+
+    public String getIv() {
+        return iv;
+    }
+
+    public String getJku() {
+        return jku;
+    }
+
+    public void setJku(String jku) {
+        this.jku = jku;
     }
 
     public void setKid(String kid) {
         this.kid = kid;
     }
 
-    public void setIv(String iv) {
-        this.iv = iv;
+    public String getKid() {
+        return kid;
     }
 
     public void setTyp(String typ) {
@@ -69,23 +98,8 @@ public class HeaderParameters {
         this.typ = typ;
     }
 
-    public String getEnc() {
-        return enc;
-    }
-
-    public String getIv() {
-        return iv;
-    }
-
     public String getTyp() {
         return typ;
     }
 
-    public String getKid() {
-        return kid;
-    }
-
-    public String getAlg() {
-        return alg;
-    }
 }

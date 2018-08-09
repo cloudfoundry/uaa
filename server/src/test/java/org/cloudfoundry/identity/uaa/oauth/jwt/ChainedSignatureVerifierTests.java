@@ -50,7 +50,6 @@ public class ChainedSignatureVerifierTests {
 
     private String content;
     private Jwt signedValidContent;
-    private Jwt signedInvalidContent;
 
     private JsonWebKey validKey;
     private JsonWebKey invalidKey;
@@ -68,7 +67,7 @@ public class ChainedSignatureVerifierTests {
             "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
             "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
             "-----END RSA PRIVATE KEY-----";
-        signer = new CommonSigner("valid", rsaSigningKey);
+        signer = new CommonSigner("valid", rsaSigningKey, "http://localhost/uaa");
 
         invalidRsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
@@ -80,11 +79,10 @@ public class ChainedSignatureVerifierTests {
             "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
             "-----END RSA PRIVATE KEY-----";
 
-        invalidSigner = new CommonSigner("invalid", invalidRsaSigningKey);
+        invalidSigner = new CommonSigner("invalid", invalidRsaSigningKey, "http://localhost/uaa");
 
         content = new RandomValueStringGenerator(1024 * 4).generate();
         signedValidContent = JwtHelper.encode(content, signer);
-        signedInvalidContent = JwtHelper.encode(content, invalidSigner);
 
         validKey = JsonWebKeyHelper.fromPEMPrivateKey(rsaSigningKey);
         invalidKey = JsonWebKeyHelper.fromPEMPrivateKey(invalidRsaSigningKey);

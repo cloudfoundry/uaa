@@ -498,7 +498,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     protected String hmacSignAndEncode(String data, String key) throws Exception {
-        Signer signer = new CommonSigner("",key);
+        Signer signer = new CommonSigner("",key, "http://localhost/uaa");
         return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 

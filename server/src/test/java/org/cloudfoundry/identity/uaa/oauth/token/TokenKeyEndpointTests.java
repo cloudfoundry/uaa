@@ -1,17 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
@@ -57,45 +46,46 @@ public class TokenKeyEndpointTests {
     private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint();
     private Authentication validUaaResource;
     private final String SIGNING_KEY_1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-        "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
-        "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
-        "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
-        "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
-        "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
-        "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
-        "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
-        "-----END RSA PRIVATE KEY-----";
+      "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
+      "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
+      "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
+      "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
+      "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
+      "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
+      "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
+      "-----END RSA PRIVATE KEY-----";
     private final String SIGNING_KEY_2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
-            "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
-            "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
-            "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
-            "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
-            "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
-            "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
-            "-----END RSA PRIVATE KEY-----";
+      "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
+      "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
+      "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
+      "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
+      "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
+      "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
+      "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
+      "-----END RSA PRIVATE KEY-----";
     private final String SIGNING_KEY_3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
-            "DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw\n" +
-            "Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ\n" +
-            "LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ\n" +
-            "/neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R\n" +
-            "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
-            "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
-            "-----END RSA PRIVATE KEY-----";
+      "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
+      "DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw\n" +
+      "Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ\n" +
+      "LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ\n" +
+      "/neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R\n" +
+      "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
+      "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
+      "-----END RSA PRIVATE KEY-----";
 
     @Before
     public void setUp() throws Exception {
-        validUaaResource = new UsernamePasswordAuthenticationToken("client_id",null, Collections.singleton(new SimpleGrantedAuthority("uaa.resource")));
+        KeyInfo.setUaaBaseURL("http://uaa.example.com/");
+        validUaaResource = new UsernamePasswordAuthenticationToken("client_id", null, Collections.singleton(new SimpleGrantedAuthority("uaa.resource")));
     }
 
     @After
-    public void cleanUp() throws Exception {
+    public void cleanUp() {
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
+    public void sharedSecretIsReturnedFromTokenKeyEndpoint() {
         configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
         assertEquals("HS256", response.getAlgorithm());
@@ -105,25 +95,13 @@ public class TokenKeyEndpointTests {
         assertEquals("sig", response.getUse().name());
     }
 
-    private void configureKeysForDefaultZone(Map<String,String> keys) {
-        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
-        IdentityZoneHolder.setProvisioning(provisioning);
-        IdentityZone zone = IdentityZone.getUaa();
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(keys);
-        config.setTokenPolicy(tokenPolicy);
-        zone.setConfig(config);
-        when(provisioning.retrieve("uaa")).thenReturn(zone);
-    }
-
     @Test(expected = AccessDeniedException.class)
-    public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
+    public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() {
         configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "someKey"));
         assertEquals("{alg=HMACSHA256, value=someKey}",
-            tokenKeyEndpoint.getKey(
-                new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
-                    .createAuthorityList("ROLE_ANONYMOUS"))).toString());
+          tokenKeyEndpoint.getKey(
+            new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
+              .createAuthorityList("ROLE_ANONYMOUS"))).toString());
     }
 
     @Test
@@ -158,7 +136,7 @@ public class TokenKeyEndpointTests {
     }
 
     @Test
-    public void defaultZonekeyIsReturned_ForZoneWithNoKeys() {
+    public void defaultZoneKeyIsReturned_ForZoneWithNoKeys() {
         configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
         createAndSetTestZoneWithKeys(null);
 
@@ -172,7 +150,7 @@ public class TokenKeyEndpointTests {
     }
 
     @Test
-    public void listResponseContainsAllPublicKeysWhenUnauthenticated() throws Exception {
+    public void listResponseContainsAllPublicKeysWhenUnauthenticated() {
         Map<String, String> keysForUaaZone = new HashMap<>();
         keysForUaaZone.put("RsaKey1", SIGNING_KEY_1);
         keysForUaaZone.put("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM");
@@ -205,15 +183,15 @@ public class TokenKeyEndpointTests {
 
         //ensure that none of the keys are padded
         keys.forEach(
-            key ->
-                assertFalse("Invalid padding for key:"+key.getKid(),
-                           key.getExponent().endsWith("=") ||
-                           key.getModulus().endsWith("="))
+          key ->
+            assertFalse("Invalid padding for key:" + key.getKid(),
+              key.getExponent().endsWith("=") ||
+                key.getModulus().endsWith("="))
         );
     }
 
     @Test
-    public void listResponseContainsAllKeysWhenAuthenticated() throws Exception {
+    public void listResponseContainsAllKeysWhenAuthenticated() {
         Map<String, String> keysForUaaZone = new HashMap<>();
         keysForUaaZone.put("RsaKey1", SIGNING_KEY_1);
         keysForUaaZone.put("RsaKey2", SIGNING_KEY_2);
@@ -231,7 +209,7 @@ public class TokenKeyEndpointTests {
     }
 
     @Test
-    public void tokenKeyEndpoint_ReturnsAllKeysForZone() throws Exception {
+    public void tokenKeyEndpoint_ReturnsAllKeysForZone() {
         Map<String, String> keys = new HashMap<>();
         keys.put("key1", SIGNING_KEY_1);
         keys.put("key2", SIGNING_KEY_2);
@@ -244,7 +222,7 @@ public class TokenKeyEndpointTests {
     }
 
     @Test
-    public void responseHeaderIncludesEtag() throws Exception {
+    public void responseHeaderIncludesEtag() {
         createAndSetTestZoneWithKeys(Collections.singletonMap("key1", SIGNING_KEY_1));
 
         ResponseEntity<VerificationKeyResponse> keyResponse = tokenKeyEndpoint.getKey(mock(Principal.class), "NaN");
@@ -257,7 +235,7 @@ public class TokenKeyEndpointTests {
     }
 
     @Test
-    public void returns304IfUnmodified() throws Exception {
+    public void returns304IfUnmodified() {
         IdentityZone zone = createAndSetTestZoneWithKeys(null);
 
         String lastModified = String.valueOf(zone.getLastModified().getTime());
@@ -279,5 +257,17 @@ public class TokenKeyEndpointTests {
         IdentityZoneHolder.set(zone);
 
         return zone;
+    }
+
+    private void configureKeysForDefaultZone(Map<String, String> keys) {
+        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
+        IdentityZoneHolder.setProvisioning(provisioning);
+        IdentityZone zone = IdentityZone.getUaa();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(provisioning.retrieve("uaa")).thenReturn(zone);
     }
 }

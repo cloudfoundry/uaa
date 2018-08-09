@@ -34,7 +34,7 @@ public final class LegacyTokenKey {
         LegacyTokenKey.legacySigningKey = legacySigningKey;
         LegacyTokenKey.keyInfo = new KeyInfo();
         LegacyTokenKey.keyInfo.setKeyId(LEGACY_TOKEN_KEY_ID);
-        LegacyTokenKey.keyInfo.setSigningKey(legacySigningKey);
+        LegacyTokenKey.keyInfo.setSigningKey(legacySigningKey, null);
     }
 
     public static String getLegacySigningKey() {

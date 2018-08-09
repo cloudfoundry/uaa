@@ -44,16 +44,18 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.security.jwt.codec.Codecs.b64Decode;
 import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public class KeyInfo {
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
     private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
+    private static String uaaBaseURL;
     private String keyId;
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
-    private Signer signer = new CommonSigner(null, verifierKey);
+    private Signer signer = new CommonSigner(null, verifierKey, null);
     private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
     private RSAPublicKey rsaPublicKey;
@@ -76,7 +78,8 @@ public class KeyInfo {
         for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
             KeyInfo keyInfo = new KeyInfo();
             keyInfo.setKeyId(entry.getKey());
-            keyInfo.setSigningKey(entry.getValue());
+            keyInfo.setSigningKey(entry.getValue(), addSubdomainToUrl(uaaBaseURL));
+
             keys.put(entry.getKey(), keyInfo);
         }
 
@@ -110,6 +113,10 @@ public class KeyInfo {
         }
 
         return activeKeyId;
+    }
+
+    public static void setUaaBaseURL(String uaaBaseURL) {
+        KeyInfo.uaaBaseURL = uaaBaseURL;
     }
 
     public Signer getSigner() {
@@ -161,8 +168,9 @@ public class KeyInfo {
      * as produced by <tt>ssh-keygen</tt>.
      *
      * @param signingKey the key to be used for signing JWTs.
+     * @param keyURL
      */
-    public void setSigningKey(String signingKey) {
+    public void setSigningKey(String signingKey, String keyURL) {
         if (StringUtils.isEmpty(signingKey)) {
             throw new IllegalArgumentException("Signing key cannot be empty");
         }
@@ -171,7 +179,7 @@ public class KeyInfo {
         signingKey = signingKey.trim();
 
         this.signingKey = signingKey;
-        this.signer = new CommonSigner(keyId, signingKey);
+        this.signer = new CommonSigner(keyId, signingKey, keyURL);
 
         if (isAssymetricKey(signingKey)) {
             KeyPair keyPair = KeyInfo.parseKeyPair(signingKey);
@@ -196,7 +204,7 @@ public class KeyInfo {
             throw new IllegalArgumentException("KeyId should not be null or empty");
         }
         this.keyId = keyId;
-        this.signer = new CommonSigner(keyId, signingKey);
+        this.signer = new CommonSigner(keyId, signingKey, "http://localhost/uaa");
     }
 
     public static KeyPair parseKeyPair(String pemData) {

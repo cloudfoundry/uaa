@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
@@ -90,6 +91,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setSigningKeyAndDefaultClient() throws Exception {
+        KeyInfo.setUaaBaseURL("http://uaa.example.com");
         setSigningKeyAndDefaultClient(signKey);
     }
 
