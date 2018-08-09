@@ -26,12 +26,10 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
-import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -59,6 +57,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
@@ -75,7 +74,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -120,7 +118,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
-    private String uaaUrl; //TODO: inject via spring
+    private String uaaUrl;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
                                        RestTemplate trustingRestTemplate,
@@ -502,33 +500,37 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     protected String hmacSignAndEncode(String data, String key) throws Exception {
-        Signer signer = KeyInfoBuilder.build("", key, "").getSigner();
+        Signer signer = KeyInfoBuilder.build("", key, uaaUrl).getSigner();
         return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
         logger.debug("Validating id_token");
 
-        JsonWebKeySet tokenKey;
         TokenValidation validation;
+
         if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
-            tokenKey = getTokenKeyForUaaOrigin();
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey), uaaUrl);
+            List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), uaaUrl);
         } else {
-            tokenKey = getTokenKeyFromOAuth(config);
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKey), uaaUrl)
+            JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), uaaUrl)
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());
         }
         return validation.checkExpiry();
     }
 
-    protected JsonWebKeySet<JsonWebKey> getTokenKeyForUaaOrigin() {
+    protected List<SignatureVerifier> getTokenKeyForUaaOrigin() {
         Map<String, KeyInfo> keys = keyInfoService.getKeys();
-        List<Map<String, Object>> resultMaps = keys.values().stream()
-            .map(TokenKeyEndpoint::getResultMap)
-            .collect(Collectors.toList());
-        return JsonWebKeyHelper.fromResultMaps(resultMaps);
+        return keys.values().stream()
+          .map(i -> i.getVerifier())
+          .collect(Collectors.toList());
+
+    }
+
+    private static boolean isAssymetricKey(String key) {
+        return key.startsWith("-----BEGIN");
     }
 
     private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config) {
@@ -537,7 +539,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         if (StringUtils.hasText(tokenKey)) {
             Map<String, Object> p = new HashMap<>();
             p.put("value", tokenKey);
-            p.put("kty", KeyInfoBuilder.build("", tokenKey, "").type());
+            p.put("kty", isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
             logger.debug("Key configured, returning.");
             return new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(p)));
         }
@@ -631,6 +633,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     public void setKeyInfoService(KeyInfoService keyInfoService) {
         this.keyInfoService = keyInfoService;
+    }
+
+    public void setUaaUrl(String uaaUrl) {
+        this.uaaUrl = uaaUrl;
     }
 
     protected static class AuthenticationData {

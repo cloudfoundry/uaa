@@ -402,6 +402,7 @@
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
         <property name="keyInfoService" ref="keyInfoService"/>
+        <property name="uaaUrl" value="${uaa.url}"/>
     </bean>
 
     <bean id="xOauthCallbackAuthenticationFilter" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">

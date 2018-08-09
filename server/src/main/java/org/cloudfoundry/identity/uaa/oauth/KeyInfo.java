@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
@@ -23,7 +23,6 @@ import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -134,7 +133,7 @@ class HmacKeyInfo extends KeyInfo {
 
 class RsaKeyInfo extends KeyInfo {
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
-    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
+    private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
     private final String keyId;
     private final String keyUrl;
 
@@ -264,9 +263,9 @@ class RsaKeyInfo extends KeyInfo {
 
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
         if (rsaKey != null) {
-            Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-            String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
-            String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
+            Base64 base64 = new Base64(true);
+            String n = base64.encodeAsString(rsaKey.getModulus().toByteArray());
+            String e = base64.encodeAsString(rsaKey.getPublicExponent().toByteArray());
             result.put("n", n);
             result.put("e", e);
         }

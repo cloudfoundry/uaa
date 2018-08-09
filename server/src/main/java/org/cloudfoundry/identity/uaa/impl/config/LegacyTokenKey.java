@@ -13,17 +13,12 @@ public final class LegacyTokenKey {
     private LegacyTokenKey() {
     }
 
-    public static void setLegacySigningKey(String legacySigningKey, String keyUrl) {
+    public static void setLegacySigningKey(String legacySigningKey, String uaaUrl) {
         if (!StringUtils.hasText(legacySigningKey)) {
             return;
         }
 
-        if (!UaaUrlUtils.isUrl(keyUrl)) {
-            throw new IllegalArgumentException("Invalid key URL");
-        }
-
-        String secureTokenKeyUrl = UriComponentsBuilder.fromHttpUrl(keyUrl).scheme("https").path("token_keys").build().toUriString();
-        LegacyTokenKey.keyInfo = KeyInfoBuilder.build(LEGACY_TOKEN_KEY_ID, legacySigningKey, secureTokenKeyUrl);
+        LegacyTokenKey.keyInfo = KeyInfoBuilder.build(LEGACY_TOKEN_KEY_ID, legacySigningKey, uaaUrl);
     }
 
     public static KeyInfo getLegacyTokenKeyInfo() {

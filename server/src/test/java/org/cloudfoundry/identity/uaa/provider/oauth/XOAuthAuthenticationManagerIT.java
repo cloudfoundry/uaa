@@ -227,6 +227,8 @@ public class XOAuthAuthenticationManagerIT {
         xoAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         xoAuthAuthenticationManager.setTokenEndpointBuilder(tokenEndpointBuilder);
+        xoAuthAuthenticationManager.setKeyInfoService(new KeyInfoService(UAA_ISSUER_URL));
+        xoAuthAuthenticationManager.setUaaUrl(UAA_ISSUER_URL);
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
           entry("sub", "12345"),
@@ -748,7 +750,7 @@ public class XOAuthAuthenticationManagerIT {
         config.setTokenKeyUrl(new URL("http://oidc10.oms.identity.team/token_key"));
         config.setTokenKey(null);
 
-        KeyInfo key = KeyInfoBuilder.build("correctKey", PRIVATE_KEY, null);
+        KeyInfo key = KeyInfoBuilder.build("correctKey", PRIVATE_KEY, UAA_ISSUER_URL);
         VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
         String response = JsonUtils.writeValueAsString(verificationKeyResponse);
 
@@ -1068,7 +1070,7 @@ public class XOAuthAuthenticationManagerIT {
     }
 
     private String getKeyJson(String signingKey, String keyId, boolean list) {
-        KeyInfo key = KeyInfoBuilder.build(keyId, signingKey, null);
+        KeyInfo key = KeyInfoBuilder.build(keyId, signingKey, UAA_ISSUER_URL);
         VerificationKeyResponse keyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
         Object verificationKeyResponse = list ? new VerificationKeysListResponse(Collections.singletonList(keyResponse)) : keyResponse;
         return JsonUtils.writeValueAsString(verificationKeyResponse);

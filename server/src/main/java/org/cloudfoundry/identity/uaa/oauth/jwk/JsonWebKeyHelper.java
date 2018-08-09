@@ -33,8 +33,4 @@ public class JsonWebKeyHelper {
             });
         }
     }
-
-    public static JsonWebKeySet<JsonWebKey> fromResultMaps(List<Map<String, Object>> resultMaps) {
-        return new JsonWebKeySet<>(resultMaps.stream().map(JsonWebKey::new).collect(Collectors.toList()));
-    }
 }

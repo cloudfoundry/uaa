@@ -33,7 +33,7 @@ public class LegacyTokenKeyTest {
     @Test
     public void buildLegacyTokenKey_withInvalidKeyUrl() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid key URL");
+        expectedException.expectMessage("Invalid Key URL");
 
         LegacyTokenKey.setLegacySigningKey("secret", "not a valid url");
     }
