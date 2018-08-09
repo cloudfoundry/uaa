@@ -537,7 +537,7 @@
         <constructor-arg name="timeService" ref="timeService"/>
         <constructor-arg name="tokenValidityResolver" ref="accessTokenValidityResolver"/>
         <constructor-arg name="uaaUserDatabase" ref="userDatabase"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
         <constructor-arg name="excludedClaims" ref="excludedClaims"/>
     </bean>
 
