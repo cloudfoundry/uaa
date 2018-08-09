@@ -2446,13 +2446,21 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
 
         getMockMvc().perform(post("/login/idp_discovery")
-                                 .with(cookieCsrf())
+            .with(cookieCsrf())
             .header("Accept", TEXT_HTML)
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
+
+        getMockMvc().perform(get("/login?discoveryPerformed=true&email=marissa%40other.domain")
+            .with(cookieCsrf())
+            .header("Accept",TEXT_HTML)
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(model().attributeExists("zone_name"))
-            .andExpect(view().name("idp_discovery/password"));
+            .andExpect(view().name("login"));
     }
 
     @Test
@@ -2483,10 +2491,21 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void passwordPageDisplayed_ifUaaIsFallbackIDPForEmailDomain() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZone(config);
         getMockMvc().perform(post("/login/idp_discovery")
             .header("Accept", TEXT_HTML)
             .with(cookieCsrf())
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
             .param("email", "marissa@koala.com"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40koala.com"));
+
+        getMockMvc().perform(get("/login?discoveryPerformed=true&email=marissa@koala.com")
+            .with(cookieCsrf())
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
+            .header("Accept", TEXT_HTML))
             .andExpect(view().name("idp_discovery/password"))
             .andExpect(xpath("//input[@name='password']").exists())
             .andExpect(xpath("//input[@name='username']/@value").string("marissa@koala.com"))
@@ -2499,19 +2518,35 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(post("/login/idp_discovery")
-                                 .with(cookieCsrf())
-            .header("Accept", TEXT_HTML)
-            .param("email", "marissa@koala.org"))
-            .andExpect(status().isOk())
-            .andExpect(xpath("//div[@class='action pull-right']//a").doesNotExist());
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .param("email", "marissa@koala.org"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40koala.org"));
+
+        getMockMvc().perform(get("/login?discoveryPerformed=true&email=marissa%40koala.org")
+                .with(cookieCsrf())
+                .header("Accept",TEXT_HTML))
+                .andExpect(status().isOk())
+                .andExpect(xpath("//div[@class='action pull-right']//a").doesNotExist());
     }
 
     @Test
     public void userNamePresentInPasswordPage() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZone(config);
         getMockMvc().perform(post("/login/idp_discovery")
-                                 .with(cookieCsrf())
-            .param("email", "test@email.com"))
-            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"));
+                .with(cookieCsrf())
+                .param("email", "test@email.com")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=test%40email.com"));
+
+        getMockMvc().perform(get("/login?discoveryPerformed=true&email=test@email.com")
+                .with(cookieCsrf())
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"));
     }
 
     @Test
