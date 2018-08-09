@@ -321,20 +321,7 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="emails\.value" value="email" />
-                        <entry key="groups\.display" value="authorities" />
-                        <entry key="phoneNumbers\.value" value="phoneNumber" />
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
-    </bean>
+
 
 
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
@@ -376,6 +363,8 @@
     <import resource="spring/openid-endpoints.xml" />
     <import resource="spring/password-endpoints.xml" />
     <import resource="spring/codestore-endpoints.xml" />
+    <import resource="spring/authentication.xml" />
+    <import resource="spring/identity-zones.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
       <property name="basenames">
@@ -385,8 +374,6 @@
         </list>
       </property>
     </bean>
-
-    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
     <bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
 
@@ -410,41 +397,11 @@
         </constructor-arg>
     </bean>
 
-    <bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-        <property name="realmName" value="UAA/oauth" />
-    </bean>
-
-    <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
-
-
     <import resource="spring/saml-providers.xml"/>
     <import resource="spring/saml-idp.xml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
-    <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
-    <!--<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"-->
-        <!--authentication-manager-ref="emptyAuthenticationManager">-->
-        <!--<sec:intercept-url pattern="/**" access="denyAll" />-->
-    <!--</sec:http>-->
-
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
-
-    <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
-
-    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
-        <property name="passwordEncoder" ref="passwdEncoder"/>
-        <property name="maxKeys" value="1000"/>
-        <property name="maxEncodedPasswords" value="5"/>
-        <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
-        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
-    </bean>
-
-    <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
-
-    <bean id="oauthWebExpressionHandler"
-      class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler">
-        <property name="identityZone" ref="uaaIdentityZone"/>
-    </bean>
 
     <mvc:default-servlet-handler />
 

@@ -38,6 +38,7 @@ dependencies {
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
 
   compile group: 'org.aspectj', name: 'aspectjrt', version: parent.aspectJVersion
+  compile group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
 
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
@@ -105,7 +106,7 @@ processResources {
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any
-  true == false
+  false
 }
 
 

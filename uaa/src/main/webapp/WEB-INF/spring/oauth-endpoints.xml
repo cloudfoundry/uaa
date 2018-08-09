@@ -532,6 +532,10 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
+    <bean id="timeService" class="org.cloudfoundry.identity.uaa.util.TimeServiceImpl"/>
+
+    <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+
     <bean id="idTokenCreator" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator">
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <constructor-arg name="timeService" ref="timeService"/>
@@ -715,4 +719,12 @@
         <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator" />
     </bean>
 
+    <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
+        <property name="passwordEncoder" ref="passwdEncoder"/>
+        <property name="maxKeys" value="1000"/>
+        <property name="maxEncodedPasswords" value="5"/>
+        <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
+        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
+    </bean>
 </beans>

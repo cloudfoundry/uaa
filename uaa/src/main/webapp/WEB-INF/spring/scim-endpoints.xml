@@ -21,6 +21,21 @@
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
+        <property name="attributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
+                <constructor-arg name="paramsMap">
+                    <map key-type="java.lang.String" value-type="java.lang.String">
+                        <entry key="emails\.value" value="email" />
+                        <entry key="groups\.display" value="authorities" />
+                        <entry key="phoneNumbers\.value" value="phoneNumber" />
+                    </map>
+                </constructor-arg>
+            </bean>
+        </property>
+        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
+    </bean>
+
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />

@@ -34,7 +34,9 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     private MultitenantJdbcClientDetailsService delegate;
 
     @Before
-    public void initJdbcScimClientDetailsServiceTests() throws Exception {
+    public void initJdbcScimClientDetailsServiceTests() {
+        cleanData();
+
         IdentityZoneHolder.clear();
 
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
@@ -64,21 +66,21 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     }
 
     @Test
-    public void testQueryEquals() throws Exception {
+    public void testQueryEquals() {
         addClients();
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(2, service.query("authorized_grant_types eq \"client_credentials\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
-    public void testQueryExists() throws Exception {
+    public void testQueryExists() {
         addClients();
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(4, service.query("scope pr", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
-    public void testQueryEqualsInAnotherZone() throws Exception {
+    public void testQueryEqualsInAnotherZone() {
         testQueryEquals();
         IdentityZoneHolder.set(otherZone);
         testQueryEquals();
@@ -86,7 +88,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     }
 
     @Test
-    public void testQueryExistsInAnotherZone() throws Exception {
+    public void testQueryExistsInAnotherZone() {
         testQueryExists();
         IdentityZoneHolder.set(otherZone);
         testQueryExists();

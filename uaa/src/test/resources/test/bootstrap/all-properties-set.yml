@@ -46,10 +46,10 @@ database:
   maxidle: 5
   minidle: 3
   removeabandoned: true
-  #driverClassName: org.hsqldb.jdbcDriver
-  #url: jdbc:hsqldb:mem:uaadb
-  #username: sa
-  #password:
+  driverClassName: org.hsqldb.jdbcDriver
+  url: jdbc:hsqldb:mem:uaadb
+  username: sa
+  password: ''
 
 delete:
   expirationRunTime: 3000
