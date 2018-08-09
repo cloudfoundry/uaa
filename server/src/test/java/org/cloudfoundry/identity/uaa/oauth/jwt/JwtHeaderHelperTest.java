@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.apache.directory.api.util.Base64;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -43,12 +42,11 @@ public class JwtHeaderHelperTest {
           "\"typ\": \"WTF\"" +
           " }";
 
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(Exception.class);
         expectedException.expectMessage("typ is not \"JWT\"");
 
         JwtHeaderHelper.create(asBase64(jwtJson));
     }
-
 
     @Test
     public void createFromStringThrowsExceptionWhenTypeIsEmpty() {
@@ -60,7 +58,7 @@ public class JwtHeaderHelperTest {
           "\"typ\": \"\"" +
           " }";
 
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(Exception.class);
         expectedException.expectMessage("typ is not \"JWT\"");
 
         JwtHeaderHelper.create(asBase64(jwtJson));

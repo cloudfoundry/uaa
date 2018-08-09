@@ -5,7 +5,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class JwtHelperTest {
-
     @Test
     public void testKidInHeader() {
         Signer signer = new CommonSigner("testKid", "symmetricKey");
@@ -15,5 +14,4 @@ public class JwtHelperTest {
         jwt = JwtHelper.decode(jwt.getEncoded());
         assertEquals("testKid", jwt.getHeader().getKid());
     }
-
 }
