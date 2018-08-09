@@ -594,8 +594,9 @@
     <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
         entry-point-ref="oauthAuthenticationEntryPoint" />
 
-
-    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint" />
+    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint">
+        <property name="keyInfoService" ref="keyInfoService"/>
+    </bean>
 
     <bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />

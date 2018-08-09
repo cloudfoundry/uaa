@@ -117,7 +117,7 @@ class HmacKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put("alg", this.signer.algorithm());
+        result.put("alg", this.algorithm());
         result.put("value", this.verifierKey);
         //new values per OpenID and JWK spec
         result.put("use", JsonWebKey.KeyUse.sig.name());
@@ -255,7 +255,7 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put("alg", this.signer.algorithm());
+        result.put("alg", this.algorithm());
         result.put("value", this.verifierKey);
         //new values per OpenID and JWK spec
         result.put("use", JsonWebKey.KeyUse.sig.name());
