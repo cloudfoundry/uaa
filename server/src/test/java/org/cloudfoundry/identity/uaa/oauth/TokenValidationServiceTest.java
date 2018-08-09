@@ -74,7 +74,7 @@ public class TokenValidationServiceTest {
                 tokenEndpointBuilder,
                 userDatabase,
                 clientServicesExtension,
-                "http://localhost:8080/uaa"
+                new KeyInfoService("http://localhost:8080/uaa")
         );
     }
 

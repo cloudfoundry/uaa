@@ -257,11 +257,11 @@ public class TokenTestSupport {
         timeService = mock(TimeService.class);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, DEFAULT_ISSUER);
+        keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
         IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
-        keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
         refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService, keyInfoService);
         tokenServices = new UaaTokenServices(
                 idTokenCreator,
@@ -293,10 +293,6 @@ public class TokenTestSupport {
 
     public RevocableTokenProvisioning getTokenProvisioning() {
         return tokenProvisioning;
-    }
-
-    public UaaUser getDefaultUser() {
-        return defaultUser;
     }
 
     public CompositeToken getCompositeAccessToken(List<String> scopes) {

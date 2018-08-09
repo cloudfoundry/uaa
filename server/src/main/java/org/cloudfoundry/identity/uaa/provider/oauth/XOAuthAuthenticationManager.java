@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -57,8 +56,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -118,20 +117,17 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
-    private String uaaUrl;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
                                        RestTemplate trustingRestTemplate,
                                        RestTemplate nonTrustingRestTemplate,
                                        TokenEndpointBuilder tokenEndpointBuilder,
-                                       KeyInfoService keyInfoService,
-                                       String uaaUrl) {
+                                       KeyInfoService keyInfoService) {
         super(providerProvisioning);
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
-        this.uaaUrl = uaaUrl;
     }
 
     @Override
@@ -503,9 +499,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    protected String hmacSignAndEncode(String data, String key) throws Exception {
-        Signer signer = KeyInfoBuilder.build("", key, uaaUrl).getSigner();
-        return new String(Base64.encodeBase64URLSafe(signer.sign(data.getBytes("UTF-8"))), "UTF-8");
+    protected String hmacSignAndEncode(String data, String key) throws UnsupportedEncodingException {
+        MacSigner macSigner = new MacSigner(key);
+        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes("UTF-8"))), "UTF-8");
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -515,10 +511,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), uaaUrl);
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), uaaUrl)
+            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());
         }

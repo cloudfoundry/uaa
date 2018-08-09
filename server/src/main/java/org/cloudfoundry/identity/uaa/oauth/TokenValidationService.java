@@ -23,18 +23,18 @@ public class TokenValidationService {
     private TokenEndpointBuilder tokenEndpointBuilder;
     private UaaUserDatabase userDatabase;
     private ClientServicesExtension clientServicesExtension;
-    private String uaaUrl;
+    private KeyInfoService keyInfoService;
 
     public TokenValidationService(RevocableTokenProvisioning revocableTokenProvisioning,
                                   TokenEndpointBuilder tokenEndpointBuilder,
                                   UaaUserDatabase userDatabase,
                                   ClientServicesExtension clientServicesExtension,
-                                  String uaaUrl) {
+                                  KeyInfoService keyInfoService) {
         this.revocableTokenProvisioning = revocableTokenProvisioning;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.userDatabase = userDatabase;
         this.clientServicesExtension = clientServicesExtension;
-        this.uaaUrl = uaaUrl;
+        this.keyInfoService = keyInfoService;
     }
 
     public TokenValidation validateToken(String token, boolean isAccessToken) {
@@ -49,7 +49,7 @@ public class TokenValidationService {
         }
 
         TokenValidation tokenValidation = isAccessToken ?
-                buildAccessTokenValidator(token, uaaUrl) : buildRefreshTokenValidator(token, uaaUrl);
+                buildAccessTokenValidator(token, keyInfoService) : buildRefreshTokenValidator(token, keyInfoService);
         tokenValidation
                 .checkRevocableTokenStore(revocableTokenProvisioning)
                 .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());

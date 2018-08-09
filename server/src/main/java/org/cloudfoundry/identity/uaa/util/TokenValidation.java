@@ -74,22 +74,22 @@ public abstract class TokenValidation {
     private final Jwt tokenJwt;
     private final String token;
 
-    private final String uaaUrl;
+    private final KeyInfoService keyInfoService;
 
-    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue, String uaaUrl) {
-        AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue, uaaUrl);
+    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
+        AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue, keyInfoService);
         validator.checkSignature();
         return validator;
     }
 
-    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue, String uaaUrl) {
-        RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue, uaaUrl);
+    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
+        RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue, keyInfoService);
         refreshTokenValidation.checkSignature();
         return refreshTokenValidation;
     }
 
-    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, String uaaUrl) {
-        IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, uaaUrl);
+    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, KeyInfoService keyInfoService) {
+        IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, keyInfoService);
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
     }
@@ -98,12 +98,12 @@ public abstract class TokenValidation {
 
     abstract Optional<List<String>> getScopes();
 
-    private TokenValidation(String token, String uaaUrl) {
+    private TokenValidation(String token, KeyInfoService keyInfoService) {
         this.token = token;
 
         this.claims = UaaTokenUtils.getClaims(token);
         this.tokenJwt = JwtHelper.decode(token);
-        this.uaaUrl = uaaUrl;
+        this.keyInfoService = keyInfoService;
     }
 
     private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
@@ -112,7 +112,6 @@ public abstract class TokenValidation {
             throw new InvalidTokenException("kid claim not found in JWT token header");
         }
 
-        KeyInfoService keyInfoService = new KeyInfoService(uaaUrl);
         KeyInfo signingKey = keyInfoService.getKey(kid);
         if (signingKey == null) {
             throw new InvalidTokenException(String.format(
@@ -478,8 +477,8 @@ public abstract class TokenValidation {
     }
 
     private static class AccessTokenValidation extends TokenValidation {
-        public AccessTokenValidation(String tokenJwtValue, String uaaUrl) {
-            super(tokenJwtValue, uaaUrl);
+        public AccessTokenValidation(String tokenJwtValue, KeyInfoService keyInfoService) {
+            super(tokenJwtValue, keyInfoService);
         }
 
         @Override
@@ -501,7 +500,7 @@ public abstract class TokenValidation {
     }
 
     private static class RefreshTokenValidation extends TokenValidation {
-        public RefreshTokenValidation(String tokenJwtValue, String uaaUrl) {
+        public RefreshTokenValidation(String tokenJwtValue, KeyInfoService uaaUrl) {
             super(tokenJwtValue, uaaUrl);
         }
 
@@ -527,8 +526,8 @@ public abstract class TokenValidation {
     }
 
     private static class IdTokenValidation extends TokenValidation {
-        public IdTokenValidation(String tokenJwtValue, String uaaUrl) {
-            super(tokenJwtValue, uaaUrl);
+        public IdTokenValidation(String tokenJwtValue, KeyInfoService keyInfoService) {
+            super(tokenJwtValue, keyInfoService);
         }
 
         @Override

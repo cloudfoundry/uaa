@@ -109,7 +109,7 @@ public class XOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
-        authManager = new XOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), uaaIssuerBaseUrl);
+        authManager = new XOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl));
     }
 
     @After
