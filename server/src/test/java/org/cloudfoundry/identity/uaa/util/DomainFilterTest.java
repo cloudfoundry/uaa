@@ -32,6 +32,7 @@ import java.util.List;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -242,6 +243,15 @@ public class DomainFilterTest {
         samlDef2.setEmailDomain(EMPTY_LIST);
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(uaaProvider));
+    }
+
+    @Test
+    public void test_uaa_is_not_catch_all_without_fallback() {
+        ldapDef.setEmailDomain(EMPTY_LIST);
+        samlDef1.setEmailDomain(EMPTY_LIST);
+        samlDef2.setEmailDomain(EMPTY_LIST);
+        configureTestData();
+        assertThat(filter.filter(activeProviders, client, email, false), not(Matchers.containsInAnyOrder(uaaProvider)));
     }
 
     @Test
