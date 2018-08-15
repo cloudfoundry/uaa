@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Sets;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -153,6 +154,7 @@ public class TokenTestSupport {
     InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
     ApprovalStore approvalStore = new InMemoryApprovalStore();
+    ApprovalService approvalService;
     MockAuthentication mockAuthentication;
     List<String> requestedAuthScopes;
     List<String> clientScopes;
@@ -256,6 +258,7 @@ public class TokenTestSupport {
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         timeService = mock(TimeService.class);
+        approvalService = new ApprovalService(timeService, approvalStore);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
         keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
@@ -274,11 +277,11 @@ public class TokenTestSupport {
                 timeService,
                 accessTokenValidityResolver,
                 userDatabase,
-                approvalStore,
                 Sets.newHashSet(),
                 tokenPolicy,
                 keyInfoService,
-                new IdTokenGranter());
+                new IdTokenGranter(),
+                approvalService);
 
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);

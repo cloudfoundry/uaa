@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -273,12 +274,11 @@ public class CheckTokenEndpointTests {
                 timeService,
                 new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
                 userDatabase,
-                approvalStore,
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy(),
                 keyInfoService,
-                new IdTokenGranter()
-        );
+                new IdTokenGranter(),
+                mock(ApprovalService.class));
 
         resetAndMockUserDatabase(userId, user);
         endpoint.setTokenServices(tokenServices);

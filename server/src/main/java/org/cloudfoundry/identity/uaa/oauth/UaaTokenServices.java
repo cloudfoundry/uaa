@@ -150,7 +150,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final Log logger = LogFactory.getLog(getClass());
     private UaaUserDatabase userDatabase;
     private ClientServicesExtension clientDetailsService;
-    private ApprovalStore approvalStore;
+    private ApprovalService approvalService;
     private ApplicationEventPublisher applicationEventPublisher;
     private TokenPolicy tokenPolicy;
     private RevocableTokenProvisioning tokenProvisioning;
@@ -174,11 +174,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             TimeService timeService,
                             TokenValidityResolver accessTokenValidityResolver,
                             UaaUserDatabase userDatabase,
-                            ApprovalStore approvalStore,
                             Set<String> excludedClaims,
                             TokenPolicy globalTokenPolicy,
                             KeyInfoService keyInfoService,
-                            IdTokenGranter idTokenGranter){
+                            IdTokenGranter idTokenGranter,
+                            ApprovalService approvalService){
         this.idTokenCreator = idTokenCreator;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.clientDetailsService = clientDetailsService;
@@ -188,7 +188,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.timeService = timeService;
         this.accessTokenValidityResolver = accessTokenValidityResolver;
         this.userDatabase = userDatabase;
-        this.approvalStore = approvalStore;
+        this.approvalService = approvalService;
         this.excludedClaims = excludedClaims;
         this.tokenPolicy = globalTokenPolicy;
         this.idTokenGranter = idTokenGranter;
@@ -279,7 +279,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
-        new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(
+        approvalService.ensureRequiredApprovals(
                 userId,
                 requestedScopes,
                 refreshGrantType,
@@ -901,7 +901,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != userId) {
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
-            new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(userId, tokenScopes, (String) claims.get(GRANT_TYPE), client);
+            approvalService.ensureRequiredApprovals(userId, tokenScopes, (String) claims.get(GRANT_TYPE), client);
         }
 
         return token;
@@ -918,10 +918,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
-        this.approvalStore = approvalStore;
     }
 
     private void publish(TokenIssuedEvent event) {

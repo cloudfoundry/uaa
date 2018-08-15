@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
@@ -17,6 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
@@ -261,10 +263,11 @@ public class DeprecatedUaaTokenServicesTests {
           timeService,
           tokenValidityResolver,
           userDatabase,
-          mock(ApprovalStore.class),
           Sets.newHashSet(),
           new TokenPolicy(),
-          new KeyInfoService(DEFAULT_ISSUER)
+          new KeyInfoService(DEFAULT_ISSUER),
+          new IdTokenGranter(),
+          mock(ApprovalService.class)
         );
 
         UserInfo userInfo = new UserInfo();
