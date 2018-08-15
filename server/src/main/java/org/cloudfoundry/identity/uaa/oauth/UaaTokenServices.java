@@ -251,7 +251,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
         Map<String, String> requestParams = request.getRequestParameters();
         String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
-        Set<String> requestedResponseTypes = requestParams.get(RESPONSE_TYPE) == null ? Sets.newHashSet() : Sets.newHashSet(requestParams.get(RESPONSE_TYPE));
+        Set<String> requestedResponseTypes = OAuth2Utils.parseParameterList(requestParams.get(RESPONSE_TYPE));
         String requestedClientId = request.getClientId();
 
         if (clientId == null || !clientId.equals(requestedClientId)) {
