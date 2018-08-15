@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -57,6 +58,7 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
@@ -280,7 +282,7 @@ public class TokenTestSupport {
                 Sets.newHashSet(),
                 tokenPolicy,
                 keyInfoService,
-                new IdTokenGranter(),
+                new IdTokenGranter(approvalService),
                 approvalService);
 
         tokenServices.setApplicationEventPublisher(publisher);
@@ -310,9 +312,14 @@ public class TokenTestSupport {
         amr.addAll(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
         userAuthentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX)));
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        HashMap<String, String> requestParams = Maps.newHashMap();
+        requestParams.put("grant_type", GRANT_TYPE_PASSWORD);
+        OAuth2Request oAuth2Request = new OAuth2Request(requestParams, CLIENT_ID, null, false, Sets.newHashSet(OPENID), null, null, Sets.newHashSet("token", "id_token"), null);
+
+        UaaOauth2Authentication uaaOauth2Authentication = new UaaOauth2Authentication(null, IdentityZoneHolder.get().getId(), oAuth2Request, userAuthentication);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(uaaOauth2Authentication);
         return (CompositeToken) accessToken;
     }
 

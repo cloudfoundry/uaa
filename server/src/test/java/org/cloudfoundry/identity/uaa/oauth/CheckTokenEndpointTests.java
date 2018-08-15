@@ -264,6 +264,7 @@ public class CheckTokenEndpointTests {
         userDatabase = mock(UaaUserDatabase.class);
         KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
+        ApprovalService approvalService = mock(ApprovalService.class);
         tokenServices = new UaaTokenServices(
                 mock(IdTokenCreator.class),
                 tokenEndpointBuilder,
@@ -277,8 +278,8 @@ public class CheckTokenEndpointTests {
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy(),
                 keyInfoService,
-                new IdTokenGranter(),
-                mock(ApprovalService.class));
+                new IdTokenGranter(approvalService),
+                approvalService);
 
         resetAndMockUserDatabase(userId, user);
         endpoint.setTokenServices(tokenServices);

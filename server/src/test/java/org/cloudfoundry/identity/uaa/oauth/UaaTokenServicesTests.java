@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Sets;
 import org.bouncycastle.util.Strings;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -32,6 +33,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -78,6 +80,7 @@ public class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList("openid"));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
+        authorizationRequest.setResponseTypes(Sets.newHashSet("id_token"));
         authorizationRequest.setRequestParameters(azParameters);
 
         UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");

@@ -253,6 +253,7 @@ public class DeprecatedUaaTokenServicesTests {
         TimeService timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
+        ApprovalService approvalService = mock(ApprovalService.class);
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
           idTokenCreator,
           mock(TokenEndpointBuilder.class),
@@ -266,8 +267,8 @@ public class DeprecatedUaaTokenServicesTests {
           Sets.newHashSet(),
           new TokenPolicy(),
           new KeyInfoService(DEFAULT_ISSUER),
-          new IdTokenGranter(),
-          mock(ApprovalService.class)
+          new IdTokenGranter(approvalService),
+          approvalService
         );
 
         UserInfo userInfo = new UserInfo();
