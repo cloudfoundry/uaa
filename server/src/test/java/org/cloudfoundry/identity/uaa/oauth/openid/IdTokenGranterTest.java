@@ -98,6 +98,7 @@ public class IdTokenGranterTest {
         // this is the only way that an id_token may be returned without the response
         // type id_token.
         assertTrue(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
+        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithoutOpenid), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
         assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), null, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
         assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet()));
         assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, null));

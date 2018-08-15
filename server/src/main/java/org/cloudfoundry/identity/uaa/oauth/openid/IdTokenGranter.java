@@ -12,7 +12,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 
 
 public class IdTokenGranter {
-    private final String OPENID = "openid";
+    private final String REQUIRED_OPENID_SCOPE = "openid";
     private final String REQUIRED_RESPONSE_TYPE = "id_token";
     private final List<String> GRANT_TYPES_THAT_MAY_GET_ID_TOKENS = Lists.newArrayList(
             GRANT_TYPE_AUTHORIZATION_CODE,
@@ -35,14 +35,6 @@ public class IdTokenGranter {
             return false;
         }
 
-        if (GRANT_TYPE_AUTHORIZATION_CODE.equals(requestedGrantType) &&
-                requestedResponseTypes.contains("code") &&
-                requestedScopes != null &&
-                requestedScopes.contains(OPENID)) {
-            // TODO: the client should still have to have openid
-            return true;
-        }
-
         // An id token may not be issued unless the client configuration includes
         // the scope openid
         if (null == clientScopes) {
@@ -50,15 +42,22 @@ public class IdTokenGranter {
         }
         if (clientScopes.stream()
                 .filter(Objects::nonNull)
-                .noneMatch(scope -> OPENID.equals(scope.getAuthority()))) {
+                .noneMatch(scope -> REQUIRED_OPENID_SCOPE.equals(scope.getAuthority()))) {
             return false;
+        }
+
+        if (GRANT_TYPE_AUTHORIZATION_CODE.equals(requestedGrantType) &&
+                requestedResponseTypes.contains("code") &&
+                requestedScopes != null &&
+                requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
+            return true;
         }
 
         // If the requester specified the scope parameter in their /oauth/token request,
         // this list must contain openid.
         if (null != requestedScopes &&
             !requestedScopes.isEmpty() &&
-            !requestedScopes.contains(OPENID)) {
+            !requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
             return false;
         }
 
