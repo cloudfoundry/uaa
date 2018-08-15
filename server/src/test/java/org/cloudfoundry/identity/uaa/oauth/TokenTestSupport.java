@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -276,8 +277,8 @@ public class TokenTestSupport {
                 approvalStore,
                 Sets.newHashSet(),
                 tokenPolicy,
-                keyInfoService
-        );
+                keyInfoService,
+                new IdTokenGranter());
 
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);

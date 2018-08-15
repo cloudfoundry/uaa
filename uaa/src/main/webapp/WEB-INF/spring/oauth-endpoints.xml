@@ -394,8 +394,7 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="xOauthAuthenticationManager"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
+    <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
@@ -568,6 +567,9 @@
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
     </bean>
 
+    <bean id="idTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter">
+    </bean>
+
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <constructor-arg name="idTokenCreator" ref="idTokenCreator" />
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder" />
@@ -582,6 +584,7 @@
         <constructor-arg name="excludedClaims" ref="excludedClaims" />
         <constructor-arg name="globalTokenPolicy" ref="globalTokenPolicy"/>
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="idTokenGranter" ref="idTokenGranter" />
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">

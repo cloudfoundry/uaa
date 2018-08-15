@@ -163,6 +163,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private TokenValidityResolver accessTokenValidityResolver;
     private TokenValidationService tokenValidationService;
     private KeyInfoService keyInfoService;
+    private IdTokenGranter idTokenGranter;
 
     public UaaTokenServices(IdTokenCreator idTokenCreator,
                             TokenEndpointBuilder tokenEndpointBuilder,
@@ -176,7 +177,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             ApprovalStore approvalStore,
                             Set<String> excludedClaims,
                             TokenPolicy globalTokenPolicy,
-                            KeyInfoService keyInfoService){
+                            KeyInfoService keyInfoService,
+                            IdTokenGranter idTokenGranter){
         this.idTokenCreator = idTokenCreator;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.clientDetailsService = clientDetailsService;
@@ -189,6 +191,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.approvalStore = approvalStore;
         this.excludedClaims = excludedClaims;
         this.tokenPolicy = globalTokenPolicy;
+        this.idTokenGranter = idTokenGranter;
         this.keyInfoService = keyInfoService;
     }
 
@@ -444,7 +447,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        if (IdTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes)) {
+        if (idTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
