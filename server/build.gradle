@@ -76,6 +76,7 @@ dependencies {
 
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
 
+  testCompile('com.github.sbrannen:spring-test-junit5:1.2.0')
   testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
   testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
   testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")

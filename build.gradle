@@ -168,6 +168,7 @@ subprojects {
     apply plugin: 'java'
 
     dependencies {
+        testCompile('com.github.sbrannen:spring-test-junit5:1.2.0')
         testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
         testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
         testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
@@ -208,6 +209,7 @@ subprojects {
         archives javadocJar
     }
     repositories {
+        maven { url 'https://jitpack.io' }
         maven { url "https://repo.spring.io/release" }
         maven { url "https://repo.spring.io/milestone" }
         maven { url "https://repo.spring.io/snapshot" }
