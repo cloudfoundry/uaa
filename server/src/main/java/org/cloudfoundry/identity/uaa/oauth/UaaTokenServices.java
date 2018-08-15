@@ -17,7 +17,6 @@ import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -262,7 +261,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
         UaaUser user = userDatabase.retrieveUserById(userId);
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
@@ -446,7 +445,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        if (idTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes)) {
+        BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
+
+        if (idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopes, grantType, responseTypes)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));

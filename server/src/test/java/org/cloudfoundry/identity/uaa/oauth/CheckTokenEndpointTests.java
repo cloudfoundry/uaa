@@ -264,7 +264,7 @@ public class CheckTokenEndpointTests {
         userDatabase = mock(UaaUserDatabase.class);
         KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
-        ApprovalService approvalService = mock(ApprovalService.class);
+        ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
         tokenServices = new UaaTokenServices(
                 mock(IdTokenCreator.class),
                 tokenEndpointBuilder,

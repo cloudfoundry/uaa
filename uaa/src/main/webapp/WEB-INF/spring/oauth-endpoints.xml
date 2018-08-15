@@ -568,6 +568,7 @@
     </bean>
 
     <bean id="idTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter">
+        <constructor-arg name="approvalService" ref="approvalService" />
     </bean>
 
     <bean id="approvalService" class="org.cloudfoundry.identity.uaa.approval.ApprovalService">

@@ -93,6 +93,7 @@ import java.util.Set;
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
@@ -395,6 +396,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         OAuth2AccessToken accessToken;
         try {
             TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, GRANT_TYPE_IMPLICIT);
+            Map<String, String> requestParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+            requestParameters.put(GRANT_TYPE, grantType);
+            authorizationRequest.setRequestParameters(requestParameters);
             OAuth2Request storedOAuth2Request = getOAuth2RequestFactory().createOAuth2Request(authorizationRequest);
             accessToken = getAccessTokenForImplicitGrantOrHybrid(tokenRequest, storedOAuth2Request, grantType);
             if (accessToken == null) {

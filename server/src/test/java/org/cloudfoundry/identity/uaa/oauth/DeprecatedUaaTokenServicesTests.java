@@ -90,6 +90,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 
 @RunWith(Parameterized.class)
 public class DeprecatedUaaTokenServicesTests {
@@ -217,7 +218,7 @@ public class DeprecatedUaaTokenServicesTests {
         clientDetails.setScope(Sets.newHashSet("openid"));
 
         ClientServicesExtension clientServicesExtension = mock(ClientServicesExtension.class);
-        when(clientServicesExtension.loadClientByClientId(eq(TokenTestSupport.CLIENT_ID), anyString()))
+        when(clientServicesExtension.loadClientByClientId(eq(TokenTestSupport.CLIENT_ID)))
           .thenReturn(clientDetails);
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
@@ -281,7 +282,9 @@ public class DeprecatedUaaTokenServicesTests {
         when(userDatabase.getUserInfo(userId)).thenReturn(userInfo);
 
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
-        uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
+        uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest(new HashMap<String, String>() {{
+            put(RESPONSE_TYPE, "id_token");
+        }}));
 
         verify(idTokenCreator).create(eq(TokenTestSupport.CLIENT_ID), eq(userId), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
@@ -538,8 +541,17 @@ public class DeprecatedUaaTokenServicesTests {
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
         authorizationRequest.setRequestParameters(azParameters);
+        authorizationRequest.setResponseTypes(Sets.newHashSet("id_token"));
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        Approval approval = new Approval()
+                .setUserId(tokenSupport.userId)
+                .setClientId(CLIENT_ID)
+                .setScope(OPENID)
+                .setExpiresAt(new Date())
+                .setStatus(ApprovalStatus.APPROVED);
+        tokenSupport.approvalStore.addApproval(approval, IdentityZone.getUaa().getId());
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 

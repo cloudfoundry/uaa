@@ -302,10 +302,6 @@ public class TokenTestSupport {
     }
 
     public CompositeToken getCompositeAccessToken(List<String> scopes) {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
-
-        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeToken.ID_TOKEN)));
-
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
         Set<String> amr = new HashSet<>();
@@ -315,7 +311,7 @@ public class TokenTestSupport {
 
         HashMap<String, String> requestParams = Maps.newHashMap();
         requestParams.put("grant_type", GRANT_TYPE_PASSWORD);
-        OAuth2Request oAuth2Request = new OAuth2Request(requestParams, CLIENT_ID, null, false, Sets.newHashSet(OPENID), null, null, Sets.newHashSet("token", "id_token"), null);
+        OAuth2Request oAuth2Request = new OAuth2Request(requestParams, CLIENT_ID, null, false, Sets.newHashSet(scopes), null, null, Sets.newHashSet("token", "id_token"), null);
 
         UaaOauth2Authentication uaaOauth2Authentication = new UaaOauth2Authentication(null, IdentityZoneHolder.get().getId(), oAuth2Request, userAuthentication);
 
@@ -347,7 +343,4 @@ public class TokenTestSupport {
         getClientDetailsService().setClientDetailsStore(toZoneId, getClientDetailsService().getInMemoryService(fromZoneId));
     }
 
-    public RefreshTokenCreator getRefreshTokenCreator() {
-        return refreshTokenCreator;
-    }
 }

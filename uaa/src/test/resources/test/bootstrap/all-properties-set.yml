@@ -510,9 +510,10 @@ oauth:
       id: login
     jku_test:
       authorities: uaa.none
-      authorized-grant-types: password,client_credentials,refresh_token
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
       autoapprove: true
       override: true
+      redirect-uri: http://localhost/**
       scope: openid,oauth.approvals
       secret: secret
       id: jku_test

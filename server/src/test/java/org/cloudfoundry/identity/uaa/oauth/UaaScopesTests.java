@@ -30,7 +30,6 @@ public class UaaScopesTests {
 
     private UaaScopes uaaScopes = new UaaScopes();
 
-    @DisplayName("😱")
     @Test
     public void testGetUaaScopes() throws Exception {
         assertEquals(31, uaaScopes.getUaaScopes().size());
