@@ -80,9 +80,10 @@ public class IdTokenGranter {
 
         // If the requester specified the scope parameter in their /oauth/token request,
         // this list must contain openid.
-        if (null != requestedScopes &&
+        if (requestedScopes != null &&
             !requestedScopes.isEmpty() &&
             !requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
+            logger.info("an ID token was requested but 'openid' is missing from the requested scopes");
             return false;
         }
 
@@ -92,6 +93,7 @@ public class IdTokenGranter {
         if (requestedResponseTypes
                 .stream()
                 .noneMatch(REQUIRED_RESPONSE_TYPE::equals)) {
+            logger.info("an ID token cannot be returned since the user didn't specify 'id_token' as the response_type");
             return false;
         }
 

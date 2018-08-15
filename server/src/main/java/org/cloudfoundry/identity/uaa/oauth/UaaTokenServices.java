@@ -44,6 +44,8 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DuplicateKeyException;
@@ -119,6 +121,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -146,7 +149,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
             EXP, ISS, ZONE_ID, AUD
     );
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private UaaUserDatabase userDatabase;
     private ClientServicesExtension clientDetailsService;
     private ApprovalService approvalService;
