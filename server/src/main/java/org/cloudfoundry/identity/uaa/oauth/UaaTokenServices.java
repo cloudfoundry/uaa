@@ -16,8 +16,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -34,7 +32,6 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -279,7 +276,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
-        throwIfRequiredApprovalsMissing(
+        new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(
                 userId,
                 clientId,
                 requestedScopes,
@@ -384,40 +381,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ArrayList<String> authenticationMethods = (ArrayList<String>) refreshTokenClaims.get(AMR);
         return authenticationMethods == null ? Sets.newHashSet() : Sets.newHashSet(authenticationMethods);
     }
-
-    private void throwIfRequiredApprovalsMissing(String userId,
-                                                 String clientId,
-                                                 Collection<String> requestedScopes,
-                                                 Collection<String> autoApprovedScopes) {
-        if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
-        Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
-
-        // Search through the users approvals for scopes that are requested,
-        // not auto approved, not expired, not DENIED and not approved more
-        // recently than when this access token was issued.
-        List<Approval> approvals = approvalStore.getApprovals(userId, clientId, IdentityZoneHolder.get().getId());
-        for (Approval approval : approvals) {
-            if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED) {
-                if (!approval.isActiveAsOf(timeService.getCurrentDate())) {
-                    logger.debug("Approval " + approval + " has expired. Need to re-approve.");
-                    throw new InvalidTokenException("Invalid token (approvals expired)");
-                }
-                approvedScopes.add(approval.getScope());
-            }
-        }
-
-        // Only issue the token if all the requested scopes have unexpired
-        // approvals made before the refresh token was issued OR if those
-        // scopes are auto approved
-        if (!approvedScopes.containsAll(requestedScopes)) {
-            logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
-            Set<String> unapprovedScopes = new HashSet<>(requestedScopes);
-            unapprovedScopes.removeAll(approvedScopes);
-            throw new InvalidTokenException("Invalid token (some requested scopes are not approved): "
-                            + unapprovedScopes);
-        }
-    }
-
 
     private CompositeToken createCompositeToken(String tokenId,
                                                 String userId,
@@ -933,7 +896,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
-            throwIfRequiredApprovalsMissing(userId, clientId, tokenScopes, autoApprovedScopes);
+            new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(userId, clientId, tokenScopes, autoApprovedScopes);
         }
 
         return token;
