@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
@@ -479,7 +480,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        if (shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, isForceIdTokenCreation)) {
+        if (IdTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, isForceIdTokenCreation)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
@@ -493,21 +494,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return compositeToken;
-    }
-
-    private boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String grantType, Set<String> responseTypes, boolean isForceIdTokenCreation) {
-        boolean clientHasOpenIdScope = false;
-        if(null != clientScopes && !GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
-            for (GrantedAuthority scope : clientScopes) {
-                if (scope.getAuthority().equals(OPENID)) {
-                    clientHasOpenIdScope = true;
-                    break;
-                }
-            }
-        }
-
-        boolean isIdTokenExplicitlyRequested = requestedScopes.contains(OPENID) && responseTypes.contains(CompositeToken.ID_TOKEN);
-        return isForceIdTokenCreation || isIdTokenExplicitlyRequested || clientHasOpenIdScope;
     }
 
     private KeyInfo getActiveKeyInfo() {
