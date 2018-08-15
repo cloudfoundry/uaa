@@ -582,8 +582,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String tokenId = generateUniqueTokenId();
 
         boolean isOpaque = isOpaqueTokenRequired(authentication);
-        boolean isAccessTokenRevocable = isOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
-        boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
+        boolean isAccessTokenRevocable = isOpaque || getActiveTokenPolicy().isJwtRevocable();
+        boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
 
         Map<String,Object> additionalRootClaims = null;
         if (uaaTokenEnhancer != null) {
@@ -662,6 +662,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable);
     }
 
+    private TokenPolicy getActiveTokenPolicy() {
+        return IdentityZoneHolder.get().getConfig().getTokenPolicy();
+    }
+
     private Collection<GrantedAuthority> getClientPermissions(ClientDetails client) {
         Collection<GrantedAuthority> clientScopes;
         clientScopes = new ArrayList<>();
@@ -708,9 +712,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
-        boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(IdentityZoneHolder.get().getConfig().getTokenPolicy().getRefreshTokenFormat());
-        boolean refreshTokenRevocable = isRefreshTokenOpaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
-        boolean refreshTokenUnique = IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenUnique();
+        boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
+        boolean refreshTokenRevocable = isRefreshTokenOpaque || getActiveTokenPolicy().isJwtRevocable();
+        boolean refreshTokenUnique = getActiveTokenPolicy().isRefreshTokenUnique();
         if (refreshToken != null && refreshTokenRevocable) {
             RevocableToken revocableRefreshToken = new RevocableToken()
                 .setTokenId(refreshToken.getJti())
