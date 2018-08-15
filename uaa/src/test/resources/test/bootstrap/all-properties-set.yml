@@ -205,6 +205,33 @@ login:
         relyingPartySecret: secret
         showLinkText: true
         type: oidc1.0
+
+      uts-oidc-provider:
+        authUrl: http://my-auth.com
+        discoveryUrl: https://accounts.google.com/.well-known/openid-configuration
+        attributeMappings:
+          family_name: last_name
+          given_name: first_name
+          user_name: <Attribute holding username in the OIDC ID Token>
+          external_groups:
+            - roles
+            - <other attribute holding roles or group memberships in the OIDC id_token>
+          user:
+            attribute:
+              name-of-attribute-in-uaa-id-token: name-of-attribute-in-provider-token
+              name-of-other-attribute-in-uaa-id-token: name-of-other-attribute-in-provider-token
+        linkText: My Oauth Provider
+        relyingPartyId: uaa_token_services_test
+        relyingPartySecret: secret
+        responseType: code id_token
+        scopes:
+        - uaa_token_services_test_scope
+        tokenKey: my-token-key
+        tokenUrl: http://my-token.com
+        type: oidc1.0
+        storeCustomAttributes: true
+        clientAuthInBody: true
+
   mfa:
     providers:
       mfaprovider1:
@@ -514,7 +541,7 @@ oauth:
       autoapprove: true
       override: true
       redirect-uri: http://localhost/**
-      scope: openid,oauth.approvals
+      scope: openid,oauth.approvals,user_attributes
       secret: secret
       id: jku_test
     jku_test_without_autoapprove:
