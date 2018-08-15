@@ -14,6 +14,7 @@ import java.util.HashSet;
 import static org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter.shouldSendIdToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.junit.Assert.*;
 
 public class IdTokenGranterTest {
@@ -24,8 +25,6 @@ public class IdTokenGranterTest {
 
     private HashSet<String> requestedResponseTypesWithIdToken;
     private HashSet<String> requestedResponseTypesWithoutIdToken;
-
-    private boolean doNotForceIdTokenCreation;
 
     private BaseClientDetails clientWithoutOpenid;
     private BaseClientDetails clientWithOpenId;
@@ -38,54 +37,71 @@ public class IdTokenGranterTest {
         requestedScopesWithoutOpenId = Sets.newHashSet("foo.read");
         requestedScopesWithOpenId = Sets.newHashSet("foo.read", "openid");
 
-        nonClientCredentialsGrantType = GRANT_TYPE_AUTHORIZATION_CODE;
+        nonClientCredentialsGrantType = GRANT_TYPE_PASSWORD;
         requestedResponseTypesWithIdToken = Sets.newHashSet("token", "id_token");
         requestedResponseTypesWithoutIdToken = Sets.newHashSet("token");
+    }
 
-        doNotForceIdTokenCreation = false;
+    @Test
+    public void shouldSend_isFalse_whenResponseTypeNotSpecified() {
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, null));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, Sets.newHashSet()));
     }
 
     @Test
     public void shouldSend_isFalse_whenClientDoesNotHaveOpenIdScope() {
-        assertFalse(shouldSendIdToken(clientScopes(clientWithoutOpenid), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
-        assertFalse(shouldSendIdToken(null, requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithoutOpenid), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
+        assertFalse(shouldSendIdToken(null, requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
+        Collection<GrantedAuthority> clientScopesContainingNull = clientScopes(clientWithoutOpenid);
+        clientScopesContainingNull.add(null);
+        assertFalse(shouldSendIdToken(clientScopesContainingNull, requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
     }
 
     @Test
     public void shouldSend_isFalse_whenResponseTypeDoesNotHaveIdToken() {
-        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, null, false));
-        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithoutIdToken, false));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, null));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, Sets.newHashSet()));
+        HashSet<String> setWithNull = Sets.newHashSet();
+        setWithNull.add(null);
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, setWithNull));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithoutIdToken));
     }
 
     @Test
     public void shouldSend_isFalse_whenClientHasOpenIdScope_andNonOpenIdScopesAreRequested() {
-        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithoutOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithoutOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
     }
 
     @Test
     public void shouldSend_isFalse_whenRequestGrantTypeIsClientCredentials() {
         // Can't build an id_token without an associated user account which client_credentials does not have.
-        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_CLIENT_CREDENTIALS, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_CLIENT_CREDENTIALS, requestedResponseTypesWithIdToken));
     }
 
     @Test
-    public void shouldSend_isTrue_whenForceIdTokenCreationIsTrue() {
-        assertTrue(shouldSendIdToken(clientScopes(clientWithoutOpenid), requestedScopesWithoutOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, true));
+    public void shouldSend_isTrue_whenAuthorizationCodeGrantIsUsed_withCodeResponseType() {
+        // This is a special case for the authorization_code code flow. Per Tian,
+        // this is the only way that an id_token may be returned without the response
+        // type id_token.
+        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), null, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet()));
+        assertFalse(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, null));
     }
 
     @Test
     public void shouldSend_isTrue_whenClientHasOpenIdScope_andNoScopesRequested() {
         // When scopes are not explicitly requested, we default to the
         // full list of scopes configured on the client
-        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), null, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
-        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), Sets.newHashSet(), nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
+        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), null, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
+        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), Sets.newHashSet(), nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
     }
 
     @Test
-    public void shouldSend_isTrue_whenClientHasOpenIdScope_andOpenIdScopeIsRequested() {
+    public void shouldSend_isTrue_whenClientHasOpenIdScope_andOpenIdScopeIsRequested_andIdTokenResponseType() {
         // When scopes are not explicitly requested, we default to the
         // full list of scopes configured on the client
-        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken, doNotForceIdTokenCreation));
+        assertTrue(shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
     }
 
     private Collection<GrantedAuthority> clientScopes(BaseClientDetails clientDetails) {
