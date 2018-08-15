@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
