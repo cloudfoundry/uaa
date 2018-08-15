@@ -63,10 +63,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityC
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -111,7 +108,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
 
     private final FieldDescriptor accessTokenFieldDescriptor = fieldWithPath("access_token").description("An OAuth2 [access token](https://tools.ietf.org/html/rfc6749#section-1.4). When `token_format=opaque` is requested this value will be a random string that can only be validated using the UAA's `/check_token` or `/introspect` endpoints. When `token_format=jwt` is requested, this token will be a [JSON Web Token](https://tools.ietf.org/html/rfc7519) suitable for offline validation by OAuth2 Resource Servers.");
-    private final FieldDescriptor idTokenFieldDescriptor = fieldWithPath("id_token").description("An OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`.");
+    private final FieldDescriptor idTokenFieldDescriptor = fieldWithPath("id_token").description("An OpenID Connect [ID token](http://openid.net/specs/openid-connect-core-1_0.html#IDToken). This portion of the token response is only returned when clients are configured with the scope `openid`, the `response_type` includes `id_token`, and the user has granted approval to the client for the `openid` scope.");
     private final FieldDescriptor refreshTokenFieldDescriptor = fieldWithPath("refresh_token").description("An OAuth2 [refresh token](https://tools.ietf.org/html/rfc6749#section-6). Clients typically use the refresh token to obtain a new access token without the need for the user to authenticate again. They do this by calling `/oauth/token` with `grant_type=refresh_token`. See [here](#refresh-token) for more information. A refresh token will only be issued to [clients](#clients) that have `refresh_token` in their list of `authorized_grant_types`.");
     private final FieldDescriptor scopeFieldDescriptorWhenUserToken = fieldWithPath("scope").description("A space-delimited list of scopes authorized by the user for this client. This list is the intersection of the scopes configured on the [client](#clients), the group memberships of the [user](#users), and the user's approvals (when `autoapprove: true` is not configured on the [client](#clients)).");
     private final FieldDescriptor scopeFieldDescriptorWhenClientCredentialsToken = fieldWithPath("scope").description("A space-delimited list of scopes authorized for this client. This list is derived from the `authorities` configured on the [client](#clients).");
@@ -181,7 +178,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .param(CLIENT_ID, "login")
             .param("client_secret", "loginsecret")
             .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
-            .param(RESPONSE_TYPE, "token")
+            .param(RESPONSE_TYPE, "token id_token")
             .param("code", code)
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(REDIRECT_URI, redirect);
@@ -219,7 +216,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "login")
             .param("client_secret", "loginsecret")
-            .param(GRANT_TYPE, "client_credentials")
+            .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param(RESPONSE_TYPE, "token");
 
@@ -250,7 +247,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
-            .param(GRANT_TYPE, "client_credentials")
+            .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
             .param(RESPONSE_TYPE, "token")
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .header("Authorization", "Basic " + clientAuthorization);
@@ -283,11 +280,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "app")
             .param("client_secret", "appclientsecret")
-            .param(GRANT_TYPE, "password")
+            .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param(RESPONSE_TYPE, "token")
+            .param(RESPONSE_TYPE, "token id_token")
             .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
@@ -325,12 +322,12 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "app")
             .param("client_secret", "appclientsecret")
-            .param(GRANT_TYPE, "password")
+            .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param(RESPONSE_TYPE, "token")
+            .param(RESPONSE_TYPE, "token id_token")
             .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}","utf-8"));
 
         Snippet requestParameters = requestParameters(
@@ -395,7 +392,6 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             accessTokenFieldDescriptor,
-            idTokenFieldDescriptor,
             tokenTypeFieldDescriptor,
             expiresInFieldDescriptor,
             scopeFieldDescriptorWhenUserToken,
@@ -482,7 +478,6 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet responseFields = responseFields(
             accessTokenFieldDescriptor,
-            idTokenFieldDescriptor,
             fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
             fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
             scopeFieldDescriptorWhenUserToken,
@@ -505,11 +500,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .accept(APPLICATION_JSON)
             .header("Authorization", "Basic " + clientAuthorization)
             .contentType(APPLICATION_FORM_URLENCODED)
-            .param(GRANT_TYPE, "password")
+            .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token id_token");
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
@@ -564,10 +559,10 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
             .header("Authorization", "Basic " + clientAuthorization)
-            .param(GRANT_TYPE, "password")
+            .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
             .param("passcode", passcode)
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param(RESPONSE_TYPE, "token");
+            .param(RESPONSE_TYPE, "token id_token");
 
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
@@ -600,7 +595,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "app")
             .param("client_secret", "appclientsecret")
-            .param(GRANT_TYPE, "password")
+            .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
             .param("username", user.getUserName())
             .param("password", user.getPassword())
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -614,12 +609,14 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             .contentType(APPLICATION_FORM_URLENCODED)
             .param(CLIENT_ID, "app")
             .param("client_secret", "appclientsecret")
-            .param(GRANT_TYPE, "refresh_token")
+            .param(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN)
+            .param(RESPONSE_TYPE, "token id_token")
             .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param("refresh_token", refreshToken.getValue());
 
         Snippet requestParameters = requestParameters(
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `refresh_token`"),
+            responseTypeOptionalParameter,
             clientIdParameter,
             clientSecretParameter,
             parameterWithName("refresh_token").required().type(STRING).description("the refresh_token that was returned along with the access token."),
