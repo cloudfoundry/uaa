@@ -17,7 +17,8 @@ public class IdTokenGranter {
     private final List<String> GRANT_TYPES_THAT_MAY_GET_ID_TOKENS = Lists.newArrayList(
             GRANT_TYPE_AUTHORIZATION_CODE,
             GRANT_TYPE_PASSWORD,
-            GRANT_TYPE_IMPLICIT
+            GRANT_TYPE_IMPLICIT,
+            GRANT_TYPE_REFRESH_TOKEN
     );
 
     public boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes,

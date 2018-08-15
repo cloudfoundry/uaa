@@ -93,6 +93,16 @@ public class IdTokenGranterTest {
     }
 
     @Test
+    public void shouldSend_isTrue_whenRequestGrantTypeIsImplicit() {
+        assertTrue(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_IMPLICIT, requestedResponseTypesWithIdToken));
+    }
+
+    @Test
+    public void shouldSend_isTrue_whenRequestGrantTypeIsRefreshToken() {
+        assertTrue(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_REFRESH_TOKEN, requestedResponseTypesWithIdToken));
+    }
+
+    @Test
     public void shouldSend_isTrue_whenAuthorizationCodeGrantIsUsed_withCodeResponseType() {
         // This is a special case for the authorization_code code flow. Per Tian,
         // this is the only way that an id_token may be returned without the response
