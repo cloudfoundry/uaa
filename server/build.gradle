@@ -75,6 +75,11 @@ dependencies {
   compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
 
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+
+  testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
+  testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
+  testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
+
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }

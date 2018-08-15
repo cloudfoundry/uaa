@@ -15,23 +15,22 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
-import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.junit.Test;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class UaaScopesTests {
 
     private UaaScopes uaaScopes = new UaaScopes();
 
+    @DisplayName("😱")
     @Test
     public void testGetUaaScopes() throws Exception {
         assertEquals(31, uaaScopes.getUaaScopes().size());
