@@ -35,9 +35,6 @@ public class ApprovalService {
         if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
-        // Search through the users approvals for scopes that are requested,
-        // not auto approved, not expired, not DENIED and not approved more
-        // recently than when this access token was issued.
         List<Approval> approvals = approvalStore.getApprovals(userId, clientDetails.getClientId(), IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == Approval.ApprovalStatus.APPROVED) {
@@ -49,11 +46,8 @@ public class ApprovalService {
             }
         }
 
-        // Only issue the token if all the requested scopes have unexpired
-        // approvals made before the refresh token was issued OR if those
-        // scopes are auto approved
         if (!approvedScopes.containsAll(requestedScopes)) {
-            logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
+            logger.debug("All requested scopes " + requestedScopes + " were not approved. Approved scopes: " + approvedScopes);
             Set<String> unapprovedScopes = new HashSet<>(requestedScopes);
             unapprovedScopes.removeAll(approvedScopes);
             throw new InvalidTokenException("Invalid token (some requested scopes are not approved): "
