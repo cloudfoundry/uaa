@@ -121,7 +121,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_AUTHORITIES;
@@ -262,7 +261,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
         UaaUser user = userDatabase.retrieveUserById(userId);
-        ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
@@ -281,10 +280,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // explicitly by the user
         new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(
                 userId,
-                clientId,
                 requestedScopes,
-                getAutoApprovedScopes(refreshGrantType, tokenScopes, client)
-        );
+                refreshGrantType,
+                client);
 
         throwIfInvalidRevocationHashSignature(revocableHashSignature, user, client);
 
@@ -556,7 +554,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> authNContextClassRef = null;
 
         OAuth2Request oAuth2Request = authentication.getOAuth2Request();
-        ClientDetails client = clientDetailsService.loadClientByClientId(oAuth2Request.getClientId(), IdentityZoneHolder.get().getId());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(oAuth2Request.getClientId(), IdentityZoneHolder.get().getId());
         Collection<GrantedAuthority> clientScopes = null;
 
         // Clients should really by different kinds of users
@@ -892,27 +890,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             token.setScope(new HashSet<>(scopes));
         }
         String clientId = (String)claims.get(CID);
-        ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = (String)claims.get(USER_ID);
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         // Only check user access tokens
         if (null != userId) {
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
-            Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
-            new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(userId, clientId, tokenScopes, autoApprovedScopes);
+            new ApprovalService(timeService, approvalStore).ensureRequiredApprovals(userId, tokenScopes, (String) claims.get(GRANT_TYPE), client);
         }
 
         return token;
-    }
-
-    private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
-        // ALL requested scopes are considered auto-approved for password grant
-        if (grantType != null && GRANT_TYPE_PASSWORD.equals(grantType.toString())) {
-            return new HashSet<>(tokenScopes);
-        }
-        BaseClientDetails clientDetails = (BaseClientDetails) client;
-
-        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, clientDetails.getAutoApproveScopes());
     }
 
     /**

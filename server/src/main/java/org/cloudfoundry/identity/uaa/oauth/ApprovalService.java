@@ -5,13 +5,17 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 
 public class ApprovalService {
     TimeService timeService;
@@ -24,16 +28,17 @@ public class ApprovalService {
     }
 
     public void ensureRequiredApprovals(String userId,
-                                         String clientId,
-                                         Collection<String> requestedScopes,
-                                         Collection<String> autoApprovedScopes) {
+                                        Collection<String> requestedScopes,
+                                        String grantType,
+                                        BaseClientDetails clientDetails) {
+        Set<String> autoApprovedScopes = getAutoApprovedScopes(grantType, requestedScopes, clientDetails.getAutoApproveScopes());
         if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested,
         // not auto approved, not expired, not DENIED and not approved more
         // recently than when this access token was issued.
-        List<Approval> approvals = approvalStore.getApprovals(userId, clientId, IdentityZoneHolder.get().getId());
+        List<Approval> approvals = approvalStore.getApprovals(userId, clientDetails.getClientId(), IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == Approval.ApprovalStatus.APPROVED) {
                 if (!approval.isActiveAsOf(timeService.getCurrentDate())) {
@@ -56,4 +61,11 @@ public class ApprovalService {
         }
     }
 
+    private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, Set<String> autoapprovedScopes) {
+        // ALL requested scopes are considered auto-approved for password grant
+        if (grantType != null && GRANT_TYPE_PASSWORD.equals(grantType.toString())) {
+            return new HashSet<>(tokenScopes);
+        }
+        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoapprovedScopes);
+    }
 }
