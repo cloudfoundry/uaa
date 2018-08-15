@@ -4,6 +4,8 @@ import com.google.common.collect.Sets;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.bouncycastle.util.Strings;
 import org.cloudfoundry.identity.uaa.annotations.WithSpring;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -11,10 +13,13 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.joda.time.DateTime;
+import org.junit.After;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -99,6 +104,8 @@ public class UaaTokenServicesTests {
             responseType = "id_token";
         }
 
+        @Tag("oidc spec")
+        @DisplayName("id token should contain jku header")
         @Test
         public void ensureJKUHeaderIsSetWhenBuildingAnIdToken() {
             AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
@@ -113,6 +120,8 @@ public class UaaTokenServicesTests {
             assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
         }
 
+        @Tag("oidc spec")
+        @Tag("uaa oidc logic")
         @DisplayName("ensureIdToken Returned when Client Has OpenId Scope and Scope=OpenId, ResponseType=id_token withGrantType")
         @ParameterizedTest
         @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
@@ -128,6 +137,8 @@ public class UaaTokenServicesTests {
             JwtHelper.decode(accessToken.getIdTokenValue());
         }
 
+        @Tag("oidc spec")
+        @Tag("uaa oidc logic")
         @Nested
         @DisplayName("when the user doesn't request the 'openid' scope")
         @WithSpring
@@ -135,12 +146,13 @@ public class UaaTokenServicesTests {
             @BeforeEach
             void setupRequest() {
                 requestedScope = "uaa.admin";
-
             }
 
-            @Test
-            public void ensureAnIdTokenIsNotReturned() {
-                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
+            @DisplayName("id token should not be returned")
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
+            public void ensureAnIdTokenIsNotReturned(String grantType) {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
                 authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
@@ -151,6 +163,61 @@ public class UaaTokenServicesTests {
                   () -> assertThat("Useful log message", loggingOutputStream.toString(), containsString("an ID token was requested but 'openid' is missing from the requested scopes")),
                   () -> assertThat("Does not contain log message", loggingOutputStream.toString(), not(containsString("an ID token cannot be returned since the user didn't specify 'id_token' as the response_type")))
                 );
+            }
+        }
+
+
+        @Nested
+        @DisplayName("when the hasn't approved the 'openid' scope")
+        @WithSpring
+        class WhenUserHasNotApproviedOpenIdScope {
+
+            @Value("${oauth.clients.jku_test_without_autoapprove.id}")
+            private String clientWithoutAutoApprove;
+
+            @Value("${oauth.clients.jku_test_without_autoapprove.secret}")
+            private String clientWithoutAutoApproveSecret;
+
+            @Autowired
+            private JdbcApprovalStore jdbcApprovalStore;
+
+            @BeforeEach
+            void setupRequest() {
+                clientId = clientWithoutAutoApprove;
+                clientSecret = clientWithoutAutoApprove;
+
+                Approval approvedNonOpenIdScope = new Approval().setUserId("admin").setScope("oauth.approvals").setClientId(clientId).setExpiresAt(DateTime.now().plusDays(1).toDate()).setStatus(Approval.ApprovalStatus.APPROVED);
+                jdbcApprovalStore.addApproval(approvedNonOpenIdScope, "uaa");
+            }
+
+            @AfterEach
+            void resetUserApproval() {
+                jdbcApprovalStore.deleteByUser("admin", "uaa");
+            }
+
+            @DisplayName("id token should not be returned")
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
+            public void ensureAnIdTokenIsNotReturned(String grantType) {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
+                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
+
+                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+                assertThat(accessToken.getIdTokenValue(), is(nullValue()));
+            }
+
+            @DisplayName("id token should returned when grant type is password")
+            @Test
+            public void ensureAnIdTokenIsReturned() {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
+                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
+
+                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+                assertThat(accessToken.getIdTokenValue(), is(not(nullValue())));
             }
         }
 
