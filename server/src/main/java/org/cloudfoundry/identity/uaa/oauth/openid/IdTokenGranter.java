@@ -1,18 +1,24 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import com.google.common.collect.Lists;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 
 
 public class IdTokenGranter {
     private final String OPENID = "openid";
-    public final String REQUIRED_RESPONSE_TYPE = "id_token";
+    private final String REQUIRED_RESPONSE_TYPE = "id_token";
+    private final List<String> GRANT_TYPES_THAT_MAY_GET_ID_TOKENS = Lists.newArrayList(
+            GRANT_TYPE_AUTHORIZATION_CODE,
+            GRANT_TYPE_PASSWORD,
+            GRANT_TYPE_IMPLICIT
+    );
 
     public boolean shouldSendIdToken(Collection<GrantedAuthority> clientScopes,
                                             Set<String> requestedScopes,
@@ -20,15 +26,12 @@ public class IdTokenGranter {
                                             Set<String> requestedResponseTypes) {
 
         // TODO: this needs to consider user approvals / autoapproved scopes
-        // TODO: whitelist supported grant types
 
         if (null == requestedResponseTypes) {
             return false;
         }
 
-        // An id token may not be issued during client_credentials grants as
-        // there is no user context
-        if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(requestedGrantType)) {
+        if (!GRANT_TYPES_THAT_MAY_GET_ID_TOKENS.contains(requestedGrantType)) {
             return false;
         }
 

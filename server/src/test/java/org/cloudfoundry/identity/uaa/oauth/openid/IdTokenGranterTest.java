@@ -11,9 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.junit.Assert.*;
 
 public class IdTokenGranterTest {
@@ -69,14 +67,29 @@ public class IdTokenGranterTest {
     }
 
     @Test
-    public void shouldSend_isFalse_whenClientHasOpenIdScope_andNonOpenIdScopesAreRequested() {
-        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithoutOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
+    public void shouldSend_isFalse_whenSAMLBearerGrantType() {
+        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_SAML2_BEARER, requestedResponseTypesWithIdToken));
+    }
+
+    @Test
+    public void shouldSend_isFalse_whenJwtBearerGrantType() {
+        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_USER_TOKEN, requestedResponseTypesWithIdToken));
+    }
+
+    @Test
+    public void shouldSend_isFalse_whenUserTokenGrantType() {
+        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_JWT_BEARER, requestedResponseTypesWithIdToken));
     }
 
     @Test
     public void shouldSend_isFalse_whenRequestGrantTypeIsClientCredentials() {
         // Can't build an id_token without an associated user account which client_credentials does not have.
         assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithOpenId, GRANT_TYPE_CLIENT_CREDENTIALS, requestedResponseTypesWithIdToken));
+    }
+
+    @Test
+    public void shouldSend_isFalse_whenClientHasOpenIdScope_andNonOpenIdScopesAreRequested() {
+        assertFalse(idTokenGranter.shouldSendIdToken(clientScopes(clientWithOpenId), requestedScopesWithoutOpenId, nonClientCredentialsGrantType, requestedResponseTypesWithIdToken));
     }
 
     @Test
