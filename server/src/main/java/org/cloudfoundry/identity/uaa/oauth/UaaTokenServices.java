@@ -131,6 +131,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_A
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -248,7 +249,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
-        String requestedTokenFormat = request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT);
+        Map<String, String> requestParams = request.getRequestParameters();
+        String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
+        Set<String> requestedResponseTypes = requestParams.get(RESPONSE_TYPE) == null ? Sets.newHashSet() : Sets.newHashSet(requestParams.get(RESPONSE_TYPE));
         String requestedClientId = request.getClientId();
 
         if (clientId == null || !clientId.equals(requestedClientId)) {
@@ -323,9 +326,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     refreshTokenValue,
                     additionalAuthorizationInfo,
                     additionalRootClaims,
-                    new HashSet<>(),
+                    requestedResponseTypes,
                     revocableHashSignature,
-                    false,
                     isRevocable,
                     authenticationData
             );
@@ -429,7 +431,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Map<String, Object> additionalRootClaims,
                                                 Set<String> responseTypes,
                                                 String revocableHashSignature,
-                                                boolean isForceIdTokenCreation,
                                                 boolean isRevocable,
                                                 UserAuthenticationData userAuthenticationData) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
@@ -480,7 +481,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        if (IdTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes, isForceIdTokenCreation)) {
+        if (IdTokenGranter.shouldSendIdToken(clientScopes, requestedScopes, grantType, responseTypes)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
@@ -584,7 +585,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String userId = null;
         Date userAuthenticationTime = null;
         UaaUser user = null;
-        boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
 
         Set<String> authenticationMethods = null;
         Set<String> authNContextClassRef = null;
@@ -664,13 +664,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 requestParameters.get(REQUEST_AUTHORITIES)
             );
 
-        if (TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(requestParameters.get(OAuth2Utils.GRANT_TYPE)) &&
-            CODE.equals(requestParameters.get(OAuth2Utils.RESPONSE_TYPE)) &&
-            requestParameters.get(OAuth2Utils.SCOPE)!=null &&
-            Arrays.asList(requestParameters.get(OAuth2Utils.SCOPE).split(" ")).contains(OPENID)) {
-            wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
-        }
-
         Set<String> responseTypes = extractResponseTypes(authentication);
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
@@ -699,7 +692,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         responseTypes,
                         revocableHashSignature,
-                        wasIdTokenRequestedThroughAuthCodeScopeParameter,
                         isAccessTokenRevocable,
                         authenticationData);
 
@@ -816,7 +808,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> responseTypes = authentication.getOAuth2Request().getResponseTypes();
         if (responseTypes!=null && responseTypes.size()==1) {
             String storedResponseType = responseTypes.iterator().next();
-            String requesedResponseType = authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.RESPONSE_TYPE);
+            String requesedResponseType = authentication.getOAuth2Request().getRequestParameters().get(RESPONSE_TYPE);
             if (CODE.equals(storedResponseType) &&
                 requesedResponseType!=null) {
                 responseTypes = OAuth2Utils.parseParameterList(requesedResponseType);
