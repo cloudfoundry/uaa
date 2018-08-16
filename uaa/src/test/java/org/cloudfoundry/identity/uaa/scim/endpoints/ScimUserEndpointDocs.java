@@ -703,7 +703,6 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                 .accept(APPLICATION_JSON)
                 .header("Authorization", "Bearer " + myToken)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header("If-Match", user.getVersion())
                 .content(JsonUtils.writeValueAsString(request))
         )
             .andExpect(status().isOk())
