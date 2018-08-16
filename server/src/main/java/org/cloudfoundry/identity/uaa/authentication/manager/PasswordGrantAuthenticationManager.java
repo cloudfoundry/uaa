@@ -84,8 +84,10 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else {
             if (possibleProviders.contains(uaaLoginHint.getOrigin())) {
                 loginHintToUse = uaaLoginHint;
-            } else {
+            } else if (allowedProviders == null || allowedProviders.contains(uaaLoginHint.getOrigin())){
                 throw new ProviderConfigurationException("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.");
+            } else {
+                throw new ProviderConfigurationException("Client is not authorized for specified user's identity provider.");
             }
         }
         if (loginHintToUse != null) {

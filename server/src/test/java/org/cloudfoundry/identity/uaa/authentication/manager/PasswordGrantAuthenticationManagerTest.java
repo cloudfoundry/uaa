@@ -708,4 +708,21 @@ public class PasswordGrantAuthenticationManagerTest {
         verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
         verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
     }
+
+    @Test
+    public void testOIDCPasswordGrant_LoginHintProviderNotAllowed() {
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider2");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+        Map<String, Object> additionalInfo = Collections.singletonMap(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa", "oidcprovider"));
+        when(clientDetails.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        try {
+            instance.authenticate(auth);
+            fail();
+        } catch (ProviderConfigurationException e) {
+            assertEquals("Client is not authorized for specified user's identity provider.", e.getMessage());
+        }
+    }
 }
