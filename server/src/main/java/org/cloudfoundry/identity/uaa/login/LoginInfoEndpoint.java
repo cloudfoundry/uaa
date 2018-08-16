@@ -368,10 +368,14 @@ public class LoginInfoEndpoint {
             UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
             if (uaaLoginHint != null) {
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
-                    // in case of uaa/ldap, pass value to login page
-                    model.addAttribute("login_hint",loginHint);
-                    samlIdps.clear();
-                    oauthIdentityProviderDefinitions.clear();
+                    if (allowedIdps.contains(uaaLoginHint.getOrigin())) {
+                        // in case of uaa/ldap, pass value to login page
+                        model.addAttribute("login_hint",loginHint);
+                        samlIdps.clear();
+                        oauthIdentityProviderDefinitions.clear();
+                    } else {
+                        model.addAttribute("error", "invalid_login_hint");
+                    }
                 } else {
                     // for oidc/saml, trigger the redirect
                     List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getKey().equals(uaaLoginHint.getOrigin())).collect(Collectors.toList());
