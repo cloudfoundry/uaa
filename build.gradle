@@ -58,7 +58,6 @@ allprojects {
     group = 'org.cloudfoundry.identity'
     version = uaaVersion
 
-    apply plugin: 'jacoco'
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
@@ -94,7 +93,6 @@ allprojects {
 
 apply plugin: 'com.bmuschko.cargo'
 apply plugin: 'org.flywaydb.flyway'
-apply plugin: 'jacoco'
 
 flyway {
     switch (databaseType()) {
@@ -129,19 +127,12 @@ task prepareDatabase {
     dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
 }
 
-def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
-    it.name == 'jacocoagent.jar'
-}).asPath
-def jacocoLocation = System.getProperty('java.io.tmpdir') + '/cargo/jacocoagent.jar'
-
 task cleanCargoConfDir {
     delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
-    delete file(jacocoLocation)
     try {
         Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
     } catch (all) {
     }
-    Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
 cargoStartLocal.dependsOn assemble, prepareDatabase
@@ -265,17 +256,6 @@ subprojects {
 
     sourceSets {
     }
-
-    jacocoTestReport {
-        additionalSourceDirs = files(sourceSets.main.allSource.srcDirs)
-        sourceDirectories = files(sourceSets.main.allSource.srcDirs)
-        classDirectories = files(sourceSets.main.output)
-        reports {
-            html.enabled = true
-            xml.enabled = true
-            csv.enabled = false
-        }
-    }
 }
 
 
@@ -318,9 +298,9 @@ cargo {
         timeout = 540000
         List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
         if (activeProfiles.contains('debug')) {
-            jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+            jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         } else {
-            jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+            jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
         configFile {
@@ -380,42 +360,6 @@ integrationTest.dependsOn subprojects.integrationTest
 test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 
-def jacocoRootReportConfiguration = {
-    additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
-    sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories = files(subprojects.sourceSets.main.output)
-    executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
-    reports {
-        html.enabled = true
-        xml.enabled = true
-        xml.destination = file("${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml")
-        csv.enabled = false
-    }
-    onlyIf = {
-        true
-    }
-    doFirst {
-        executionData = files(executionData.findAll {
-            it.exists()
-        })
-    }
-}
-
-task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn = [integrationTest]
-}
-
-task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn = [test]
-}
-
-task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn(':cloudfoundry-identity-server:test')
-}
-
 task mockAssertion(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
     args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
@@ -432,18 +376,6 @@ task decrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Decryptor'
     args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
     classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
-
-
-coveralls {
-    sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
-    jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
-}
-
-tasks.coveralls {
-    group = 'Coverage reports'
-    description = 'Uploads the aggregated coverage report to Coveralls'
 }
 
 // Log timings per task.
