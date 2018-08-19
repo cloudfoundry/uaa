@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import com.unboundid.scim.sdk.InvalidResourceException;
-import com.unboundid.scim.sdk.SCIMFilter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,10 +23,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;

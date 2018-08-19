@@ -13,10 +13,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import java.sql.Timestamp;
-import java.util.Calendar;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.codec.Base64;

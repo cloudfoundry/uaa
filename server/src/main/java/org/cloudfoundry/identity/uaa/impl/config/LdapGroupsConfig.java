@@ -2,17 +2,11 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.NestedLdapAuthoritiesPopulator;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Condition;
-import org.springframework.context.annotation.ConditionContext;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 
 import static java.util.Optional.ofNullable;

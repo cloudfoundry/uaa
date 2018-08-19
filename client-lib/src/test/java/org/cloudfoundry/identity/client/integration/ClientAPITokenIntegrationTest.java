@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.client.UaaContextFactory;
 import org.cloudfoundry.identity.client.token.GrantType;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -30,10 +29,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static org.cloudfoundry.identity.client.integration.ClientIntegrationTestUtilities.UAA_URI;
-import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.cloudfoundry.identity.client.token.GrantType.FETCH_TOKEN_FROM_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;

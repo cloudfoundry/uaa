@@ -15,11 +15,8 @@ package org.cloudfoundry.identity.uaa.login.util;
 
 import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;

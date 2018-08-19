@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
 import org.cloudfoundry.identity.uaa.impl.config.YamlPropertiesFactoryBean;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;

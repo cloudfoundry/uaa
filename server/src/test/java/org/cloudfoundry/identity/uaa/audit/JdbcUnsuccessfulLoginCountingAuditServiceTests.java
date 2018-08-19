@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,9 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Timestamp;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;

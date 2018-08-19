@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Base64;

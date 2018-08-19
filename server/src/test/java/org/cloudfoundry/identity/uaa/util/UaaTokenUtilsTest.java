@@ -1,10 +1,8 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSigner;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;

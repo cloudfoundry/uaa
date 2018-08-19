@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.junit.Before;
 import org.junit.Test;
 

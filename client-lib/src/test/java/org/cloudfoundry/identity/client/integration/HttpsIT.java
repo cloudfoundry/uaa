@@ -20,10 +20,8 @@ import org.cloudfoundry.identity.client.UaaContextFactory;
 import org.cloudfoundry.identity.client.token.GrantType;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.web.client.ResourceAccessException;
 

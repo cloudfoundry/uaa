@@ -16,16 +16,11 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
-import com.sun.net.httpserver.HttpServer;
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
-import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
-import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -35,14 +30,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.parse.BasicParserPool;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
-import java.io.File;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 
@@ -55,7 +46,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class SamlIdentityProviderConfiguratorTests {

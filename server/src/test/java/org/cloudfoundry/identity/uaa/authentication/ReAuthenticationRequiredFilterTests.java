@@ -24,7 +24,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletResponse;
 
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 public class ReAuthenticationRequiredFilterTests {

@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.statsd;
 import javax.management.MBeanServerConnection;
 import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 

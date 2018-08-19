@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
@@ -28,7 +27,6 @@ import org.cloudfoundry.identity.uaa.impl.config.CustomPropertyConstructor;
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
 import org.junit.After;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.yaml.snakeyaml.error.YAMLException;
 

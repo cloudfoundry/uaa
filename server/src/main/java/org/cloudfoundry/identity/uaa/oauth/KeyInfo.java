@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;

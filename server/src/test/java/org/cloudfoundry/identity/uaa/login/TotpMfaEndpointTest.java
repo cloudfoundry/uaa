@@ -53,7 +53,6 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;

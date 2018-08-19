@@ -25,7 +25,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TokenPolicy {

@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.mfa;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaCodeException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MissingMfaCodeException;

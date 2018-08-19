@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;

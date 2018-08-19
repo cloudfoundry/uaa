@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.joda.time.DateTimeUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -17,12 +17,9 @@ import org.passay.RuleResult;
 
 import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.*;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * ****************************************************************************

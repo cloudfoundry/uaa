@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.StringUtils;
