@@ -236,7 +236,6 @@ public class CorsFilter extends OncePerRequestFilter {
      * @return true if the `Origin` header is present
      */
     protected boolean isCrossOriginRequest(final HttpServletRequest request) {
-        //TODO what about SAME origin requests that actually have the Origin header present?
         //presence of the origin header indicates CORS request
         return StringUtils.hasText(request.getHeader(ORIGIN));
     }

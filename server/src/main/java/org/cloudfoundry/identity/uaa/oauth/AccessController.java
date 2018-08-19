@@ -113,12 +113,10 @@ public class AccessController {
         if (clientAuthRequest == null) {
             model.put("error",
                             "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
-            // response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
         else {
             String clientId = clientAuthRequest.getClientId();
             BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            // TODO: Need to fix the copy constructor to copy additionalInfo
             BaseClientDetails modifiableClient = new BaseClientDetails(client);
             modifiableClient.setClientSecret(null);
             model.put("auth_request", clientAuthRequest);
@@ -258,7 +256,6 @@ public class AccessController {
     private String getRedirectUri(ClientDetails client, AuthorizationRequest clientAuth) {
         String result = null;
         if (clientAuth.getRedirectUri() != null) {
-            //TODO - SHOULD WE ALLOW THIS??
             result = clientAuth.getRedirectUri();
         }
         if (client.getRegisteredRedirectUri() != null && !client.getRegisteredRedirectUri().isEmpty() && result == null) {

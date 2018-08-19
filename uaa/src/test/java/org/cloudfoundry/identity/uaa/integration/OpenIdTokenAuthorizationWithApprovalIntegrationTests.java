@@ -305,7 +305,6 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
-        // TODO: should be able to handle just TEXT_HTML
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.ALL));
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();

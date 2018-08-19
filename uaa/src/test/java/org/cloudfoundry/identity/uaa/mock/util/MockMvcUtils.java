@@ -300,8 +300,6 @@ public final class MockMvcUtils {
 
 
     public static MockMvcUtils utils() {
-        // this is all static now
-        // TODO: replace calls to this method with static references
         return null;
     }
 

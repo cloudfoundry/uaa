@@ -46,7 +46,6 @@ public final class CompositeAccessTokenDeserializer extends StdDeserializer<Comp
         Set<String> scope = null;
         Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
 
-        // TODO What should occur if a parameter exists twice
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             String name = jp.getCurrentName();
             jp.nextToken();
@@ -71,8 +70,6 @@ public final class CompositeAccessTokenDeserializer extends StdDeserializer<Comp
                 additionalInformation.put(name, jp.readValueAs(Object.class));
             }
         }
-
-        // TODO What should occur if a required parameter (tokenValue or tokenType) is missing?
 
         CompositeToken accessToken = new CompositeToken(tokenValue);
         accessToken.setIdTokenValue(idTokenValue);

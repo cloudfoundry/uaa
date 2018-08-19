@@ -568,7 +568,6 @@ public class InvitationsControllerTest {
             .param("password_confirmation", "password")
             .param("code", "thecode");
 
-        //TODO verify redirect to login page with success call and redirect as queryparam or sessionparam?
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=valid.redirect.com"));
@@ -595,7 +594,6 @@ public class InvitationsControllerTest {
             .param("password", "password")
             .param("password_confirmation", "password");
 
-        //TODO verify return login page with redirect attribute to home
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?success=invite_accepted"));

@@ -79,7 +79,6 @@
         if (window.history.pushState) {
           window.history.pushState(null, "", best);
         }
-        // TODO remove classnames
         document.title = $best.data("title") + " – " + originalTitle;
       }
     };

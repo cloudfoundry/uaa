@@ -459,7 +459,6 @@
 
     <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler">
         <!--<property name="tokenServices" ref="tokenServices" />-->
-        <!--TODO - set to true once we have persistent tokens -->
         <property name="useTokenServices" value="false"/>
         <property name="requestFactory" ref="authorizationRequestManager"/>
         <property name="tokenServices" ref="tokenServices"/>

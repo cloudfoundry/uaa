@@ -279,9 +279,6 @@ public class TlsKeyGenerator
 
     /**
      * @see #addKeyPair(ServerEntry)
-     *
-     * TODO the code is duplicate atm, will eliminate this redundancy after finding
-     * a better thought (an instant one is to call this method from the aboveaddKeyPair(entry) and remove the impl there)
      */
     public static void addKeyPair( ServerEntry entry, String issuerDN, String subjectDN, String keyAlgo ) throws NamingException
     {

@@ -18,7 +18,6 @@
     <http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
     <http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
 
-    <!-- TODO: make an access denied view that tells me something useful -->
     <http name="apiDefaultFilter" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
         xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <access-denied-handler error-page="/denied"/>

@@ -482,13 +482,6 @@ public class LoginIT {
         return res;
     }
 
-    private void createZoneAdmin() {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
-        );
-        //TODO add zone admin client here, return it
-    }
-
     private void loginThroughDiscovery(String userEmail, String password) {
         webDriver.findElement(By.id("email")).sendKeys(userEmail);
         webDriver.findElement(By.cssSelector(".form-group input[value='Next']")).click();

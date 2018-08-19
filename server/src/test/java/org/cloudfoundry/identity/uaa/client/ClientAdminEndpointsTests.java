@@ -428,8 +428,6 @@ public class ClientAdminEndpointsTests {
             ClientDetails result = results[i];
             assertNull(result.getClientSecret());
         }
-        //TODO figure out how to verify all five invocations
-        //Mockito.verify(clientRegistrationService, times(inputs.length)).addClientDetails(details[0]);
     }
 
     @Test(expected = InvalidClientDetailsException.class)

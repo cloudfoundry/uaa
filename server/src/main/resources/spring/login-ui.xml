@@ -53,7 +53,6 @@
     <http name="secFilterAutologinAuthorize" request-matcher-ref="autologinAuthorizeRequestMatcher"
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
-        <!-- TODO: add entry point that can redirect back to client app? -->
         <anonymous enabled="false"/>
         <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
         <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>

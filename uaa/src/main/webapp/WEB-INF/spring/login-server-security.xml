@@ -81,7 +81,6 @@
         -->
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <!-- the oauthResourceAuthenticationFilter validates the Bearer token
-             TODO, if there is no token this filter must throw.
              What we need is scope=oauth.login
          -->
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>

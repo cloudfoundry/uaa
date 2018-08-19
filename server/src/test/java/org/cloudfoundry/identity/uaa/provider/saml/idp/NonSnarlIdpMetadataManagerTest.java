@@ -45,8 +45,6 @@ public class NonSnarlIdpMetadataManagerTest {
     SamlServiceProviderProvisioning providerProvisioning;
     IdentityZoneProvisioning zoneDao;
 
-    //TODO add test for getting local uaa idp
-
     @Before
     public void setup() throws Exception {
         samlTestUtils.initialize();

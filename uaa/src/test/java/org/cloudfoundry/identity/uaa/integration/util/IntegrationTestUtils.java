@@ -479,7 +479,6 @@ public class IntegrationTestUtils {
     public static String findGroupId(RestTemplate client,
                                      String url,
                                      String groupName) {
-        //TODO - make more efficient query using filter "id eq \"value\""
         Map map = findAllGroups(client, url);
         for (Map group : ((List<Map>)map.get("resources"))) {
             assertTrue(group.containsKey("displayName"));
@@ -1182,7 +1181,6 @@ public class IntegrationTestUtils {
     public static HttpHeaders getHeaders(CookieStore cookies) {
         HttpHeaders headers = new HttpHeaders();
 
-        // TODO: should be able to handle just TEXT_HTML
         headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
         for( org.apache.http.cookie.Cookie cookie : cookies.getCookies()) {
@@ -1203,7 +1201,6 @@ public class IntegrationTestUtils {
                                                                   String loginHint,
                                                                   boolean callCheckToken) throws Exception {
         BasicCookieStore cookies = new BasicCookieStore();
-        // TODO Fix to use json API rather than HTML
         if (hasText(jSessionId)) {
             cookies.addCookie(new BasicClientCookie("JSESSIONID", jSessionId));
         }

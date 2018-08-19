@@ -270,7 +270,6 @@ public class OIDCLoginIT {
         ScimUser user = IntegrationTestUtils.getUserByZone(adminToken, baseUrl, subdomain, testAccounts.getUserName());
         assertEquals(user.getGivenName(), user.getUserName());
 
-        //TODO the tostring of user authorities when creating shadow user seems to be broken, check out ScimUserBootstrap.createNewUser()
         ScimGroup updatedCreatedGroup = IntegrationTestUtils.getGroup(adminToken, subdomain, baseUrl, createdGroup.getDisplayName());
         assertTrue(isMember(user.getId(), updatedCreatedGroup));
     }

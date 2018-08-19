@@ -2172,7 +2172,6 @@ public class DeprecatedUaaTokenServicesTests {
     private Claims getClaimsFromTokenString(String token) {
         Jwt jwt = JwtHelper.decode(token);
         if (jwt == null) {
-            // TODO: parse opaque
             return null;
         } else {
             return JsonUtils.readValue(jwt.getClaims(), Claims.class);

@@ -539,7 +539,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
-        // TODO: different values for audience in the AT and RT. Need to sync them up
         claims.put(AUD, resourceIds);
 
         for (String excludedClaim : getExcludedClaims()) {
@@ -712,7 +711,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             try {
                 tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
             } catch (DuplicateKeyException updateInstead) {
-                //TODO this is an uninteded side effect of reusing access token IDs
                 tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
             }
         }
@@ -829,7 +827,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         scopes);
 
         ArrayList<String> rids = (ArrayList<String>) claims.get(AUD);
-        //TODO - Fix null resource IDs for a client_credentials request to /oauth/token
         Set<String> resourceIds = Collections.unmodifiableSet(rids==null?new HashSet<>():new HashSet<>(rids));
         authorizationRequest.setResourceIds(resourceIds);
 

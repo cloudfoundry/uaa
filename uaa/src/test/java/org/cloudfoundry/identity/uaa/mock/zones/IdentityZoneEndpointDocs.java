@@ -372,8 +372,6 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
 
-            //TODO Spring RestDocs - throws error if we have null and strings as return and mark it STRING
-            //https://github.com/spring-projects/spring-restdocs/issues/398
             fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(VARIES).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),

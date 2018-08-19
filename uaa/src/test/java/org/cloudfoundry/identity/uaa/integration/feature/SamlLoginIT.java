@@ -1003,10 +1003,6 @@ public class SamlLoginIT {
 
         String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
 
-        //TODO Remove this and the test fails if it runs against a newly started instance
-        //see https://www.pivotaltracker.com/story/show/138365807
-        //String spMetadata = new RestTemplate().getForObject(baseUrl + "/saml/metadata", String.class);
-
         String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
 
         String uaaZoneId = IdentityZone.getUaa().getId();

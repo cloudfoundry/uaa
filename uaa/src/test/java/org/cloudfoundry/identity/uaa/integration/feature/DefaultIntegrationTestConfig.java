@@ -100,7 +100,6 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public TestAccounts testAccounts(@Value("${integration.test.uaa_url}") String uaaUrl) {
-        //TODO - actually USE the URL?
         return UaaTestAccounts.standard(null);
     }
 
