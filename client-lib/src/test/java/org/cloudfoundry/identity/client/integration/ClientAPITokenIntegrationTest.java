@@ -203,48 +203,6 @@ public class ClientAPITokenIntegrationTest {
 
     }
 
-
-    @Test
-    @Ignore("test_auth_code_token_with_id_token ignored - No UI/browser implementation yet") //until we have decided if we want to be able to do this without a UI
-    public void test_auth_code_token_with_id_token() throws Exception {
-        TokenRequest authorizationCode = factory.tokenRequest()
-            .withIdToken()
-            .setGrantType(AUTHORIZATION_CODE)
-            .setRedirectUri(new URI("http://localhost/redirect"))
-            .setState(generator.generate())
-            .setScopes(Collections.singleton("openid"))
-            .setClientId("app")
-            .setClientSecret("appclientsecret")
-            .setUsername("marissa")
-            .setPassword("koala");
-        UaaContext context = factory.authenticate(authorizationCode);
-        assertNotNull(context);
-        assertTrue(context.hasAccessToken());
-        assertFalse(context.hasIdToken());
-        assertTrue(context.hasRefreshToken());
-        assertTrue(context.getToken().getScope().contains("openid"));
-    }
-
-    @Test
-    @Ignore("test_auth_code_token_without_id_token ignred - No UI/browser implementation yet") //until we have decided if we want to be able to do this without a UI
-    public void test_auth_code_token_without_id_token() throws Exception {
-        TokenRequest authorizationCode = factory.tokenRequest()
-            .setGrantType(AUTHORIZATION_CODE)
-            .setRedirectUri(new URI("http://localhost/redirect"))
-            .setState(generator.generate())
-            .setScopes(Collections.singleton("openid"))
-            .setClientId("app")
-            .setClientSecret("appclientsecret")
-            .setUsername("marissa")
-            .setPassword("koala");
-        UaaContext context = factory.authenticate(authorizationCode);
-        assertNotNull(context);
-        assertTrue(context.hasAccessToken());
-        assertFalse(context.hasIdToken());
-        assertTrue(context.hasRefreshToken());
-        assertTrue(context.getToken().getScope().contains("openid"));
-    }
-
     @Test
     public void test_auth_code_token_using_api() throws Exception {
         UaaContext passwordContext = retrievePasswordToken(Arrays.asList("uaa.user"));

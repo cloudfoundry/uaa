@@ -317,31 +317,6 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    @Ignore //this test has issues
-    public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
-        Date timeFromNow = Approval.timeFromNow(6000);
-        assertTrue(dao.addApproval(new Approval()
-            .setUserId("u2")
-            .setClientId("c2")
-            .setScope("dash.user")
-            .setExpiresAt(timeFromNow)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
-        Approval app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
-        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
-
-        timeFromNow = Approval.timeFromNow(8000);
-        assertTrue(dao.addApproval(new Approval()
-            .setUserId("u2")
-            .setClientId("c2")
-            .setScope("dash.user")
-            .setExpiresAt(timeFromNow)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId()));
-        app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
-        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
-        assertEquals(DENIED, app.getStatus());
-    }
-
-    @Test
     public void refresh_approval_calls_get_zone_id() throws Exception {
         Approval app = dao.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         IdentityZone spy = spy(IdentityZoneHolder.get());

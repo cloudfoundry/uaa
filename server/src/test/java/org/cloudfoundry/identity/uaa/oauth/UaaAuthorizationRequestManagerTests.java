@@ -318,18 +318,6 @@ public class UaaAuthorizationRequestManagerTests {
     }
 
     @Test
-    @Ignore
-    public void missing_required_user_groups() {
-        expectedException.expect(InvalidScopeException.class);
-        expectedException.expectMessage("User does not meet the client's required group criteria.");
-        factory.setSecurityContextAccessor(securityContextAccessor);
-        client.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group.that.doesnt.exist"));
-        factory.createAuthorizationRequest(parameters);
-        throw new AssertionError();
-    }
-
-
-    @Test
     public void testResourecIdsExtracted() {
         client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
         parameters.put("grant_type", "client_credentials");

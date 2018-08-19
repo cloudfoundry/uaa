@@ -73,19 +73,6 @@ public class HttpsIT {
         }
     }
 
-    @Test
-    @Ignore("Ignored until we have valid client information for acceptance that we can use")
-    public void test_fetch_token_from_authorization_code() throws Exception {
-        ClientAPITokenIntegrationTest.test_fetch_token_from_authorization_code(factory, uaaURI, false, true, clientId, clientSecret, redirectUri);
-    }
-
-    @Test
-    @Ignore("Ignored until we have valid client information for acceptance that we can use")
-    public void test_fetch_token_from_authorization_code_with_id_token() throws Exception {
-        ClientAPITokenIntegrationTest.test_fetch_token_from_authorization_code(factory, uaaURI, true, true, clientId, clientSecret, redirectUri);
-    }
-
-
     protected void test_self_signed_cert(boolean skipSslValidation) {
         TokenRequest clientCredentials = factory.tokenRequest()
             .setClientId("oauth_showcase_client_credentials")

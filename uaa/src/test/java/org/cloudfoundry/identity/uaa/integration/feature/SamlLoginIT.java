@@ -1459,20 +1459,6 @@ public class SamlLoginIT {
         return def;
     }
 
-    @Test
-    @Ignore("was used to test self signed URLs - but this test can only be run once")
-    public void test_url_provider() throws  Exception {
-        SamlIdentityProviderDefinition definition = getTestURLDefinition();
-        IntegrationTestUtils.createIdentityProvider(
-            "test saml url provider",
-            OriginKeys.SAML,
-            true,
-            baseUrl,
-            serverRunning,
-            definition
-        );
-    }
-
     private void logout() {
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();

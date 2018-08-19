@@ -354,29 +354,6 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
     }
 
-    @Test
-    @Ignore("Running locally only, to determine if the solution was feasible.")
-    public void performance_is_acceptable() throws Exception {
-        int max = 200000;
-        rebuildIndices();
-        int delta = 20;
-        for (int i = 0; i<delta; i++) {
-            int count = (max / delta);
-            int start = i*count;
-            doWithTiming("addUsers", start, count);
-            doWithTiming("addApprovals", start, start+count, 5);
-        }
-
-        assertThat(doWithTiming("getApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
-        assertThat(doWithTiming("getApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
-        dao.setHandleRevocationsAsExpiry(true);
-        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
-        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
-        dao.setHandleRevocationsAsExpiry(false);
-        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1001\""), lessThan(5d) );
-        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c2\""), lessThan(5d) );
-    }
-
     public void revokeApprovalsCountForUser(String userId) {
         assertTrue(dao.revokeApprovalsForClient(userId, IdentityZoneHolder.get().getId()));
     }

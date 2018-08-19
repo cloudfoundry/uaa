@@ -463,32 +463,6 @@ public class OIDCLoginIT {
         assertThat(webDriver.getCurrentUrl(), containsString("error_description=Missing%20response_type%20in%20authorization%20request"));
     }
 
-    @Test
-    @Ignore("We don't have an azure provider pointint to http://oidcloginit.localhost:8080/uaa anymore")
-    public void successful_Azure_Login() throws Exception {
-        String userName = "jondoe@cfuaa.onmicrosoft.com";
-        String password = "Cona41591";
-        OIDCIdentityProviderDefinition azureConfig = azureConfig();
-        azureConfig.setLinkText("Test Azure Provider");
-        azureConfig.setShowLinkText(true);
-        identityProvider.setConfig(azureConfig);
-        updateProvider();
-
-        webDriver.get(zoneUrl);
-
-        webDriver.findElement(By.linkText("Test Azure Provider")).click();
-        String url = "login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/oauth2/authorize";
-        Assert.assertThat(webDriver.getCurrentUrl(), containsString(url));
-
-        webDriver.findElement(By.name("login")).sendKeys(userName);
-        webDriver.findElement(By.name("passwd")).sendKeys(password);
-        webDriver.findElement(By.name("passwd")).submit();
-
-        Thread.sleep(500);
-        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-    }
-
 
     private OIDCIdentityProviderDefinition azureConfig() throws Exception {
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();

@@ -199,59 +199,6 @@ public class Saml2TokenGranterTest {
         granter.grant(GRANT_TYPE, tokenRequest);
     }
 
-    @Test(expected = UnauthorizedClientException.class)
-    @Ignore
-    public void test_oauth2_authentication_with_invalid_allowed_provider() {
-        OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
-        UaaUser user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(user);
-        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
-        BaseClientDetails myClient = new BaseClientDetails(requestingClient);
-        List<String> allowedProviders = new LinkedList<String>();
-        allowedProviders.add("anyIDP");
-        Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
-        Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
-        //when(new DefaultSecurityContextAccessor()).thenReturn((DefaultSecurityContextAccessor) securityContextAccessor);
-        mockedgranter = mock(Saml2TokenGranter.class);
-        when(mockedgranter.validateRequest(tokenRequest)).thenReturn(userAuthentication);
-        when(mockedgranter.getOAuth2Authentication((ClientDetails)myClient, (TokenRequest)tokenRequest)).thenCallRealMethod();
-        myClient.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
-        myClient.setAdditionalInformation(additionalInformation);
-        when(userAuthentication.getAuthorities()).thenReturn(me);
-        when(requestFactory.createOAuth2Request(receivingClient, tokenRequest)).thenReturn(myReq);
-        when(userAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
-        when(mockedgranter.getRequestFactory()).thenReturn(requestFactory);
-        mockedgranter.getOAuth2Authentication(myClient, tokenRequest);
-    }
-
-    @Test(expected = DisallowedIdpException.class)
-    @Ignore
-    public void test_oauth2_authentication_with_disallowed_provider() {
-        OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
-        UaaUser user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(user);
-        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
-        BaseClientDetails myClient = new BaseClientDetails(requestingClient);
-        List<String> allowedProviders = new LinkedList<String>();
-        allowedProviders.add("anyIDP");
-        Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
-        Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
-        //when(new DefaultSecurityContextAccessor()).thenReturn((DefaultSecurityContextAccessor) securityContextAccessor);
-        mockedgranter = mock(Saml2TokenGranter.class);
-        when(mockedgranter.validateRequest(tokenRequest)).thenReturn(userAuthentication);
-        when(mockedgranter.getOAuth2Authentication(myClient, tokenRequest)).thenCallRealMethod();
-        myClient.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
-        myClient.setAdditionalInformation(additionalInformation);
-        when(userAuthentication.getAuthorities()).thenReturn(me);
-        when(requestFactory.createOAuth2Request(receivingClient, tokenRequest)).thenReturn(myReq);
-        when(userAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
-        //when(identityProviderProvisioning.retrieveByOrigin("uaa","uaa")).thenThrow(new EmptyResultDataAccessException(0));
-        when(mockedgranter.getRequestFactory()).thenReturn(requestFactory);
-        mockedgranter.getOAuth2Authentication(myClient, tokenRequest);
-    }
-
     @Test
     public void test_oauth2_authentication_with_empty_allowed() {
         OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
