@@ -12,6 +12,8 @@ and can act as an SSO service using those credentials (or others).  It
 has endpoints for managing user accounts and for registering OAuth2
 clients, as well as various other management functions.
 
+[![](https://openid.net/wordpress-content/uploads/2016/04/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png)](https://openid.net/certification/)
+
 ## Co-ordinates
 
 * Tokens: [A note on tokens, scopes and authorities](/docs/UAA-Tokens.md)
