@@ -720,8 +720,6 @@ public class DeprecatedUaaTokenServicesTests {
         Map<String, Object> tokenJwtHeaderMap = new HashMap<>();
         tokenJwtHeaderMap.put("alg", JwtHelper.decode(refreshTokenJwt).getHeader().getAlg());
         tokenJwtHeaderMap.put("kid", JwtHelper.decode(refreshTokenJwt).getHeader().getKid());
-        tokenJwtHeaderMap.put("enc", JwtHelper.decode(refreshTokenJwt).getHeader().getEnc());
-        tokenJwtHeaderMap.put("iv", JwtHelper.decode(refreshTokenJwt).getHeader().getIv());
         tokenJwtHeaderMap.put("typ", JwtHelper.decode(refreshTokenJwt).getHeader().getTyp());
 
         String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, keyInfoService.getKey(kid).getSigner());

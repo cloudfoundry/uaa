@@ -132,13 +132,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.crea
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -4205,6 +4200,95 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, Object> claims = UaaTokenUtils.getClaims(tokenResponse.getValue());
 
         assertThat(claims.get(JTI).toString(), not(endsWith("-r")));
+    }
+
+    @Test
+    public void testJkuHeaderIsSet_andNonRfcHeadersNotSet_forAccessToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                .param(CLIENT_ID, clientId)
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala")
+        ).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        CompositeToken tokenResponse = JsonUtils.readValue(body, CompositeToken.class);
+        String accessTokenHeaderRaw = tokenResponse.getValue().split("\\.")[0];
+        String accessTokenHeaderJson = new String(java.util.Base64.getDecoder().decode(accessTokenHeaderRaw));
+        Map<String, Object> headerMap =
+                JsonUtils.readValue(accessTokenHeaderJson, new TypeReference<Map<String, Object>>() {});
+
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
+        // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
+        assertThat(headerMap, not(hasKey("enc")));
+        assertThat(headerMap, not(hasKey("iv")));
+    }
+
+    @Test
+    public void testJkuHeaderIsSet_andNonRfcHeadersNotSet_forRefreshToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                .param(CLIENT_ID, clientId)
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala")
+        ).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        CompositeToken tokenResponse = JsonUtils.readValue(body, CompositeToken.class);
+        assertThat(tokenResponse.getRefreshToken(), is(notNullValue()));
+
+        String refreshTokenHeaderRaw = tokenResponse.getRefreshToken().getValue().split("\\.")[0];
+        String refreshTokenHeaderJson = new String(java.util.Base64.getDecoder().decode(refreshTokenHeaderRaw));
+        Map<String, Object> headerMap =
+                JsonUtils.readValue(refreshTokenHeaderJson, new TypeReference<Map<String, Object>>() {});
+
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
+        // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
+        assertThat(headerMap, not(hasKey("enc")));
+        assertThat(headerMap, not(hasKey("iv")));
+    }
+
+    @Test
+    public void testJkuHeaderIsSet_andNonRfcHeadersNotSet_forIdToken() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "uaa.user,openid";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                .param(CLIENT_ID, clientId)
+                .param("client_secret", SECRET)
+                .param("username", "marissa")
+                .param("password", "koala")
+                .param("response_type", "id_token")
+        ).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        CompositeToken tokenResponse = JsonUtils.readValue(body, CompositeToken.class);
+        assertThat(tokenResponse.getIdTokenValue(), is(notNullValue()));
+
+        String idTokenHeaderRaw = tokenResponse.getIdTokenValue().split("\\.")[0];
+        String idTokenHeaderJson = new String(java.util.Base64.getDecoder().decode(idTokenHeaderRaw));
+        Map<String, Object> headerMap =
+                JsonUtils.readValue(idTokenHeaderJson, new TypeReference<Map<String, Object>>() {});
+
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
+        // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
+        assertThat(headerMap, not(hasKey("enc")));
+        assertThat(headerMap, not(hasKey("iv")));
     }
 
     protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) throws Exception {
