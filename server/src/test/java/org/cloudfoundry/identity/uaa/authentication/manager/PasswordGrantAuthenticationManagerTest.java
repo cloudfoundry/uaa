@@ -621,7 +621,7 @@ public class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (BadCredentialsException e) {
-            assertEquals("No single identity provider could be selected.", e.getMessage());
+            assertEquals("The client is not authorized for any identity provider that supports password grant.", e.getMessage());
         }
     }
 
@@ -694,7 +694,7 @@ public class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (BadCredentialsException e) {
-            assertEquals("No single identity provider could be selected.", e.getMessage());
+            assertEquals("The client is authorized for multiple identity providers that support password grant and could not determine which identity provider to use.", e.getMessage());
         }
     }
 

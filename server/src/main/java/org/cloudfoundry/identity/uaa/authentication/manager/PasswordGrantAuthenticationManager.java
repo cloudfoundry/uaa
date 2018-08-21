@@ -110,8 +110,10 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             }
         } else if (allowedProviders.contains(OriginKeys.LDAP)) {
             loginHintToUse = new UaaLoginHint(OriginKeys.LDAP);
+        } else if (allowedProviders.size() == 0){
+            throw new BadCredentialsException("The client is not authorized for any identity provider that supports password grant.");
         } else {
-            throw new BadCredentialsException("No single identity provider could be selected.");
+            throw new BadCredentialsException("The client is authorized for multiple identity providers that support password grant and could not determine which identity provider to use.");
         }
         return loginHintToUse;
     }
