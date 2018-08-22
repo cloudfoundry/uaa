@@ -368,7 +368,7 @@ public class LoginInfoEndpoint {
             UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
             if (uaaLoginHint != null) {
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
-                    if (allowedIdps.contains(uaaLoginHint.getOrigin())) {
+                    if (allowedIdps == null || allowedIdps.contains(uaaLoginHint.getOrigin())) {
                         // in case of uaa/ldap, pass value to login page
                         model.addAttribute("login_hint",loginHint);
                         samlIdps.clear();
