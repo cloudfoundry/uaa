@@ -2,6 +2,7 @@ Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-
 
 apply plugin: 'war'
 apply plugin: 'org.asciidoctor.convert'
+apply plugin: 'com.moowork.node'
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
@@ -117,17 +118,6 @@ integrationTest {
 war {
   //workaround for maven <scope>optional</scope>
   rootSpec.exclude("**/spring-security-oauth-*.jar")
-}
-
-task npmInstall(type: Exec) {
-  executable 'npm'
-  args 'install'
-}
-
-task jasmineTest(type: Exec) {
-  dependsOn npmInstall
-  executable 'npm'
-  args 'test'
 }
 
 

@@ -28,6 +28,7 @@ buildscript {
         classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+        classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
     }
 }
 
