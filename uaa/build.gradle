@@ -62,6 +62,21 @@ dependencies {
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
 }
+
+node {
+  npmVersion = '2.1.5'
+
+  // If true, it will download node using above parameters.
+  // If false, it will try to use globally installed node.
+  download = true
+
+  // Set the work directory for NPM
+  npmWorkDir = file("${project.buildDir}/npm")
+
+  // Set the work directory where node_modules should be located
+  nodeModulesDir = file("${project.projectDir}")
+}
+
 ext {
   snippetsDir = file('build/generated-snippets')
 }
