@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -72,6 +73,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -222,6 +225,16 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
     @Test
     public void testListGroups() throws Exception {
+        validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
+    }
+
+    @Test
+    public void testListGroupsWithAttributesWithoutMembersDoesNotQueryMembers() throws Exception {
+        ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
+        when(memberManager.getMembers(anyString(), any(Boolean.class), anyString())).thenThrow(new RuntimeException());
+        endpoints = new ScimGroupEndpoints(dao, memberManager);
+        endpoints.setExternalMembershipManager(em);
+        endpoints.setGroupMaxCount(20);
         validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
     }
 
