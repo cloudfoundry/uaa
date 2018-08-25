@@ -41,3 +41,5 @@ publishing {
   }
 }
 
+buildDir = "${projectDir}/_build"
+

@@ -478,3 +478,5 @@ class TimingsListener implements TaskExecutionListener, BuildListener, org.gradl
 }
 
 gradle.addListener new TimingsListener()
+
+buildDir = "${projectDir}/_build"
