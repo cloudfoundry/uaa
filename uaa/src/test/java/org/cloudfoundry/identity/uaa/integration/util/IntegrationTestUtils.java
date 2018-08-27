@@ -688,19 +688,6 @@ public class IntegrationTestUtils {
         return zone.getBody();
     }
 
-    public static void makeAdminUserForZone(RestTemplate client,
-                                            String url,
-                                            String userId,
-                                            String zoneId) {
-        ScimGroupMember groupMember = new ScimGroupMember(userId);
-        String zoneAdminGroupName = "zones." + zoneId + ".admin";
-        ScimGroup group = new ScimGroup(null, zoneAdminGroupName, null);
-        group.setMembers(Collections.singletonList(groupMember));
-
-        ResponseEntity<String> response = client.postForEntity(url + "/Groups", group, String.class);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-    }
-
     public static void addMemberToGroup(RestTemplate client,
                                         String url,
                                         String userId,

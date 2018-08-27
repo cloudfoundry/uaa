@@ -20,10 +20,13 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.security.jwt.Jwt;
@@ -47,15 +50,28 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-public class LdapIntegationTests {
+public class LdapIntegrationTests {
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
+    @Before
+    public void setup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+
+        ScimGroup group = new ScimGroup(null, "zones.testzone1.admin", null);
+        IntegrationTestUtils.createGroup(token, "", serverRunning.getBaseUrl(), group);
+    }
+
+    @After
+    public void cleanup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+        String groupId = IntegrationTestUtils.getGroup(token, "", serverRunning.getBaseUrl(), "zones.testzone1.admin").getId();
+        IntegrationTestUtils.deleteGroup(token, "", serverRunning.getBaseUrl(), groupId);
+    }
 
     @Test
     public void test_LDAP_Custom_User_Attributes_In_ID_Token() throws Exception {
-        assumeTrue("Expected LDAP profile to be enabled", isLdapEnabled());
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         final String COST_CENTER = "costCenter";
@@ -86,7 +102,10 @@ public class LdapIntegationTests {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeAdminUserForZone(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(
+          adminClient, serverRunning.getBaseUrl(), String.format("zones.%s.admin", zoneId)
+        );
+        IntegrationTestUtils.addMemberToGroup(adminClient, serverRunning.getBaseUrl(), user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =

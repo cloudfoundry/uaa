@@ -5,9 +5,11 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -67,7 +69,20 @@ public class LdapLoginIT {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
             webDriver.manage().deleteAllCookies();
         }
+
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        ScimGroup group = new ScimGroup(null, "zones.testzone2.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
     }
+
+    @After
+    public void cleanup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        String groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.testzone2.admin").getId();
+        IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
+    }
+
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
@@ -104,7 +119,9 @@ public class LdapLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@ldaptesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeAdminUserForZone(identityClient, baseUrl, user.getId(), subdomain);
+        String groupName = String.format("zones.%s.admin", subdomain);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         zoneAdminToken =

@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -12,6 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -60,6 +62,7 @@ public class IdentityZoneEndpointsIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     private RestTemplate client;
+    private String zoneId;
 
     @Before
     public void createRestTemplate() throws Exception {
@@ -77,10 +80,20 @@ public class IdentityZoneEndpointsIntegrationTests {
         });
     }
 
+    @After
+    public void cleanup() throws Exception {
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        RestTemplate client = IntegrationTestUtils.getClientCredentialsTemplate(
+          IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
+        );
+        String groupId = IntegrationTestUtils.findGroupId(client, serverRunning.getBaseUrl(), String.format("zones.%s.admin", zoneId));
+        IntegrationTestUtils.deleteGroup(clientCredentialsToken, "", serverRunning.getBaseUrl(), groupId);
+    }
+
     @Test
     public void testCreateZone() throws Exception {
-        String zoneId = UUID.randomUUID().toString();
-        String requestBody = "{\"id\":\""+zoneId+"\", \"subdomain\":\""+zoneId+"\", \"name\":\"testCreateZone() "+zoneId+"\"}";
+        zoneId = UUID.randomUUID().toString();
+        String requestBody = "{\"id\":\""+ zoneId +"\", \"subdomain\":\""+ zoneId +"\", \"name\":\"testCreateZone() "+ zoneId +"\"}";
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
@@ -99,7 +112,11 @@ public class IdentityZoneEndpointsIntegrationTests {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, serverRunning.getBaseUrl(), email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeAdminUserForZone(client, serverRunning.getBaseUrl(), user.getId(), zoneId);
+
+        ScimGroup scimGroup = new ScimGroup(null, String.format("zones.%s.admin", zoneId), null);
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        ScimGroup group = IntegrationTestUtils.createGroup(clientCredentialsToken, "", serverRunning.getBaseUrl(), scimGroup);
+        IntegrationTestUtils.addMemberToGroup(adminClient, serverRunning.getBaseUrl(), user.getId(), group.getId());
 
         String zoneAdminToken =
                 IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
