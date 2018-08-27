@@ -99,7 +99,7 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean
-    public TestAccounts testAccounts(@Value("${integration.test.uaa_url}") String uaaUrl) {
+    public TestAccounts testAccounts() {
         return UaaTestAccounts.standard(null);
     }
 

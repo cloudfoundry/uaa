@@ -99,7 +99,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, serverRunning.getBaseUrl(), email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(client, serverRunning.getBaseUrl(), user.getId(), zoneId);
+        IntegrationTestUtils.makeAdminUserForZone(client, serverRunning.getBaseUrl(), user.getId(), zoneId);
 
         String zoneAdminToken =
                 IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,

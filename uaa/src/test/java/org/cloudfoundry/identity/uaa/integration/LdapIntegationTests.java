@@ -86,7 +86,7 @@ public class LdapIntegationTests {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        IntegrationTestUtils.makeAdminUserForZone(identityClient, baseUrl, user.getId(), zoneId);
 
         //get the zone admin token
         String zoneAdminToken =

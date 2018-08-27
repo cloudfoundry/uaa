@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,7 +76,9 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryT
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,9 +124,35 @@ public class SamlLoginWithLocalIdpIT {
         webDriver.manage().deleteAllCookies();
         webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
         webDriver.manage().deleteAllCookies();
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-        webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+    }
+
+    @Before
+    public void setup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        ScimGroup group = new ScimGroup(null, "zones.testzone1.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.testzone2.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.uaa.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+    }
+
+    @After
+    public void cleanup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        String groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.testzone1.admin").getId();
+        IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
+
+        groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.testzone2.admin").getId();
+        IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
+
+        groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.uaa.admin").getId();
+        IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
     }
 
     /**
@@ -348,9 +378,11 @@ public class SamlLoginWithLocalIdpIT {
         IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
 
-        String zoneAdminToken = getZoneAdminToken(adminClient, identityClient, zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.testzone1.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
+
+        String zoneAdminToken = getZoneAdminToken(adminClient, zoneId);
 
         String testZone1Url = baseUrl.replace("localhost", zoneId + ".localhost");
         String zoneAdminClientId = new RandomValueStringGenerator().generate() + "-" + zoneId + "-admin";
@@ -437,8 +469,10 @@ public class SamlLoginWithLocalIdpIT {
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
-        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String groupIdTestZone1 = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.testzone1.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, idpZoneAdminUser.getId(), groupIdTestZone1);
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, idpZoneId);
 
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
@@ -449,8 +483,11 @@ public class SamlLoginWithLocalIdpIT {
 
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
-        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+
+        String groupIdTestZone2 = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.testzone2.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, spZoneAdminUser.getId(), groupIdTestZone2);
+
+        String spZoneAdminToken = getZoneAdminToken(adminClient, spZoneId);
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
@@ -515,8 +552,11 @@ public class SamlLoginWithLocalIdpIT {
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
-        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String groupIdTestZone1 = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.testzone1.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, idpZoneAdminUser.getId(), groupIdTestZone1);
+
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, idpZoneId);
 
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
@@ -527,8 +567,11 @@ public class SamlLoginWithLocalIdpIT {
 
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
-        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+
+        String groupIdTestZone2 = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.testzone2.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, spZoneAdminUser.getId(), groupIdTestZone2);
+
+        String spZoneAdminToken = getZoneAdminToken(adminClient, spZoneId);
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
@@ -577,8 +620,11 @@ public class SamlLoginWithLocalIdpIT {
 
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
-        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + idpZoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, idpZoneAdminUser.getId(), groupId);
+
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, idpZoneId);
 
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
@@ -589,8 +635,10 @@ public class SamlLoginWithLocalIdpIT {
 
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
-        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+        groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + spZoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, spZoneAdminUser.getId(), groupId);
+
+        String spZoneAdminToken = getZoneAdminToken(adminClient, spZoneId);
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         //Add IDP definition to the SP zone
@@ -637,8 +685,11 @@ public class SamlLoginWithLocalIdpIT {
         IdentityZone idpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), idpZoneId);
-        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + idpZoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, idpZoneAdminUser.getId(), groupId);
+
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, idpZoneId);
 
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
@@ -649,8 +700,11 @@ public class SamlLoginWithLocalIdpIT {
 
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser spZoneAdminUser = getSpZoneAdminUser(adminClient, spZoneAdminEmail);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, spZoneAdminUser.getId(), spZoneId);
-        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+
+        groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + spZoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, spZoneAdminUser.getId(), groupId);
+
+        String spZoneAdminToken = getZoneAdminToken(adminClient, spZoneId);
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
@@ -693,7 +747,7 @@ public class SamlLoginWithLocalIdpIT {
         RestTemplate identityClient = getIdentityClient();
 
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
-        String idpZoneAdminToken = getZoneAdminToken(adminClient, identityClient, idpZoneId);
+        String idpZoneAdminToken = getZoneAdminToken(adminClient, idpZoneId);
         String idpZoneUserEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         createZoneUser(idpZoneId, idpZoneAdminToken, idpZoneUserEmail, idpZoneUrl);
 
@@ -707,7 +761,7 @@ public class SamlLoginWithLocalIdpIT {
         assertEquals(2, spZone.getConfig().getSamlConfig().getKeys().size());
         assertEquals("key-1", spZone.getConfig().getSamlConfig().getActiveKeyId());
 
-        String spZoneAdminToken = getZoneAdminToken(adminClient, identityClient, spZoneId);
+        String spZoneAdminToken = getZoneAdminToken(adminClient, spZoneId);
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
         IdentityProvider<SamlIdentityProviderDefinition> idp = getSamlIdentityProvider(spZoneId, spZoneAdminToken, samlIdentityProviderDefinition);
         SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition("cloudfoundry-saml-login");
@@ -859,10 +913,14 @@ public class SamlLoginWithLocalIdpIT {
         );
     }
 
-    private String getZoneAdminToken(RestTemplate adminClient, RestTemplate identityClient, String zoneId) throws Exception {
+    private String getZoneAdminToken(RestTemplate adminClient, String zoneId) throws Exception {
         String zoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, zoneAdminEmail, "firstname", "lastname", zoneAdminEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, idpZoneAdminUser.getId(), zoneId);
+
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        assertThat(groupId, is(notNullValue()));
+
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, idpZoneAdminUser.getId(), groupId);
         return IntegrationTestUtils.getAccessTokenByAuthCode(
             serverRunning,
             UaaTestAccounts.standard(serverRunning),
@@ -1007,14 +1065,14 @@ public class SamlLoginWithLocalIdpIT {
 
     public static SamlServiceProvider createSamlServiceProvider(String name, String entityId, String baseUrl,
                                                                 ServerRunning serverRunning, SamlServiceProviderDefinition samlServiceProviderDefinition) throws Exception {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(IntegrationTestUtils
-          .getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret"));
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
           IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email,
           true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+
+        String uaaGroupIdZone = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.uaa.admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), uaaGroupIdZone);
 
         String zoneAdminToken = IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
           UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", email, "secr3T");
