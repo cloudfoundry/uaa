@@ -103,7 +103,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -641,40 +640,14 @@ public class IntegrationTestUtils {
     }
 
     public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
-                                                           String url,
-                                                           String id,
-                                                           String subdomain) {
-        return createZoneOrUpdateSubdomain(client, url, id, subdomain, x -> {});
-    }
-
-    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
-                                                           String url,
-                                                           String id,
-                                                           String subdomain,
-                                                           Consumer<IdentityZoneConfiguration> configureZone) {
-
-        ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
-        if (zoneGet.getStatusCode()==HttpStatus.OK) {
-            IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
-            existing.setSubdomain(subdomain);
-            client.put(url + "/identity-zones/{id}", existing, id);
-            return existing;
-        }
-        IdentityZone identityZone = fixtureIdentityZone(id, subdomain, new IdentityZoneConfiguration());
-        configureZone.accept(identityZone.getConfig());
-
-        ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
-        return zone.getBody();
-    }
-
-    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
             String url,
             String id,
             String subdomain,
             IdentityZoneConfiguration config) {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
-        if (zoneGet.getStatusCode()==HttpStatus.OK) {
+
+        if (zoneGet.getStatusCode() == HttpStatus.OK) {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
@@ -683,7 +656,13 @@ public class IntegrationTestUtils {
             IdentityZone updatedZone = JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
             return updatedZone;
         }
-        IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
+
+        IdentityZone identityZone = new IdentityZone()
+          .setId(id)
+          .setSubdomain(subdomain)
+          .setName("The Twiglet Zone[" + id + "]")
+          .setDescription("Like the Twilight Zone but tastier[" + id + "].")
+          .setConfig(config);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();
     }
@@ -692,17 +671,18 @@ public class IntegrationTestUtils {
                                      String url,
                                      String userId,
                                      String zoneId) {
-        ScimGroupMember member = new ScimGroupMember(userId);
-        String groupName = "zones."+zoneId+".admin";
-        ScimGroup group = new ScimGroup(null,groupName,zoneId);
-        group.setMembers(Arrays.asList(member));
+        ScimGroupMember groupMember = new ScimGroupMember(userId);
+        String zoneAdminName = "zones." + zoneId + ".admin";
+        ScimGroup group = new ScimGroup(null, zoneAdminName, zoneId);
+        group.setMembers(Collections.singletonList(groupMember));
+
         ResponseEntity<String> response = client.postForEntity(url + "/Groups/zones", group, String.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
     public static BaseClientDetails getClient(String token,
                                               String url,
-                                              String clientId) throws Exception {
+                                              String clientId) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
@@ -882,19 +862,19 @@ public class IntegrationTestUtils {
     public static IdentityProvider createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
-        return createIdentityProvider("simplesamlphp for uaa", originKey, addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
+        return createIdentityProvider("simplesamlphp for uaa", addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
     }
 
     /**
-     * @param originKey The unique identifier used to reference the identity provider in UAA.
      * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
-    public static IdentityProvider createIdentityProvider(String name, String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
+    public static IdentityProvider createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
+
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
@@ -902,7 +882,8 @@ public class IntegrationTestUtils {
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName(name);
-        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertNotNull(provider.getId());
         return provider;
     }
@@ -934,17 +915,14 @@ public class IntegrationTestUtils {
     }
 
     public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
-        );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        IntegrationTestUtils.makeZoneAdmin(adminClient, baseUrl, user.getId(), zoneId);
 
-        return IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+        return IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -974,7 +952,7 @@ public class IntegrationTestUtils {
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -1048,24 +1026,9 @@ public class IntegrationTestUtils {
         throw new IllegalStateException("Invalid result code returned, unable to create identity provider:"+providerPost.getStatusCode());
     }
 
-    public static IdentityZone fixtureIdentityZone(String id, String subdomain) {
-
-        return fixtureIdentityZone(id, subdomain, null);
-    }
-
-    public static IdentityZone fixtureIdentityZone(String id, String subdomain, IdentityZoneConfiguration config) {
-        IdentityZone identityZone = new IdentityZone();
-        identityZone.setId(id);
-        identityZone.setSubdomain(subdomain);
-        identityZone.setName("The Twiglet Zone[" + id + "]");
-        identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
-        identityZone.setConfig(config);
-        return identityZone;
-    }
-
     public static String getClientCredentialsToken(String baseUrl,
                                                    String clientId,
-                                                   String clientSecret) throws Exception {
+                                                   String clientSecret) {
         RestTemplate template = new RestTemplate();
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -1144,12 +1107,12 @@ public class IntegrationTestUtils {
         return accessToken.getValue();
     }
 
-    public static String getAuthorizationCodeToken(ServerRunning serverRunning,
-                                                   UaaTestAccounts testAccounts,
-                                                   String clientId,
-                                                   String clientSecret,
-                                                   String username,
-                                                   String password) throws Exception {
+    public static String getAccessTokenByAuthCode(ServerRunning serverRunning,
+                                                  UaaTestAccounts testAccounts,
+                                                  String clientId,
+                                                  String clientSecret,
+                                                  String username,
+                                                  String password) throws Exception {
 
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
             .get("access_token");

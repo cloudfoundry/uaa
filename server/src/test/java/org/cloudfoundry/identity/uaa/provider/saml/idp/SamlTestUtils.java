@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;

@@ -102,7 +102,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         IntegrationTestUtils.makeZoneAdmin(client, serverRunning.getBaseUrl(), user.getId(), zoneId);
 
         String zoneAdminToken =
-                IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                         UaaTestAccounts.standard(serverRunning),
                         "identity",
                         "identitysecret",

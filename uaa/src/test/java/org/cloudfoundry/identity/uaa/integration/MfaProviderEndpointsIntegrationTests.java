@@ -64,7 +64,8 @@ public class MfaProviderEndpointsIntegrationTests {
         ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret");
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);
-        IdentityZone mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1");
+
+        IdentityZone mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1", null);
         String zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
 
         String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, mfaZone.getId());

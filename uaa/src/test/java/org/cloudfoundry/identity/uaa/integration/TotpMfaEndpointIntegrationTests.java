@@ -94,8 +94,7 @@ public class TotpMfaEndpointIntegrationTests {
         adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);
 
-        mfaZone = IntegrationTestUtils.fixtureIdentityZone("testzone1", "testzone1");
-        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1");
+        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1", null);
 
         zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
         adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "uaa.admin");

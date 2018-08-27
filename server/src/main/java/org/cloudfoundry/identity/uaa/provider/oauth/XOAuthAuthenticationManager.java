@@ -138,7 +138,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     @Override
     public void setOrigin(String origin) {
-        //origin is per thread during execution
         this.origin.set(origin);
     }
 
@@ -176,7 +175,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     @Override
     public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
         IdentityProvider provider = null;
-
         XOAuthCodeToken codeToken = (XOAuthCodeToken) authentication;
 
         if (isEmpty(codeToken.getOrigin())) {
@@ -290,7 +288,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 .collect(Collectors.toSet())
             );
         }
-
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 

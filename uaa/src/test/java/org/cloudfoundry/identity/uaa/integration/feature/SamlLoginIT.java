@@ -153,7 +153,7 @@ public class SamlLoginIT {
     }
 
     @Before
-    public void clearWebDriverOfCookies() throws Exception {
+    public void clearWebDriverOfCookies() {
         screenShootRule.setWebDriver(webDriver);
 
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
@@ -173,7 +173,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testContentTypes() throws Exception {
+    public void testContentTypes() {
         String loginUrl = baseUrl + "/login";
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.add("Accept", "application/json");
@@ -251,7 +251,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -260,7 +261,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -362,7 +363,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -480,7 +481,7 @@ public class SamlLoginIT {
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -537,7 +538,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -546,7 +548,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -626,7 +628,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -635,7 +638,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -688,7 +691,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -697,7 +701,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -758,7 +762,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -767,7 +772,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -864,7 +869,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -873,7 +879,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -996,7 +1002,8 @@ public class SamlLoginIT {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
         //create the zone
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
 
@@ -1089,7 +1096,8 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -1098,7 +1106,7 @@ public class SamlLoginIT {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -1191,14 +1199,15 @@ public class SamlLoginIT {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
         IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
 
 
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",

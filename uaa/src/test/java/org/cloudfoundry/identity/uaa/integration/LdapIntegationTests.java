@@ -80,7 +80,8 @@ public class LdapIntegationTests {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
@@ -89,7 +90,7 @@ public class LdapIntegationTests {
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",

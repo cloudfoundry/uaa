@@ -59,6 +59,7 @@ public class IdentityZoneConfigurationIntegrationTest {
         UaaContext context = factory.authenticate(clientCredentials);
 
         String zoneId = GENERATOR.generate();
+
         IdentityZone zone = new IdentityZone()
             .setId(zoneId)
             .setName(zoneId)
