@@ -941,6 +941,8 @@ public class IntegrationTestUtils {
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
 
         String groupName = "zones." + zoneId + ".admin";
+        ScimGroup group = new ScimGroup(null, groupName, null);
+        createGroup(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
