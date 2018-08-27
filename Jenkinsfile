@@ -434,7 +434,7 @@ pipeline {
                         curl -vvv -T $LOCAL_JENKINSFILE -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_JENKINSFILE?override=1
     
                         echo 'publish file in bintray'
-                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/predix-uaa/publish
+                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/publish
                     """
                 }
             }
