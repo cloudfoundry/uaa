@@ -351,11 +351,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private Set<String> getAcrAsSet(Map<String, Object> refreshTokenClaims) {
+
         Map<String, Object> acrFromRefreshToken = (Map<String, Object>) refreshTokenClaims.get(ACR);
         if (acrFromRefreshToken == null) {
             return null;
         }
-        return (Set<String>) acrFromRefreshToken.get(ACR_VALUES_KEY);
+
+        return new HashSet<>((Collection<String>) acrFromRefreshToken.get(ACR_VALUES_KEY));
     }
 
     private MultiValueMap<String, String> getUserAttributes(String userId) {
