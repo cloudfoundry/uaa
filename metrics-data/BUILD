@@ -1,5 +1,6 @@
 java_library(
-    name = "uaa-metrics-data",
+    name = "metrics-data",
+    visibility = ["//visibility:public"],
     srcs = glob([
         "src/main/java/**/*.java",
     ]),
