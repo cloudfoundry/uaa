@@ -32,8 +32,6 @@ buildscript {
     }
 }
 
-apply from: file('docker.gradle')
-
 ext {
     databaseType = {
         List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
