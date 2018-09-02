@@ -25,7 +25,7 @@ GEM
     fast_blank (1.0.0)
     fastimage (2.0.1)
       addressable (~> 2)
-    ffi (1.9.17)
+    ffi (1.9.25)
     haml (4.0.7)
       tilt
     hamster (3.0.0)
@@ -119,6 +119,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  ffi (~> 1.9.24)
   middleman (~> 4.2.1)
   middleman-autoprefixer (~> 2.7.0)
   middleman-sprockets (~> 4.1.1)
