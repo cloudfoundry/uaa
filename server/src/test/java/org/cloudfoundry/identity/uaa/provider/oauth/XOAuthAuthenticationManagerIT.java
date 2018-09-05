@@ -44,6 +44,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -73,6 +76,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
@@ -423,8 +427,9 @@ public class XOAuthAuthenticationManagerIT {
         assertThat(xoAuthAuthenticationManager.getOrigin(), is(UAA_ORIGIN));
     }
 
-    @Test
-    public void when_exchanging_an_id_token_issuedby_the_uaa_idp_but_not_uaa_origin() {
+    @ParameterizedTest
+    @MethodSource("invalidOrigins")
+    public void when_exchanging_an_id_token_issuedby_the_uaa_idp_but_not_uaa_origin(String origin) {
         when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
         when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
 
@@ -433,7 +438,7 @@ public class XOAuthAuthenticationManagerIT {
         String username = RandomStringUtils.random(50);
         claims.put("sub", username);
         claims.put("iss", "http://localhost/oauth/token");
-        claims.put("origin", "not_uaa_origin");
+        claims.put("origin", origin);
 
         CompositeToken token = getCompositeAccessToken();
         String idToken = token.getIdTokenValue();
@@ -1167,5 +1172,7 @@ public class XOAuthAuthenticationManagerIT {
             assertThat(authorities, hasItem(scope));
         }
     }
-
+    private static Stream<String> invalidOrigins() {
+        return Stream.of("", "not_uaa_origin", null);
+    }
 }
