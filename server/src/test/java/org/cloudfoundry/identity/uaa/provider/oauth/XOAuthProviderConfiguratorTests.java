@@ -140,8 +140,6 @@ public class XOAuthProviderConfiguratorTests {
     private IdentityProviderProvisioning provisioning;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
     private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
-    private Runnable stopHttpServer;
-    private SlowHttpServer slowHttpServer;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -344,6 +342,7 @@ public class XOAuthProviderConfiguratorTests {
 
         verify(cache).getUrlContent(any(), any());
     }
+
 
 
     @Test

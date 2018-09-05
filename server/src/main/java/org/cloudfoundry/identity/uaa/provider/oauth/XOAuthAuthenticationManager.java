@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -123,6 +124,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
+
+            if (idTokenWasIssuedByTheUaa(issuer, (String) claims.get(ClaimConstants.ORIGIN))) {
+                return buildInternalUaaIdpConfig(issuer);
+            }
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
@@ -131,6 +136,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
+    }
+
+    private boolean idTokenWasIssuedByTheUaa(String issuer, String origin) {
+        return issuer.equals(tokenEndpointBuilder.getTokenEndpoint()) && OriginKeys.UAA.equals(origin);
+    }
+
+    private IdentityProvider buildInternalUaaIdpConfig(String issuer) {
+        OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
+        uaaOidcProviderConfig.setIssuer(issuer);
+        IdentityProvider uaaIdp = new IdentityProvider();
+        uaaIdp.setOriginKey(OriginKeys.UAA);
+        uaaIdp.setConfig(uaaOidcProviderConfig);
+        return uaaIdp;
     }
 
     @Override

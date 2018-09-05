@@ -95,6 +95,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 public class XOAuthAuthenticationManagerIT {
+    public static final String UAA_ORIGIN = "uaa";
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
@@ -190,7 +191,7 @@ public class XOAuthAuthenticationManagerIT {
         claims = map(
                 entry("sub", "12345"),
                 entry("preferred_username", "marissa"),
-                entry("origin", "uaa"),
+                entry("origin", UAA_ORIGIN),
                 entry("iss", "http://localhost/oauth/token"),
                 entry("given_name", "Marissa"),
                 entry("client_id", "client"),
@@ -388,11 +389,56 @@ public class XOAuthAuthenticationManagerIT {
     @Test(expected = InsufficientAuthenticationException.class)
     public void when_unable_to_find_an_idp_that_matches_the_id_token_issuer() {
         String issuerURL = "http://issuer.url";
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(issuerURL);
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://another-issuer.url");
         claims.put("iss", issuerURL);
         CompositeToken token = getCompositeAccessToken();
 
         xoAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue());
+    }
+
+    @Test
+    public void when_exchanging_an_id_token_retrieved_from_the_internal_uaa_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
+        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", "http://localhost/oauth/token");
+        claims.put("origin", UAA_ORIGIN);
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken.setIdToken(idToken);
+        xCodeToken.setOrigin(null);
+
+        XOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = xoAuthAuthenticationManager
+                .getExternalAuthenticationDetails(xCodeToken);
+
+        assertThat(username, is(externalAuthenticationDetails.getUsername()));
+        assertThat(externalAuthenticationDetails.getClaims().get(ClaimConstants.ORIGIN), is(UAA_ORIGIN));
+        assertThat(xoAuthAuthenticationManager.getOrigin(), is(UAA_ORIGIN));
+    }
+
+    @Test(expected = InsufficientAuthenticationException.class)
+    public void when_exchanging_an_id_token_issuedby_the_uaa_idp_but_not_uaa_origin() {
+        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", "http://localhost/oauth/token");
+        claims.put("origin", "not_uaa_origin");
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken.setIdToken(idToken);
+        xCodeToken.setOrigin(null);
+
+        xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken);
     }
 
     @Test(expected = InsufficientAuthenticationException.class)
