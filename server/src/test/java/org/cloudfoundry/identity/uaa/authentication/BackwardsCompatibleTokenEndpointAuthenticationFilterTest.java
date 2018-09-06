@@ -70,20 +70,16 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     @Before
     public void setUp() throws Exception {
-
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         samlAuthFilter = mock(SAMLProcessingFilter.class);
         xoAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
 
-        filter = spy(
-            new BackwardsCompatibleTokenEndpointAuthenticationFilter(
+        filter = new BackwardsCompatibleTokenEndpointAuthenticationFilter(
                 passwordAuthManager,
                 requestFactory,
                 samlAuthFilter,
-                xoAuthAuthenticationManager
-            )
-        );
+                xoAuthAuthenticationManager);
 
         entryPoint = mock(AuthenticationEntryPoint.class);
         filter.setAuthenticationEntryPoint(entryPoint);
@@ -120,7 +116,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("username", "marissa");
         request.addParameter("password", "koala");
         filter.doFilter(request, response, chain);
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+
         verify(passwordAuthManager, times(1)).authenticate(any());
         verifyZeroInteractions(samlAuthFilter);
         verifyZeroInteractions(xoAuthAuthenticationManager);
@@ -132,7 +128,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         request.addParameter("assertion", "saml-assertion-value-here");
         filter.doFilter(request, response, chain);
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+
         verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
         verifyZeroInteractions(passwordAuthManager);
         verifyZeroInteractions(xoAuthAuthenticationManager);
@@ -142,7 +138,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     public void saml_assertion_missing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+
         verifyZeroInteractions(xoAuthAuthenticationManager);
         verifyZeroInteractions(passwordAuthManager);
         verifyZeroInteractions(xoAuthAuthenticationManager);
@@ -160,7 +156,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         request.addParameter("assertion", idToken);
         filter.doFilter(request, response, chain);
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+
         ArgumentCaptor<XOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(XOAuthCodeToken.class);
         verify(xoAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
         verifyZeroInteractions(passwordAuthManager);
@@ -173,7 +169,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     public void jwt_assertion_missing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+
         verifyZeroInteractions(xoAuthAuthenticationManager);
         verifyZeroInteractions(passwordAuthManager);
         verifyZeroInteractions(xoAuthAuthenticationManager);
