@@ -34,6 +34,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.security.saml.SamlRequestMatcher;
+import org.springframework.security.saml.provider.SamlProviderLogoutFilter;
 import org.springframework.security.saml.provider.SamlServerConfiguration;
 import org.springframework.security.saml.provider.config.SamlConfigurationRepository;
 import org.springframework.security.saml.provider.config.ThreadLocalSamlConfigurationRepository;
@@ -41,6 +43,7 @@ import org.springframework.security.saml.provider.provisioning.SamlProviderProvi
 import org.springframework.security.saml.provider.service.SamlAuthenticationRequestFilter;
 import org.springframework.security.saml.provider.service.ServiceProviderService;
 import org.springframework.security.saml.provider.service.authentication.SamlResponseAuthenticationFilter;
+import org.springframework.security.saml.provider.service.authentication.ServiceProviderLogoutHandler;
 import org.springframework.security.saml.provider.service.config.SamlServiceProviderServerBeanConfiguration;
 import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -182,9 +185,11 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
         return new SamlRedirectLogoutHandler(mainLogoutHandler);
     }
 
+
+
     @Bean(name = "samlLogoutFilter")
     public Filter samlLogoutFilter() {
-        return new UaaSamlLogoutFilter(mainLogoutHandler,
+        return new UaaSamlLogoutFilter(samlWhitelistLogoutHandler(),
                                        uaaAuthenticationFailureHandler,
                                        samlLogoutHandler(),
                                        getSimpleSpLogoutHandler()
@@ -244,7 +249,13 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
 
     @Override
     public Filter spSamlLogoutFilter() {
-        return super.spSamlLogoutFilter();
+        return new SamlProviderLogoutFilter<>(
+            getSamlProvisioning(),
+            new ServiceProviderLogoutHandler(getSamlProvisioning()),
+            new SamlRequestMatcher(getSamlProvisioning(), "SingleLogout"),
+            samlWhitelistLogoutHandler(),
+            samlLogoutHandler()
+        );
     }
 
     @Bean
@@ -256,7 +267,7 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
                 spMetadataFilter(),
                 spAuthenticationRequestFilter(),
                 spAuthenticationResponseFilter(),
-                samlLogoutFilter()
+                spSamlLogoutFilter()
             )
         );
         return filter;
