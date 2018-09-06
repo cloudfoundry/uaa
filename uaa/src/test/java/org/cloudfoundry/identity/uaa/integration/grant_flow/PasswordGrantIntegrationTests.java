@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.integration;
+package org.cloudfoundry.identity.uaa.integration.grant_flow;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
