@@ -19,9 +19,9 @@ import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -41,18 +41,10 @@ import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
@@ -68,7 +60,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private AuthenticationEntryPoint entryPoint;
     private TokenTestSupport support;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -89,7 +81,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         chain = mock(FilterChain.class);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -179,5 +171,4 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         assertEquals("Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
         assertTrue(exceptionArgumentCaptor.getValue() instanceof InsufficientAuthenticationException);
     }
-
 }
