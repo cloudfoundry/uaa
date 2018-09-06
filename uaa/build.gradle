@@ -81,6 +81,7 @@ ext {
   snippetsDir = file('build/generated-snippets')
 }
 test {
+  exclude 'org/cloudfoundry/identity/uaa/integration/**/*.class'
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
