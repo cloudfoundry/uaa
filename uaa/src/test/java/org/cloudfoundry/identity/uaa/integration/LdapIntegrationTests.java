@@ -11,7 +11,7 @@
  *      subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
-package org.cloudfoundry.identity.uaa.integration.external_idp;
+package org.cloudfoundry.identity.uaa.integration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;

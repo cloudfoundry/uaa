@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.integration.user_actions;
+package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;

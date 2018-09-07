@@ -11,7 +11,7 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-package org.cloudfoundry.identity.uaa.integration.user_actions;
+package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
