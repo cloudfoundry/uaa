@@ -526,10 +526,11 @@ public class SamlLoginWithLocalIdpIT {
         String url = element.getAttribute("href");
         webDriver.get(url);
         String errorMessage = "No Supported binding was found for SAML SSO profile - browser. Supported SAML SSO browser profile bindings are HTTP-POST and HTTP-Redirect.";
-        elements = webDriver.findElements(By.xpath("//p[text()='" + errorMessage + "']"));
+        elements = webDriver.findElements(By.tagName("body"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
         assertNotNull(elements.get(0));
+        assertThat(elements.get(0).getText(), containsString("Unsupported binding:urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"));
     }
 
     /**

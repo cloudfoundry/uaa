@@ -44,6 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
@@ -56,11 +57,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
@@ -118,16 +122,31 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isFound())
             .andReturn();
 
-        mvcResult = getMockMvc().perform(
-            get(new URI(mvcResult.getResponse().getRedirectedUrl()))
+        URI spAuthRequestUri = new URI(mvcResult.getResponse().getRedirectedUrl());
+
+        //end point should be protected
+        getMockMvc().perform(
+            get(spAuthRequestUri)
                 .contextPath("/uaa")
                 .header(HttpHeaders.HOST, idpZone.getIdentityZone().getSubdomain() + ".localhost")
         )
             .andDo(print())
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://"+idpZone.getIdentityZone().getSubdomain() + ".localhost/uaa/login"));
+
+        SecurityContext uaaSecurityContext = MockMvcUtils.getUaaSecurityContext("marissa", getWebApplicationContext(), idpZone.getIdentityZone());
+        mvcResult = getMockMvc().perform(
+            get(spAuthRequestUri)
+                .contextPath("/uaa")
+                .header(HttpHeaders.HOST, idpZone.getIdentityZone().getSubdomain() + ".localhost")
+                .with(authentication(uaaSecurityContext.getAuthentication()))
+        )
+            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
+
         String body = mvcResult.getResponse().getContentAsString();
-        //assertNotNull(extractRelayState(body));
+        assertNotNull(extractRelayState(body));
         String xml = extractAssertion(body, false);
         performSPAuthentication(xml)
             .andExpect(authenticated());
@@ -232,12 +251,14 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     public IdentityZoneCreationResult createZone(String prefix, BaseClientDetails adminClient) throws Exception {
-        return MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+
+        IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
             prefix + "-" + generator.generate(),
             getMockMvc(),
             getWebApplicationContext(),
             adminClient
         );
+        return result;
     }
 
 

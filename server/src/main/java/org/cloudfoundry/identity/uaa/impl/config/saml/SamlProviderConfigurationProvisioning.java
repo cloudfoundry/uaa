@@ -51,6 +51,9 @@ import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getHostIfArgIsURL;
 import static org.springframework.util.StringUtils.hasText;
 
+/**
+ * Zone aware SAML configuration provider.
+ */
 public class SamlProviderConfigurationProvisioning implements SamlConfigurationRepository {
 
     private String entityId;
@@ -90,18 +93,21 @@ public class SamlProviderConfigurationProvisioning implements SamlConfigurationR
 
     public SamlServerConfiguration getSamlServerConfiguration(IdentityZone zone) {
         boolean isUaa = IdentityZone.getUaa().getId().equals(zone.getId());
+        String configuredEntityId = zone.getConfig().getSamlConfig().getEntityID();
         String actualBaseUrl = baseUrl;
-        String actualEntityId = entityId;
-        String actualEntityAlias = entityAlias;
+        String actualEntityId = hasText(configuredEntityId) ? configuredEntityId : entityId;
+        String actualEntityAlias = hasText(configuredEntityId) ? getHostIfArgIsURL(configuredEntityId) : entityAlias;
 
         if (!isUaa) {
              actualBaseUrl = UaaUrlUtils.addSubdomainToUrl(actualBaseUrl, zone.getSubdomain());
-             if (UaaUrlUtils.isUrl(entityId)) {
-                 actualEntityId = UaaUrlUtils.addSubdomainToUrl(actualEntityId, zone.getSubdomain());
-             } else {
-                 actualEntityId = zone.getSubdomain()+"."+actualEntityId;
+             if (!hasText(configuredEntityId)) {
+                 if (UaaUrlUtils.isUrl(entityId)) {
+                     actualEntityId = UaaUrlUtils.addSubdomainToUrl(actualEntityId, zone.getSubdomain());
+                 } else {
+                     actualEntityId = zone.getSubdomain() + "." + actualEntityId;
+                 }
+                 actualEntityAlias = zone.getSubdomain() + "." + actualEntityAlias;
              }
-             actualEntityAlias = zone.getSubdomain()+"."+actualEntityAlias;
         }
 
         LocalIdentityProviderConfiguration identityProvider = getIdentityProvider(zone);

@@ -20,15 +20,12 @@ import java.util.List;
 import org.springframework.security.saml.SamlMetadataCache;
 import org.springframework.security.saml.SamlTransformer;
 import org.springframework.security.saml.SamlValidator;
-import org.springframework.security.saml.key.SimpleKey;
 import org.springframework.security.saml.provider.config.SamlConfigurationRepository;
 import org.springframework.security.saml.provider.provisioning.HostBasedSamlServiceProviderProvisioning;
 import org.springframework.security.saml.provider.service.ServiceProviderService;
 import org.springframework.security.saml.saml2.metadata.Binding;
 import org.springframework.security.saml.saml2.metadata.Endpoint;
 import org.springframework.security.saml.saml2.metadata.NameId;
-import org.springframework.security.saml.saml2.signature.AlgorithmMethod;
-import org.springframework.security.saml.saml2.signature.DigestMethod;
 
 import static java.util.Arrays.asList;
 
@@ -41,7 +38,6 @@ public class SamlServiceProviderCustomizer extends HostBasedSamlServiceProviderP
     public ServiceProviderService getHostedProvider() {
         ServiceProviderService result = super.getHostedProvider();
         customizeLogoutEndpoints(result);
-        customizeSigning(result);
         customizeEntityDescriptorId(result);
         customizeNameIdFormats(result);
         customizeAssertionConsumerService(result);
@@ -78,20 +74,6 @@ public class SamlServiceProviderCustomizer extends HostBasedSamlServiceProviderP
                 NameId.UNSPECIFIED,
                 NameId.X509_SUBJECT
             )
-        );
-    }
-
-    private void customizeSigning(ServiceProviderService result) {
-        result.getMetadata().setSigningKey(
-            new SimpleKey(
-                result.getMetadata().getSigningKey().getName(),
-                result.getMetadata().getSigningKey().getPrivateKey(),
-                result.getMetadata().getSigningKey().getCertificate(),
-                result.getMetadata().getSigningKey().getPassphrase(),
-                result.getMetadata().getSigningKey().getType()
-            ),
-            AlgorithmMethod.RSA_SHA1,
-            DigestMethod.SHA1
         );
     }
 

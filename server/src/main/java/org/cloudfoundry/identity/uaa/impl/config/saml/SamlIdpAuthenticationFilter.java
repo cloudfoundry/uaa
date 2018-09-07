@@ -14,20 +14,30 @@
 
 package org.cloudfoundry.identity.uaa.impl.config.saml;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderHolder;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.SamlMessageStore;
@@ -44,18 +54,63 @@ import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
 public class SamlIdpAuthenticationFilter extends IdpInitiatedLoginFilter {
+    private static Log log = LogFactory.getLog(SamlIdpAuthenticationFilter.class);
 
     private final SamlServiceProviderProvisioning serviceProviderProvisioning;
+    private final SamlServiceProviderConfigurator configurator;
     private JdbcScimUserProvisioning scimUserProvisioning;
 
     public SamlIdpAuthenticationFilter(SamlProviderProvisioning<IdentityProviderService> provisioning,
                                        SamlMessageStore<Assertion, HttpServletRequest> assertionStore,
                                        SamlRequestMatcher requestMatcher,
                                        SamlServiceProviderProvisioning serviceProviderProvisioning,
-                                       JdbcScimUserProvisioning scimUserProvisioning) {
+                                       JdbcScimUserProvisioning scimUserProvisioning,
+                                       SamlServiceProviderConfigurator configurator) {
         super(provisioning, assertionStore, requestMatcher);
         this.serviceProviderProvisioning = serviceProviderProvisioning;
         this.scimUserProvisioning = scimUserProvisioning;
+        this.configurator = configurator;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        throws ServletException, IOException {
+        try {
+            super.doFilterInternal(request, response, filterChain);
+        } catch (ProviderNotFoundException e) {
+            response.setStatus(400);
+            request.setAttribute("saml_error", e.getMessage());
+            request.getRequestDispatcher("/oauth_error").forward(request, response);
+        }
+    }
+
+    @Override
+    protected ServiceProviderMetadata getTargetProvider(HttpServletRequest request) {
+        String sp = request.getParameter("sp");
+        if (!hasText(sp)) {
+            throw new ProviderNotFoundException("Missing sp request parameter. sp parameter must be a valid and configured entity ID");
+        }
+        log.debug(String.format("IDP is initiating authentication request to SP[%s]", sp));
+        Optional<SamlServiceProviderHolder> holder = configurator.getSamlServiceProviders().stream().filter(serviceProvider -> sp.equals(serviceProvider.getSamlServiceProvider().getEntityId())).findFirst();
+        if (!holder.isPresent()) {
+            log.debug(String.format("SP[%s] was not found, aborting saml response", sp));
+            throw new ProviderNotFoundException("Invalid sp entity ID. sp parameter must be a valid and configured entity ID");
+        }
+        if (!holder.get().getSamlServiceProvider().isActive()) {
+            log.debug(String.format("SP[%s] is disabled, aborting saml response", sp));
+            throw new ProviderNotFoundException("Service provider is disabled.");
+        }
+        if (!holder.get().getSamlServiceProvider().getConfig().isEnableIdpInitiatedSso()) {
+            log.debug(String.format("SP[%s] initiated login is disabled, aborting saml response", sp));
+            throw new ProviderNotFoundException("IDP initiated login is disabled for this service provider.");
+        }
+
+        ServiceProviderMetadata provider = super.getTargetProvider(request);
+        if (provider == null) {
+            log.debug(String.format("SP[%s] was not found, possible metadata failure, aborting saml response", sp));
+            throw new ProviderNotFoundException("Invalid sp entity ID. Unable to find valid metadata for sp");
+        }
+        return provider;
     }
 
     @Override

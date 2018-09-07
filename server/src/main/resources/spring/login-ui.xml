@@ -288,8 +288,10 @@
           pattern="/saml/idp/**"
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/SSO/**" access="isFullyAuthenticated()"/>
-        <intercept-url pattern="/**" access="permitAll()"/>
+        <intercept-url pattern="/saml/idp/metadata/**" access="permitAll()"/>
+        <intercept-url pattern="/saml/idp/SingleLogout/**" access="permitAll()"/>
+        <intercept-url pattern="/saml/idp/logout/**" access="permitAll()"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <custom-filter ref="samlIdpFilters" after="FILTER_SECURITY_INTERCEPTOR"/>
         <csrf disabled="true"/>
         <access-denied-handler ref="loginEntryPoint"/>

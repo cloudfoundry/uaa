@@ -135,7 +135,8 @@ public class HostedSamlIdentityProviderConfiguration extends SamlIdentityProvide
             samlAssertionStore(),
             new SamlRequestMatcher(getSamlProvisioning(), "init"),
             serviceProviderProvisioning,
-            scimUserProvisioning
+            scimUserProvisioning,
+            samlIdentityProviderConfigurator()
         );
     }
 
@@ -145,13 +146,21 @@ public class HostedSamlIdentityProviderConfiguration extends SamlIdentityProvide
             samlAssertionStore(),
             new SamlRequestMatcher(getSamlProvisioning(), "initiate"),
             serviceProviderProvisioning,
-            scimUserProvisioning
+            scimUserProvisioning,
+            samlIdentityProviderConfigurator()
         );
     }
 
     @Override
     public Filter idpAuthnRequestFilter() {
-        return super.idpAuthnRequestFilter();
+        return new SamlIdpAuthenticationRequestFilter(
+            getSamlProvisioning(),
+            samlAssertionStore(),
+            new SamlRequestMatcher(getSamlProvisioning(), "SSO"),
+            serviceProviderProvisioning,
+            scimUserProvisioning,
+            samlIdentityProviderConfigurator()
+        );
     }
 
     @Override
@@ -169,6 +178,7 @@ public class HostedSamlIdentityProviderConfiguration extends SamlIdentityProvide
         CompositeFilter filter = new CompositeFilter();
         filter.setFilters(
             asList(
+                new SamlExceptionFilter(),
                 samlConfigurationFilter(),
                 idpMetadataFilter(),
                 idpUaaInitatedLoginFilter(),

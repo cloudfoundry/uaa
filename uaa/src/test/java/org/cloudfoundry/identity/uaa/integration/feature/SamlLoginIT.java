@@ -398,7 +398,7 @@ public class SamlLoginIT {
                 "identitysecret",
                 email,
                 "secr3T");
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithForSLOSConfigured(SAML_ORIGIN, true);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -430,7 +430,7 @@ public class SamlLoginIT {
 
     @Test
     public void testSingleLogoutWithNoLogoutUrlOnIDP() throws Exception {
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithForSLOSConfigured(SAML_ORIGIN, false);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
@@ -1444,7 +1444,7 @@ public class SamlLoginIT {
         return createSimplePHPSamlIDP(alias, zoneSubdomain);
     }
 
-    public SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured(String alias) {
+    public SamlIdentityProviderDefinition createIDPWithForSLOSConfigured(String alias, boolean includeSLOS) {
         String idpMetaData = "<?xml version=\"1.0\"?>\n" +
                 "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://"+alias+".cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
                 "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
@@ -1466,6 +1466,7 @@ public class SamlLoginIT {
                 "        </ds:X509Data>\n" +
                 "      </ds:KeyInfo>\n" +
                 "    </md:KeyDescriptor>\n" +
+                ((includeSLOS) ? "<md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://simplesamlphp.cfapps.io/saml2/idp/SingleLogoutService.php\"/>" : "") +
                 "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
                 "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://"+alias+".cfapps.io/saml2/idp/SSOService.php\"/>\n" +
                 "  </md:IDPSSODescriptor>\n" +

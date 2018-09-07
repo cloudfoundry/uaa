@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.impl.config.saml;
 
 import javax.servlet.Filter;
-import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.SamlRedirectLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.UaaSamlLogoutFilter;
@@ -40,16 +39,15 @@ import org.springframework.security.saml.provider.SamlServerConfiguration;
 import org.springframework.security.saml.provider.config.SamlConfigurationRepository;
 import org.springframework.security.saml.provider.config.ThreadLocalSamlConfigurationRepository;
 import org.springframework.security.saml.provider.provisioning.SamlProviderProvisioning;
-import org.springframework.security.saml.provider.service.SamlAuthenticationRequestFilter;
 import org.springframework.security.saml.provider.service.ServiceProviderService;
 import org.springframework.security.saml.provider.service.authentication.SamlResponseAuthenticationFilter;
 import org.springframework.security.saml.provider.service.authentication.ServiceProviderLogoutHandler;
 import org.springframework.security.saml.provider.service.config.SamlServiceProviderServerBeanConfiguration;
-import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.web.filter.CompositeFilter;
 
 import static java.util.Arrays.asList;
@@ -149,6 +147,7 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
         filter.setAuthenticationManager(samlAuthenticationManager());
         filter.setAuthenticationFailureHandler(loginSAMLAuthenticationFailureHandler());
         filter.setAuthenticationSuccessHandler(successHandler);
+        filter.setSessionAuthenticationStrategy(new ChangeSessionIdAuthenticationStrategy());
         return filter;
     }
 
@@ -191,8 +190,9 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
     public Filter samlLogoutFilter() {
         return new UaaSamlLogoutFilter(samlWhitelistLogoutHandler(),
                                        uaaAuthenticationFailureHandler,
-                                       samlLogoutHandler(),
-                                       getSimpleSpLogoutHandler()
+                                       getSimpleSpLogoutHandler(),
+                                       samlLogoutHandler()
+
         );
     }
 
@@ -232,19 +232,10 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
 
     @Override
     public Filter spAuthenticationRequestFilter() {
-        return new SamlAuthenticationRequestFilter(getSamlProvisioning()) {
-            @Override
-            protected IdentityProviderMetadata getIdentityProvider(ServiceProviderService provider, String idpIdentifier) {
-                String alias = idpIdentifier;
-                List<IdentityProviderMetadata> providers = provider.getRemoteProviders();
-                for (IdentityProviderMetadata idp : providers) {
-                    if (alias.equals(idp.getEntityAlias())) {
-                        return idp;
-                    }
-                }
-                return super.getIdentityProvider(provider, idpIdentifier);
-            }
-        };
+        return new SamlSpAuthenticationRequestFilter(
+            getSamlProvisioning(),
+            fileSpConfig.getRelayState()
+        );
     }
 
     @Override
@@ -263,6 +254,7 @@ public class HostedSamlServiceProviderConfiguration extends SamlServiceProviderS
         CompositeFilter filter = new CompositeFilter();
         filter.setFilters(
             asList(
+                new SamlExceptionFilter(),
                 samlConfigurationFilter(),
                 spMetadataFilter(),
                 spAuthenticationRequestFilter(),

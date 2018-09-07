@@ -16,10 +16,13 @@ package org.cloudfoundry.identity.uaa.impl.config.saml;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml.SamlAuthentication;
@@ -31,11 +34,11 @@ import org.springframework.security.saml.saml2.Saml2Object;
 import org.springframework.security.saml.saml2.authentication.LogoutRequest;
 import org.springframework.security.saml.saml2.authentication.NameIdPrincipal;
 import org.springframework.security.saml.saml2.metadata.IdentityProviderMetadata;
-import org.springframework.security.saml.saml2.metadata.ServiceProviderMetadata;
-
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
+
+import static org.springframework.util.StringUtils.hasText;
 
 public class SimpleSpLogoutHandler implements LogoutHandler {
 
@@ -74,25 +77,55 @@ public class SimpleSpLogoutHandler implements LogoutHandler {
                                         HttpServletResponse response,
                                         SamlAuthentication sa) throws IOException {
         ServiceProviderService provider = getResolver().getHostedProvider();
-        ServiceProviderMetadata sp = provider.getMetadata();
         IdentityProviderMetadata idp = provider.getRemoteProvider(sa.getAssertingEntityId());
         LogoutRequest lr = provider.logoutRequest(
             idp,
             (NameIdPrincipal) sa.getSamlPrincipal()
         );
         if (lr.getDestination() != null) {
-            String redirect = getRedirectUrl(lr, lr.getDestination().getLocation(), "SAMLRequest");
+            String redirect = getRedirectUrl(
+                lr,
+                lr.getDestination().getLocation(),
+                "SAMLRequest",
+                getRelayState(request)
+            );
             response.sendRedirect(redirect);
             return true;
         }
         return false;
     }
 
-    protected String getRedirectUrl(Saml2Object lr, String location, String paramName)
+    protected String getRelayState(HttpServletRequest request) {
+        //from
+        //https://github.com/cloudfoundry/uaa/blob/develop/server/src/main/java/org/cloudfoundry/identity/uaa/authentication/RedirectSavingSamlContextProvider.java#L34-L45
+        Map<String, String> params = new HashMap<>();
+
+        String redirectUri = request.getParameter("redirect");
+        if(hasText(redirectUri)) { params.put("redirect", redirectUri); }
+
+        String clientId = request.getParameter("client_id");
+        if(hasText(clientId)) { params.put("client_id", clientId); }
+
+        if (params.isEmpty()) {
+            return request.getParameter("RelayState");
+        } else {
+            return JsonUtils.writeValueAsString(params);
+        }
+    }
+
+    protected String getRedirectUrl(
+        Saml2Object lr,
+        String location,
+        String paramName,
+        String relayState
+    )
         throws UnsupportedEncodingException {
         String xml = getTransformer().toXml(lr);
         String value = getTransformer().samlEncode(xml, true);
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(location);
+        if (hasText(relayState)) {
+            builder.queryParam("RelayState", UriUtils.encode(relayState, StandardCharsets.UTF_8.name()));
+        }
         return builder.queryParam(paramName, UriUtils.encode(value, StandardCharsets.UTF_8.name()))
             .build()
             .toUriString();

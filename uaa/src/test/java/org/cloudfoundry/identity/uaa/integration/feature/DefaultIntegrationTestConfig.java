@@ -12,8 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+
+import com.dumbster.smtp.SimpleSmtpServer;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -29,11 +35,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 @Configuration
 @PropertySource("classpath:integration.test.properties")
