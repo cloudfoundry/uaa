@@ -59,10 +59,6 @@ public class UaaAuthentication implements Authentication, Serializable {
         return this;
     }
 
-    //This is used when UAA acts as a SAML IdP
-//    @JsonIgnore
-//    private SAMLMessageContext samlMessageContext;
-
     /**
      * Creates a token with the supplied array of authorities.
      *
@@ -212,16 +208,6 @@ public class UaaAuthentication implements Authentication, Serializable {
             this.userAttributes.put(entry.getKey(), entry.getValue());
         }
     }
-
-//    @JsonIgnore
-//    public SAMLMessageContext getSamlMessageContext() {
-//        return samlMessageContext;
-//    }
-//
-//    @JsonIgnore
-//    public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
-//        this.samlMessageContext = samlMessageContext;
-//    }
 
     public Set<String> getAuthenticationMethods() {
         return authenticationMethods;
