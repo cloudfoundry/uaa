@@ -40,19 +40,26 @@ public class PasswordGrantIntegrationTests {
 
     @Test
     public void testUserLoginViaPasswordGrant() throws Exception {
-        ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "");
+        ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
     }
 
     @Test
     public void password_grant_returns_correct_error() throws Exception {
         BaseClientDetails client = addUserGroupsRequiredClient();
-        ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret");
+        ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
         assertEquals("application/json;charset=UTF-8", responseEntity.getHeaders().get("Content-Type").get(0));
         Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
         assertEquals(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1"), errors.get("error_description"));
         assertEquals("invalid_scope", errors.get("error"));
+    }
+
+    @Test
+    public void passwordGrantNonExistingZone() {
+        String accessTokenUri = serverRunning.getAccessTokenUri().replace("localhost", "testzonedoesnotexist.localhost");
+        ResponseEntity<String> response = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", accessTokenUri);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     protected BaseClientDetails addUserGroupsRequiredClient() throws Exception {
@@ -86,7 +93,7 @@ public class PasswordGrantIntegrationTests {
         return JsonUtils.readValue(response.getBody(), BaseClientDetails.class);
     }
 
-    private ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret) {
+    private ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(APPLICATION_JSON));
         headers.add("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
@@ -99,7 +106,7 @@ public class PasswordGrantIntegrationTests {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
         RestTemplate template = getRestTemplate();
-        return template.postForEntity(serverRunning.getAccessTokenUri(), request, String.class);
+        return template.postForEntity(url, request, String.class);
     }
 
     private RestTemplate getRestTemplate() {
