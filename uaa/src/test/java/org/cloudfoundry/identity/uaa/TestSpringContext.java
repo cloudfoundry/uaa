@@ -19,7 +19,7 @@ import java.util.Map;
 @ImportResource(locations = {
         "file:./src/main/webapp/WEB-INF/spring-servlet.xml"
 })
-@PropertySource(value = "file:./src/main/resources/integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
+@PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
 public class TestSpringContext {
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
