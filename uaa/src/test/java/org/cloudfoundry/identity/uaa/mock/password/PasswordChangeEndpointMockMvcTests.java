@@ -12,42 +12,60 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.password;
 
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.TEXT_HTML;
-import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.Assert.*;
+import static org.springframework.http.MediaType.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest {
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class PasswordChangeEndpointMockMvcTests {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String passwordWriteToken;
     private String adminToken;
     private String password;
+    @Autowired
+    public WebApplicationContext webApplicationContext;
+    private TestClient testClient;
+    private MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception {
         password = "secret";
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        testClient = new TestClient(mockMvc);
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret scim.write clients.admin");
         String clientId = generator.generate().toLowerCase();
@@ -56,7 +74,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "password.write");
         clientDetails.setClientSecret(clientSecret);
 
-        utils().createClient(getMockMvc(), adminToken, clientDetails);
+        utils().createClient(mockMvc, adminToken, clientDetails);
 
         passwordWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"password.write");
     }
@@ -73,7 +91,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
                                                       .contentType(APPLICATION_JSON)
                                                       .content(JsonUtils.writeValueAsString(request));
 
-        getMockMvc().perform(putRequest)
+        mockMvc.perform(putRequest)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
                 .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
@@ -85,7 +103,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setOldPassword(password);
         request.setPassword(password);
-        getMockMvc().perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
+        mockMvc.perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(request)))
             .andExpect(status().isUnprocessableEntity())
@@ -101,7 +119,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setOldPassword("wrongPassword");
         request.setPassword(password);
-        getMockMvc().perform(put("/Users/" + user.getId() + "/password")
+        mockMvc.perform(put("/Users/" + user.getId() + "/password")
           .header("Authorization", "Bearer " + userToken)
           .contentType(APPLICATION_JSON)
           .content(JsonUtils.writeValueAsString(request)))
@@ -124,7 +142,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
                 .content(JsonUtils.writeValueAsString(request))
             .accept(APPLICATION_JSON);
 
-        getMockMvc().perform(put)
+        mockMvc.perform(put)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ok"))
                 .andExpect(jsonPath("$.message").value("password updated"));
@@ -136,7 +154,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         MockHttpSession session = new MockHttpSession();
         session.invalidate();
-        MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
+        MockHttpSession afterLoginSession = (MockHttpSession) mockMvc.perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
@@ -149,7 +167,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         assertNotNull(afterLoginSession);
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
-        MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")
+        MockHttpSession afterPasswordChange = (MockHttpSession) mockMvc.perform(post("/change_password.do")
             .session(afterLoginSession)
             .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
@@ -172,7 +190,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         ScimUser user = createUser();
 
         MockHttpSession session = new MockHttpSession();
-        MockHttpSession afterLoginSessionA = (MockHttpSession) getMockMvc().perform(post("/login.do")
+        MockHttpSession afterLoginSessionA = (MockHttpSession) mockMvc.perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
@@ -183,7 +201,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .andReturn().getRequest().getSession(false);
 
         session = new MockHttpSession();
-        MockHttpSession afterLoginSessionB = (MockHttpSession) getMockMvc().perform(post("/login.do")
+        MockHttpSession afterLoginSessionB = (MockHttpSession) mockMvc.perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
@@ -197,12 +215,12 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         assertNotNull(afterLoginSessionA.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         assertNotNull(afterLoginSessionB.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
-        getMockMvc().perform(get("/profile").session(afterLoginSessionB))
+        mockMvc.perform(get("/profile").session(afterLoginSessionB))
             .andExpect(status().isOk());
 
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 1);
 
-        MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")
+        MockHttpSession afterPasswordChange = (MockHttpSession) mockMvc.perform(post("/change_password.do")
             .session(afterLoginSessionA)
             .with(cookieCsrf())
             .accept(TEXT_HTML_VALUE)
@@ -217,7 +235,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         assertNotNull(afterPasswordChange);
         assertNotNull(afterPasswordChange.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         assertNotSame(afterLoginSessionA, afterPasswordChange);
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/profile")
                 .session(afterLoginSessionB)
                 .accept(TEXT_HTML))
@@ -231,6 +249,6 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         ScimUser user = new ScimUser(id, id + "user@example.com", "name", "familyname");
         user.addEmail(id + "user@example.com");
         user.setPassword(password);
-        return utils().createUser(getMockMvc(), adminToken, user);
+        return utils().createUser(mockMvc, adminToken, user);
     }
 }

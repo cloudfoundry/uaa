@@ -100,6 +100,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
@@ -1321,6 +1322,12 @@ public final class MockMvcUtils {
 
 
     public static <T extends ApplicationEvent> TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
+        TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
+        applicationContext.addApplicationListener(listener);
+        return listener;
+    }
+
+    public static <T extends ApplicationEvent> TestApplicationEventListener<T> addEventListener(GenericWebApplicationContext applicationContext, Class<T> clazz) {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
         applicationContext.addApplicationListener(listener);
         return listener;

@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -15,6 +15,8 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,8 +30,15 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.GenericFilterBean;
 
 import javax.servlet.FilterChain;
@@ -37,41 +46,48 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class PasscodeMockMvcTests extends InjectedMockContextTest {
+@RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class PasscodeMockMvcTests {
 
+    @Autowired
+    public WebApplicationContext webApplicationContext;
     private CaptureSecurityContextFilter captureSecurityContextFilter;
 
     private static String USERNAME = "marissa";
     private UaaPrincipal marissa;
+    private MockMvc mockMvc;
 
     @After
     public void clearSecContext() {
         SecurityContextHolder.clearContext();
     }
+
     @Before
     public void setUp() throws Exception {
-        FilterChainProxy springSecurityFilterChain = (FilterChainProxy) getWebApplicationContext().getBean("org.springframework.security.filterChainProxy");
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+
+        FilterChainProxy filterChainProxy = (FilterChainProxy) webApplicationContext.getBean("org.springframework.security.filterChainProxy");
         if (captureSecurityContextFilter==null) {
             captureSecurityContextFilter = new CaptureSecurityContextFilter();
 
-            List<SecurityFilterChain> chains = springSecurityFilterChain.getFilterChains();
+            List<SecurityFilterChain> chains = filterChainProxy.getFilterChains();
             for (SecurityFilterChain chain : chains) {
 
                 if (chain instanceof DefaultSecurityFilterChain) {
@@ -85,7 +101,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
                     }
                 }
             }
-            UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
+            UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
             marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, OriginKeys.UAA));
         }
     }
@@ -115,7 +131,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .session(session);
 
         String passcode = JsonUtils.readValue(
-            getMockMvc().perform(get)
+            mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
             String.class);
@@ -139,7 +155,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
 
         Map accessToken =
             JsonUtils.readValue(
-                getMockMvc().perform(post)
+                mockMvc.perform(post)
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(),
                 Map.class);
@@ -179,7 +195,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .session(session);
 
         String passcode = JsonUtils.readValue(
-            getMockMvc().perform(get)
+            mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
             String.class);
@@ -203,7 +219,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
 
         Map accessToken =
             JsonUtils.readValue(
-                getMockMvc().perform(post)
+                mockMvc.perform(post)
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(),
                 Map.class);
@@ -244,7 +260,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .accept(APPLICATION_JSON)
             .session(session);
 
-        getMockMvc().perform(get)
+        mockMvc.perform(get)
             .andExpect(status().isUnauthorized());
     }
 
@@ -268,13 +284,13 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .session(session);
 
         String passcode = JsonUtils.readValue(
-            getMockMvc().perform(get)
+            mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
             String.class);
 
         // Get another code, which should expire the old.
-        getMockMvc().perform(get("/passcode")
+        mockMvc.perform(get("/passcode")
             .accept(APPLICATION_JSON)
             .session(session));
 
@@ -294,7 +310,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .param("passcode", passcode)
             .param("response_type", "token");
 
-        getMockMvc().perform(post)
+        mockMvc.perform(post)
             .andExpect(status().isUnauthorized());
     }
 
@@ -309,7 +325,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .param("response_type", "token")
             .param("passcode", "no_such_passcode");
 
-        String content = getMockMvc().perform(post)
+        String content = mockMvc.perform(post)
             .andExpect(status().isUnauthorized())
             .andReturn().getResponse().getContentAsString();
         assertThat(content, Matchers.containsString("Invalid passcode"));
@@ -326,7 +342,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .param("response_type", "token")
             .param("passcode", "");
 
-        String content = getMockMvc().perform(post)
+        String content = mockMvc.perform(post)
             .andExpect(status().isUnauthorized())
             .andReturn().getResponse().getContentAsString();
         assertThat(content, Matchers.containsString("Passcode information is missing."));
