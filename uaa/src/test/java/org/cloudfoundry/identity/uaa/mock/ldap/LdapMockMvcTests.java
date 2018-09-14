@@ -72,6 +72,7 @@ import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -252,6 +253,7 @@ public class LdapMockMvcTests  {
 
 
     @Test
+    @DirtiesContext
     public void acceptInvitation_for_ldap_user_whose_username_is_not_email() throws Exception {
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
         String email = "marissa2@test.com";
