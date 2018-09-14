@@ -162,4 +162,9 @@ public class ImplicitTokenGrantIntegrationTests {
             .matches(REDIRECT_URL_PATTERN));
     }
 
+    @Test
+    public void authzWIthNonExistingIdentityZone() {
+        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl().replace("localhost", "testzonedoesnotexist.localhost"), new HttpHeaders());
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+    }
 }
