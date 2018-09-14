@@ -195,6 +195,29 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
     }
 
+    @Test
+    public void testOpenIdHybridFlowZoneDoesNotExist() {
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+
+        String responseType = "id_token code";
+        String state = new RandomValueStringGenerator().generate();
+        String clientId = resource.getClientId();
+        String redirectUri = resource.getPreEstablishedRedirectUri();
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost","testzonedoesnotexist.localhost");
+        RestTemplate restTemplate = serverRunning.createRestTemplate();
+
+        ResponseEntity<Void> result = restTemplate.exchange(uri,
+                HttpMethod.GET,
+                new HttpEntity<Void>(null, new HttpHeaders()),
+                Void.class,
+                responseType,
+                state,
+                clientId,
+                redirectUri);
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+    }
+
     private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
 
         BasicCookieStore cookies = new BasicCookieStore();
