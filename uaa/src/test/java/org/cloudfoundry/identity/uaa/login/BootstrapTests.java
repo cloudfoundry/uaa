@@ -69,26 +69,6 @@ public class BootstrapTests {
         IdentityZoneHolder.clear();
     }
 
-    @After
-    public synchronized void cleanup() {
-        TestUtils.cleanTestDatabaseData(context.getBean(JdbcTemplate.class));
-        System.clearProperty("spring.profiles.active");
-        System.clearProperty("uaa.url");
-        System.clearProperty("login.url");
-        System.clearProperty("require_https");
-        context.close();
-        Set<String> removeme = new HashSet<>();
-        for (Map.Entry<Object, Object> entry : System.getProperties().entrySet()) {
-            if (entry.getKey().toString().startsWith("login.") || entry.getKey().toString().startsWith("database.")) {
-                removeme.add(entry.getKey().toString());
-            }
-        }
-        for (String s : removeme) {
-            System.clearProperty(s);
-        }
-        IdentityZoneHolder.clear();
-    }
-
     @Test
     public void xlegacy_test_deprecated_properties() {
         context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
