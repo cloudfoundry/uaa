@@ -1,0 +1,82 @@
+RUN mkdir -p /usr/share/man/man1
+RUN apt-get install -y git openjdk-8-jdk
+
+# warm gradle cache for faster test runs
+RUN git clone https://github.com/cloudfoundry/uaa.git /tmp/uaa
+RUN cd /tmp/uaa && ./gradlew compileJava
+RUN cd /tmp/uaa && ./gradlew compileTestJava
+RUN cd /tmp/uaa && ./gradlew cargoStartLocal
+RUN cd /tmp/uaa && ./gradlew cargoStopLocal
+
+ENV DB mysql
+ENV TERM dumb
+
+# Copy over a specific version of Chrome that seems to work with
+# latest chrome. Installing the latest chrome and latest
+# chrome was not successful for us.
+COPY --from=build /root/.gradle /root/.gradle
+COPY --from=chrome /opt/google/chrome /opt/google/chrome
+COPY --from=chrome /usr/share/ /usr/share/
+COPY --from=chrome /opt/google/chrome /opt/google/chrome
+
+RUN ln -s /opt/google/chrome/google-chrome /usr/bin/google-chrome-stable
+RUN ln -s /usr/bin/google-chrome-stable /etc/alternatives/google-chrome
+RUN ln -s /etc/alternatives/google-chrome /usr/bin/google-chrome
+
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install -y ca-certificates
+RUN apt-get install -y unzip
+RUN apt-get install -y curl
+RUN apt-get install -y lightning-l10n-zh-cn
+RUN apt-get install -y vim
+
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+RUN mkdir -p /usr/lib/jvm/java-8-openjdk-amd64
+
+
+RUN curl -v -L -o openjdk-1.8.0_152-x86_64-trusty.tar.gz https://java-buildpack.cloudfoundry.org/openjdk-jdk/trusty/x86_64/openjdk-1.8.0_152.tar.gz
+RUN shasum -a 256 openjdk-1.8.0_152-x86_64-trusty.tar.gz | grep fdab0603b7e08ee78476717d93d00b7a73339483397906c83cfea0f04a1af604
+RUN tar -xvf openjdk-1.8.0_152-x86_64-trusty.tar.gz -C $JAVA_HOME
+ENV PATH "${JAVA_HOME}/bin:${PATH}"
+
+RUN apt-get update -y
+RUN apt-get install -y libgconf-2-4 libosmesa6 && ln -s /usr/lib/x86_64-linux-gnu/libOSMesa.so.8 /opt/google/chrome/libosmesa.so
+RUN apt-get install -y libatk-bridge2.0-0 && ln -s /usr/lib/x86_64-linux-gnu/libatk-bridge-2.0.so.0 /opt/google/chrome/
+RUN apt-get install -y libgtk-3-0 && ln -s /usr/lib/x86_64-linux-gnu/libgtk-3.so.0 /opt/google/chrome/
+RUN apt-get install -y libgdk3.0-cil && ln -s /usr/lib/x86_64-linux-gnu/libgdk-3.so.0 /opt/google/chrome/
+RUN apt-get install -y libxss1 libasound2
+
+# gradle should not run as a daemon
+RUN mkdir -p /root/.gradle
+ADD init.gradle /root/.gradle
+RUN echo "org.gradle.daemon=false" >> /root/.gradle/gradle.properties
+
+RUN mkdir -p /root/build/cloudfoundry/uaa/uaa/build/reports/tests/
+
+# install ldap
+ADD install-ldap.sh /root
+RUN /root/install-ldap.sh
+
+RUN apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst ttf-freefont
+
+ADD https://chromedriver.storage.googleapis.com/2.37/chromedriver_linux64.zip /usr/local/bin/chromedriver_linux64.zip
+RUN unzip /usr/local/bin/chromedriver_linux64.zip -d /usr/bin/
+RUN cp /usr/bin/chromedriver /usr/local/bin/
+
+# Add self-signed cert from oms.identity.team to
+# nssdb trust store used by Chrome.
+## Install ChromeDriver
+RUN \
+    curl -q https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+RUN apt-get update -y
+RUN apt-get install -y libnss3-tools
+RUN mkdir -p $HOME/.pki/nssdb
+RUN certutil -d $HOME/.pki/nssdb -N
+ADD import-cert.sh /root
+RUN /root/import-cert.sh uaa.oms.identity.team
+RUN /root/import-cert.sh login.oms.identity.team
+RUN /root/import-cert.sh simplesamlphp.oms.identity.team
+RUN /root/import-cert.sh simplesamlphp2.oms.identity.team
+RUN /root/import-cert.sh oidc10.oms.identity.team

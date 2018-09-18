@@ -1,0 +1,76 @@
+RUN apt-get install -y git openjdk-8-jdk
+
+# warm gradle cache for faster test runs
+RUN git clone https://github.com/cloudfoundry/uaa.git /tmp/uaa
+RUN cd /tmp/uaa && ./gradlew compileJava
+RUN cd /tmp/uaa && ./gradlew compileTestJava
+RUN cd /tmp/uaa && ./gradlew cargoStartLocal
+RUN cd /tmp/uaa && ./gradlew cargoStopLocal
+
+#FROM microsoft/mssql-server-linux:2017-latest
+
+# Copy over a specific version of Chrome that seems to work with
+# latest chromedriver. Installing the latest chrome and latest
+# chromedriver was not successful for us.
+COPY --from=build /root/.gradle /root/.gradle
+COPY --from=chrome /opt/google/chrome /opt/google/chrome
+COPY --from=chrome /usr/share/ /usr/share/
+COPY --from=chrome /usr/bin/google-chrome-stable /usr/bin/google-chrome-stable
+COPY --from=chrome /etc/cron.daily/google-chrome /etc/cron.daily/google-chrome
+
+ENV DB sqlserver
+ENV ACCEPT_EULA Y
+ENV SA_PASSWORD changemeCHANGEME1234!
+ENV TERM dumb
+
+RUN apt-get update -y && apt-get install -y \
+  ca-certificates \
+  unzip \
+  curl \
+  language-pack-gnome-zh-hans \
+  openjdk-8-jdk
+
+# install perl for shasum
+RUN apt-get install -y perl
+
+RUN chmod a+w $(readlink -f /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts) && /var/lib/dpkg/info/ca-certificates-java.postinst configure
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+RUN mkdir -p /usr/lib/jvm/java-8-openjdk-amd64
+
+RUN curl -v -L -o openjdk-1.8.0_152-x86_64-trusty.tar.gz https://java-buildpack.cloudfoundry.org/openjdk-jdk/trusty/x86_64/openjdk-1.8.0_152.tar.gz
+RUN shasum -a 256 openjdk-1.8.0_152-x86_64-trusty.tar.gz | grep fdab0603b7e08ee78476717d93d00b7a73339483397906c83cfea0f04a1af604
+RUN tar -xvf openjdk-1.8.0_152-x86_64-trusty.tar.gz -C $JAVA_HOME
+ENV PATH "${JAVA_HOME}/bin:${PATH}"
+
+# gradle should not run as a daemon
+RUN mkdir -p /root/.gradle
+ADD init.gradle /root/.gradle
+RUN echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+
+RUN mkdir -p /root/build/cloudfoundry/uaa/uaa/build/reports/tests/
+
+# install ldap
+ADD install-ldap.sh /root
+RUN /root/install-ldap.sh
+
+## Install ChromeDriver
+RUN \
+    curl -q https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+RUN apt-get update -y
+RUN apt-get install -y chromium-chromedriver
+
+ENV PATH "/usr/lib/chromium-browser:${PATH}"
+
+# Add self-signed cert from oms.identity.team to
+# nssdb trust store used by Chrome.
+RUN apt-get update
+RUN apt-get install libnss3-tools
+RUN mkdir -p $HOME/.pki/nssdb
+RUN certutil -d $HOME/.pki/nssdb -N
+ADD import-cert.sh /root
+RUN /root/import-cert.sh uaa.oms.identity.team
+RUN /root/import-cert.sh login.oms.identity.team
+RUN /root/import-cert.sh simplesamlphp.oms.identity.team
+RUN /root/import-cert.sh simplesamlphp2.oms.identity.team
+RUN /root/import-cert.sh oidc10.oms.identity.team

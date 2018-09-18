@@ -1,0 +1,9 @@
+FROM postgres:10.1 AS build
+FROM justinribeiro/chrome-headless AS chrome
+FROM mysql:5 AS mysql
+
+FROM postgres:10.1
+
+RUN apt-get update -y
+
+RUN echo hello

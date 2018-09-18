@@ -1,0 +1,20 @@
+[mysqld]
+user   = mysql
+pid-file = /var/run/mysqld/mysqld.pid
+socket   = /var/run/mysqld/mysqld.sock
+port   = 3306
+basedir    = /usr
+skip-name-resolve
+skip-host-cache
+datadir    = /var/lib/mysql
+tmpdir   = /tmp
+lc-messages-dir  = /usr/share/mysql
+explicit_defaults_for_timestamp
+
+log-error    = /var/log/mysql/error.log
+
+# Recommended in standard MySQL setup
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES
+
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
