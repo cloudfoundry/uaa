@@ -1,0 +1,16 @@
+---
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: cfidentity/uaa-postgresql
+
+inputs:
+- name: uaa
+
+run:
+  path: uaa/ci/tasks/run-tests/task.sh
+
+params:
+  TEST_ENV: ~
+  TEST_COMMAND: ~
