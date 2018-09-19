@@ -241,31 +241,6 @@ public class UaaTokenServicesTests {
                 assertThat(accessToken.getIdTokenValue(), is(not(nullValue())));
             }
         }
-
-        @Nested
-        @DisplayName("when the user doesn't request response_type=id_token")
-        @WithSpring
-        class WhenUserDoesntRequestResponseTypeEqualsIdToken {
-            @BeforeEach
-            void setupRequest() {
-                responseType = "token";
-            }
-
-            @Test
-            public void ensureAnIdTokenIsNotReturned() {
-                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
-                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
-
-                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
-
-                CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
-                assertAll("id token is not returned, and a useful log message is printed",
-                  () -> assertThat(accessToken.getIdTokenValue(), is(nullValue())),
-                  () -> assertThat("Useful log message", loggingOutputStream.toString(), containsString("an ID token cannot be returned since the user didn't specify 'id_token' as the response_type")),
-                  () -> assertThat("Does not contain log message", loggingOutputStream.toString(), not(containsString("an ID token was requested but 'openid' is missing from the requested scopes")))
-                );
-            }
-        }
     }
 
     @Test
@@ -280,7 +255,6 @@ public class UaaTokenServicesTests {
         assertThat(decode.getHeader().getJku(), startsWith(uaaUrl));
         assertThat(decode.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
     }
-
 
     @Test
     public void ensureJKUHeaderIsSetWhenBuildingARefreshToken() {

@@ -29,7 +29,6 @@ public class IdTokenGranterTest {
     private String validGrantTypeForIdToken;
 
     private HashSet<String> requestedResponseTypesWithIdToken;
-    private HashSet<String> requestedResponseTypesWithoutIdToken;
 
     private BaseClientDetails clientWithoutOpenid;
     private BaseClientDetails clientWithOpenId;
@@ -51,7 +50,6 @@ public class IdTokenGranterTest {
 
         validGrantTypeForIdToken = GRANT_TYPE_IMPLICIT;
         requestedResponseTypesWithIdToken = Sets.newHashSet("token", "id_token");
-        requestedResponseTypesWithoutIdToken = Sets.newHashSet("token");
         approvalService = mock(ApprovalService.class);
         idTokenGranter = new IdTokenGranter(approvalService);
     }
@@ -63,28 +61,12 @@ public class IdTokenGranterTest {
     }
 
     @Test
-    public void shouldSend_isFalse_whenResponseTypeNotSpecified() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, Sets.newHashSet()));
-    }
-
-    @Test
     public void shouldSend_isFalse_whenClientDoesNotHaveOpenIdScope() {
         assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenid, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
         assertFalse(idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
 
         BaseClientDetails clientWithoutOpenidAndWithNullScope = new BaseClientDetails(clientWithoutOpenid);
         assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenidAndWithNullScope, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
-    }
-
-    @Test
-    public void shouldSend_isFalse_whenResponseTypeDoesNotHaveIdToken() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, Sets.newHashSet()));
-        HashSet<String> setWithNull = Sets.newHashSet();
-        setWithNull.add(null);
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, setWithNull));
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithoutIdToken));
     }
 
     @Test
@@ -125,16 +107,12 @@ public class IdTokenGranterTest {
 
     @Test
     public void shouldSend_isTrue_whenAuthorizationCodeGrantIsUsed_withCodeResponseType() {
-        // This is a special case for the authorization_code code flow. Per PM,
-        // this is the only way that an id_token may be returned without the response
-        // type of `id_token`. Check for user approvals and client scopes still applies.
         assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
     }
 
     @Test
     public void shouldSend_isFalse_whenAuthorizationCodeGrantIsUsed_withCodeResponseType_withInvalidClient() {
         assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenid, requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, null, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
 
         doThrow(InvalidTokenException.class).when(approvalService).ensureRequiredApprovals(any(), any(), any(), any());
         assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("code")));
