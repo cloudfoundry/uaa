@@ -172,7 +172,6 @@
         </property>
         <property name="parameters">
             <map>
-                <entry key="response_type" value="token" />
                 <entry key="client_id" value="" />
             </map>
         </property>
@@ -180,7 +179,7 @@
 
 
     <!-- Version of the /oauth/token endpoint for stateless clients
-         /oauth/token Authorization: Bearer <access_token> grant_type=user_token&client_id=<value>&response_type=token
+         /oauth/token Authorization: Bearer <access_token> grant_type=user_token&client_id=<value>
     -->
     <http name="statelessTokenApiSecurity" request-matcher-ref="oauthTokenApiRequestMatcher" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
