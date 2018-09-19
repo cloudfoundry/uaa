@@ -28,8 +28,6 @@ public class IdTokenGranterTest {
 
     private String validGrantTypeForIdToken;
 
-    private HashSet<String> requestedResponseTypesWithIdToken;
-
     private BaseClientDetails clientWithoutOpenid;
     private BaseClientDetails clientWithOpenId;
     private IdTokenGranter idTokenGranter;
@@ -49,7 +47,6 @@ public class IdTokenGranterTest {
         requestedScopesWithOpenId = Sets.newHashSet("foo.read", "openid");
 
         validGrantTypeForIdToken = GRANT_TYPE_IMPLICIT;
-        requestedResponseTypesWithIdToken = Sets.newHashSet("token", "id_token");
         approvalService = mock(ApprovalService.class);
         idTokenGranter = new IdTokenGranter(approvalService);
     }
@@ -57,52 +54,52 @@ public class IdTokenGranterTest {
     @Test
     public void shouldSend_isFalse_whenUserHasNotApprovedOpenidScope() {
         doThrow(InvalidTokenException.class).when(approvalService).ensureRequiredApprovals(any(), any(), any(), any());
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenClientDoesNotHaveOpenIdScope() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenid, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenid, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
 
         BaseClientDetails clientWithoutOpenidAndWithNullScope = new BaseClientDetails(clientWithoutOpenid);
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenidAndWithNullScope, requestedScopesWithOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithoutOpenidAndWithNullScope, requestedScopesWithOpenId, validGrantTypeForIdToken, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenSAMLBearerGrantType() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_SAML2_BEARER, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_SAML2_BEARER, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenJwtBearerGrantType() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_USER_TOKEN, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_USER_TOKEN, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenUserTokenGrantType() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_JWT_BEARER, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_JWT_BEARER, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenClientCredentialsGrantType() {
         // Can't build an id_token without an associated user account which client_credentials does not have.
-        assertFalse(idTokenGranter.shouldSendIdToken(null, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_CLIENT_CREDENTIALS, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(null, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_CLIENT_CREDENTIALS, null));
     }
 
     @Test
     public void shouldSend_isFalse_whenClientHasOpenIdScope_andNonOpenIdScopesAreRequested() {
-        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithoutOpenId, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
+        assertFalse(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithoutOpenId, validGrantTypeForIdToken, null));
     }
 
     @Test
     public void shouldSend_isTrue_whenClientHasOpenIdScope_andOpenIdScopeIsRequested_andIdTokenResponseType_GrantTypeIsImplicit() {
-        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_IMPLICIT, requestedResponseTypesWithIdToken));
+        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_IMPLICIT, null));
     }
 
     @Test
     public void shouldSend_isTrue_whenClientHasOpenIdScope_andOpenIdScopeIsRequested_andIdTokenResponseType_GrantTypeIsRefresh() {
-        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_REFRESH_TOKEN, requestedResponseTypesWithIdToken));
+        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_REFRESH_TOKEN, null));
     }
 
     @Test
@@ -122,7 +119,7 @@ public class IdTokenGranterTest {
     public void shouldSend_isTrue_whenClientHasOpenIdScope_andNoScopesRequested() {
         // When scopes are not explicitly requested, we default to the
         // full list of scopes configured on the client
-        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, null, validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
-        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, Sets.newHashSet(), validGrantTypeForIdToken, requestedResponseTypesWithIdToken));
+        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, null, validGrantTypeForIdToken, null));
+        assertTrue(idTokenGranter.shouldSendIdToken(userId, clientWithOpenId, Sets.newHashSet(), validGrantTypeForIdToken, null));
     }
 }

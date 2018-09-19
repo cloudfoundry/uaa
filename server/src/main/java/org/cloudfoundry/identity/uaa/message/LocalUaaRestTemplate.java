@@ -72,7 +72,6 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         Set<String> resourceIds = new HashSet<>();
         resourceIds.add(OriginKeys.UAA);
         Set<String> responseTypes = new HashSet<>();
-        responseTypes.add("token");
         Map<String,String> requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, "login");
         requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);

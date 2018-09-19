@@ -278,9 +278,7 @@ public class DeprecatedUaaTokenServicesTests {
         when(userDatabase.getUserInfo(userId)).thenReturn(userInfo);
 
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
-        uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest(new HashMap<String, String>() {{
-            put(RESPONSE_TYPE, "id_token");
-        }}));
+        uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
         verify(idTokenCreator).create(eq(TokenTestSupport.CLIENT_ID), eq(userId), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
@@ -332,7 +330,6 @@ public class DeprecatedUaaTokenServicesTests {
     public void is_opaque_token_required() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
@@ -1685,7 +1682,6 @@ public class DeprecatedUaaTokenServicesTests {
     public void testLoad_Opaque_AuthenticationForAUser() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
@@ -1734,7 +1730,6 @@ public class DeprecatedUaaTokenServicesTests {
     public void loadAuthentication_when_given_an_opaque_refreshToken_should_throw_exception() {
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
@@ -1760,7 +1755,6 @@ public class DeprecatedUaaTokenServicesTests {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
         tokenSupport.defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList("token")));
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);

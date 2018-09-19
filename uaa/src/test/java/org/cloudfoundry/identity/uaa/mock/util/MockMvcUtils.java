@@ -1203,7 +1203,6 @@ public final class MockMvcUtils {
           .header("Authorization", basicDigestHeaderValue)
           .header("Accept", MediaType.APPLICATION_JSON_VALUE)
           .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
-          .param(OAuth2Utils.RESPONSE_TYPE, "token")
           .param("code", code)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");

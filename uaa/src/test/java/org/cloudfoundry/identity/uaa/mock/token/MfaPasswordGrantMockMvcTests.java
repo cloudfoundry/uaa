@@ -62,7 +62,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, "cf")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -104,7 +103,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, "cf")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -130,7 +128,6 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, "cf")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -149,7 +146,4 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
             ), "marissa"
         );
     }
-
-
-
 }
