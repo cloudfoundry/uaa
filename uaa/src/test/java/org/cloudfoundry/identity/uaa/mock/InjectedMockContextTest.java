@@ -102,13 +102,4 @@ public class InjectedMockContextTest implements Contextable {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class OAuthToken {
-        @JsonProperty("access_token")
-        public String accessToken;
-
-        public OAuthToken() {
-        }
-    }
-
 }

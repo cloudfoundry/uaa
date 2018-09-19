@@ -32,7 +32,6 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -1153,8 +1152,8 @@ public final class MockMvcUtils {
         }
 
         MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
-          InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
+          OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -1211,8 +1210,8 @@ public final class MockMvcUtils {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }
         result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
-          InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
+          OAuthToken.class);
         return oauthToken.accessToken;
 
     }
@@ -1293,7 +1292,7 @@ public final class MockMvcUtils {
           .andDo(print())
           .andExpect(status().isOk())
           .andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 

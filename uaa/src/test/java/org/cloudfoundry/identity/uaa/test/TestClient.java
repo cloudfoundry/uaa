@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -39,7 +39,7 @@ public class TestClient {
         MvcResult result = mockMvc.perform(oauthTokenPost)
             .andExpect(status().isOk())
             .andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -56,7 +56,7 @@ public class TestClient {
             .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -73,7 +73,7 @@ public class TestClient {
             .param("scope", scope);
         oauthTokenPost.header("Host", subdomain+".localhost");
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        InjectedMockContextTest.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), InjectedMockContextTest.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 }
