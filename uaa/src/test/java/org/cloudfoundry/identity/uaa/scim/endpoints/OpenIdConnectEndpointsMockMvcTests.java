@@ -1,14 +1,24 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 
@@ -16,33 +26,43 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherId
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.deleteIdentityZone;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest {
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class OpenIdConnectEndpointsMockMvcTests {
 
     private IdentityZone identityZone;
+    @Autowired
+    public WebApplicationContext webApplicationContext;
+    private MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception {
-        identityZone = createOtherIdentityZone("subdomain", getMockMvc(), getWebApplicationContext());
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        identityZone = createOtherIdentityZone("subdomain", mockMvc, webApplicationContext);
     }
 
     @After
     public void tearDown() throws Exception {
-        deleteIdentityZone(identityZone.getId(), getMockMvc());
+        deleteIdentityZone(identityZone.getId(), mockMvc);
     }
 
     @Test
     public void testWellKnownEndpoint() throws Exception {
         for (String host : Arrays.asList("localhost", "subdomain.localhost")) {
             for (String url : Arrays.asList("/.well-known/openid-configuration", "/oauth/token/.well-known/openid-configuration")) {
-                MockHttpServletResponse response = getMockMvc().perform(
+                MockHttpServletResponse response = mockMvc.perform(
                     get(url)
                         .header("Host", host)
                         .servletPath(url)
@@ -76,7 +96,7 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
     public void testUserInfoEndpointIsCorrect() throws Exception {
         for (String host : Arrays.asList("localhost", "subdomain.localhost")) {
             for (String url : Arrays.asList("/.well-known/openid-configuration", "/oauth/token/.well-known/openid-configuration")) {
-                MockHttpServletResponse response = getMockMvc().perform(
+                MockHttpServletResponse response = mockMvc.perform(
                     get(url)
                         .header("Host", host)
                         .servletPath(url)
@@ -87,7 +107,7 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
                 OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
 
-                getMockMvc().perform(get(openIdConfiguration.getUserInfoUrl()))
+                mockMvc.perform(get(openIdConfiguration.getUserInfoUrl()))
                     .andExpect(status().isUnauthorized());
             }
         }
