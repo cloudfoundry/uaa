@@ -128,7 +128,7 @@ public class UaaTokenServicesTests {
         @DisplayName("id token should contain jku header")
         @Test
         public void ensureJKUHeaderIsSetWhenBuildingAnIdToken() {
-            AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
+            AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_PASSWORD, requestedScope);
 
             OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -145,7 +145,7 @@ public class UaaTokenServicesTests {
         @ParameterizedTest
         @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
         public void ensureIdTokenReturned_withGrantType(String grantType) {
-            AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
+            AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, requestedScope);
 
             OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -170,7 +170,7 @@ public class UaaTokenServicesTests {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
             public void ensureAnIdTokenIsNotReturned(String grantType) {
-                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, requestedScope);
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -214,7 +214,7 @@ public class UaaTokenServicesTests {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
             public void ensureAnIdTokenIsNotReturned(String grantType) {
-                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, requestedScope);
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -225,7 +225,7 @@ public class UaaTokenServicesTests {
             @DisplayName("id token should returned when grant type is password")
             @Test
             public void ensureAnIdTokenIsReturned() {
-                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_PASSWORD, requestedScope);
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -237,7 +237,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void ensureJKUHeaderIsSetWhenBuildingAnAccessToken() {
-        AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_CLIENT_CREDENTIALS, Strings.split(clientScopes, ','));
+        AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, Strings.split(clientScopes, ','));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
@@ -250,7 +250,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void ensureJKUHeaderIsSetWhenBuildingARefreshToken() {
-        AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, "oauth.approvals");
+        AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_PASSWORD, "oauth.approvals");
 
         OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -270,27 +270,23 @@ public class UaaTokenServicesTests {
 
         private CompositeExpiringOAuth2RefreshToken refreshToken;
 
-        @BeforeEach
-        void setup() {
+        @Test
+        public void happyCase() {
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
-              GRANT_TYPE_AUTHORIZATION_CODE,
-              Sets.newHashSet("openid", "user_attributes"),
-              null,
-              "",
-              Sets.newHashSet(""),
-              "jku_test",
-              false,
-              new Date(),
-              null,
-              null
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(),
+                    null,
+                    null
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
             refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
             assertThat(refreshToken, is(notNullValue()));
-        }
-
-        @Test
-        public void happyCase() {
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
@@ -342,6 +338,79 @@ public class UaaTokenServicesTests {
                 List<String> values = (List<String>) ((Map<String, Object>) claims.get(ClaimConstants.ACR)).get("values");
                 assertThat(values, notNullValue());
                 assertThat(values, containsInAnyOrder(acrs.toArray()));
+            }
+        }
+
+        @Nested
+        @DisplayName("when 'openid' scope was not requested in original token grant")
+        @WithSpring
+        class WhenOpenIdScopeNotRequested {
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+            @DisplayName("an ID token is not returned")
+            public void idTokenNotReturned(String grantType) {
+                String nonOpenIdScope = "user_attributes";
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, nonOpenIdScope);
+                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+                CompositeToken compositeToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+
+                CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
+                        compositeToken.getRefreshToken().getValue(),
+                        new TokenRequest(
+                                Maps.newHashMap(), "jku_test", null, GRANT_TYPE_REFRESH_TOKEN
+                        )
+                );
+
+                assertThat(refreshedToken.getIdTokenValue(), is(nullValue()));
+            }
+        }
+
+        @Nested
+        @DisplayName("when client does not have 'openid' scope")
+        @WithSpring
+        class WhenClientDoesNotHaveOpenIdScope {
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+            @DisplayName("an ID token is not returned")
+            public void idTokenNotReturned(String grantType) {
+                String nonOpenIdScope = "password.write";
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest("client_without_openid", grantType, nonOpenIdScope);
+                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+                CompositeToken compositeToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+                assertThat(compositeToken.getIdTokenValue(), is(nullValue()));
+
+                CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
+                        compositeToken.getRefreshToken().getValue(),
+                        new TokenRequest(
+                                Maps.newHashMap(), "client_without_openid", null, GRANT_TYPE_REFRESH_TOKEN
+                        )
+                );
+
+                assertThat(refreshedToken.getIdTokenValue(), is(nullValue()));
+            }
+        }
+
+        @Nested
+        @DisplayName("when scoping down the refresh token to exclude 'openid' scope")
+        @WithSpring
+        class WhenScopingDownToExcludeOpenIdScope {
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+            @DisplayName("an ID token is not returned")
+            public void idTokenNotReturned(String grantType) {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest("jku_test", grantType, "openid", "user_attributes");
+                OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+                CompositeToken compositeToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+                assertThat(compositeToken.getIdTokenValue(), is(not(nullValue())));
+
+                CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
+                        compositeToken.getRefreshToken().getValue(),
+                        new TokenRequest(
+                                Maps.newHashMap(), "jku_test", Sets.newHashSet("user_attributes"), GRANT_TYPE_REFRESH_TOKEN
+                        )
+                );
+
+                assertThat(refreshedToken.getIdTokenValue(), is(nullValue()));
             }
         }
 
@@ -421,7 +490,7 @@ public class UaaTokenServicesTests {
 
     }
 
-    private AuthorizationRequest constructAuthorizationRequest(String grantType, String... scopes) {
+    private AuthorizationRequest constructAuthorizationRequest(String clientId, String grantType, String... scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, grantType);
