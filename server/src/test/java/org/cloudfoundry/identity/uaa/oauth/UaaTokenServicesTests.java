@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.bouncycastle.util.Strings;
@@ -95,7 +96,6 @@ public class UaaTokenServicesTests {
     @WithSpring
     class WhenRequestingAnIdToken {
         private String requestedScope;
-        private String responseType;
 
         private PrintStream systemOut;
         private PrintStream systemErr;
@@ -122,7 +122,6 @@ public class UaaTokenServicesTests {
         @BeforeEach
         void setupRequest() {
             requestedScope = "openid";
-            responseType = "id_token";
         }
 
         @Tag("oidc spec")
@@ -130,7 +129,6 @@ public class UaaTokenServicesTests {
         @Test
         public void ensureJKUHeaderIsSetWhenBuildingAnIdToken() {
             AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
-            authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
             OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -143,12 +141,11 @@ public class UaaTokenServicesTests {
 
         @Tag("oidc spec")
         @Tag("uaa oidc logic")
-        @DisplayName("ensureIdToken Returned when Client Has OpenId Scope and Scope=OpenId, ResponseType=id_token withGrantType")
+        @DisplayName("ensureIdToken Returned when Client Has OpenId Scope and Scope=OpenId withGrantType")
         @ParameterizedTest
         @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
         public void ensureIdTokenReturned_withGrantType(String grantType) {
             AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
-            authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
             OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -174,24 +171,21 @@ public class UaaTokenServicesTests {
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
             public void ensureAnIdTokenIsNotReturned(String grantType) {
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
-                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
                 CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
                 assertAll("id token is not returned, and a useful log message is printed",
                   () -> assertThat(accessToken.getIdTokenValue(), is(nullValue())),
-                  () -> assertThat("Useful log message", loggingOutputStream.toString(), containsString("an ID token was requested but 'openid' is missing from the requested scopes")),
-                  () -> assertThat("Does not contain log message", loggingOutputStream.toString(), not(containsString("an ID token cannot be returned since the user didn't specify 'id_token' as the response_type")))
+                  () -> assertThat("Useful log message", loggingOutputStream.toString(), containsString("an ID token was requested but 'openid' is missing from the requested scopes"))
                 );
             }
         }
 
-
         @Nested
         @DisplayName("when the hasn't approved the 'openid' scope")
         @WithSpring
-        class WhenUserHasNotApproviedOpenIdScope {
+        class WhenUserHasNotApprovedOpenIdScope {
 
             @Value("${oauth.clients.jku_test_without_autoapprove.id}")
             private String clientWithoutAutoApprove;
@@ -221,7 +215,6 @@ public class UaaTokenServicesTests {
             @ValueSource(strings = {GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
             public void ensureAnIdTokenIsNotReturned(String grantType) {
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest(grantType, requestedScope);
-                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -233,7 +226,6 @@ public class UaaTokenServicesTests {
             @Test
             public void ensureAnIdTokenIsReturned() {
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest(GRANT_TYPE_PASSWORD, requestedScope);
-                authorizationRequest.setResponseTypes(Sets.newHashSet(responseType));
 
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
 
@@ -333,13 +325,10 @@ public class UaaTokenServicesTests {
             public void happyCase(List<String> acrs) {
                 setup(new HashSet<>(acrs));
 
-                HashMap<String, String> tokenRequestParams = new HashMap<String, String>() {{
-                    put("response_type", "id_token");
-                }};
                 CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
                   refreshToken.getValue(),
                   new TokenRequest(
-                    tokenRequestParams, "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN
+                          Maps.newHashMap(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN
                   )
                 );
 
@@ -385,13 +374,10 @@ public class UaaTokenServicesTests {
             public void happyCase(List<String> amrs) {
                 setup(amrs);
 
-                HashMap<String, String> tokenRequestParams = new HashMap<String, String>() {{
-                    put("response_type", "id_token");
-                }};
                 CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
                   refreshToken.getValue(),
                   new TokenRequest(
-                    tokenRequestParams, "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN
+                    Maps.newHashMap(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN
                   )
                 );
 
@@ -406,7 +392,6 @@ public class UaaTokenServicesTests {
             }
         }
     }
-
 
     private OAuth2Authentication constructUserAuthenticationFromAuthzRequest(AuthorizationRequest authzRequest,
                                                                              String userId,
@@ -435,6 +420,7 @@ public class UaaTokenServicesTests {
         );
 
     }
+
     private AuthorizationRequest constructAuthorizationRequest(String grantType, String... scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
