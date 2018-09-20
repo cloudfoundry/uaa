@@ -2,8 +2,6 @@
 
 # CloudFoundry User Account and Authentication (UAA) Server
 
-[![Build Status](https://travis-ci.org/cloudfoundry/uaa.svg?branch=develop)](https://travis-ci.org/cloudfoundry/uaa)
-
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
 as a stand alone OAuth2 server.  Its primary role is as an OAuth2 provider, issuing tokens for client
 applications to use when they act on behalf of Cloud Foundry users.
