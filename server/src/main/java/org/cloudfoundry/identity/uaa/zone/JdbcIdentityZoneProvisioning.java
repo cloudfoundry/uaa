@@ -33,11 +33,11 @@ import java.util.List;
 
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
 
-    public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config";
+    public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config,active";
 
-    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config".replace(",","=?,")+"=?";
+    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active".replace(",","=?,")+"=?";
 
-    public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?)";
+    public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?,?)";
 
     public static final String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
 
@@ -103,6 +103,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                                      JsonUtils.writeValueAsString(identityZone.getConfig()) :
                                      null
                     );
+                    ps.setBoolean(9, identityZone.isActive());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -129,7 +130,8 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                                      JsonUtils.writeValueAsString(identityZone.getConfig()) :
                                      null
                     );
-                    ps.setString(7, identityZone.getId().trim());
+                    ps.setBoolean(7, identityZone.isActive());
+                    ps.setString(8, identityZone.getId().trim());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -171,6 +173,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                     identityZone.setConfig(new IdentityZoneConfiguration());
                 }
             }
+            identityZone.setActive(rs.getBoolean(9));
 
 
             return identityZone;

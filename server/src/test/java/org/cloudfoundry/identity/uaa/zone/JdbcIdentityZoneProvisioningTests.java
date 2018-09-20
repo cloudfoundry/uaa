@@ -7,9 +7,13 @@ import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.util.List;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
@@ -54,6 +58,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
         assertEquals(3600, createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
         assertEquals(7200, createdIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertTrue(createdIdZone.isActive());
     }
 
     @Test
@@ -98,6 +103,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         assertEquals(createdIdZone.getSubdomain().toLowerCase(), updatedIdZone.getSubdomain());
         assertEquals(createdIdZone.getName(), updatedIdZone.getName());
         assertEquals(createdIdZone.getDescription(), updatedIdZone.getDescription());
+        assertEquals(createdIdZone.isActive(), updatedIdZone.isActive());
     }
 
     @Test
@@ -122,6 +128,21 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         assertEquals(createdIdZone.getSubdomain().toLowerCase(), updatedIdZone.getSubdomain());
         assertEquals(createdIdZone.getName(), updatedIdZone.getName());
         assertEquals(createdIdZone.getDescription(), updatedIdZone.getDescription());
+    }
+
+    @Test
+    public void testUpdateIdentityZoneSetInactive() throws Exception {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
+        identityZone.setId(generator.generate());
+
+        IdentityZone createdIdZone = db.create(identityZone);
+
+        assertTrue(createdIdZone.isActive());
+
+        createdIdZone.setActive(false);
+        IdentityZone updatedIdZone = db.update(createdIdZone);
+
+        assertFalse(updatedIdZone.isActive());
     }
 
     @Test(expected = ZoneDoesNotExistsException.class)
@@ -158,4 +179,49 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         }
     }
 
+    @Test
+    public void testGetIdentityZone() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        identityZone.setId(generator.generate());
+        db.create(identityZone);
+
+        IdentityZone retrievedIdZone = db.retrieve(identityZone.getId());
+
+        assertEquals(identityZone.getId(), retrievedIdZone.getId());
+        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
+        assertEquals(identityZone.getName(), retrievedIdZone.getName());
+        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
+        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertTrue(retrievedIdZone.isActive());
+    }
+
+    @Test
+    public void testGetAllIdentityZones() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        identityZone.setId(generator.generate());
+        db.create(identityZone);
+
+        List<IdentityZone> identityZones = db.retrieveAll();
+
+        assertEquals(2, identityZones.size());
+        assertTrue(identityZones.contains(identityZone));
+    }
+
+    @Test
+    public void testGetIdentityZoneBySubdomain() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        identityZone.setId(generator.generate());
+        db.create(identityZone);
+
+        IdentityZone retrievedIdZone = db.retrieveBySubdomain(identityZone.getSubdomain());
+
+        assertEquals(identityZone.getId(), retrievedIdZone.getId());
+        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
+        assertEquals(identityZone.getName(), retrievedIdZone.getName());
+        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
+        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertTrue(retrievedIdZone.isActive());
+    }
 }
