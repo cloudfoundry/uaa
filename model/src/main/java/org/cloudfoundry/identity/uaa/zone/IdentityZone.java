@@ -59,6 +59,8 @@ public class IdentityZone {
     @JsonProperty("last_modified")
     private Date lastModified = new Date();
 
+    private boolean active = true;
+
     public Date getCreated() {
         return created;
     }
@@ -120,6 +122,14 @@ public class IdentityZone {
     public IdentityZone setDescription(String description) {
         this.description = description;
         return this;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     @Override
