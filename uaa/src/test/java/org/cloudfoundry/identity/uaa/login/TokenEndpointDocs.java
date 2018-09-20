@@ -735,7 +735,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with `uaa.admin` or `tokens.revoke` scope. Any token with the matching user_id may also be used for self revocation."),
+            headerWithName("Authorization").description(
+                    "Bearer token with one of: " +
+                            "`uaa.admin` scope OR " +
+                            "`tokens.revoke` scope OR " +
+                            "matching `user_id`"),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
@@ -787,7 +791,12 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName("Authorization").description("Bearer token with uaa.admin or tokens.revoke scope. Any token with the matching user_id and client_id may also be used for self revocation."),
+            headerWithName("Authorization").description(
+                    "Bearer token with one of: " +
+                            "`uaa.admin` scope OR " +
+                            "`tokens.revoke` scope OR " +
+                            "(matching `user_id` AND `client_id`)"
+            ),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
@@ -886,11 +895,20 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with `uaa.admin` or `tokens.revoke` scope. You can use any token with matching token ID to revoke itself."),
+            headerWithName("Authorization").description(
+                    "Bearer token with one of: " +
+                            "`uaa.admin` scope OR " +
+                            "`tokens.revoke` scope OR " +
+                            "the token ID to be revoked"
+            ),
             IDENTITY_ZONE_ID_HEADER,
             IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
-        Snippet pathParameters = pathParameters(parameterWithName("tokenId").description("The identifier for the token to be revoked. For JWT tokens use the `jti` claim in the token."));
+        Snippet pathParameters = pathParameters(parameterWithName("tokenId").description(
+                "The identifier for the token to be revoked. " +
+                        "For opaque tokens, use the token itself. " +
+                        "For JWT tokens use the `jti` claim in the token."
+        ));
 
         MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/oauth/token/revoke/{tokenId}", userInfoToken);
 
