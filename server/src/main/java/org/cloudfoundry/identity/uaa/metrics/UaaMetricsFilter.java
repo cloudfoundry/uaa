@@ -75,6 +75,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         );
     }
 
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         UrlGroup uriGroup = enabled ? getUriGroup(request) : null;
@@ -204,5 +205,9 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     public void setPerRequestMetrics(boolean perRequestMetrics) {
         this.perRequestMetrics = perRequestMetrics;
+    }
+
+    public void setInflight(IdleTimer inflight) {
+        this.inflight = inflight;
     }
 }

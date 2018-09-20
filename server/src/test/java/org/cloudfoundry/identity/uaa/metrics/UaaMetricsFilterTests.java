@@ -36,27 +36,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class UaaMetricsFilterTests {
 
@@ -79,7 +67,7 @@ public class UaaMetricsFilterTests {
 
 
     @Test
-    public void group_static_content() throws Exception {
+    public void group_static_content() {
         for (String path : Arrays.asList("/vendor/test", "/resources/test")) {
             setRequestData(path);
             assertEquals("/static-content", filter.getUriGroup(request).getGroup());
@@ -199,38 +187,18 @@ public class UaaMetricsFilterTests {
 
     @Test
     public void idle_counter() throws Exception {
-        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        lock.writeLock().lock();
+        IdleTimer mockIdleTimer = mock(IdleTimer.class);
         setRequestData("/oauth/token");
         final FilterChain chain = mock(FilterChain.class);
         final UaaMetricsFilter filter = new UaaMetricsFilter();
+        filter.setInflight(mockIdleTimer);
         filter.setEnabled(true);
-        doAnswer(invocation -> {
-            try {
-                lock.writeLock().lock();
-            } finally {
-                lock.writeLock().unlock();
-                return null;
-            }
-        }).when(chain).doFilter(same(request), same(response));
-        Runnable invocation = () -> {
-            try {
-                filter.doFilterInternal(request, response, chain);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        };
-        Thread invoker = new Thread(invocation);
-        invoker.start();
-        Thread.sleep(50);
-        assertEquals(1, filter.getInflightCount());
-        lock.writeLock().unlock();
-        Thread.sleep(25);
-        assertEquals(0, filter.getInflightCount());
-        long idleTime = filter.getIdleTime();
-        assertThat(idleTime, greaterThan(20l));
-        Thread.sleep(10);
-        assertThat("Idle time should have changed.", filter.getIdleTime(), greaterThan(idleTime));
+
+        filter.doFilterInternal(request, response, chain);
+
+        verify(chain, times(1)).doFilter(same(request), same(response));
+        verify(mockIdleTimer, times(1)).startRequest();
+        verify(mockIdleTimer, times(1)).endRequest();
     }
 
     public void setRequestData(String requestURI) {
@@ -254,7 +222,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void url_groups() throws Exception {
+    public void url_groups() {
         request.setServerName("localhost:8080");
         setRequestData("/uaa/authenticate");
         request.setPathInfo("/authenticate");
@@ -263,7 +231,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void uri_groups_when_fails_to_load() throws Exception {
+    public void uri_groups_when_fails_to_load() {
         ReflectionTestUtils.setField(filter, "urlGroups", null);
         request.setContextPath("");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
@@ -309,7 +277,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void validate_matcher() throws Exception {
+    public void validate_matcher() {
         //validates that patterns that end with /** still match at parent level
         setRequestData("/some/path");
         AntPathRequestMatcher matcher = new AntPathRequestMatcher("/some/path/**");
