@@ -99,7 +99,7 @@ public class IdentityZoneEndpointsTests {
     public void group_creation_called_on_update() throws Exception {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         zone = createZone();
-        when(zoneDao.retrieve(zone.getId())).thenReturn(zone);
+        when(zoneDao.retrieveIgnoreActiveFlag(zone.getId())).thenReturn(zone);
         when(zoneDao.update(same(zone))).thenReturn(zone);
         spy.updateIdentityZone(zone, zone.getId());
         verify(spy, times(1)).createUserGroups(same(zone));

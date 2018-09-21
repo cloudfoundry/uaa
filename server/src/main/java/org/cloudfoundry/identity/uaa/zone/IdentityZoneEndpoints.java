@@ -110,7 +110,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
-        List<IdentityZone> result = filterForCurrentZone(Arrays.asList(zoneDao.retrieve(id)));
+        List<IdentityZone> result = filterForCurrentZone(Arrays.asList(zoneDao.retrieveIgnoreActiveFlag(id)));
         if (result.size() == 0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
@@ -272,7 +272,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             }
 
             // make sure it exists
-            IdentityZone existingZone = zoneDao.retrieve(id);
+            IdentityZone existingZone = zoneDao.retrieveIgnoreActiveFlag(id);
             restoreSecretProperties(existingZone, body);
             //validator require id to be present
             body.setId(id);
@@ -331,7 +331,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             logger.debug("Zone - deleting id[" + id + "]");
             // make sure it exists
-            IdentityZone zone = zoneDao.retrieve(id);
+            IdentityZone zone = zoneDao.retrieveIgnoreActiveFlag(id);
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
