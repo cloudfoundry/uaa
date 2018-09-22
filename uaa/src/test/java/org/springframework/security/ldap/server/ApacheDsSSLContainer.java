@@ -35,7 +35,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.Lifecycle;
 import org.springframework.core.io.Resource;
-import sun.security.x509.X500Name;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -191,7 +190,11 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(keysize);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate[] chain = {getSelfCertificate(new X500Name(commonName, organizationalUnit, organization, city, state, country), new Date(), (long) validity * 24 * 60 * 60, keyPair, "SHA256withRSA")};
+        X509Certificate[] chain = {getSelfCertificate(
+                keyPair, organization, organizationalUnit, commonName, new Date(),
+                (long) validity * 24 * 60 * 60,
+                "SHA256withRSA"
+        )};
         keyStore.setKeyEntry(alias, keyPair.getPrivate(), keyPass, chain);
 
         String keystoreName = "ldap.keystore";
