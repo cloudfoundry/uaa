@@ -22,7 +22,6 @@ buildscript {
 
     dependencies {
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
-        classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
