@@ -97,12 +97,10 @@ subprojects {
     artifacts {
         archives packageSources
     }
+
     repositories {
         maven { url 'https://jitpack.io' }
         maven { url "https://repo.spring.io/release" }
-        maven { url "https://repo.spring.io/milestone" }
-        maven { url "https://repo.spring.io/snapshot" }
-        maven { url "https://repo.spring.io/ext-release-local" }
         maven { url "https://repo.maven.apache.org/maven2" }
     }
 
