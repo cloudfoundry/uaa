@@ -3,6 +3,11 @@ import org.apache.tools.ant.filters.ReplaceTokens
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import io.honeycomb.libhoney.HoneyClient
+import io.honeycomb.libhoney.EventFactory
+import static io.honeycomb.libhoney.LibHoney.create
+import static io.honeycomb.libhoney.LibHoney.options
+
 apply from: file('shared_versions.gradle')
 apply plugin: 'com.bmuschko.cargo'
 
@@ -21,6 +26,7 @@ buildscript {
     }
 
     dependencies {
+        classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
@@ -65,6 +71,8 @@ allprojects {
 }
 
 subprojects {
+    EventFactory honeyCombEventFactory = buildEventFactory()
+
     apply plugin: 'java'
 
     dependencies {
@@ -80,6 +88,14 @@ subprojects {
     test {
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener"]
+
+        afterSuite { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
+        }
+
+        afterTest { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
+        }
     }
 
     task integrationTest(type: Test) {
@@ -218,3 +234,38 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
+
+private EventFactory buildEventFactory() {
+    if (System.getProperty('honeycomb.writekey', '').isEmpty() || System.getProperty('honeycomb.dataset', '').isEmpty()) {
+        return null
+    }
+
+    HoneyClient honeyClient  = create(
+            options()
+                    .setWriteKey(System.getProperty('honeycomb.writekey', ''))
+                    .setDataset(System.getProperty('honeycomb.dataset', ''))
+                    .build()
+    )
+
+    return honeyClient.buildEventFactory()
+            .addField("testId", UUID.randomUUID().toString())
+            .addField("cpuCores", Runtime.getRuntime().availableProcessors())
+            .addField("hostname", InetAddress.getLocalHost().getHostName())
+            .build()
+}
+
+private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
+    if (localBuilder != null) {
+        localBuilder
+                .createEvent()
+                .addField("test_lifecycle", testLifecycle)
+                .addField("testClass", descriptor.className)
+                .addField("testName", descriptor.name)
+                .addField("result", testResult.resultType)
+                .addField("startTime", testResult.startTime)
+                .addField("endTime", testResult.endTime)
+                .addField("duration", testResult.endTime - testResult.startTime)
+                .setTimestamp(System.currentTimeMillis())
+                .send()
+    }
+}
