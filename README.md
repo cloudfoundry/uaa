@@ -12,313 +12,6 @@ clients, as well as various other management functions.
 
 [![](https://openid.net/wordpress-content/uploads/2016/04/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png)](https://openid.net/certification/)
 
-## Co-ordinates
-
-* Tokens: [A note on tokens, scopes and authorities](/docs/UAA-Tokens.md)
-* Technical forum: [cf-dev mailing list](https://lists.cloudfoundry.org)
-* Docs: [docs/](/docs)
-* API Documentation: http://docs.cloudfoundry.org/api/uaa/
-* Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
-* LDAP: [UAA LDAP Integration](/docs/UAA-LDAP.md)
-
-## Quick Start
-
-Requirements:
-* Java 8
-
-If this works you are in business:
-
-    $ git clone git://github.com/cloudfoundry/uaa.git
-    $ cd uaa
-    $ ./gradlew run
-    
-    
-NOTE: Recent changes removed default keys and default users from the UAA.
-We currently enable default keys using the LOGIN_CONFIG_URL variable and load
-default sample data is loaded using the `default` spring profile (`spring.profiles.active`).
-In the gradle script we set `LOGIN_CONFIG_URL=file://$PWD/uaa/src/main/resources/required_configuration.yml`
-
-The apps all work together with the apps running on the same port
-(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
-
-UAA will log to a file called `uaa.log` which can be found using the following command:-
-
-    $ sudo find / -name uaa.log
-
-which you should find under something like:-
-
-    /private/var/folders/7v/518b18d97_3f4c8fzxphy6f8zcm51c/T/cargo/conf/logs/
-
-### Deploy to Cloud Foundry
-
-Currently you are also required to set the following values that are not included with the defaults:
-https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/required_configuration.yml
-
-
-You can also build the app and push it to Cloud Foundry, e.g.
-Our recommended way is to use a manifest file, but you can do everything on the command line.
-
-Assuming we have a [local bosh-lite](https://github.com/cloudfoundry/bosh-lite) instance running you could do
-
-    $ ./gradlew manifests
-    $ cf api --skip-ssl-validation api.bosh-lite.com
-    $ cf auth admin admin
-    $ cf create-org sample-org
-    $ cf create-space -o sample-org sample-space
-    $ cf target -o sample-org -s sample-space
-    $ cf push -f build/sample-manifests/uaa-cf-application.yml
-
-Your application is now available on [http://myuaa.bosh-lite.com](http://myuaa.bosh-lite.com)
-
-We can also deploy to Pivotal Web Services
-
-    $ ./gradlew manifests -Dapp=myuaa-app -Dapp-domain=cfapps.io
-    $ cf api api.run.pivotal.io
-    $ cf auth <your username> <your password>
-    $ cf create-org <your org>
-    $ cf create-space -o <your org> <your space>
-    $ cf target -o <your org> -s <your space>
-    $ cf push -f build/sample-manifests/uaa-cf-application.yml
-
-### Demo of command line usage on local server
-
-First run the UAA server as described above:
-
-    $ ./gradlew run
-
-From another terminal you can use curl to verify that UAA has started by
-requesting system information:
-
-    $ curl -H "Accept: application/json" localhost:8080/uaa/login
-    {
-      "timestamp":"2012-03-28T18:25:49+0100",
-      "commit_id":"111274e",
-      "prompts":{"username":["text","Username"],
-        "password":["password","Password"]
-      }
-    }
-
-For complex requests it is more convenient to interact with UAA using 
-`uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac). 
-If you have a recent ruby installed, install the CLI and use it to 
-obtain an access token:
-
-    $ gem install cf-uaac
-    $ uaac target http://localhost:8080/uaa
-    $ uaac token owner get cf marissa -s "" -p koala
-
-If you omit the username or password the CLI will prompt you for those
-fields.
-
-This authenticates and obtains an access token from the server using
-the OAuth2 implicit grant, similar to the approach intended for a
-client like CF. The token is stored in `~/.uaac.yml`, so dig into
-that file and pull out the access token for your `cf` target (or use
-`--verbose` on the login command line above to see it logged to your
-console).
-
-Then you can login as a resource server and retrieve the token
-details:
-
-    $ uaac target http://localhost:8080/uaa
-    $ uaac token decode
-    
-You should see your username and the client id of the original
-token grant on stdout, e.g.
-
-      exp: 1355348409
-      user_name: marissa
-      scope: cloud_controller.read openid password.write scim.userids tokens.read tokens.write
-      email: marissa@test.org
-      aud: scim tokens openid cloud_controller password
-      jti: ea2fac72-3f51-4c8f-a7a6-5ffc117af542
-      user_id: ba14fea0-9d87-4f0c-b59e-32aaa8eb1434
-      client_id: cf
-
-### Running local system against default MySQL and PostgreSQL settings (and Flyway migration script information)
-
-    $ ./gradlew -Dspring.profiles.active=default,mysql run
-
-This command will assume that there is a MySQL database available with the default settings for access
-and will respond to the following JDBC settings.
-
-    driver = 'org.mariadb.jdbc.Driver'
-    url = 'jdbc:mysql://localhost:3306/uaa'
-    user = 'root'
-    password = 'changeme'
-    schemas = ['uaa']
-
-In a similar fashion, should you execute the command
-
-    $ ./gradlew -Dspring.profiles.active=default,postgresql run
-
-It uses the settings defined as
-
-    driver = 'org.postgresql.Driver'
-    url = 'jdbc:postgresql:uaa'
-    user = 'root'
-    password = 'changeme'
-
-These settings are duplicated in two places for the Gradle integration.
-They are defined as defaults in the Spring XML configuration files and they are defined in the main
-build.gradle file. The reason they are in the Gradle build file, is so that during Gradle always executes the flywayClean
-task prior to launching the UAA application. If you wish to not clean the DB, you can define the variable
-
-    -Dflyway.clean=false
-
-as part of your command line. This disables the flywayClean task in the gradle script.
-Another way to disable to the flywayClean is to not specify the spring profiles on the command line,
-but set the profiles in the uaa.yml and login.yml files.
-
-### Demo of command line usage on run.pivotal.io
-
-The same command line example should work against a UAA running on
-run.pivotal.io (except for the token decoding bit because you won't
-have the client secret). In this case, there is no need to run a local
-uaa server, so simply ask the external login endpoint to tell you
-about the system:
-
-    $ curl -H "Accept: application/json" login.run.pivotal.io
-    {
-      "prompts":{"username":["text","Username"],
-        "password":["password","Password"]
-      }
-    }
-    
-You can then try logging in with the UAA ruby gem.  Make sure you have ruby 1.9, then
-
-    $ gem install cf-uaac
-    $ uaac target uaa.run.pivotal.io
-    $ uaac token get [yourusername] [yourpassword]
-
-(or leave out the username / password to be prompted).
-
-This authenticates and obtains an access token from the server using the OAuth2 implicit
-grant, the same as used by a client like CF.
-
-## Integration tests
-
-You can run the integration tests with docker
-
-    $ ~/workspace/uaa/run-integration-tests.sh mysql
-    $ ~/workspace/uaa/run-integration-tests.sh postgresql
-    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
-  
-will create a docker container running uaa + ldap + database whereby integration tests are run against.
-
-### Custom YAML Configuration
-
-To modify the runtime parameters you can provide a `uaa.yml`, e.g.
-
-    $ cat > /tmp/config/uaa.yml
-    uaa:
-      host: uaa.appcloud21.dev.mozycloud
-      test:
-        username: dev@cloudfoundry.org # defaults to vcap_tester@vmware.com
-        password: changeme
-        email: dev@cloudfoundry.org
-
-then from `uaa/uaa`
-
-    $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp/config ./gradlew test
-    
-The webapp looks for Yaml content in the following locations
-(later entries override earlier ones) when it starts up.
-
-    classpath:uaa.yml
-    file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
-    file:${UAA_CONFIG_FILE}
-    ${UAA_CONFIG_URL}
-    System.getEnv('UAA_CONFIG_YAML') -> environment variable, if set must contain valid Yaml
-
-For example, to deploy the UAA as a Cloud Foundry application, you can provide an application manifest like
-
-    ---
-      applications:
-      - name: standalone-uaa-cf-war
-        memory: 1024M
-        instances: 1
-        host: standalone-uaa
-        path: cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war
-        env:
-          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
-          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
-          SPRING_PROFILES_ACTIVE: hsqldb,default
-          UAA_CONFIG_YAML: |
-            uaa.url: http://standalone-uaa.cfapps.io
-            login.url: http://standalone-uaa.cfapps.io
-            smtp:
-              host: mail.server.host
-              port: 3535
-
-
-Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
-
-    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://standalone-uaa.myapp.com, login.url: http://standalone-uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
-    
-In addition, any simple type property that is read by the UAA can also be fully expanded and read as a system environment variable itself.
-Notice how uaa.url can be converted into an environment variable called UAA_URL
-
-    ---
-      applications:
-      - name: standalone-uaa-cf-war
-        memory: 1024M
-        instances: 1
-        host: standalone-uaa
-        path: cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war
-        env:
-          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
-          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
-          SPRING_PROFILES_ACTIVE: hsqldb,default
-          UAA_URL: http://standalone-uaa.cfapps.io
-          LOGIN_URL: http://standalone-uaa.cfapps.io
-          UAA_CONFIG_YAML: |
-            smtp:
-              host: mail.server.host
-              port: 3535
-
-### Using Gradle to test with postgresql or mysql
-
-The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
-
-To run the unit tests with docker:
-
-    $ ~/workspace/uaa/run-unit-tests.sh mysql
-    $ ~/workspace/uaa/run-unit-tests.sh postgresql
-    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
-
-## Inventory
-
-There are actually several projects here, the main `uaa` server application, a client library and some samples:
-
-1. `uaa` a WAR project for easy deployment
-
-2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
-
-3. `model` a JAR project used by both the client library and server 
-
-4. `client-lib` a JAR project that provides a Java client API
-
-5. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
-
-6. `app` (sample) is a user application that uses both of the above
-
-In CloudFoundry terms
-
-* `uaa` provides an authentication service plus authorized delegation for
-   back-end services and apps (by issuing OAuth2 access tokens).
-
-* `api` is a service that provides resources that other applications may
-  wish to access on behalf of the resource owner (the end user).
-
-* `app` is a webapp that needs single sign on and access to the `api`
-  service on behalf of users.
-
-### Organization of Code
-
-The projects are organized into horizontal layers; client, model, server, etc.  Within all of these projects the java packages are organized vertically around our internal services; zones, providers, clients, etc. 
-
-
 ## UAA Server
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
@@ -347,8 +40,6 @@ credentials directly to the `/oauth/authorize` endpoint (as described in
 UAA-API doc).  There is an `ImplicitAccessTokenProvider` in Spring
 Security OAuth that can do the heavy lifting if your client is Java.
 
-By default `uaa` will launch with a context root `/uaa`. 
-
 ### Use Cases
 
 1. Authenticate
@@ -369,97 +60,109 @@ By default `uaa` will launch with a context root `/uaa`.
 
     Standard OAuth2 Authorization Endpoint.
 
-### Configuration
+## Co-ordinates
 
-There are two configuration files, `uaa.yml` and `login.yml`, in the application which provides defaults to the
-placeholders in the Spring XML.   
-Wherever you see `${placeholder.name}` in the XML there is an opportunity to override
-it either by providing a System property (`-D` to JVM) with the same
-name, or a custom `uaa.yml` or `login.yml` (as described above).
+* Tokens: [A note on tokens, scopes and authorities](/docs/UAA-Tokens.md)
+* Technical forum: [cf-dev mailing list](https://lists.cloudfoundry.org)
+* Docs: [docs/](/docs)
+* API Documentation: http://docs.cloudfoundry.org/api/uaa/
+* Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
+* LDAP: [UAA LDAP Integration](/docs/UAA-LDAP.md)
 
-The `uaa.yml` and `login.yml` get merged during startup into one configuration.
+## Quick Start
 
-All passwords and client secrets in the config files are plain text,
-but they will be inserted into the UAA database encrypted with BCrypt.
+Requirements:
+* Java 8
 
-In the future, you will be able to provide passwords in bcrypt format to avoid having to specify clear text passwords.
+If this works you are in business:
 
-### User Account Data
-
-The default is to use an in-memory RDBMS user store that is
-pre-populated with a single test users: `marissa` has password
-`koala`.
-
-To use Postgresql for user data, activate the Spring profile `postgresql`.
-
-The active profiles can be configured in `uaa.yml` using
-
-    spring_profiles: postgresql,default
+    $ git clone git://github.com/cloudfoundry/uaa.git
+    $ cd uaa
+    $ ./gradlew run
     
-Or specify PostgreSQL on the command line:
+    
+The apps all work together with the apps running on the same port
+(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
 
-     $ ./gradlew -Dspring.profiles.active=default,postgresql run
-     
-## The API Sample Application
+UAA will log to a file called `uaa.log` which can be found using the following command:-
 
-Two sample applications are included with the UAA. The `/api` and `/app`
+    $ sudo lsof | grep uaa.log
 
-Run it using `./gradlew run` from the `uaa` root directory 
-All three apps, `/uaa`, `/api` and `/app` get deployed 
-simultaneously.
+which you should find under something like:-
 
-## The App Sample Application
+    $TMPDIR/cargo/conf/logs/
 
-This is a user interface app (primarily aimed at browsers) that uses
-OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
-grants.  It authenticates with the Auth service, and then accesses
-resources in the API service.  Run it with `./gradlew run` from the
-`uaa` root directory.
+### Demo of command line usage on local server
 
-The application can operate in multiple different profiles according
-to the location (and presence) of the UAA server and the Login
-application.  By default it will look for a UAA on
-`localhost:8080/uaa`, but you can change this by setting an
-environment variable (or System property) called `UAA_PROFILE`.  In
-the application source code (`samples/app/src/main/resources`) you will find
-multiple properties files pre-configured with different likely
-locations for those servers.  They are all in the form
-`application-<UAA_PROFILE>.properties` and the naming convention
-adopted is that the `UAA_PROFILE` is `local` for the localhost
-deployment, `vcap` for a `vcap.me` deployment, `staging` for a staging
-deployment (inside VMware VPN), etc.  The profile names are double
-barrelled (e.g. `local-vcap` when the login server is in a different
-location than the UAA server).
+First run the UAA server as described above:
 
-### Use Cases
+    $ ./gradlew run
 
-1. See all apps
+From another terminal you can use curl to verify that UAA has started by
+requesting system information:
 
-        GET /app/apps
+    $ curl -H "Accept: application/json" localhost:8080/uaa/login
+    {
+      "timestamp":"2012-03-28T18:25:49+0100",
+      "commit_id":"111274e",
+      "prompts":{"username":["text","Username"],
+        "password":["password","Password"]
+      }
+    }
 
-    browser is redirected through a series of authentication and
-    access grant steps (which could be slimmed down to implicit steps
-    not requiring user at some point), and then the list of apps is shown.
+For complex requests it is more convenient to interact with UAA using 
+`uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
-2. See the currently logged in user details, a bag of attributes
-grabbed from the open id provider
+## Integration tests
 
-        GET /app
+You can run the integration tests with docker
+
+    $ ~/workspace/uaa/run-integration-tests.sh mysql
+    $ ~/workspace/uaa/run-integration-tests.sh postgresql
+    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
+  
+will create a docker container running uaa + ldap + database whereby integration tests are run against.
+
+### Using Gradle to test with postgresql or mysql
+
+The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
+
+To run the unit tests with docker:
+
+    $ ~/workspace/uaa/run-unit-tests.sh mysql
+    $ ~/workspace/uaa/run-unit-tests.sh postgresql
+    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
+
+## Inventory
+
+There are actually several projects here, the main `uaa` server application, a client library and some samples:
+
+1. `uaa` a WAR project for easy deployment
+
+2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
+
+3. `model` a JAR project used by both the client library and server 
+
+4. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+
+5. `app` (sample) is a user application that uses both of the above
+
+In CloudFoundry terms
+
+* `uaa` provides an authentication service plus authorized delegation for
+   back-end services and apps (by issuing OAuth2 access tokens).
+
+* `api` is a service that provides resources that other applications may
+  wish to access on behalf of the resource owner (the end user).
+
+* `app` is a webapp that needs single sign on and access to the `api`
+  service on behalf of users.
+
 
 # Contributing to the UAA
 
 Here are some ways for you to get involved in the community:
 
-* The UAA has three requirements
-  * JDK 1.8.0
-  * [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/), for integration test.
-  * Allow a key strength of 256bit by modifying /Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib/security/java.security
-    * change `#crypto.policy=unlimited` to `crypto.policy=unlimited`
-
-* Get involved with the Cloud Foundry community on the mailing lists.
-  Please help out on the
-  [mailing list](https://lists.cloudfoundry.org)
-  by responding to questions and joining the debate.
 * Create [github](https://github.com/cloudfoundry/uaa/issues) tickets for bugs and new features and comment and
   vote on the ones that you are interested in.
 * Github is for social coding: if you want to write code, we encourage
@@ -471,15 +174,3 @@ Here are some ways for you to get involved in the community:
   We strictly adhere to test driven development. We kindly ask that 
   pull requests are accompanied with test cases that would be failing
   if ran separately from the pull request.
-* Watch for upcoming articles on Cloud Foundry by
-  [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
-  blog
-
-
-## Acknowledgements
-
-* YourKit supports open source projects with its full-featured Java Profiler.
-  YourKit, LLC is the creator of <a href="https://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a>
-  and <a href="https://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>,
-  innovative and intelligent tools for profiling Java and .NET applications.
-  [![](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/java/profiler/index.jsp)
