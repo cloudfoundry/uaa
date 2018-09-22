@@ -2,7 +2,10 @@ package org.cloudfoundry.identity.uaa.mfa;
 
 import org.junit.Test;
 
-import static junit.framework.Assert.assertNull;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 
 public class GoogleMfaProviderConfigTest {
 
@@ -11,7 +14,7 @@ public class GoogleMfaProviderConfigTest {
     @Test
     public void testDefaultConfig() {
         config = new GoogleMfaProviderConfig();
-        assertNull(config.getProviderDescription());
-        assertNull(config.getIssuer());
+        assertThat(config.getProviderDescription(), is(nullValue()));
+        assertThat(config.getIssuer(), is(nullValue()));
     }
 }
