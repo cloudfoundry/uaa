@@ -172,11 +172,6 @@ cargo {
     port = 8080
 
     deployable {
-        file = file('statsd/build/libs/cloudfoundry-identity-statsd-' + version + '.war')
-        context = 'statsd'
-    }
-
-    deployable {
         file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
         context = 'api'
     }
@@ -184,6 +179,11 @@ cargo {
     deployable {
         file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
         context = 'app'
+    }
+
+    deployable {
+        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
+        context = 'uaa'
     }
 
     local {
@@ -203,6 +203,8 @@ cargo {
         systemProperties {
             property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
             property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
+            property 'smtp.host', 'localhost'
+            property 'smtp.port', 2525
         }
 
         installer {
@@ -214,20 +216,6 @@ cargo {
 }
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-    cargo {
-        deployable {
-            file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-            context = 'uaa'
-        }
-
-        local {
-
-            systemProperties {
-                property 'smtp.host', 'localhost'
-                property 'smtp.port', 2525
-            }
-        }
-    }
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
         it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
