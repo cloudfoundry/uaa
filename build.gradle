@@ -94,19 +94,8 @@ subprojects {
     task generateDocs() {
     }
 
-    javadoc {
-        logging.captureStandardError LogLevel.INFO
-        logging.captureStandardOutput LogLevel.INFO // suppress "## warnings" message
-    }
-
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier 'javadoc'
-        from javadoc.destinationDir
-    }
-
     artifacts {
         archives packageSources
-        archives javadocJar
     }
     repositories {
         maven { url 'https://jitpack.io' }
