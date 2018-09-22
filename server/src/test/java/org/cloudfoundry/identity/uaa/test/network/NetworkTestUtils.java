@@ -68,10 +68,7 @@ public class NetworkTestUtils {
           commonName,
           organizationalUnit,
           organization,
-          city,
-          state,
-          country,
-          issueDate,
+                issueDate,
           validityDays,
           alias,
           keyPass);
@@ -84,9 +81,6 @@ public class NetworkTestUtils {
                                    String commonName,
                                    String organizationalUnit,
                                    String organization,
-                                   String city,
-                                   String state,
-                                   String country,
                                    Date issueDate,
                                    long validityDays,
                                    String keyAlias,
@@ -98,7 +92,7 @@ public class NetworkTestUtils {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(keysize);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate[] chain = {getSelfCertificate(keyPair, "uaa", "uaa", "127.0.0.1", issueDate, validityDays * 24 * 60 * 60, "SHA256withRSA")};
+        X509Certificate[] chain = {getSelfCertificate(keyPair, organization, organizationalUnit, commonName, issueDate, validityDays * 24 * 60 * 60, "SHA256withRSA")};
         keyStore.setKeyEntry(keyAlias, keyPair.getPrivate(), keyPass.toCharArray(), chain);
 
         File keystore = new File(directory, filename);
