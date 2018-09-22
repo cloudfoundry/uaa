@@ -5,7 +5,6 @@ import java.nio.file.Paths
 
 apply from: file('shared_versions.gradle')
 apply plugin: 'com.bmuschko.cargo'
-apply plugin: 'org.flywaydb.flyway'
 
 buildscript {
     apply from: file('shared_versions.gradle')
@@ -25,28 +24,9 @@ buildscript {
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
         classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-        classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '1.1.8'
-        classpath group: 'postgresql', name: 'postgresql', version: '9.1-901.jdbc3'
-        classpath group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '6.1.0.jre8'
-        classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
-    }
-}
-
-ext {
-    databaseType = {
-        List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
-        if (activeProfiles.contains('mysql')) {
-            'mysql'
-        } else if (activeProfiles.contains('postgresql')) {
-            'postgresql'
-        } else if (activeProfiles.contains('sqlserver')) {
-            'sqlserver'
-        } else {
-            'hsqldb'
-        }
     }
 }
 
@@ -188,35 +168,6 @@ subprojects {
     }
 }
 
-flyway {
-    switch (databaseType()) {
-        case 'mysql':
-            driver = 'org.mariadb.jdbc.Driver'
-            url = 'jdbc:mysql://localhost:3306/uaa'
-            user = 'root'
-            password = 'changeme'
-            schemas = ['uaa']
-            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/mysql']
-            break
-        case 'postgresql':
-            driver = 'org.postgresql.Driver'
-            url = 'jdbc:postgresql:uaa'
-            user = 'root'
-            password = 'changeme'
-            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/postgresql']
-            break
-        case 'sqlserver':
-            driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-            url = 'jdbc:sqlserver://localhost:1433;database=uaa;'
-            user = 'root'
-            password = 'changemeCHANGEME1234!'
-            locations = ['filesystem:server/src/main/resources/org/cloudfoundry/identity/uaa/db/sqlserver']
-            break
-    }
-}
-
-flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
-
 cargo {
     containerId = tomcatContainerId
     port = 8080
@@ -300,10 +251,6 @@ task manifests(dependsOn: assemble, type: Copy) {
     into 'build/sample-manifests'
 }
 
-task prepareDatabase {
-    dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
-}
-
 task cleanCargoConfDir {
     delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
     try {
@@ -338,5 +285,5 @@ task decrypt(type: JavaExec) {
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
-cargoStartLocal.dependsOn assemble, prepareDatabase
+cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
