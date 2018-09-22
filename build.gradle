@@ -1,11 +1,9 @@
-import org.apache.commons.lang.time.StopWatch
 import org.apache.tools.ant.filters.ReplaceTokens
 
 import java.nio.file.Files
 import java.nio.file.Paths
 
 apply from: file('shared_versions.gradle')
-apply plugin: 'com.github.kt3k.coveralls'
 apply plugin: 'com.bmuschko.cargo'
 apply plugin: 'org.flywaydb.flyway'
 
@@ -50,7 +48,6 @@ ext {
             'hsqldb'
         }
     }
-    integrationCoverageFile = file("$buildDir/integration.ser")
 }
 
 allprojects {
