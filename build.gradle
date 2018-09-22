@@ -286,19 +286,6 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 }
 
-publishing {
-    publications {
-        uaa_parent(MavenPublication) {
-            groupId 'org.cloudfoundry.identity'
-            version version
-            artifactId 'cloudfoundry-identity-parent'
-
-            from components.java
-            artifact sourceJar
-        }
-    }
-}
-
 //task declarations
 task run(dependsOn: cargoRunLocal)
 
