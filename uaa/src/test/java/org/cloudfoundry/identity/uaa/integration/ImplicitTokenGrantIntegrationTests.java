@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -163,8 +164,19 @@ public class ImplicitTokenGrantIntegrationTests {
     }
 
     @Test
-    public void authzWIthNonExistingIdentityZone() {
+    public void authzWithNonExistingIdentityZone() {
         ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl().replace("localhost", "testzonedoesnotexist.localhost"), new HttpHeaders());
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+    }
+
+    @Test
+    public void authzWithInactiveIdentityZone() {
+        RestTemplate identityClient = IntegrationTestUtils
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+
+        ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl().replace("localhost", "testzoneinactive.localhost"), new HttpHeaders());
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 }
