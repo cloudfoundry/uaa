@@ -56,6 +56,17 @@ public class PasswordGrantIntegrationTests {
     }
 
     @Test
+    public void passwordGrantInactiveZone() {
+        RestTemplate identityClient = IntegrationTestUtils
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+        String accessTokenUri = serverRunning.getAccessTokenUri().replace("localhost", "testzoneinactive.localhost");
+        ResponseEntity<String> response = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", accessTokenUri);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
     public void passwordGrantNonExistingZone() {
         String accessTokenUri = serverRunning.getAccessTokenUri().replace("localhost", "testzonedoesnotexist.localhost");
         ResponseEntity<String> response = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", accessTokenUri);
