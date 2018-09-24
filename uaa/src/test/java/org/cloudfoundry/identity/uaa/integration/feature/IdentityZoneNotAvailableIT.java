@@ -5,20 +5,24 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(Parameterized.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class IdentityZoneNotAvailableIT {
 
@@ -26,10 +30,26 @@ public class IdentityZoneNotAvailableIT {
 
     private String zoneUrl;
 
+    private String baseUrl = "http://localhost:8080/uaa";
+
+    @Parameterized.Parameters(name = "{index}: zoneUrl[{0}];")
+    public static List<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {"http://testzonedoesnotexist.localhost:8080/uaa"},
+                {"http://testzoneinactive.localhost:8080/uaa"}
+        });
+    }
+
+    public IdentityZoneNotAvailableIT(String zoneUrl) {
+        this.zoneUrl = zoneUrl;
+    }
+
     @Before
     public void setUp() throws Exception {
-        zoneUrl = "http://testzonedoesnotexist.localhost:8080/uaa";
-        restTemplate = new RestTemplate();
+        String[] scope = {"uaa.admin"};
+        ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, scope, "admin", "adminsecret");
+        restTemplate = IntegrationTestUtils.getClientCredentialsTemplate(
+                adminResource);
         restTemplate.setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         restTemplate.setErrorHandler(new ResponseErrorHandler() {
             @Override
@@ -41,6 +61,7 @@ public class IdentityZoneNotAvailableIT {
             public void handleError(ClientHttpResponse response) {
             }
         });
+        IntegrationTestUtils.createInactiveIdentityZone(restTemplate, baseUrl);
     }
 
     @Test
