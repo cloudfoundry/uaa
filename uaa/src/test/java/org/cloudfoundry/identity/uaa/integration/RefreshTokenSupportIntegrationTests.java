@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.util.Map;
@@ -181,6 +182,20 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("grant_type", "refresh_token");
         formData.add("refresh_token", "dummyrefreshtoken-r");
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri().replace("localhost", "testzonedoesnotexist.localhost"), formData, new HttpHeaders());
+        assertEquals(HttpStatus.NOT_FOUND, tokenResponse.getStatusCode());
+    }
+
+    @Test
+    public void testRefreshTokenWithInactiveZone() {
+        RestTemplate identityClient = IntegrationTestUtils
+            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                    new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "refresh_token");
+        formData.add("refresh_token", "dummyrefreshtoken-r");
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri().replace("localhost", "testzoneinactive.localhost"), formData, new HttpHeaders());
         assertEquals(HttpStatus.NOT_FOUND, tokenResponse.getStatusCode());
     }
 }
