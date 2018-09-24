@@ -28,6 +28,9 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
 
     @Override
     public IdentityZone validate(IdentityZone identityZone, Mode mode) throws InvalidIdentityZoneDetailsException {
+        if (IdentityZoneHolder.getUaaZone().getId().equals(identityZone.getId()) && !identityZone.isActive()) {
+            throw new InvalidIdentityZoneDetailsException("The default zone cannot be set inactive.", null);
+        }
         try {
             identityZone.setConfig(configValidator.validate(identityZone, mode));
         } catch (InvalidIdentityZoneConfigurationException ex) {
