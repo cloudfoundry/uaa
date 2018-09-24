@@ -17,10 +17,12 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +37,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -205,6 +206,34 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String redirectUri = resource.getPreEstablishedRedirectUri();
         String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
                 "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost","testzonedoesnotexist.localhost");
+        RestTemplate restTemplate = serverRunning.createRestTemplate();
+
+        ResponseEntity<Void> result = restTemplate.exchange(uri,
+                HttpMethod.GET,
+                new HttpEntity<Void>(null, new HttpHeaders()),
+                Void.class,
+                responseType,
+                state,
+                clientId,
+                redirectUri);
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+    }
+
+    @Test
+    public void testOpenIdHybridFlowZoneInactive() {
+        RestTemplate identityClient = IntegrationTestUtils
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+
+        String responseType = "id_token code";
+        String state = new RandomValueStringGenerator().generate();
+        String clientId = resource.getClientId();
+        String redirectUri = resource.getPreEstablishedRedirectUri();
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost","testzoneinactive.localhost");
         RestTemplate restTemplate = serverRunning.createRestTemplate();
 
         ResponseEntity<Void> result = restTemplate.exchange(uri,
