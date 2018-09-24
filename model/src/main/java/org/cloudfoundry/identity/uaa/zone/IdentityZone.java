@@ -128,8 +128,9 @@ public class IdentityZone {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public IdentityZone setActive(boolean active) {
         this.active = active;
+        return this;
     }
 
     @Override
