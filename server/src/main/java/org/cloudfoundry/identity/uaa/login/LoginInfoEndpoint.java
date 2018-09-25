@@ -421,7 +421,7 @@ public class LoginInfoEndpoint {
 
         String externalRedirect;
 
-        if (idpForRedirect != null && (externalRedirect = redirectToExternalProvider(idpForRedirect.getValue(), idpForRedirect.getKey(), request)) != null) {
+        if (idpForRedirect != null && (externalRedirect = redirectToExternalProvider(idpForRedirect.getValue(), idpForRedirect.getKey(), request)) != null && !jsonResponse) {
             return externalRedirect;
         }
 

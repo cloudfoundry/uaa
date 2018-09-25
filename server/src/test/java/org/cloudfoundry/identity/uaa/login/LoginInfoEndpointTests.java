@@ -1125,6 +1125,29 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testLoginHintOriginOidcForJson() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        mockOidcProvider();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest)mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
+
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(3, returnedPrompts.size());
+    }
+
+    @Test
     public void testLoginHintOriginInvalid() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -1288,6 +1311,26 @@ public class LoginInfoEndpointTests {
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
+    }
+
+    @Test
+    public void testDefaultProviderOIDCLoginForJson() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        mockOidcProvider();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        endpoint.loginForJson(model, null, mockHttpServletRequest);
+
+        assertNotNull(model.get("prompts"));
+        assertTrue(model.get("prompts") instanceof Map);
+        Map<String, String[]> returnedPrompts = (Map<String, String[]>)model.get("prompts");
+        assertEquals(3, returnedPrompts.size());
     }
 
     @Test
