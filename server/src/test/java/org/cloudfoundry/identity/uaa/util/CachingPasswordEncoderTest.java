@@ -12,13 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Set;
+import java.util.Timer;
 import java.util.concurrent.ConcurrentMap;
 
 import static junit.framework.Assert.assertEquals;
@@ -26,10 +29,14 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 public class CachingPasswordEncoderTest  {
 
-    CachingPasswordEncoder cachingPasswordEncoder;
+    private CachingPasswordEncoder cachingPasswordEncoder;
     private String password;
 
     @Before
@@ -37,12 +44,6 @@ public class CachingPasswordEncoderTest  {
         cachingPasswordEncoder = new CachingPasswordEncoder();
         cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder());
         password = new RandomValueStringGenerator().generate();
-    }
-
-
-    @After
-    public void tearDown() throws Exception {
-
     }
 
     @Test
@@ -104,25 +105,33 @@ public class CachingPasswordEncoderTest  {
     }
 
     @Test
-    public void testMatchesSpeedTest() throws Exception {
-        int iterations = 15;
+    public void cacheIs10XFasterThanNonCached() {
+        int iterations = 10;
 
         String password = new RandomValueStringGenerator().generate();
         String encodedBcrypt = cachingPasswordEncoder.encode(password);
-        long nanoStart = System.nanoTime();
-        for (int i=0; i<iterations; i++) {
-            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encodedBcrypt));
+        PasswordEncoder nonCachingPasswordEncoder = cachingPasswordEncoder.getPasswordEncoder();
+
+        assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt)); // warm the cache
+
+        Instant start = Instant.now();
+        for (int i = 0; i < iterations; i++) {
+            assertTrue(nonCachingPasswordEncoder.matches(password, encodedBcrypt));
         }
-        long nanoStop = System.nanoTime();
-        long bcryptTime = nanoStop - nanoStart;
-        nanoStart = System.nanoTime();
-        for (int i=0; i<iterations; i++) {
+        Instant middle = Instant.now();
+        for (int i = 0; i < iterations; i++) {
             assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt));
         }
-        nanoStop = System.nanoTime();
-        long cacheTime = nanoStop - nanoStart;
-        //assert that the cache is at least 10 times faster
-        assertTrue(bcryptTime > (10 * cacheTime));
+        Instant end = Instant.now();
+
+        Duration bcryptTime = Duration.between(start, middle);
+        Duration cacheTime = Duration.between(middle, end);
+
+        assertThat(
+                "cache wasn't fast enough (see ISO-8601 for understanding the strings)",
+                cacheTime.multipliedBy(10L),
+                is(lessThan(bcryptTime))
+        );
     }
 
     @Test
