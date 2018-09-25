@@ -76,6 +76,10 @@ node {
   // Set the work directory where node_modules should be located
   nodeModulesDir = file("${project.projectDir}")
 }
+task jasmineTests {
+  dependsOn(npm_install)
+  dependsOn(npm_test)
+}
 
 ext {
   snippetsDir = file('build/generated-snippets')
