@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.integration.feature;
+package org.cloudfoundry.identity.uaa.util;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -7,7 +7,7 @@ import org.junit.runners.model.Statement;
 public class RetryRule implements TestRule {
     private int retryCount;
 
-    RetryRule(int retryCount) {
+    public RetryRule(int retryCount) {
         this.retryCount = retryCount;
     }
 

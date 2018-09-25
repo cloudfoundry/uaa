@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.cache;
 
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
+import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.After;
 import org.junit.Before;
@@ -152,7 +153,10 @@ public class ExpiringUrlCacheTests {
         slowHttpServer.stop();
     }
 
-    @Test(timeout = 5000)
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
+
+    @Test(timeout = 250)
     public void throwUnavailableIdpWhenServerMetadataDoesNotReply() throws MalformedURLException {
         slowHttpServer.run();
 
@@ -164,5 +168,4 @@ public class ExpiringUrlCacheTests {
 
         cache.getUrlContent("https://localhost:" + SlowHttpServer.PORT, restTemplate);
     }
-
 }
