@@ -15,53 +15,40 @@
 
 package org.cloudfoundry.identity.uaa.cache;
 
-import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
-import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
-import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 public class ExpiringUrlCacheTests {
 
-    public static final int EXPIRING_TIME_MILLIS = 10 * 60 * 1000;
+    private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
     private ExpiringUrlCache cache;
     private TimeService ticker;
     private RestTemplate template;
     private String uri;
     private byte[] content = new byte[1024];
-    private SlowHttpServer slowHttpServer;
 
     @Before
     public void setup() {
         Arrays.fill(content, (byte) 1);
         ticker = mock(TimeService.class);
         when(ticker.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
-        cache = new ExpiringUrlCache(EXPIRING_TIME_MILLIS, ticker, 2);
+        cache = new ExpiringUrlCache(CACHE_EXPIRATION, ticker, 2);
         template = mock(RestTemplate.class);
         when(template.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
         uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
@@ -97,7 +84,15 @@ public class ExpiringUrlCacheTests {
 
     @Test
     public void entry_expires_on_time() throws Exception {
-        when(ticker.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis(), System.currentTimeMillis() + EXPIRING_TIME_MILLIS + 10000);
+
+        when(ticker.getCurrentTimeMillis())
+                .thenReturn(
+                        Instant.now().toEpochMilli(),
+                        Instant.now()
+                                .plus(Duration.ofMinutes(10))
+                                .plus(CACHE_EXPIRATION)
+                                .toEpochMilli()
+                );
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
         verify(template, times(2)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
@@ -140,32 +135,4 @@ public class ExpiringUrlCacheTests {
         assertEquals(2, cache.size());
     }
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void setupHttp() {
-        slowHttpServer = new SlowHttpServer();
-    }
-
-    @After
-    public void stopHttpServer() {
-        slowHttpServer.stop();
-    }
-
-    @Rule
-    public RetryRule retryRule = new RetryRule(3);
-
-    @Test(timeout = 250)
-    public void throwUnavailableIdpWhenServerMetadataDoesNotReply() throws MalformedURLException {
-        slowHttpServer.run();
-
-        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
-        restTemplateConfig.timeout = 120;
-        RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
-
-        expectedException.expect(RestClientException.class);
-
-        cache.getUrlContent("https://localhost:" + SlowHttpServer.PORT, restTemplate);
-    }
 }

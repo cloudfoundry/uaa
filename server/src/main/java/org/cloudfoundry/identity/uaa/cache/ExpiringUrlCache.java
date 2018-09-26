@@ -26,40 +26,46 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 public class ExpiringUrlCache implements UrlContentCache {
-
     private static Log logger = LogFactory.getLog(ExpiringUrlCache.class);
 
-    private final long expiringTimeMillis;
-    private final int maxEntries;
-    private final TimeService ticker;
-    protected Cache<String, CacheEntry> cache = null;
+    private final Duration cacheExpiration;
+    private final TimeService timeService;
+    private final Cache<String, CacheEntry> cache;
 
-    public ExpiringUrlCache(long expiringTimeMillis, TimeService ticker, int maxEntries) {
-        this.expiringTimeMillis = expiringTimeMillis;
-        this.ticker = ticker;
-        this.maxEntries = maxEntries;
+    public ExpiringUrlCache(Duration cacheExpiration, TimeService timeService, int maxEntries) {
+        this.cacheExpiration = cacheExpiration;
+        this.timeService = timeService;
         cache = CacheBuilder
-            .newBuilder()
-            .expireAfterWrite(expiringTimeMillis, TimeUnit.MILLISECONDS)
-            .maximumSize(maxEntries)
-            .ticker(Ticker.systemTicker())
-            .build();
+                .newBuilder()
+                .expireAfterWrite(this.cacheExpiration.toMillis(), TimeUnit.MILLISECONDS)
+                .maximumSize(maxEntries)
+                .ticker(Ticker.systemTicker())
+                .build();
     }
 
+    /**
+     * Use {@link ExpiringUrlCache#ExpiringUrlCache(Duration, TimeService, int)}
+     */
+    @Deprecated
+    public ExpiringUrlCache(long expiringTimeMillis, TimeService timeService, int maxEntries) {
+        this(Duration.ofMillis(expiringTimeMillis), timeService, maxEntries);
+    }
 
     @Override
     public byte[] getUrlContent(String uri, final RestTemplate template) {
         try {
             final URI netUri = new URI(uri);
             CacheEntry entry = cache.getIfPresent(uri);
-            byte[] metadata = entry != null ? entry.getData() : null;
-            long now = ticker.getCurrentTimeMillis();
-            if (metadata == null || (now - entry.getTimeEntered()) > this.expiringTimeMillis) {
+            byte[] metadata = entry != null ? entry.data : null;
+            if (metadata == null || isEntryExpired(entry)) {
                 logger.debug("Fetching metadata for "+uri);
                 metadata = template.getForObject(netUri, byte[].class);
+                Instant now = Instant.ofEpochMilli(timeService.getCurrentTimeMillis());
                 cache.put(uri, new CacheEntry(now, metadata));
             }
             return metadata;
@@ -69,6 +75,11 @@ public class ExpiringUrlCache implements UrlContentCache {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    private boolean isEntryExpired(CacheEntry entry) {
+        Instant now = Instant.ofEpochMilli(timeService.getCurrentTimeMillis());
+        return Duration.between(entry.timeEntered, now).compareTo(cacheExpiration) > 0;
     }
 
     @Override
@@ -82,21 +93,12 @@ public class ExpiringUrlCache implements UrlContentCache {
     }
 
     static class CacheEntry {
-        private final long timeEntered;
-        private final byte[] data;
+        final Instant timeEntered;
+        final byte[] data;
 
-        public CacheEntry(long timeEntered, byte[] data) {
+        CacheEntry(Instant timeEntered, byte[] data) {
             this.timeEntered = timeEntered;
             this.data = data;
         }
-
-        public long getTimeEntered() {
-            return timeEntered;
-        }
-
-        public byte[] getData() {
-            return data;
-        }
-
     }
 }
