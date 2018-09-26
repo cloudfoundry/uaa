@@ -15,9 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.cache;
 
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,54 +30,54 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 
-public class ExpiringUrlCacheTests {
+class ExpiringUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
     private ExpiringUrlCache cache;
-    private TimeService ticker;
+    private TimeService mockTimeService;
     private RestTemplate template;
     private String uri;
     private byte[] content = new byte[1024];
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         Arrays.fill(content, (byte) 1);
-        ticker = mock(TimeService.class);
-        when(ticker.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
-        cache = new ExpiringUrlCache(CACHE_EXPIRATION, ticker, 2);
+        mockTimeService = mock(TimeService.class);
+        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
+        cache = new ExpiringUrlCache(CACHE_EXPIRATION, mockTimeService, 2);
         template = mock(RestTemplate.class);
         when(template.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
         uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
     }
 
     @Test
-    public void correct_method_invoked_on_rest_template() throws URISyntaxException {
+    void correct_method_invoked_on_rest_template() throws URISyntaxException {
         cache.getUrlContent(uri, template);
         verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void incorrect_uri_throws_illegal_argument_exception() {
+    @Test
+    void incorrect_uri_throws_illegal_argument_exception() {
         uri = "invalid value";
-        cache.getUrlContent(uri, template);
-    }
-
-    @Test(expected = RestClientException.class)
-    public void rest_client_exception_is_propagated() {
-        template = mock(RestTemplate.class);
-        when(template.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
-        assertNull(cache.getUrlContent(uri, template));
+        assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, template));
     }
 
     @Test
-    public void calling_twice_uses_cache() throws Exception {
+    void rest_client_exception_is_propagated() {
+        template = mock(RestTemplate.class);
+        when(template.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
+        assertThrows(RestClientException.class, () -> cache.getUrlContent(uri, template));
+    }
+
+    @Test
+    void calling_twice_uses_cache() throws Exception {
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
         verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
@@ -83,9 +86,9 @@ public class ExpiringUrlCacheTests {
     }
 
     @Test
-    public void entry_expires_on_time() throws Exception {
+    void entry_expires_on_time() throws Exception {
 
-        when(ticker.getCurrentTimeMillis())
+        when(mockTimeService.getCurrentTimeMillis())
                 .thenReturn(
                         Instant.now().toEpochMilli(),
                         Instant.now()
@@ -101,7 +104,7 @@ public class ExpiringUrlCacheTests {
 
 
     @Test
-    public void test_google_returns_same_array() {
+    void test_google_returns_same_array() {
         uri = "https://accounts.google.com/.well-known/openid-configuration";
         byte[] c1 = cache.getUrlContent(uri, new RestTemplate());
         byte[] c2 = cache.getUrlContent(uri, new RestTemplate());
@@ -110,12 +113,12 @@ public class ExpiringUrlCacheTests {
     }
 
     @Test
-    public void cache_should_start_empty() {
+    void cache_should_start_empty() {
         assertEquals(0, cache.size());
     }
 
     @Test
-    public void max_entries_is_respected() throws URISyntaxException {
+    void max_entries_is_respected() throws URISyntaxException {
         String uri1 = "http://test1.com";
         String uri2 = "http://test2.com";
         String uri3 = "http://test3.com";
@@ -133,6 +136,34 @@ public class ExpiringUrlCacheTests {
             verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
         }
         assertEquals(2, cache.size());
+    }
+
+    @Nested
+    @DisplayName("When a http server never returns a http response")
+    class DeadHttpServer {
+        private SlowHttpServer slowHttpServer;
+
+        @BeforeEach
+        void startHttpServer() {
+            slowHttpServer = new SlowHttpServer();
+            slowHttpServer.run();
+        }
+
+        @AfterEach
+        void stopHttpServer() {
+            slowHttpServer.stop();
+        }
+
+        @Test
+        void throwUnavailableIdpWhenServerMetadataDoesNotReply() {
+            RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+            restTemplateConfig.timeout = 120;
+            RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
+
+            assertTimeout(Duration.ofSeconds(1), () -> assertThrows(ResourceAccessException.class,
+                    () -> cache.getUrlContent("https://localhost:" + SlowHttpServer.PORT, restTemplate)
+            ));
+        }
     }
 
 }
