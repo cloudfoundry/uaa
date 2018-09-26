@@ -18,9 +18,9 @@ package org.cloudfoundry.identity.uaa.cache;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -31,7 +31,7 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 public class ExpiringUrlCache implements UrlContentCache {
-    private static Log logger = LogFactory.getLog(ExpiringUrlCache.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExpiringUrlCache.class);
 
     private final Duration cacheExpiration;
     private final TimeService timeService;

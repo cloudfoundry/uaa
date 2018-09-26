@@ -26,7 +26,6 @@ import org.junit.rules.ExpectedException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.SocketTimeoutException;
 import java.time.Duration;
 
 import static org.mockito.Mockito.mock;
@@ -55,7 +54,7 @@ public class SlowHttpServerCacheTests {
         slowHttpServer.stop();
     }
 
-    @Test(timeout = 5000)
+    @Test(timeout = 1000)
     public void throwUnavailableIdpWhenServerMetadataDoesNotReply() {
         RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
         restTemplateConfig.timeout = 120;
