@@ -190,7 +190,7 @@ public class SamlServiceProviderConfiguratorTest {
         expectedEx.expect(MetadataProviderException.class);
         expectedEx.expectMessage("Unavailable Metadata Provider");
 
-        SamlServiceProvider provider = mockSamlServiceProviderMetadatauriForZone("https://localhost:" + SlowHttpServer.PORT);
+        SamlServiceProvider provider = mockSamlServiceProviderMetadatauriForZone(slowHttpServer.getUrl());
 
         conf.getExtendedMetadataDelegate(provider);
     }

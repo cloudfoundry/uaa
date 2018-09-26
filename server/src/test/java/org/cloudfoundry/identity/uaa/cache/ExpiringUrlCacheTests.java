@@ -161,7 +161,7 @@ class ExpiringUrlCacheTests {
             RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
 
             assertTimeout(Duration.ofSeconds(1), () -> assertThrows(ResourceAccessException.class,
-                    () -> cache.getUrlContent("https://localhost:" + SlowHttpServer.PORT, restTemplate)
+                    () -> cache.getUrlContent(slowHttpServer.getUrl(), restTemplate)
             ));
         }
     }

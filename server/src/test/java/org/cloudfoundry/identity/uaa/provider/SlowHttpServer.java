@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.Date;
 
 public class SlowHttpServer {
-    public static final int PORT = 23439;
+    private static final int PORT = 23439;
     private final Runnable serverRunner;
     private HttpServer httpServer;
 
@@ -41,12 +41,16 @@ public class SlowHttpServer {
 
     private static class SlowSimpleHttpResponseHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange httpExchange) throws IOException {
+        public void handle(HttpExchange httpExchange) {
             try {
                 Thread.sleep(Integer.MAX_VALUE);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    public String getUrl() {
+        return "https://localhost:" + PORT;
     }
 }
