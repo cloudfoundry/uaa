@@ -27,9 +27,9 @@
     </bean>
 
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
-        <constructor-arg name="expiringTimeMillis" value="600000"/>
+        <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
         <constructor-arg name="maxEntries" value="10000"/>
-        <constructor-arg name="ticker" ref="timeService"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">

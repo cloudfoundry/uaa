@@ -12,6 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd.integration;
 
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -21,30 +29,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestTemplate;
-
-import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
-import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
-import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
+import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.*;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class UaaMetricsEmitterIT {
-    public static final int WAIT_FOR_MESSAGE = 5500;
+    private static final int WAIT_FOR_MESSAGE = 5500;
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
@@ -135,7 +126,7 @@ public class UaaMetricsEmitterIT {
         assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0l));
     }
 
-    protected static Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
+    private static Map<String,String> getMessages(List<String> fragments, int timeout) throws IOException {
         long startTime = System.currentTimeMillis();
         Map<String,String> results = new HashMap<>();
         do {
@@ -156,7 +147,7 @@ public class UaaMetricsEmitterIT {
         return results;
     }
 
-    public static void performLogin(String username) {
+    private static void performLogin(String username) {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -184,7 +175,7 @@ public class UaaMetricsEmitterIT {
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
     }
 
-    public static void performSimpleGet() {
+    private static void performSimpleGet() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);

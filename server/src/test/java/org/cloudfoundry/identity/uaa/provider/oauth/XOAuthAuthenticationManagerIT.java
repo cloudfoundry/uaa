@@ -72,6 +72,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -179,7 +180,7 @@ public class XOAuthAuthenticationManagerIT {
         xoAuthProviderConfigurator = spy(
                 new XOAuthProviderConfigurator(
                         provisioning,
-                        new ExpiringUrlCache(10000, new TimeServiceImpl(), 10),
+                        new ExpiringUrlCache(Duration.ofSeconds(10), new TimeServiceImpl(), 10),
                         trustingRestTemplate,
                         nonTrustingRestTemplate
                 )

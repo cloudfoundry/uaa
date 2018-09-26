@@ -48,14 +48,6 @@ public class ExpiringUrlCache implements UrlContentCache {
                 .build();
     }
 
-    /**
-     * Use {@link ExpiringUrlCache#ExpiringUrlCache(Duration, TimeService, int)}
-     */
-    @Deprecated
-    public ExpiringUrlCache(long expiringTimeMillis, TimeService timeService, int maxEntries) {
-        this(Duration.ofMillis(expiringTimeMillis), timeService, maxEntries);
-    }
-
     @Override
     public byte[] getUrlContent(String uri, final RestTemplate template) {
         try {
