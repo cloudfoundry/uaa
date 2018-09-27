@@ -183,14 +183,6 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return expirationCheckInterval;
     }
 
-    public void setExpirationCheckInterval(long expirationCheckInterval) {
-        this.expirationCheckInterval = expirationCheckInterval;
-    }
-
-    public long getMaxExpirationRuntime() {
-        return maxExpirationRuntime;
-    }
-
     public void checkExpired() {
         long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastExpiredCheck.get();
@@ -217,10 +209,6 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
             logger.info("Removed " + removed + " expired revocable tokens.");
         } while (removed > 0 && (timeService.getCurrentTimeMillis()-now)< maxExpirationRuntime);
         return removed >= maxRows;
-    }
-
-    public long getLastExpiredRun() {
-        return lastExpiredCheck.get();
     }
 
     public void setMaxExpirationRuntime(long maxExpirationRuntime) {

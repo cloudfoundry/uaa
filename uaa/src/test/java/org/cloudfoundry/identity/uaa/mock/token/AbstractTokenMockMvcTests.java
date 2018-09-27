@@ -117,7 +117,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         if (uaaZoneConfig!=null) {
             uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
             MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
@@ -125,7 +125,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         }
     }
 
-    void deleteMfaRegistrations() throws Exception {
+    void deleteMfaRegistrations() {
         getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM user_google_mfa_credentials");
     }
 
@@ -157,7 +157,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         authenticator.saveUserCredentials(credentials);
     }
 
-    protected String setUpUserForPasswordGrant() throws Exception {
+    protected String setUpUserForPasswordGrant() {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
