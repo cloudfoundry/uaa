@@ -2871,6 +2871,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+        String basicAuthForLoginClient = new String(Base64.encode(String.format("%s:%s", "login", "loginsecret").getBytes()));
 
         //the login server is matched by providing
         //1. Bearer token (will be authenticated for oauth.login scope)
@@ -3037,7 +3038,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //failure - source=login missing, so missing user password should trigger a failure
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + loginToken)
+                .header("Authorization", "Basic " + basicAuthForLoginClient)
                 .param("add_new", "false")
                 .param("grant_type", "password")
                 .param("client_id", clientId)
@@ -3045,12 +3046,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", developer.getUserName())
                 .param("user_id", developer.getId())
                 .param(OriginKeys.ORIGIN, developer.getOrigin()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         //failure - add_new is missing, so missing user password should trigger a failure
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + loginToken)
+                .header("Authorization", "Basic " + basicAuthForLoginClient)
                 .param("source", "login")
                 .param("grant_type", "password")
                 .param("client_id", clientId)
@@ -3058,7 +3059,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", developer.getUserName())
                 .param("user_id", developer.getId())
                 .param(OriginKeys.ORIGIN, developer.getOrigin()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -3241,36 +3242,39 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
         String oauthClientId = "testclient" + generator.generate();
-        String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something";
+        String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something,uaa.user";
         setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES, true);
 
+
         String userId = "testuser" + generator.generate();
-        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,uaa.user";
         ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
+        String basicAuthForOauthClient = new String(Base64.encode(String.format("%s:%s", oauthClientId, SECRET).getBytes()));
 
         //success - regular password grant but client is authenticated using POST parameters
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Content-Type", "application/x-www-form-urlencoded")
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
                 .param("username", developer.getUserName())
                 .param("password", SECRET))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is2xxSuccessful());
 
         //success - regular password grant but client is authenticated using token
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + loginToken)
+                .header("Authorization", "Basic " + basicAuthForOauthClient)
+                .header("Content-Type", "application/x-www-form-urlencoded")
                 .param("grant_type", "password")
                 .param("client_id", oauthClientId)
                 .param("client_secret", SECRET)
                 .param("username", developer.getUserName())
                 .param("password", SECRET))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is2xxSuccessful());
 
-        //failure - client ID mismatch
+        //failure - client ID mismatch with client authenticated using POST parameters
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + new String(Base64.encode((oauthClientId + ":" + SECRET).getBytes())))
@@ -3281,16 +3285,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("password", SECRET))
                 .andExpect(status().isUnauthorized());
 
-        //failure - client ID mismatch
+        //failure - client ID mismatch with client authenticated using token
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + loginToken)
+                .header("Authorization", "Basic " + basicAuthForOauthClient)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
                 .param("username", developer.getUserName())
                 .param("password", SECRET))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
