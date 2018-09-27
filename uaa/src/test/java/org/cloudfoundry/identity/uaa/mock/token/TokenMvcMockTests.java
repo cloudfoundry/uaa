@@ -50,6 +50,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -96,6 +97,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -491,7 +493,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(
                 post("/oauth/token")
-                        .header(AUTHORIZATION, "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                        .with(httpBasic(clientId, SECRET))
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
@@ -538,7 +540,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         response = getMockMvc().perform(
                 post("/oauth/token")
-                        .header(AUTHORIZATION, "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                        .with(httpBasic(clientId, SECRET))
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
                         .param(REFRESH_TOKEN, refreshTokenId)
@@ -889,7 +891,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(GRANT_TYPE, REFRESH_TOKEN)
                 .param(REFRESH_TOKEN, refreshToken.getValue());
         getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
@@ -1130,7 +1132,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser" + generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, testZone.getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, testZone.getId());
 
         getMockMvc().perform(post("/oauth/token")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -2015,7 +2017,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         logUserInTwice(developer.getId());
 
         MvcResult result = getMockMvc().perform(post("/oauth/token")
-                .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+                .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED)
                 .header(ACCEPT, "application/json")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -3026,7 +3028,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //success - regular password grant but client is authenticated using POST parameters
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("Content-Type", APPLICATION_FORM_URLENCODED)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
@@ -3038,7 +3040,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + basicAuthForOauthClient)
-                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("Content-Type", APPLICATION_FORM_URLENCODED)
                 .param("grant_type", "password")
                 .param("client_id", oauthClientId)
                 .param("client_secret", SECRET)
@@ -3049,18 +3051,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //failure - client ID mismatch with client authenticated using POST parameters
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((oauthClientId + ":" + SECRET).getBytes())))
-                .param("grant_type", "password")
-                .param("client_id", clientId)
-                .param("client_secret", SECRET)
-                .param("username", developer.getUserName())
-                .param("password", SECRET))
-                .andExpect(status().isUnauthorized());
-
-        //failure - client ID mismatch with client authenticated using token
-        getMockMvc().perform(post("/oauth/token")
-                .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Authorization", "Basic " + basicAuthForOauthClient)
+                .header("Content-Type", APPLICATION_FORM_URLENCODED)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
