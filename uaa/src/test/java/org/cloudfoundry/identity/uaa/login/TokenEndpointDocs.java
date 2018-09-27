@@ -123,11 +123,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         fieldWithPath("[].tokenId").type(STRING).description("The unique ID for the token"),
         fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
         fieldWithPath("[].userId").optional().type(STRING).description("User ID for this token, will always match the user_id claim in the access token used for this call"),
-        fieldWithPath("[].format").type(STRING).description("What format was requested, OPAQUE or JWT"),
+        fieldWithPath("[].format").type(STRING).description("What format was requested, possible values OPAQUE or JWT"),
         fieldWithPath("[].expiresAt").type(NUMBER).description("Token expiration date, as a epoch timestamp, in milliseconds between the expires time and midnight, January 1, 1970 UTC."),
         fieldWithPath("[].issuedAt").type(NUMBER).description("Token issue date as, a epoch timestamp, in milliseconds between the issued time and midnight, January 1, 1970 UTC."),
         fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
-        fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
+        fieldWithPath("[].responseType").type(STRING).description("Response type requested during the token request, possible values ACCESS_TOKEN or REFRESH_TOKEN"),
         fieldWithPath("[].value").optional().type(STRING).description("Access token value will always be null")
     );
 
