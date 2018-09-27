@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -131,16 +132,22 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         fieldWithPath("[].value").optional().type(STRING).description("Access token value will always be null")
     );
 
-
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
     private static final HeaderDescriptor CLIENT_BASIC_AUTH_HEADER = headerWithName(HttpHeaders.AUTHORIZATION).optional().description("Client ID and secret may be passed as a basic authorization header, per <a href=\"https://tools.ietf.org/html/rfc6749#section-2.3.1\">RFC 6749</a> or as request parameters.");
 
     private ScimUser user;
 
+    @Before
+    public void createTestUser() throws Exception {
+        if (user == null) {
+            createUser();
+        }
+    }
+
     @Test
     public void getTokenUsingAuthCodeGrant() throws Exception {
-        createUser();
+
         String cfAccessToken = getUserOAuthAccessToken(
             getMockMvc(),
             "cf",
@@ -266,7 +273,6 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getTokenUsingPasswordGrant() throws Exception {
-        createUser();
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
@@ -304,7 +310,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getTokenUsingMfaPasswordGrant() throws Exception {
-        createUser();
+
         setupForMfaPasswordGrant(user.getId());
 
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
@@ -346,7 +352,6 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getTokenUsingUserTokenGrant() throws Exception {
-        createUser();
         String token = MockMvcUtils.getUserOAuthAccessToken(getMockMvc(),
                                                             "oauth_showcase_user_token",
                                                             "secret",
@@ -479,7 +484,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getTokenWithClientAuthInHeader() throws Exception {
-        createUser();
+
         String clientAuthorization = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
             .accept(APPLICATION_JSON)
@@ -570,7 +575,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void refreshToken() throws Exception {
-        createUser();
+
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_FORM_URLENCODED)
@@ -627,7 +632,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getIdTokenUsingAuthCodeGrant() throws Exception {
-        createUser();
+
         String cfAccessToken = getUserOAuthAccessToken(
             getMockMvc(),
             "cf",
@@ -697,7 +702,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
         BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
-        createUser();
+
         String userInfoToken = getUserOAuthAccessToken(
                 getMockMvc(),
                 client.getClientId(),
@@ -745,7 +750,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         BaseClientDetails client = createClient(adminToken, "openid", "password", "");
         BaseClientDetails client2 = createClient(adminToken, "openid", "password", "");
 
-        createUser();
+
         String userInfoTokenToRevoke = getUserOAuthAccessToken(
             getMockMvc(),
             client.getClientId(),
@@ -854,7 +859,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
-        createUser();
+
 
         String userInfoToken = getUserOAuthAccessToken(
                 getMockMvc(),
@@ -952,7 +957,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
             true
         );
 
-        createUser();
+
 
         getUserOAuthAccessToken(
             getMockMvc(),
