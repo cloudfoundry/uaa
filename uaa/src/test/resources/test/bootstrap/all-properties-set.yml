@@ -553,6 +553,15 @@ oauth:
       scope: openid,oauth.approvals
       secret: secret
       id: jku_test_without_autoapprove
+    client_without_openid:
+        authorities: uaa.none
+        authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+        autoapprove: true
+        override: true
+        redirect-uri: http://localhost/**
+        scope: password.write
+        secret: secret
+        id: client_without_openid
     notifications:
       authorities: cloud_controller.admin,scim.read
       authorized-grant-types: client_credentials

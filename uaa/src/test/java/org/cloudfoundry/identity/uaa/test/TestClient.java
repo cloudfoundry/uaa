@@ -20,18 +20,18 @@ public class TestClient {
         this.mockMvc = mockMvc;
     }
 
-    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {
-        return getClientCredentialsOAuthAccessToken(username, password, scope, null);
+    public String getClientCredentialsOAuthAccessToken(String clientId, String clientSecret, String scope) throws Exception {
+        return getClientCredentialsOAuthAccessToken(clientId, clientSecret, scope, null);
     }
 
-    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope, String subdomain)
+    public String getClientCredentialsOAuthAccessToken(String clientId, String clientSecret, String scope, String subdomain)
         throws Exception {
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
+            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
             .header("Authorization", basicDigestHeaderValue)
             .param("grant_type", "client_credentials")
-            .param("client_id", username)
+            .param("client_id", clientId)
             .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
             .param("scope", scope);
         if (subdomain != null && !subdomain.equals(""))

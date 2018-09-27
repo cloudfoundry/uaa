@@ -316,7 +316,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .param("client_id", clientId)
                         .param("client_secret", SECRET)
                         .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
-                        .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isUnauthorized())
@@ -524,7 +523,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String response = getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -570,7 +568,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String response = getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
@@ -596,7 +593,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 post("/oauth/token")
                         .header(AUTHORIZATION, "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
                         .param(REFRESH_TOKEN, refreshTokenId)
                         .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue()))
@@ -779,7 +775,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         try {
             getMockMvc().perform(post("/oauth/token")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
                     .param(OAuth2Utils.GRANT_TYPE, "password")
                     .param(OAuth2Utils.CLIENT_ID, clientId)
                     .param("client_secret", SECRET)
@@ -819,7 +814,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("code", code)
@@ -864,7 +858,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", "secret")
@@ -901,7 +894,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientWithoutRefreshTokenGrant.getClientId())
                 .param("client_secret", "secret")
@@ -946,7 +938,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", "secret")
@@ -1136,7 +1127,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", SECRET)
@@ -1156,7 +1146,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MvcResult result = getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", SECRET)
@@ -1176,7 +1165,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "client_credentials")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("client_secret", SECRET))
@@ -1208,7 +1196,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk());
@@ -1218,7 +1205,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId2))
                 .andExpect(status().isOk());
@@ -1366,7 +1352,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized());
@@ -1375,7 +1360,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId2))
                 .andExpect(status().isOk());
@@ -1421,7 +1405,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String body = getMockMvc().perform(post("/oauth/token")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
                 .accept(APPLICATION_JSON)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("code", code))
@@ -1453,7 +1436,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", SECRET)
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password");
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
@@ -1477,7 +1459,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", SECRET)
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password");
         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
         OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
@@ -1994,7 +1975,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", "testbootuser")
                 .param("password", "password")
                 .header("Authorization", "Basic " + new String(Base64.encode(("cf:").getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, "cf")
         )
@@ -2188,7 +2168,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicAuthClientHeader(clientId, SECRET))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("username", developer.getUserName())
@@ -2214,7 +2193,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MvcResult result = getMockMvc().perform(post("/oauth/token")
                 .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
                 .header(ACCEPT, "application/json")
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("username", developer.getUserName())
@@ -2296,7 +2274,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("code", code)
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -2353,7 +2330,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("code", code)
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -2409,7 +2385,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("code", code)
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -2464,7 +2439,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("code", code)
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -2617,7 +2591,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .header("Authorization", basicAuthClientHeader(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                 .param("code", code))
                 .andExpect(status().isOk())
@@ -3072,7 +3045,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", developer.getUserName())
                 .param("user_id", developer.getId())
                 .param(OriginKeys.ORIGIN, developer.getOrigin()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         //failure - add_new is missing, so missing user password should trigger a failure
         getMockMvc().perform(post("/oauth/token")
@@ -3085,7 +3058,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", developer.getUserName())
                 .param("user_id", developer.getId())
                 .param(OriginKeys.ORIGIN, developer.getOrigin()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -3295,7 +3268,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("client_secret", SECRET)
                 .param("username", developer.getUserName())
                 .param("password", SECRET))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         //failure - client ID mismatch
         getMockMvc().perform(post("/oauth/token")
@@ -3317,7 +3290,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("client_secret", SECRET)
                 .param("username", developer.getUserName())
                 .param("password", SECRET))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -3699,7 +3672,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "badsecret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized())
@@ -3733,7 +3705,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
 
@@ -3748,7 +3719,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized())
@@ -3769,7 +3739,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
@@ -3792,7 +3761,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
@@ -3822,7 +3790,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
     }
@@ -3847,7 +3814,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param("username", username)
                 .param("password", "secret")
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
     }
@@ -3888,7 +3854,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", basicDigestHeaderValue)
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, "identity")
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -4055,7 +4020,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                     .header("Host", subdomain + ".localhost")
                     .param("username", username)
                     .param("password", "secret")
-                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
                     .param(OAuth2Utils.GRANT_TYPE, "password")
                     .param(OAuth2Utils.CLIENT_ID, clientId);
             Map<String, Object> tokenResponse = JsonUtils.readValue(
@@ -4286,7 +4250,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
                 .param("username", username)
                 .param("password", "secret")
-                .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId);
         for (Map.Entry<String, String> entry : parameters.entrySet()) {
@@ -4300,7 +4263,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 });
 
     }
-
 
     private ScimUser setUpUser(String username) {
         ScimUser scimUser = new ScimUser();
