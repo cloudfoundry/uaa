@@ -37,8 +37,7 @@ public class IdTokenGranter {
     public boolean shouldSendIdToken(String userId,
                                      BaseClientDetails clientDetails,
                                      Set<String> requestedScopes,
-                                     String requestedGrantType,
-                                     Set<String> requestedResponseTypes
+                                     String requestedGrantType
     ) {
         if (!GRANT_TYPES_THAT_MAY_GET_ID_TOKENS.contains(requestedGrantType)) {
             return false;
@@ -62,13 +61,6 @@ public class IdTokenGranter {
                 .filter(Objects::nonNull)
                 .noneMatch(REQUIRED_OPENID_SCOPE::equals)) {
             return false;
-        }
-
-        if (GRANT_TYPE_AUTHORIZATION_CODE.equals(requestedGrantType) &&
-                requestedResponseTypes.contains("code") &&
-                requestedScopes != null &&
-                requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
-            return true;
         }
 
         // If the requester specified the scope parameter in their /oauth/token request,

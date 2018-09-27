@@ -250,7 +250,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
         Map<String, String> requestParams = request.getRequestParameters();
         String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
-        Set<String> requestedResponseTypes = OAuth2Utils.parseParameterList(requestParams.get(RESPONSE_TYPE));
         String requestedClientId = request.getClientId();
 
         if (clientId == null || !clientId.equals(requestedClientId)) {
@@ -324,7 +323,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     refreshTokenValue,
                     additionalAuthorizationInfo,
                     additionalRootClaims,
-                    requestedResponseTypes,
                     revocableHashSignature,
                     isRevocable,
                     authenticationData
@@ -395,7 +393,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String refreshToken,
                                                 Map<String, String> additionalAuthorizationAttributes,
                                                 Map<String, Object> additionalRootClaims,
-                                                Set<String> responseTypes,
                                                 String revocableHashSignature,
                                                 boolean isRevocable,
                                                 UserAuthenticationData userAuthenticationData) throws AuthenticationException {
@@ -449,7 +446,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         compositeToken.setValue(token);
         BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        if (idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopes, grantType, responseTypes)) {
+        if (idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopes, grantType)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
@@ -631,8 +628,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 requestParameters.get(REQUEST_AUTHORITIES)
             );
 
-        Set<String> responseTypes = extractResponseTypes(authentication);
-
         UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
                 authenticationMethods,
                 authNContextClassRef,
@@ -657,7 +652,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshTokenValue,
                         additionalAuthorizationAttributes,
                         additionalRootClaims,
-                        responseTypes,
                         revocableHashSignature,
                         isAccessTokenRevocable,
                         authenticationData);
@@ -765,26 +759,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, String> parameters = authentication.getOAuth2Request().getRequestParameters();
         return OPAQUE.getStringValue().equals(parameters.get(REQUEST_TOKEN_FORMAT)) ||
             GRANT_TYPE_USER_TOKEN.equals(parameters.get(GRANT_TYPE));
-    }
-
-    /**
-     * If an only if the stored request has response_type=code AND
-     * the request parameters override it using another response_type parameter
-     * this method will return the requested response_type rather than the stored
-     * @param authentication
-     * @return
-     */
-    private Set<String> extractResponseTypes(OAuth2Authentication authentication) {
-        Set<String> responseTypes = authentication.getOAuth2Request().getResponseTypes();
-        if (responseTypes!=null && responseTypes.size()==1) {
-            String storedResponseType = responseTypes.iterator().next();
-            String requesedResponseType = authentication.getOAuth2Request().getRequestParameters().get(RESPONSE_TYPE);
-            if (CODE.equals(storedResponseType) &&
-                requesedResponseType!=null) {
-                responseTypes = OAuth2Utils.parseParameterList(requesedResponseType);
-            }
-        }
-        return responseTypes;
     }
 
     private String getUserId(OAuth2Authentication authentication) {

@@ -71,7 +71,6 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         }
         Set<String> resourceIds = new HashSet<>();
         resourceIds.add(OriginKeys.UAA);
-        Set<String> responseTypes = new HashSet<>();
         Map<String,String> requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, "login");
         requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
@@ -83,7 +82,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
             scopes,
             resourceIds,
             null,
-            responseTypes,
+            new HashSet<>(),
             Collections.EMPTY_MAP);
         OAuth2Authentication authentication = new OAuth2Authentication(request, null);
         OAuth2AccessToken result = tokenServices.createAccessToken(authentication);
