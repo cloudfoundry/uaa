@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -46,10 +34,9 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
     private String scimLookupIdUserToken;
     private String adminToken;
 
-    private int pageSize = 5;
     private static String[][] testUsers;
 
-    private boolean originalEnabled;
+    private boolean originalIsUserIdConversionEndpointsEnabled;
 
     private ScimUser user;
 
@@ -62,7 +49,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(getMockMvc(), adminToken, user);
 
-        originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
+        originalIsUserIdConversionEndpointsEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
         List<String> scopes = Arrays.asList("scim.userids", "cloud_controller.read");
         MockMvcUtils.createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("scim"), scopes, Arrays.asList("client_credentials", "password"), "uaa.none");
@@ -74,7 +61,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     @After
     public void restoreEnabled() {
-        getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(originalEnabled);
+        getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(originalIsUserIdConversionEndpointsEnabled);
     }
 
     @Test
@@ -211,17 +198,16 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
     public void lookupIdFromUsernamePagination() throws Exception {
         StringBuilder builder = new StringBuilder();
         String[] usernames = new String[25];
-        String[] ids = new String[25];
         int index = 0;
         for (String[] entry : testUsers) {
             builder.append("userName eq \"" + entry[1] + "\"");
             builder.append(" or ");
-            usernames[index] = entry[1];
-            ids[index++] = entry[0];
+            usernames[index++] = entry[1];
         }
         String filter = builder.substring(0, builder.length()-4);
 
-        for (int i = 0; i< 25; i+= pageSize) {
+        int pageSize = 5;
+        for (int i = 0; i< testUsers.length; i+= pageSize) {
             MockHttpServletRequestBuilder post = getIdLookupRequest(scimLookupIdUserToken, filter, i+1, pageSize);
             String[] expectedUsername = new String[pageSize];
             System.arraycopy(usernames, i, expectedUsername, 0, pageSize);
