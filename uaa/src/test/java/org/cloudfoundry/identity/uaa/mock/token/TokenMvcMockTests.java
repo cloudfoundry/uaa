@@ -50,7 +50,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -1138,7 +1137,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk());
@@ -1147,7 +1146,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId2, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId2))
                 .andExpect(status().isOk());
@@ -1294,7 +1293,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized());
@@ -1302,7 +1301,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId2, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId2))
                 .andExpect(status().isOk());
@@ -1346,7 +1345,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(code);
 
         String body = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .accept(APPLICATION_JSON)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1378,7 +1377,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .param("username", username)
                 .param("password", SECRET)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password");
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
@@ -1401,13 +1400,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .param("username", username)
                 .param("password", SECRET)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password");
         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
         OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(GRANT_TYPE, REFRESH_TOKEN)
                 .param(REFRESH_TOKEN, refreshToken.getValue());
         getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
@@ -1598,13 +1597,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .with(httpBasic(clientId, SECRET))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
@@ -1628,12 +1625,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser developer = setUpUser(username, "scim.write", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
-
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .with(httpBasic(clientId, SECRET))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "scim.write")
@@ -1660,12 +1654,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser developer = setUpUser(username, "openid", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
-
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .with(httpBasic(clientId, SECRET))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "something.else")
@@ -1843,13 +1834,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
@@ -1868,7 +1858,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String tokenString = getMockMvc().perform(post("/oauth/token")
                 .param("username", "testbootuser")
                 .param("password", "password")
-                .header("Authorization", "Basic " + new String(Base64.encode(("cf:").getBytes())))
+                .with(httpBasic("cf", ""))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, "cf")
         )
@@ -1959,29 +1949,22 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         MockHttpSession session = getAuthenticatedSession(developer);
 
 
         String requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1";
         ResultMatcher status = status().is3xxRedirection();
-        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
-
+        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "http://subdomain.domain.com/path1/path2?query1=value1";
-        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
-
+        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "http://subdomain.domain.com/path1/path1a/path1b/path2?query1=value1";
-        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
-
+        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "https://wrongsub.domain.com/path1/path2?query1=value1";
         status = status().is4xxClientError();
-        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
-
+        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
         status = status().is4xxClientError();
-        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
-
+        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
 
     }
 
@@ -1993,7 +1976,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         logUserInTwice(developer.getId());
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("username", developer.getUserName())
@@ -2095,7 +2079,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(code);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(SCOPE, "openid")
@@ -2151,7 +2136,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = hashFragmentParams.get("code").get(0);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(SCOPE, "openid")
@@ -2206,7 +2192,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = hashFragmentParams.get("code").get(0);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(SCOPE, "openid")
@@ -2260,7 +2247,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = hashFragmentParams.get("code").get(0);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(SCOPE, "openid")
@@ -2310,7 +2298,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = queryParams.get("code").get(0);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .accept(APPLICATION_JSON)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -2362,7 +2351,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = queryParams.get("code").get(0);
 
         result = getMockMvc().perform(post("/oauth/token")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .accept(APPLICATION_JSON)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -2397,7 +2387,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setAuthentication(session, developer);
 
         MvcResult result = getMockMvc().perform(get("/oauth/authorize")
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, "random-state")
@@ -2415,7 +2406,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         result = getMockMvc().perform(post("/oauth/token")
                 .accept(APPLICATION_JSON)
-                .header("Authorization", basicAuthClientHeader(clientId, SECRET))
+                .header("Authorization", "Basic "
+                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                 .param("code", code))
@@ -3069,7 +3061,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3141,7 +3133,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3172,7 +3164,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         for (String secret : Arrays.asList(SECRET, "newSecret")) {
             String body = getMockMvc().perform(post("/oauth/token")
                     .accept(MediaType.APPLICATION_JSON_VALUE)
-                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .with(httpBasic(clientId, SECRET))
                     .param("grant_type", "client_credentials")
                     .param("client_id", clientId)
                     .param("client_secret", secret))
@@ -3199,7 +3191,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3234,7 +3226,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3294,7 +3286,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
             String body = getMockMvc().perform(post("/oauth/token")
                     .accept(MediaType.APPLICATION_JSON_VALUE)
-                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .with(httpBasic(clientId, SECRET))
                     .param("grant_type", "client_credentials")
                     .param("client_id", clientId)
                     .param("client_secret", SECRET))
@@ -3326,7 +3318,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("http://" + subdomain + ".localhost/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3348,7 +3340,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("http://localhost/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .header("Host", subdomain + ".localhost")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3370,7 +3362,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("http://localhost/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3387,7 +3379,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("http://" + subdomain + ".localhost/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3406,7 +3398,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .param("username", username)
                 .param("password", "badsecret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized())
@@ -3438,7 +3430,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
 
@@ -3452,7 +3444,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized())
@@ -3472,7 +3464,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
@@ -3494,7 +3486,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
@@ -3523,7 +3515,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
     }
@@ -3547,15 +3539,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getMockMvc().perform(post("/oauth/token")
                 .param("username", username)
                 .param("password", "secret")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
     }
 
     @Test
     public void testGetTokenScopesNotInAuthentication() throws Exception {
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
 
         ScimUser user = setUpUser(generator.generate() + "@test.org");
 
@@ -3570,7 +3560,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3585,7 +3575,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = builder.build().getQueryParams().get("code").get(0);
 
         authRequest = post("/oauth/token")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
@@ -3606,8 +3596,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void testGetTokenPromptLogin() throws Exception {
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
 
         ScimUser user = setUpUser(generator.generate() + "@test.org");
 
@@ -3621,7 +3609,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3647,8 +3635,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void testGetTokenMaxAge() throws Exception {
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
 
         ScimUser user = setUpUser(generator.generate() + "@test.org");
 
@@ -3662,7 +3648,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3677,7 +3663,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Thread.sleep(2000);
 
         authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3750,7 +3736,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
             zoneProvisioning.update(defaultZone);
             MockHttpServletRequestBuilder post = post("/oauth/token")
-                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .with(httpBasic(clientId, SECRET))
                     .header("Host", subdomain + ".localhost")
                     .param("username", username)
                     .param("password", "secret")
@@ -3793,7 +3779,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
@@ -3818,7 +3804,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET)
@@ -3848,7 +3834,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param(CLIENT_ID, clientId)
                 .param("client_secret", SECRET)
@@ -3877,7 +3863,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param(CLIENT_ID, clientId)
                 .param("client_secret", SECRET)
@@ -3908,7 +3894,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param(CLIENT_ID, clientId)
                 .param("client_secret", SECRET)
@@ -3960,15 +3946,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         MockHttpSession session = getAuthenticatedSession(developer);
 
 
         String state = generator.generate();
 
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", basicDigestHeaderValue)
+                .with(httpBasic(clientId, SECRET))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
@@ -4074,8 +4058,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();
@@ -4117,15 +4099,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         getWebApplicationContext().getBean(UaaUserDatabase.class).updateLastLogonTime(userId);
     }
 
-    private String basicAuthClientHeader(String clientId, String clientSecret) {
-        return "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
-    }
-
     private void tryLoginWithWrongSecretInHeader(String clientId) throws Exception {
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + BADSECRET).getBytes())))
+                .with(httpBasic(clientId, BADSECRET))
                 .param("grant_type", "client_credentials")
         )
                 .andExpect(status().isUnauthorized())
@@ -4147,7 +4124,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private void login(String clientId) throws Exception {
         getMockMvc().perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("grant_type", "client_credentials")
         )
                 .andExpect(status().isOk())
@@ -4237,7 +4214,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpUser(username);
 
         MockHttpServletRequestBuilder post = post("/oauth/token")
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .param("username", username)
                 .param("password", "secret")
                 .param(OAuth2Utils.GRANT_TYPE, "password")
