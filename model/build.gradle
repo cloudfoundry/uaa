@@ -17,7 +17,6 @@ dependencies {
 
   compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
 
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }
