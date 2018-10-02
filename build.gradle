@@ -155,11 +155,6 @@ cargo {
             jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
-        configFile {
-            file = file('scripts/travis/tomcat-conf/context.xml')
-            toDir = 'conf'
-
-        }
         systemProperties {
             property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
             property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
