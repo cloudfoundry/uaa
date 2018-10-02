@@ -145,8 +145,6 @@ Several modes of operation and other optional features can be set in configurati
 
   * SAML - SAML is currently supported for user authentication and group integration. Limitation is that the username returned from the SAML assertion should be an email address
 
-  * Keystone - Keystone authentication is experimental and disabled in the Travis CI tests
-
 OAuth2 Token Endpoint: ``POST /oauth/token``
 ============================================
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens, in the case of authorization code grant. This endpoint also supports client credentials and password grant, which takes the client id and client secret for the former, in addition to username and password in case of the latter. The access_tokens can then be used to gain access to resources within a resource server.
