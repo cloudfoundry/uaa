@@ -264,6 +264,7 @@ private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
                 .addField("testClass", descriptor.className)
                 .addField("testName", descriptor.name)
                 .addField("result", testResult.resultType)
+                .addField("output", testResult.exception)
                 .addField("startTime", testResult.startTime)
                 .addField("endTime", testResult.endTime)
                 .addField("duration", testResult.endTime - testResult.startTime)
