@@ -157,7 +157,7 @@ cargo {
         }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
             configFile {
-                    file = file('scripts/travis/tomcat-conf/context.xml')
+                    file = file('scripts/cargo/tomcat-conf/context.xml')
                     toDir = 'conf'
             }
 
