@@ -257,8 +257,9 @@ private EventFactory buildEventFactory() {
 
 private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
     if (localBuilder != null) {
-        localBuilder
-                .createEvent()
+        def event = localBuilder.createEvent()
+
+        event
                 .addField("test_lifecycle", testLifecycle)
                 .addField("testClass", descriptor.className)
                 .addField("testName", descriptor.name)
@@ -267,6 +268,15 @@ private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
                 .addField("endTime", testResult.endTime)
                 .addField("duration", testResult.endTime - testResult.startTime)
                 .setTimestamp(System.currentTimeMillis())
-                .send()
+
+        for (Map.Entry entry : System.getProperties().entrySet()) {
+            event.addField(entry.key, entry.value)
+        }
+
+        event.addField("DB", System.getenv().get("DB"))
+        event.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"))
+        event.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"))
+
+        event.send()
     }
 }
