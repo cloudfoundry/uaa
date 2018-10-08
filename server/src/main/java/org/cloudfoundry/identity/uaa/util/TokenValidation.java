@@ -96,7 +96,9 @@ public abstract class TokenValidation {
 
     abstract String getClaimName();
 
-    abstract Optional<List<String>> getScopes();
+    Optional<List<String>> getScopes() {
+        return readScopesFromClaim(getClaimName());
+    }
 
     private TokenValidation(String token, KeyInfoService keyInfoService) {
         this.token = token;
@@ -409,8 +411,7 @@ public abstract class TokenValidation {
 
     private Optional<List<String>> scopes = null;
 
-
-    protected Optional<List<String>> readScopesFromClaim(String claimName) {
+    private Optional<List<String>> readScopesFromClaim(String claimName) {
         if (!claims.containsKey(claimName)) {
             throw new InvalidTokenException(String.format("The token does not bear a %s claim.", claimName), null);
         }
@@ -492,11 +493,6 @@ public abstract class TokenValidation {
         String getClaimName() {
             return SCOPE;
         }
-
-        @Override
-        Optional<List<String>> getScopes() {
-            return readScopesFromClaim(getClaimName());
-        }
     }
 
     private static class RefreshTokenValidation extends TokenValidation {
@@ -518,11 +514,6 @@ public abstract class TokenValidation {
             }
             return SCOPE;
         }
-
-        @Override
-        Optional<List<String>> getScopes() {
-            return readScopesFromClaim(getClaimName());
-        }
     }
 
     private static class IdTokenValidation extends TokenValidation {
@@ -532,11 +523,6 @@ public abstract class TokenValidation {
 
         @Override
         String getClaimName() { return SCOPE; }
-
-        @Override
-        Optional<List<String>> getScopes() {
-            return readScopesFromClaim(getClaimName());
-        }
 
         @Override
         protected void validateJtiValue(String jtiValue) {
