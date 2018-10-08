@@ -24,6 +24,8 @@ public class HeaderParameters {
 
     public Object cty;
     public Object iss;
+    public Object aud;
+    public Object sub;
 
     @SuppressWarnings("unused")
     HeaderParameters() {

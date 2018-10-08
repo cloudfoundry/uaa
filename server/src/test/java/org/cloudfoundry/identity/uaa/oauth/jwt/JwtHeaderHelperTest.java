@@ -8,7 +8,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -47,19 +52,23 @@ public class JwtHeaderHelperTest {
 
     }
 
-
     @DisplayName("JWE https://tools.ietf.org/html/rfc7519#ref-JWE")
     @Nested
     class JWE {
         @DisplayName("Replicating Claims as Header Parameters https://tools.ietf.org/html/rfc7519#section-10.4.1")
-        @Test
-        public void containsValidReplicatedHeaders() {
+        @ParameterizedTest
+        @MethodSource("org.cloudfoundry.identity.uaa.oauth.jwt.JwtHeaderHelperTest#validReplicatedHeaders")
+        public void containsValidReplicatedHeaders(String iss, String sub, String aud) {
             ObjectNode objectNode = new ObjectMapper().createObjectNode();
-            objectNode.put("iss", "uaa.com");
+            objectNode.put("iss", iss);
+            objectNode.put("sub", sub);
+            objectNode.put("aud", aud);
 
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
-            assertThat(header.parameters.iss, is("uaa.com"));
+            assertThat(header.parameters.iss, is(iss));
+            assertThat(header.parameters.sub, is(sub));
+            assertThat(header.parameters.aud, is(aud));
         }
     }
 
@@ -140,5 +149,14 @@ public class JwtHeaderHelperTest {
 
     private String asBase64(String jwt) {
         return new String(Base64.encode(jwt.getBytes()));
+    }
+
+    static Stream<Arguments> validReplicatedHeaders() {
+        return Stream.of(
+                Arguments.of("issuer.com", "user1", "client-one"),
+                Arguments.of("issuer.com", null, null),
+                Arguments.of(null, "user1", null),
+                Arguments.of(null, null, "client-one")
+        );
     }
 }
