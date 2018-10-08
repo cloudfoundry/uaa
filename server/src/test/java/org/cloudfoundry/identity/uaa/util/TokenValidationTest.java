@@ -634,9 +634,21 @@ public class TokenValidationTest {
         content.remove(SCOPE);
         String refreshToken = getToken();
 
-        expectedException.expectMessage("The token does not bear a scope claim.");
+        expectedException.expectMessage("The token does not bear a \"scope\" claim.");
 
         buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
                 .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
+    }
+
+    @Test
+    public void validateAccessToken_rejects_invalid_scope_claim() {
+        content.put(SCOPE, "i am not a list!!!");
+        String refreshToken = getToken();
+
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("The token's \"scope\" claim is invalid or unparseable.");
+
+        buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+                .getScopes();
     }
 }

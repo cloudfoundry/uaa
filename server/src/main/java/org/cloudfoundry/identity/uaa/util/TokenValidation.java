@@ -411,7 +411,7 @@ public abstract class TokenValidation {
         String scopeKeyName = scopeClaimKey.keyName();
         if (!claims.containsKey(scopeKeyName)) {
             throw new InvalidTokenException(
-                    String.format("The token does not bear a \"%s\" claim.", scopeClaimKey)
+                    String.format("The token does not bear a \"%s\" claim.", scopeKeyName)
             );
         }
 
@@ -431,7 +431,7 @@ public abstract class TokenValidation {
             throw new InvalidTokenException(
                     String.format(
                             "The token's \"%s\" claim is invalid or unparseable.",
-                            scopeClaimKey
+                            scopeKeyName
                     ),
                     ex
             );
