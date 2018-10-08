@@ -1,15 +1,67 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.directory.api.util.Base64;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+@DisplayName("JOSE Header https://tools.ietf.org/html/rfc7519#section-5")
 public class JwtHeaderHelperTest {
+
+    @DisplayName("JWS https://tools.ietf.org/html/rfc7519#ref-JWS")
+    @Nested
+    class JWS {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"JWT", "jwt"})
+        public void containsValidOptionalHeaders(String validTyp) {
+            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put("typ", validTyp);
+
+            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+            assertThat(header.parameters.typ, is(validTyp));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"JWT", "jwt"})
+        public void containsValidRequiredHeaders(String validCty) {
+            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put("cty", validCty);
+
+            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+            assertThat(header.parameters.cty, is(validCty));
+        }
+
+
+    }
+
+
+    @DisplayName("JWE https://tools.ietf.org/html/rfc7519#ref-JWE")
+    @Nested
+    class JWE {
+        @DisplayName("Replicating Claims as Header Parameters https://tools.ietf.org/html/rfc7519#section-10.4.1")
+        @Test
+        public void containsValidReplicatedHeaders() {
+            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put("iss", "uaa.com");
+
+            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+            assertThat(header.parameters.iss, is("uaa.com"));
+        }
+    }
 
     @Test
     public void createFromStringCorrectlyDecodesValidJSON() {

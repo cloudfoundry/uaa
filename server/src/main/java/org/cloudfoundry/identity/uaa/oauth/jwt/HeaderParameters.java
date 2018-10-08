@@ -22,6 +22,9 @@ public class HeaderParameters {
     @JsonProperty
     String typ;
 
+    public Object cty;
+    public Object iss;
+
     @SuppressWarnings("unused")
     HeaderParameters() {
 
