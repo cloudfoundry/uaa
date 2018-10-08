@@ -82,7 +82,7 @@ public abstract class TokenValidation {
     abstract ScopeClaimKey scopeClaimKey();
 
     @NotNull
-    List<String> getScopes() {
+    List<String> requestedScopes() {
         return readScopesFromClaim(scopeClaimKey());
     }
 
@@ -199,23 +199,26 @@ public abstract class TokenValidation {
                 if (authorities == null) {
                     throw new InvalidTokenException("Invalid token (all scopes have been revoked)", null);
                 } else {
-                    List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(toList());
-                    checkScopesWithin(authoritiesValue);
+                    List<String> grantedScopes =
+                            authorities.stream()
+                                    .map(GrantedAuthority::getAuthority).collect(toList());
+
+                    checkRequestedScopesAreGranted(grantedScopes);
                 }
             }
         }
         return this;
     }
 
-    protected TokenValidation checkScopesWithin(String... scopes) {
-        return checkScopesWithin(Arrays.asList(scopes));
+    protected TokenValidation checkRequestedScopesAreGranted(String... grantedScopes) {
+        return checkRequestedScopesAreGranted(Arrays.asList(grantedScopes));
     }
 
-    protected TokenValidation checkScopesWithin(Collection<String> scopes) {
-        List<String> scopesGot = getScopes();
-        Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
+    protected TokenValidation checkRequestedScopesAreGranted(Collection<String> grantedScopes) {
+        List<String> requestedScopes = requestedScopes();
+        Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(grantedScopes);
         List<String> missingScopes =
-                scopesGot.stream().filter(
+                requestedScopes.stream().filter(
                         s -> scopePatterns.stream()
                                 .noneMatch(p -> p.matcher(s).matches())
                 ).collect(toList());
@@ -300,7 +303,7 @@ public abstract class TokenValidation {
                 clientScopes = client.getScope();
             }
 
-            checkScopesWithin(clientScopes);
+            checkRequestedScopesAreGranted(clientScopes);
         } catch (NoSuchClientException ex) {
             throw new InvalidTokenException("The token refers to a non-existent client: " + clientId, ex);
         } catch (InvalidTokenException ex) {

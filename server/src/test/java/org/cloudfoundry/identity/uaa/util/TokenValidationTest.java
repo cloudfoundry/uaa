@@ -308,7 +308,7 @@ public class TokenValidationTest {
                 .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
-                .checkScopesWithin("acme.dev", "another.scope")
+                .checkRequestedScopesAreGranted("acme.dev", "another.scope")
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
                 .checkRevocableTokenStore(revocableTokenProvisioning)
@@ -354,7 +354,7 @@ public class TokenValidationTest {
                 .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
-                .checkScopesWithin("acme.dev", "another.scope")
+                .checkRequestedScopesAreGranted("acme.dev", "another.scope")
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
                 .checkRevocableTokenStore(revocableTokenProvisioning);
@@ -381,7 +381,7 @@ public class TokenValidationTest {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
 
-        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).getScopes();
+        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).requestedScopes();
         assertThat(scopes, equalTo(Lists.newArrayList("openid")));
     }
 
@@ -464,7 +464,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkScopesWithin("a.different.scope");
+                .checkRequestedScopesAreGranted("a.different.scope");
     }
 
     @Test
@@ -472,7 +472,7 @@ public class TokenValidationTest {
         this.content.put(SCOPE, Lists.newArrayList("a.different.scope", 1, "another.different.scope", null));
 
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkScopesWithin("a.different.scope", "1", "another.different.scope");
+                .checkRequestedScopesAreGranted("a.different.scope", "1", "another.different.scope");
     }
 
     @Test
@@ -480,7 +480,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkScopesWithin("a.different.scope");
+                .checkRequestedScopesAreGranted("a.different.scope");
     }
 
     @Test
@@ -582,11 +582,11 @@ public class TokenValidationTest {
         String refreshToken = getToken();
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkScopesWithin("some-granted-scope");
+                .checkRequestedScopesAreGranted("some-granted-scope");
     }
 
     @Test
-    public void checkScopesWithin_withScopeClaimAndNotGrantedScopeClaim_happycase() {
+    public void checkRequestedScopesAreGranted_withScopeClaimAndNotGrantedScopeClaim_happycase() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(SCOPE, Collections.singletonList("some-granted-scope"));
@@ -595,11 +595,11 @@ public class TokenValidationTest {
         String refreshToken = getToken();
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkScopesWithin("some-granted-scope");
+                .checkRequestedScopesAreGranted("some-granted-scope");
     }
 
     @Test
-    public void checkScopesWithin_withScopeClaimAndGrantedScopeClaim_happycase() {
+    public void checkRequestedScopesAreGranted_withScopeClaimAndGrantedScopeClaim_happycase() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(SCOPE, Collections.singletonList("another-granted-scope"));
@@ -608,11 +608,11 @@ public class TokenValidationTest {
         String refreshToken = getToken();
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkScopesWithin("some-granted-scope");
+                .checkRequestedScopesAreGranted("some-granted-scope");
     }
 
     @Test
-    public void checkScopesWithin_should_fail_when_missing_scopes() {
+    public void checkRequestedScopesAreGranted_should_fail_when_missing_scopes() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(GRANTED_SCOPES, Arrays.asList("some-granted-scope", "bruce", "josh"));
@@ -624,11 +624,11 @@ public class TokenValidationTest {
         );
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkScopesWithin((Collection) content.get(SCOPE));
+                .checkRequestedScopesAreGranted((Collection) content.get(SCOPE));
     }
 
     @Test
-    public void checkScopesWithin_ignoresGrantedScopesClaim() {
+    public void checkRequestedScopesAreGranted_ignoresGrantedScopesClaim() {
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
         content.remove(SCOPE);
         String refreshToken = getToken();
@@ -636,7 +636,7 @@ public class TokenValidationTest {
         expectedException.expectMessage("The token does not bear a \"scope\" claim.");
 
         buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkScopesWithin((Collection) content.get(GRANTED_SCOPES));
+                .checkRequestedScopesAreGranted((Collection) content.get(GRANTED_SCOPES));
     }
 
     @Test
@@ -648,6 +648,6 @@ public class TokenValidationTest {
         expectedException.expectMessage("The token's \"scope\" claim is invalid or unparseable.");
 
         buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .getScopes();
+                .requestedScopes();
     }
 }
