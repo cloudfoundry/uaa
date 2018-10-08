@@ -409,12 +409,12 @@ public abstract class TokenValidation {
         return a.equals(b);
     }
 
-    private Optional<List<String>> readScopesFromClaim(String claimName) {
-        if (!claims.containsKey(claimName)) {
-            throw new InvalidTokenException(String.format("The token does not bear a %s claim.", claimName), null);
+    private Optional<List<String>> readScopesFromClaim(String scopeClaimName) {
+        if (!claims.containsKey(scopeClaimName)) {
+            throw new InvalidTokenException(String.format("The token does not bear a %s claim.", scopeClaimName), null);
         }
 
-        Object scopeClaim = claims.get(claimName);
+        Object scopeClaim = claims.get(scopeClaimName);
         if (scopeClaim == null) {
             // treat null scope claim the same as empty scope claim
             scopeClaim = new ArrayList<>();
