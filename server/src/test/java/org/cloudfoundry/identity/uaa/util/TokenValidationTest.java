@@ -289,7 +289,6 @@ public class TokenValidationTest {
         validation.checkClientAndUser(uaaClient, uaaUser);
     }
 
-
     @Test
     public void required_groups_are_missing() {
         TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
@@ -303,7 +302,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void testValidateAccessToken() {
+    public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
@@ -314,12 +313,10 @@ public class TokenValidationTest {
                 .checkAudience("acme", "app")
                 .checkRevocableTokenStore(revocableTokenProvisioning)
                 .checkJti();
-
-        assertTrue(true);
     }
 
     @Test
-    public void testValidateAccessToken_givenRefreshToken() {
+    public void checkJti_givenRefreshToken() {
         content.put(JTI, "8b14f193-8212-4af2-9927-e3ae903f94a6-r");
 
         expectedException.expect(InvalidTokenException.class);
@@ -329,7 +326,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateAccessToken_with_dashR_in_JTI_should_not_fail_validation() {
+    public void checkJti_with_dashR_in_JTI_should_not_fail_validation() {
         String dashR = "-r";
         content.put(JTI, "8b14f193" + dashR + "-8212-4af2-9927-e3ae903f94a6");
 
@@ -338,7 +335,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateAccessToken_without_jti_should_fail_validation() {
+    public void checkJti_without_jti_should_fail_validation() {
         content.put(JTI, null);
 
         expectedException.expect(InvalidTokenException.class);
@@ -589,7 +586,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateRefreshToken_withScopeClaimAndNotGrantedScopeClaim_happycase() {
+    public void checkScopesWithin_withScopeClaimAndNotGrantedScopeClaim_happycase() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(SCOPE, Collections.singletonList("some-granted-scope"));
@@ -602,7 +599,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateRefreshToken_withScopeClaimAndGrantedScopeClaim_happycase() {
+    public void checkScopesWithin_withScopeClaimAndGrantedScopeClaim_happycase() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(SCOPE, Collections.singletonList("another-granted-scope"));
@@ -615,7 +612,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateRefreshToken_should_fail_when_missing_scopes() {
+    public void checkScopesWithin_should_fail_when_missing_scopes() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
         content.put(GRANTED_SCOPES, Arrays.asList("some-granted-scope", "bruce", "josh"));
@@ -631,7 +628,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateAccessToken_ignoresGrantedScopesClaim() {
+    public void checkScopesWithin_ignoresGrantedScopesClaim() {
         content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
         content.remove(SCOPE);
         String refreshToken = getToken();
@@ -643,7 +640,7 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void validateAccessToken_rejects_invalid_scope_claim() {
+    public void getScopes_rejects_invalid_scope_claim() {
         content.put(SCOPE, "i am not a list!!!");
         String refreshToken = getToken();
 
