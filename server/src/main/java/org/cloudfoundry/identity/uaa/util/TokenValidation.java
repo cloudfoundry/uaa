@@ -222,9 +222,9 @@ public abstract class TokenValidation {
         if (!missingScopes.isEmpty()) {
             String scopeClaimKey = scopeClaimKey().keyName();
             String message =
-                    String.format("Some required %s are missing: %s",
+                    String.format("Some required \"%s\" are missing: [%s]",
                             scopeClaimKey,
-                            String.join(" ", missingScopes));
+                            String.join(", ", missingScopes));
             throw new InvalidTokenException(message);
         }
         return this;

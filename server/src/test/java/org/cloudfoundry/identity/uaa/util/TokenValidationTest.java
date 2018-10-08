@@ -620,7 +620,7 @@ public class TokenValidationTest {
         String refreshToken = getToken();
 
         expectedException.expectMessage(
-                "Some required granted_scopes are missing: some-granted-scope bruce josh"
+                "Some required \"granted_scopes\" are missing: [some-granted-scope, bruce, josh]"
         );
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
