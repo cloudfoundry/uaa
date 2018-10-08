@@ -1611,7 +1611,7 @@ public class DeprecatedUaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
 
-        expectedException.expectMessage("The token does not bear a scope claim.");
+        expectedException.expectMessage("The token does not bear a \"scope\" claim.");
         tokenServices.readAccessToken(accessToken.getRefreshToken().getValue());
     }
 
@@ -1744,7 +1744,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshTokenValue = tokenProvisioning.retrieve(compositeToken.getRefreshToken().getValue(), IdentityZoneHolder.get().getId()).getValue();
 
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("The token does not bear a scope claim.");
+        expectedException.expectMessage("The token does not bear a \"scope\" claim.");
 
         tokenServices.loadAuthentication(refreshTokenValue);
     }
@@ -1770,7 +1770,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshTokenValue = tokenProvisioning.retrieve(refreshToken.getClaims().get("jti").toString(), IdentityZoneHolder.get().getId()).getValue();
 
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("The token does not bear a scope claim.");
+        expectedException.expectMessage("The token does not bear a \"scope\" claim.");
         tokenServices.loadAuthentication(refreshTokenValue);
     }
 
