@@ -417,25 +417,23 @@ public abstract class TokenValidation {
 
         Object scopeClaim = claims.get(scopeKeyName);
         if (scopeClaim == null) {
-            // treat null scope claim the same as empty scope claim
-            scopeClaim = new ArrayList<>();
+            return Optional.of(new ArrayList<>());
         }
 
-        try {
-            List<String> scopeList = ((List<?>) scopeClaim).stream()
-                    .filter(Objects::nonNull)
-                    .map(Object::toString)
-                    .collect(toList());
-            return Optional.of(scopeList);
-        } catch (ClassCastException ex) {
+        if (!(scopeClaim instanceof List)) {
             throw new InvalidTokenException(
                     String.format(
                             "The token's \"%s\" claim is invalid or unparseable.",
                             scopeKeyName
-                    ),
-                    ex
+                    )
             );
         }
+
+        List<String> scopeList = ((List<?>) scopeClaim).stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .collect(toList());
+        return Optional.of(scopeList);
     }
 
     public Jwt getJwt() {
