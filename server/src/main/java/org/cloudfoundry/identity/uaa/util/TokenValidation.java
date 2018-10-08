@@ -405,10 +405,11 @@ public abstract class TokenValidation {
 
     private List<String> readScopesFromClaim(ScopeClaimKey scopeClaimKey) {
         String scopeKeyName = scopeClaimKey.keyName();
+
         if (!claims.containsKey(scopeKeyName)) {
-            throw new InvalidTokenException(
-                    String.format("The token does not bear a \"%s\" claim.", scopeKeyName)
-            );
+            String errorMessage = String.format("The token does not bear a \"%s\" claim.", scopeKeyName);
+            logger.error(errorMessage);
+            throw new InvalidTokenException(errorMessage);
         }
 
         Object scopeClaim = claims.get(scopeKeyName);

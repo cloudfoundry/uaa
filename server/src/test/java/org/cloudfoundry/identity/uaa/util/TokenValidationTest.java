@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -27,6 +28,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,37 +46,29 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.*;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class TokenValidationTest {
@@ -94,6 +88,27 @@ public class TokenValidationTest {
     private BaseClientDetails uaaClient;
     private Collection<String> uaaUserGroups;
     private IdentityZoneProvisioning identityZoneProvisioning;
+
+    private PrintStream systemOut;
+    private PrintStream systemErr;
+    private ByteArrayOutputStream loggingOutputStream;
+
+    @Before
+    public void setupLogger() {
+        systemOut = System.out;
+        systemErr = System.err;
+
+        loggingOutputStream = new ByteArrayOutputStream();
+
+        System.setErr(new PrintStream(new TeeOutputStream(loggingOutputStream, systemOut), true));
+        System.setOut(new PrintStream(new TeeOutputStream(loggingOutputStream, systemErr), true));
+    }
+
+    @After
+    public void resetStdout() {
+        System.setOut(systemOut);
+        System.setErr(systemErr);
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -609,6 +624,9 @@ public class TokenValidationTest {
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
                 .checkRequestedScopesAreGranted("some-granted-scope");
+
+        assertThat(loggingOutputStream.toString(), not(containsString("ERROR")));
+        assertThat(loggingOutputStream.toString(), not(containsString("error")));
     }
 
     @Test
@@ -629,14 +647,24 @@ public class TokenValidationTest {
 
     @Test
     public void checkRequestedScopesAreGranted_ignoresGrantedScopesClaim() {
-        content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
+        List<String> grantedScopes = Collections.singletonList("some-granted-scope");
+        content.put(GRANTED_SCOPES, grantedScopes);
         content.remove(SCOPE);
         String refreshToken = getToken();
 
-        expectedException.expectMessage("The token does not bear a \"scope\" claim.");
+        String expectedErrorMessage = "The token does not bear a \"scope\" claim.";
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage(expectedErrorMessage);
 
-        buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                .checkRequestedScopesAreGranted((Collection) content.get(GRANTED_SCOPES));
+        try {
+            buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+                    .checkRequestedScopesAreGranted(grantedScopes);
+        } catch (Throwable t) {
+            assertThat(
+                    loggingOutputStream.toString(),
+                    containsString("ERROR --- TokenValidation: " + expectedErrorMessage));
+            throw t;
+        }
     }
 
     @Test
