@@ -411,7 +411,9 @@ public abstract class TokenValidation {
 
     private Optional<List<String>> readScopesFromClaim(String scopeClaimKey) {
         if (!claims.containsKey(scopeClaimKey)) {
-            throw new InvalidTokenException(String.format("The token does not bear a %s claim.", scopeClaimKey), null);
+            throw new InvalidTokenException(
+                    String.format("The token does not bear a \"%s\" claim.", scopeClaimKey)
+            );
         }
 
         Object scopeClaim = claims.get(scopeClaimKey);
@@ -427,7 +429,13 @@ public abstract class TokenValidation {
               .collect(toList());
             return Optional.of(scopeList);
         } catch (ClassCastException ex) {
-            throw new InvalidTokenException("The token's scope claim is invalid or unparseable.", ex);
+            throw new InvalidTokenException(
+                    String.format(
+                            "The token's \"%s\" claim is invalid or unparseable.",
+                            scopeClaimKey
+                    ),
+                    ex
+            );
         }
     }
 
