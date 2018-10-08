@@ -384,8 +384,8 @@ public class TokenValidationTest {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
 
-        Optional<List<String>> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).getScopes();
-        assertThat(scopes.get(), equalTo(Lists.newArrayList("openid")));
+        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).getScopes();
+        assertThat(scopes, equalTo(Lists.newArrayList("openid")));
     }
 
     @Test
@@ -618,11 +618,13 @@ public class TokenValidationTest {
     public void validateRefreshToken_should_fail_when_missing_scopes() {
         // Build a refresh token
         content.put(JTI, content.get(JTI) + "-r");
-        content.put(GRANTED_SCOPES, Collections.singletonList("some-granted-scope"));
+        content.put(GRANTED_SCOPES, Arrays.asList("some-granted-scope", "bruce", "josh"));
 
         String refreshToken = getToken();
 
-        expectedException.expectMessage("Some required granted_scopes are missing: some-granted-scope");
+        expectedException.expectMessage(
+                "Some required granted_scopes are missing: some-granted-scope bruce josh"
+        );
 
         buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
                 .checkScopesWithin((Collection) content.get(SCOPE));

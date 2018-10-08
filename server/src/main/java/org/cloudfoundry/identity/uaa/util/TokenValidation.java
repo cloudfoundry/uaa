@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -37,16 +38,9 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.Assert;
 
+import javax.validation.constraints.NotNull;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,14 +49,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
@@ -94,7 +81,8 @@ public abstract class TokenValidation {
 
     abstract ScopeClaimKey scopeClaimKey();
 
-    Optional<List<String>> getScopes() {
+    @NotNull
+    List<String> getScopes() {
         return readScopesFromClaim(scopeClaimKey());
     }
 
@@ -224,16 +212,21 @@ public abstract class TokenValidation {
     }
 
     protected TokenValidation checkScopesWithin(Collection<String> scopes) {
-        Optional<List<String>> scopesGot = getScopes();
-        scopesGot.ifPresent(tokenScopes -> {
-            Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
-            List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(toList());
-            if (!missingScopes.isEmpty()) {
-                String scopeClaimKey = scopeClaimKey().keyName();
-                String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), scopeClaimKey);
-                throw new InvalidTokenException(message);
-            }
-        });
+        List<String> scopesGot = getScopes();
+        Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
+        List<String> missingScopes =
+                scopesGot.stream().filter(
+                        s -> scopePatterns.stream()
+                                .noneMatch(p -> p.matcher(s).matches())
+                ).collect(toList());
+        if (!missingScopes.isEmpty()) {
+            String scopeClaimKey = scopeClaimKey().keyName();
+            String message =
+                    String.format("Some required %s are missing: %s",
+                            scopeClaimKey,
+                            String.join(" ", missingScopes));
+            throw new InvalidTokenException(message);
+        }
         return this;
     }
 
@@ -407,7 +400,7 @@ public abstract class TokenValidation {
         return a.equals(b);
     }
 
-    private Optional<List<String>> readScopesFromClaim(ScopeClaimKey scopeClaimKey) {
+    private List<String> readScopesFromClaim(ScopeClaimKey scopeClaimKey) {
         String scopeKeyName = scopeClaimKey.keyName();
         if (!claims.containsKey(scopeKeyName)) {
             throw new InvalidTokenException(
@@ -417,7 +410,7 @@ public abstract class TokenValidation {
 
         Object scopeClaim = claims.get(scopeKeyName);
         if (scopeClaim == null) {
-            return Optional.of(new ArrayList<>());
+            return Lists.newArrayList();
         }
 
         if (!(scopeClaim instanceof List)) {
@@ -429,11 +422,12 @@ public abstract class TokenValidation {
             );
         }
 
-        List<String> scopeList = ((List<?>) scopeClaim).stream()
+        List<?> scopes = (List<?>) scopeClaim;
+        //TODO: type check that the elements of the list are strings
+        return scopes.stream()
                 .filter(Objects::nonNull)
                 .map(Object::toString)
                 .collect(toList());
-        return Optional.of(scopeList);
     }
 
     public Jwt getJwt() {
