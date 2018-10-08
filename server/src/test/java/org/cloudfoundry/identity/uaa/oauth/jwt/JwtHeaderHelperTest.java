@@ -1,17 +1,15 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.apache.directory.api.util.Base64;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class JwtHeaderHelperTest {
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void createFromStringCorrectlyDecodesValidJSON() {
@@ -42,10 +40,11 @@ public class JwtHeaderHelperTest {
           "\"typ\": \"WTF\"" +
           " }";
 
-        expectedException.expect(Exception.class);
-        expectedException.expectMessage("typ is not \"JWT\"");
+        Exception exception = Assertions.assertThrows(Exception.class,
+                () -> JwtHeaderHelper.create(asBase64(jwtJson))
+        );
 
-        JwtHeaderHelper.create(asBase64(jwtJson));
+        assertThat(exception.getMessage(), is(containsString("typ is not \"JWT\"")));
     }
 
     @Test
@@ -58,10 +57,9 @@ public class JwtHeaderHelperTest {
           "\"typ\": \"\"" +
           " }";
 
-        expectedException.expect(Exception.class);
-        expectedException.expectMessage("typ is not \"JWT\"");
-
-        JwtHeaderHelper.create(asBase64(jwtJson));
+        Assertions.assertThrows(Exception.class,
+                () -> JwtHeaderHelper.create(asBase64(jwtJson))
+        );
     }
 
     @Test
