@@ -409,8 +409,6 @@ public abstract class TokenValidation {
         return a.equals(b);
     }
 
-    private Optional<List<String>> scopes = null;
-
     private Optional<List<String>> readScopesFromClaim(String claimName) {
         if (!claims.containsKey(claimName)) {
             throw new InvalidTokenException(String.format("The token does not bear a %s claim.", claimName), null);
@@ -427,8 +425,7 @@ public abstract class TokenValidation {
               .filter(Objects::nonNull)
               .map(Object::toString)
               .collect(toList());
-            scopes = Optional.of(scopeList);
-            return scopes;
+            return Optional.of(scopeList);
         } catch (ClassCastException ex) {
             throw new InvalidTokenException("The token's scope claim is invalid or unparseable.", ex);
         }
