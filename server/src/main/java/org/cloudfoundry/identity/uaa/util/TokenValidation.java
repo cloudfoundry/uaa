@@ -94,10 +94,10 @@ public abstract class TokenValidation {
         return idTokenValidation;
     }
 
-    abstract String getClaimName();
+    abstract String scopeClaimKey();
 
     Optional<List<String>> getScopes() {
-        return readScopesFromClaim(getClaimName());
+        return readScopesFromClaim(scopeClaimKey());
     }
 
     private TokenValidation(String token, KeyInfoService keyInfoService) {
@@ -231,8 +231,8 @@ public abstract class TokenValidation {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
             List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(toList());
             if (!missingScopes.isEmpty()) {
-                String claimName = getClaimName();
-                String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), claimName);
+                String scopeClaimKey = scopeClaimKey();
+                String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), scopeClaimKey);
                 throw new InvalidTokenException(message);
             }
         });
@@ -409,12 +409,12 @@ public abstract class TokenValidation {
         return a.equals(b);
     }
 
-    private Optional<List<String>> readScopesFromClaim(String scopeClaimName) {
-        if (!claims.containsKey(scopeClaimName)) {
-            throw new InvalidTokenException(String.format("The token does not bear a %s claim.", scopeClaimName), null);
+    private Optional<List<String>> readScopesFromClaim(String scopeClaimKey) {
+        if (!claims.containsKey(scopeClaimKey)) {
+            throw new InvalidTokenException(String.format("The token does not bear a %s claim.", scopeClaimKey), null);
         }
 
-        Object scopeClaim = claims.get(scopeClaimName);
+        Object scopeClaim = claims.get(scopeClaimKey);
         if (scopeClaim == null) {
             // treat null scope claim the same as empty scope claim
             scopeClaim = new ArrayList<>();
@@ -487,7 +487,7 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String getClaimName() {
+        String scopeClaimKey() {
             return SCOPE;
         }
     }
@@ -505,7 +505,7 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String getClaimName() {
+        String scopeClaimKey() {
             if(this.getClaims().containsKey(GRANTED_SCOPES)){
                 return GRANTED_SCOPES;
             }
@@ -519,7 +519,7 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String getClaimName() { return SCOPE; }
+        String scopeClaimKey() { return SCOPE; }
 
         @Override
         protected void validateJtiValue(String jtiValue) {
