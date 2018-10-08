@@ -59,11 +59,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
@@ -94,7 +92,7 @@ public abstract class TokenValidation {
         return idTokenValidation;
     }
 
-    abstract String scopeClaimKey();
+    abstract ScopeClaimKey scopeClaimKey();
 
     Optional<List<String>> getScopes() {
         return readScopesFromClaim(scopeClaimKey());
@@ -231,7 +229,7 @@ public abstract class TokenValidation {
             Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
             List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(toList());
             if (!missingScopes.isEmpty()) {
-                String scopeClaimKey = scopeClaimKey();
+                String scopeClaimKey = scopeClaimKey().keyName();
                 String message = String.format("Some required %s are missing: " + missingScopes.stream().collect(Collectors.joining(" ")), scopeClaimKey);
                 throw new InvalidTokenException(message);
             }
@@ -409,14 +407,15 @@ public abstract class TokenValidation {
         return a.equals(b);
     }
 
-    private Optional<List<String>> readScopesFromClaim(String scopeClaimKey) {
-        if (!claims.containsKey(scopeClaimKey)) {
+    private Optional<List<String>> readScopesFromClaim(ScopeClaimKey scopeClaimKey) {
+        String scopeKeyName = scopeClaimKey.keyName();
+        if (!claims.containsKey(scopeKeyName)) {
             throw new InvalidTokenException(
                     String.format("The token does not bear a \"%s\" claim.", scopeClaimKey)
             );
         }
 
-        Object scopeClaim = claims.get(scopeClaimKey);
+        Object scopeClaim = claims.get(scopeKeyName);
         if (scopeClaim == null) {
             // treat null scope claim the same as empty scope claim
             scopeClaim = new ArrayList<>();
@@ -495,8 +494,8 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String scopeClaimKey() {
-            return SCOPE;
+        ScopeClaimKey scopeClaimKey() {
+            return ScopeClaimKey.SCOPE;
         }
     }
 
@@ -513,11 +512,11 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String scopeClaimKey() {
-            if (this.getClaims().containsKey(GRANTED_SCOPES)) {
-                return GRANTED_SCOPES;
+        ScopeClaimKey scopeClaimKey() {
+            if (this.getClaims().containsKey(ScopeClaimKey.GRANTED_SCOPES.keyName())) {
+                return ScopeClaimKey.GRANTED_SCOPES;
             }
-            return SCOPE;
+            return ScopeClaimKey.SCOPE;
         }
     }
 
@@ -527,8 +526,8 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String scopeClaimKey() {
-            return SCOPE;
+        ScopeClaimKey scopeClaimKey() {
+            return ScopeClaimKey.SCOPE;
         }
 
         @Override
@@ -536,6 +535,21 @@ public abstract class TokenValidation {
             if (jtiValue.endsWith(REFRESH_TOKEN_SUFFIX)) {
                 throw new InvalidTokenException("Invalid access token.", null);
             }
+        }
+    }
+
+    enum ScopeClaimKey {
+        SCOPE(ClaimConstants.SCOPE),
+        GRANTED_SCOPES(ClaimConstants.GRANTED_SCOPES);
+
+        private String keyName;
+
+        ScopeClaimKey(String keyName) {
+            this.keyName = keyName;
+        }
+
+        String keyName() {
+            return this.keyName;
         }
     }
 }
