@@ -117,7 +117,7 @@ public abstract class TokenValidation {
         KeyInfo signingKey = keyInfoService.getKey(kid);
         if (signingKey == null) {
             throw new InvalidTokenException(String.format(
-              "Token header claim [kid] references unknown signing key : [%s]", kid
+                    "Token header claim [kid] references unknown signing key : [%s]", kid
             ));
         }
 
@@ -242,29 +242,29 @@ public abstract class TokenValidation {
 
     public TokenValidation checkClientAndUser(ClientDetails client, UaaUser user) {
         TokenValidation validation =
-          checkClient(
-            cid -> {
-                if (!equals(cid, client.getClientId())) {
-                    throw new InvalidTokenException("Token's client ID does not match expected value: " + client.getClientId());
-                }
-                return client;
-            });
+                checkClient(
+                        cid -> {
+                            if (!equals(cid, client.getClientId())) {
+                                throw new InvalidTokenException("Token's client ID does not match expected value: " + client.getClientId());
+                            }
+                            return client;
+                        });
         if (isUserToken(claims)) {
             return validation
-              .checkUser(uid -> {
-                  if (user == null) {
-                      throw new InvalidTokenException("Unable to validate user, no user found.");
-                  } else {
-                      if (!equals(uid, user.getId())) {
-                          throw new InvalidTokenException("Token does not have expected user ID.");
-                      }
-                      return user;
-                  }
-              })
-              .checkRequiredUserGroups(
-                ofNullable((Collection<String>) client.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet()),
-                AuthorityUtils.authorityListToSet(user.getAuthorities())
-              );
+                    .checkUser(uid -> {
+                        if (user == null) {
+                            throw new InvalidTokenException("Unable to validate user, no user found.");
+                        } else {
+                            if (!equals(uid, user.getId())) {
+                                throw new InvalidTokenException("Token does not have expected user ID.");
+                            }
+                            return user;
+                        }
+                    })
+                    .checkRequiredUserGroups(
+                            ofNullable((Collection<String>) client.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet()),
+                            AuthorityUtils.authorityListToSet(user.getAuthorities())
+                    );
 
         } else {
             return validation;
@@ -301,10 +301,10 @@ public abstract class TokenValidation {
             if (null == claims.get(USER_ID)) {
                 // for client credentials tokens, we want to validate the client scopes
                 clientScopes = ofNullable(client.getAuthorities())
-                  .map(a -> a.stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(toList()))
-                  .orElse(Collections.emptyList());
+                        .map(a -> a.stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .collect(toList()))
+                        .orElse(Collections.emptyList());
             } else {
                 clientScopes = client.getScope();
             }
@@ -363,8 +363,8 @@ public abstract class TokenValidation {
         } else {
             try {
                 audience = ((List<?>) audClaim).stream()
-                  .map(s -> (String) s)
-                  .collect(toList());
+                        .map(s -> (String) s)
+                        .collect(toList());
             } catch (ClassCastException ex) {
                 throw new InvalidTokenException("The token's audience claim is invalid or unparseable.", ex);
             }
@@ -424,9 +424,9 @@ public abstract class TokenValidation {
 
         try {
             List<String> scopeList = ((List<?>) scopeClaim).stream()
-              .filter(Objects::nonNull)
-              .map(Object::toString)
-              .collect(toList());
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(toList());
             return Optional.of(scopeList);
         } catch (ClassCastException ex) {
             throw new InvalidTokenException(
@@ -514,7 +514,7 @@ public abstract class TokenValidation {
 
         @Override
         String scopeClaimKey() {
-            if(this.getClaims().containsKey(GRANTED_SCOPES)){
+            if (this.getClaims().containsKey(GRANTED_SCOPES)) {
                 return GRANTED_SCOPES;
             }
             return SCOPE;
@@ -527,7 +527,9 @@ public abstract class TokenValidation {
         }
 
         @Override
-        String scopeClaimKey() { return SCOPE; }
+        String scopeClaimKey() {
+            return SCOPE;
+        }
 
         @Override
         protected void validateJtiValue(String jtiValue) {
