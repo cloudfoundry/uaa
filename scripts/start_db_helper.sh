@@ -26,7 +26,7 @@ function bootDB {
   echo -n "Booting $db"
   set -x
   eval "$launchDB"
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 120); do
     set +ex
     eval "$testConnection"
     exitcode=$?
