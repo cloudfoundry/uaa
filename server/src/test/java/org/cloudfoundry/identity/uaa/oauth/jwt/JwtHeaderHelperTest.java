@@ -3,27 +3,27 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.directory.api.util.Base64;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension;
+import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomValue;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.Arrays;
 import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@DisplayName("JOSE Header https://tools.ietf.org/html/rfc7519#section-5")
+@Tag("https://tools.ietf.org/html/rfc7519#section-5")
+@DisplayName("JOSE Header")
+@ExtendWith(RandomParametersJunitExtension.class)
 public class JwtHeaderHelperTest {
 
-    @DisplayName("JWS https://tools.ietf.org/html/rfc7519#ref-JWS")
+    @Tag("https://tools.ietf.org/html/rfc7519#ref-JWS")
+    @DisplayName("JWS")
     @Nested
     class JWS {
 
@@ -52,13 +52,16 @@ public class JwtHeaderHelperTest {
 
     }
 
-    @DisplayName("JWE https://tools.ietf.org/html/rfc7519#ref-JWE")
+    @Tag("https://tools.ietf.org/html/rfc7519#ref-JWE")
+    @DisplayName("JWE")
     @Nested
     class JWE {
-        @DisplayName("Replicating Claims as Header Parameters https://tools.ietf.org/html/rfc7519#section-10.4.1")
+
+        @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
+        @DisplayName("Replicating Claims as Header Parameters")
         @ParameterizedTest
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.jwt.JwtHeaderHelperTest#validReplicatedHeaders")
-        public void containsValidReplicatedHeaders(String iss, String sub, String aud) {
+        public void containsIetfRegisteredReplicatedHeaders(String iss, String sub, String aud) {
             ObjectNode objectNode = new ObjectMapper().createObjectNode();
             objectNode.put("iss", iss);
             objectNode.put("sub", sub);
@@ -69,6 +72,16 @@ public class JwtHeaderHelperTest {
             assertThat(header.parameters.iss, is(iss));
             assertThat(header.parameters.sub, is(sub));
             assertThat(header.parameters.aud, is(aud));
+        }
+
+        @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
+        @DisplayName("Other specifications MAY similarly register other names that are registered Claim Names as Header Parameter names, as needed.")
+        @Test
+        public void containsUnregisteredReplicatedHeaders(@RandomValue String randomVal) {
+            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put(randomVal, randomVal);
+
+            JwtHeaderHelper.create(asBase64(objectNode.toString()));
         }
     }
 
