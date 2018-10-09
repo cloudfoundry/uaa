@@ -8,11 +8,7 @@ import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomV
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -20,22 +16,64 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @Tag("https://tools.ietf.org/html/rfc7519#section-5")
 @DisplayName("JOSE Header")
 @ExtendWith(RandomParametersJunitExtension.class)
-public class JwtHeaderHelperTest {
+class JwtHeaderHelperTest {
 
     @Tag("https://tools.ietf.org/html/rfc7519#ref-JWS")
     @DisplayName("JWS")
     @Nested
     class JWS {
         ObjectNode objectNode;
+
         @BeforeEach
-        public void setup() {
+        void setup() {
             objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put("kid", "key-id");
+            objectNode.put("alg", "key-alg");
+            objectNode.put("enc", "key-encoding");
+            objectNode.put("iv", "key-init-vector");
+            objectNode.put("typ", "JWT");
+        }
+
+        @DisplayName("given a valid JOSE header it should deserialize without error")
+        @Test
+        void shouldDeserializeWithValidHeaders() {
+            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+            assertThat(header.parameters.typ, is("JWT"));
+            assertThat(header.parameters.kid, is("key-id"));
+            assertThat(header.parameters.alg, is("key-alg"));
+            assertThat(header.parameters.enc, is("key-encoding"));
+            assertThat(header.parameters.iv, is("key-init-vector"));
+        }
+
+        @Test
+        void createFromStringThrowsExceptionWhenTypeIsNotJWT() {
+            objectNode.put("typ", "NOT-JWT");
+
+            Exception exception = Assertions.assertThrows(Exception.class,
+                    () -> JwtHeaderHelper.create(asBase64(objectNode.toString()))
+            );
+
+            assertThat(exception.getMessage(), is(containsString("typ is not \"JWT\"")));
+        }
+
+        @DisplayName("given a valid signer it should serialize without error")
+        @Test
+        void shouldSerializeWithValidSigner() {
+            final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
+
+            JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
+
+            assertThat(header.parameters.typ, is("JWT"));
+            assertThat(header.parameters.kid, is("fake-key"));
+            assertThat(header.parameters.alg, is("HS256"));
+            assertThat(header.parameters.enc, is(nullValue()));
+            assertThat(header.parameters.iv, is(nullValue()));
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"JWT", "jwt"})
-        public void containsValidRequiredHeaders(String validCty) {
-            objectNode = new ObjectMapper().createObjectNode();
+        void containsValidRequiredHeaders(String validCty) {
             objectNode.put("cty", validCty);
 
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -45,8 +83,7 @@ public class JwtHeaderHelperTest {
 
         @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
         @Test
-        public void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
-            objectNode = new ObjectMapper().createObjectNode();
+        void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
             objectNode.put(randomVal, randomVal);
 
             Assertions.assertThrows(Exception.class, () ->
@@ -57,7 +94,7 @@ public class JwtHeaderHelperTest {
         @Tag("https://tools.ietf.org/html/rfc7516#section-4.1.2")
         @DisplayName("the enc/iv header claims are for JWE tokens.")
         @Test
-        public void shouldSerializeOnlyWithValidRequiredHeaders() {
+        void shouldSerializeOnlyWithValidRequiredHeaders() {
             final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
             JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
@@ -74,10 +111,14 @@ public class JwtHeaderHelperTest {
         @DisplayName("Optional headers from JWS spec")
         @Nested
         class OptionalHeaders {
+            @BeforeEach
+            void setup() {
+                objectNode = new ObjectMapper().createObjectNode();
+            }
 
             @ParameterizedTest
             @ValueSource(strings = {"JWT", "jwt"})
-            public void shouldAllowTypHeader(String validTyp) {
+            void shouldAllowTypHeader(String validTyp) {
                 objectNode.put("typ", validTyp);
 
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -86,10 +127,10 @@ public class JwtHeaderHelperTest {
             }
 
             @DisplayName("should deserialize when provided optional enc/iv claims. " +
-                         "enc/iv are *not* claims that belong to the JWS header. " +
-                         "But for now we will allow tokens that contain these claims for backwards compatibility")
+                    "enc/iv are *not* claims that belong to the JWS header. " +
+                    "But for now we will allow tokens that contain these claims for backwards compatibility")
             @Test
-            public void shouldAllowEncAndIvHeaders(@RandomValue String validEnc, @RandomValue String validIv) {
+            void shouldAllowEncAndIvHeaders(@RandomValue String validEnc, @RandomValue String validIv) {
                 objectNode.put("enc", validEnc);
                 objectNode.put("iv", validIv);
 
@@ -97,7 +138,7 @@ public class JwtHeaderHelperTest {
             }
 
             @Test
-            public void shouldAllowJwkHeader() {
+            void shouldAllowJwkHeader() {
                 objectNode.put("jwk", "key");
 
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -106,7 +147,7 @@ public class JwtHeaderHelperTest {
             }
 
             @Test
-            public void shouldAllowX509Headers() {
+            void shouldAllowX509Headers() {
                 objectNode.put("x5u", "x509_url");
                 objectNode.put("x5c", "x509_cert");
                 objectNode.put("x5t", "x509_thumbprint_sha1");
@@ -121,7 +162,7 @@ public class JwtHeaderHelperTest {
             }
 
             @Test
-            public void shouldAllowCritHeader() {
+            void shouldAllowCritHeader() {
                 objectNode.putArray("crit")
                         .add("first-val")
                         .add("value-2");
@@ -133,80 +174,6 @@ public class JwtHeaderHelperTest {
         }
     }
 
-    @Test
-    public void createFromStringCorrectlyDecodesValidJSON() {
-        String jwtJson = "{ " +
-          "\"kid\": \"key-id\"," +
-          "\"alg\": \"key-algorithm\"," +
-          "\"enc\": \"key-encoding\"," +
-          "\"iv\":  \"key-initialization-vector\"," +
-          "\"typ\": \"JWT\"" +
-          " }";
-
-        JwtHeader header = JwtHeaderHelper.create(asBase64(jwtJson));
-
-        assertThat(header.parameters.typ, is("JWT"));
-        assertThat(header.parameters.kid, is("key-id"));
-        assertThat(header.parameters.alg, is("key-algorithm"));
-        assertThat(header.parameters.enc, is("key-encoding"));
-        assertThat(header.parameters.iv, is("key-initialization-vector"));
-    }
-
-    @Test
-    public void createFromStringThrowsExceptionWhenTypeIsNotJWT() {
-        String jwtJson = "{ " +
-          "\"kid\": \"key-id\"," +
-          "\"alg\": \"key-algorithm\"," +
-          "\"enc\": \"key-encoding\"," +
-          "\"iv\":  \"key-initialization-vector\"," +
-          "\"typ\": \"WTF\"" +
-          " }";
-
-        Exception exception = Assertions.assertThrows(Exception.class,
-                () -> JwtHeaderHelper.create(asBase64(jwtJson))
-        );
-
-        assertThat(exception.getMessage(), is(containsString("typ is not \"JWT\"")));
-    }
-
-    @Test
-    public void createFromStringThrowsExceptionWhenTypeIsEmpty() {
-        String jwtJson = "{ " +
-          "\"kid\": \"key-id\"," +
-          "\"alg\": \"key-algorithm\"," +
-          "\"enc\": \"key-encoding\"," +
-          "\"iv\":  \"key-initialization-vector\"," +
-          "\"typ\": \"\"" +
-          " }";
-
-        Assertions.assertThrows(Exception.class,
-                () -> JwtHeaderHelper.create(asBase64(jwtJson))
-        );
-    }
-
-    @Test
-    public void createFromSigner() {
-        final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
-        JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
-
-        assertThat(header.parameters.typ, is("JWT"));
-        assertThat(header.parameters.kid, is("fake-key"));
-        assertThat(header.parameters.alg, is("HS256"));
-        assertThat(header.parameters.enc, is(nullValue()));
-        assertThat(header.parameters.iv, is(nullValue()));
-    }
-
-    @Test
-    public void createFromSignerWithEmptyKeyId() {
-        final CommonSigner hmac = new CommonSigner(null, "HMAC", null);
-        JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
-
-        assertThat(header.parameters.typ, is("JWT"));
-        assertThat(header.parameters.kid, is(nullValue()));
-        assertThat(header.parameters.alg, is("HS256"));
-        assertThat(header.parameters.enc, is(nullValue()));
-        assertThat(header.parameters.iv, is(nullValue()));
-    }
 
     private String asBase64(String jwt) {
         return new String(Base64.encode(jwt.getBytes()));
