@@ -1,12 +1,10 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class HeaderParameters {
     private static final String JWT = "JWT";
     @JsonProperty
@@ -25,9 +23,6 @@ public class HeaderParameters {
     String typ;
 
     public Object cty;
-    public Object iss;
-    public Object aud;
-    public Object sub;
 
     @SuppressWarnings("unused")
     HeaderParameters() {

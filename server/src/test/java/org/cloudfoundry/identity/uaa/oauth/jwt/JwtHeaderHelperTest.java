@@ -49,40 +49,17 @@ public class JwtHeaderHelperTest {
             assertThat(header.parameters.cty, is(validCty));
         }
 
-
-    }
-
-    @Tag("https://tools.ietf.org/html/rfc7519#ref-JWE")
-    @DisplayName("JWE")
-    @Nested
-    class JWE {
-
         @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
-        @DisplayName("Replicating Claims as Header Parameters")
-        @ParameterizedTest
-        @MethodSource("org.cloudfoundry.identity.uaa.oauth.jwt.JwtHeaderHelperTest#validReplicatedHeaders")
-        public void containsIetfRegisteredReplicatedHeaders(String iss, String sub, String aud) {
-            ObjectNode objectNode = new ObjectMapper().createObjectNode();
-            objectNode.put("iss", iss);
-            objectNode.put("sub", sub);
-            objectNode.put("aud", aud);
-
-            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
-
-            assertThat(header.parameters.iss, is(iss));
-            assertThat(header.parameters.sub, is(sub));
-            assertThat(header.parameters.aud, is(aud));
-        }
-
-        @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
-        @DisplayName("Other specifications MAY similarly register other names that are registered Claim Names as Header Parameter names, as needed.")
         @Test
-        public void containsUnregisteredReplicatedHeaders(@RandomValue String randomVal) {
+        public void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
             ObjectNode objectNode = new ObjectMapper().createObjectNode();
             objectNode.put(randomVal, randomVal);
 
-            JwtHeaderHelper.create(asBase64(objectNode.toString()));
+            Assertions.assertThrows(Exception.class, () ->
+                    JwtHeaderHelper.create(asBase64(objectNode.toString()))
+            );
         }
+
     }
 
     @Test
@@ -162,14 +139,5 @@ public class JwtHeaderHelperTest {
 
     private String asBase64(String jwt) {
         return new String(Base64.encode(jwt.getBytes()));
-    }
-
-    static Stream<Arguments> validReplicatedHeaders() {
-        return Stream.of(
-                Arguments.of("issuer.com", "user1", "client-one"),
-                Arguments.of("issuer.com", null, null),
-                Arguments.of(null, "user1", null),
-                Arguments.of(null, null, "client-one")
-        );
     }
 }
