@@ -77,7 +77,7 @@ class JwtHeaderHelper {
     }
 
     static JwtHeader create(String algorithm, String kid, String jku) {
-        HeaderParameters headerParameters = new HeaderParameters(algorithm, null, null, kid, jku);
+        HeaderParameters headerParameters = new HeaderParameters(algorithm, kid, jku);
 
         return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
     }

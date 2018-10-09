@@ -30,28 +30,15 @@ public class HeaderParameters {
     }
 
     HeaderParameters(String alg,
-                     String enc,
-                     String iv,
                      String kid,
-                     String jku,
-                     String typ) {
+                     String jku) {
         if (alg == null) {
             throw new IllegalArgumentException("alg is required");
         }
         this.alg = alg;
-        this.enc = enc;
-        this.iv = iv;
         this.jku = jku;
         this.kid = kid;
-        this.typ = typ;
-    }
-
-    HeaderParameters(String alg,
-                     String enc,
-                     String iv,
-                     String kid,
-                     String jku) {
-        this(alg, enc, iv, kid, jku, JWT);
+        this.typ = JWT;
     }
 
     public String getAlg() {
@@ -66,28 +53,8 @@ public class HeaderParameters {
         this.alg = alg;
     }
 
-    public String getEnc() {
-        return enc;
-    }
-
-    public void setEnc(String enc) {
-        this.enc = enc;
-    }
-
-    public void setIv(String iv) {
-        this.iv = iv;
-    }
-
-    public String getIv() {
-        return iv;
-    }
-
     public String getJku() {
         return jku;
-    }
-
-    public void setJku(String jku) {
-        this.jku = jku;
     }
 
     public void setKid(String kid) {

@@ -29,13 +29,23 @@ public class JwtHeaderHelperTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"JWT", "jwt"})
-        public void containsValidOptionalHeaders(String validTyp) {
+        public void containsValidOptionalTypHeaders(String validTyp) {
             ObjectNode objectNode = new ObjectMapper().createObjectNode();
             objectNode.put("typ", validTyp);
 
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
             assertThat(header.parameters.typ, is(validTyp));
+        }
+
+        @DisplayName("should deserialize when provided optional enc/iv claims")
+        @Test
+        public void shouldAllowOptionalEncAndIvHeaders(@RandomValue String validEnc, @RandomValue String validIv) {
+            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode.put("enc", validEnc);
+            objectNode.put("iv", validIv);
+
+            JwtHeaderHelper.create(asBase64(objectNode.toString()));
         }
 
         @ParameterizedTest
