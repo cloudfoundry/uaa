@@ -483,14 +483,6 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void tokenHasIntegerScope() {
-        this.content.put(SCOPE, Lists.newArrayList("a.different.scope", 1, "another.different.scope", null));
-
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkRequestedScopesAreGranted("a.different.scope", "1", "another.different.scope");
-    }
-
-    @Test
     public void tokenContainsRevokedScope() {
         expectedException.expect(InvalidTokenException.class);
 
@@ -670,6 +662,18 @@ public class TokenValidationTest {
     @Test
     public void getScopes_rejects_invalid_scope_claim() {
         content.put(SCOPE, "i am not a list!!!");
+        String refreshToken = getToken();
+
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("The token's \"scope\" claim is invalid or unparseable.");
+
+        buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+                .requestedScopes();
+    }
+
+    @Test
+    public void readScopesFromClaim_rejects_non_string_scopes() {
+        content.put(SCOPE, Arrays.asList("hello", 1L));
         String refreshToken = getToken();
 
         expectedException.expect(InvalidTokenException.class);

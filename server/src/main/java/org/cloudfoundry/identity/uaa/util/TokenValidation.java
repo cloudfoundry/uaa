@@ -417,21 +417,24 @@ public abstract class TokenValidation {
             return Lists.newArrayList();
         }
 
+        InvalidTokenException unparsableClaimException = new InvalidTokenException(
+                String.format(
+                        "The token's \"%s\" claim is invalid or unparseable.",
+                        scopeKeyName
+                )
+        );
+
         if (!(scopeClaim instanceof List)) {
-            throw new InvalidTokenException(
-                    String.format(
-                            "The token's \"%s\" claim is invalid or unparseable.",
-                            scopeKeyName
-                    )
-            );
+            throw unparsableClaimException;
         }
 
         List<?> scopes = (List<?>) scopeClaim;
-        //TODO: type check that the elements of the list are strings
-        return scopes.stream()
-                .filter(Objects::nonNull)
-                .map(Object::toString)
-                .collect(toList());
+
+        if(scopes.stream().allMatch(String.class::isInstance)) {
+            return scopes.stream().map(o -> (String) o).collect(toList());
+        } else {
+            throw unparsableClaimException;
+        }
     }
 
     public Jwt getJwt() {
