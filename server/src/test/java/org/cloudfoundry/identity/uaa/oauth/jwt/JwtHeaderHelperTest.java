@@ -26,28 +26,6 @@ public class JwtHeaderHelperTest {
     @DisplayName("JWS")
     @Nested
     class JWS {
-
-        @ParameterizedTest
-        @ValueSource(strings = {"JWT", "jwt"})
-        public void containsValidOptionalTypHeaders(String validTyp) {
-            ObjectNode objectNode = new ObjectMapper().createObjectNode();
-            objectNode.put("typ", validTyp);
-
-            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
-
-            assertThat(header.parameters.typ, is(validTyp));
-        }
-
-        @DisplayName("should deserialize when provided optional enc/iv claims")
-        @Test
-        public void shouldAllowOptionalEncAndIvHeaders(@RandomValue String validEnc, @RandomValue String validIv) {
-            ObjectNode objectNode = new ObjectMapper().createObjectNode();
-            objectNode.put("enc", validEnc);
-            objectNode.put("iv", validIv);
-
-            JwtHeaderHelper.create(asBase64(objectNode.toString()));
-        }
-
         @ParameterizedTest
         @ValueSource(strings = {"JWT", "jwt"})
         public void containsValidRequiredHeaders(String validCty) {
@@ -79,6 +57,73 @@ public class JwtHeaderHelperTest {
 
             assertThat(header.toString(), not(containsString("enc")));
             assertThat(header.toString(), not(containsString("iv")));
+        }
+
+        @DisplayName("Optional headers from JWS spec")
+        @Nested
+        class OptionalHeaders {
+            ObjectNode objectNode;
+
+            @BeforeEach
+            public void setup() {
+                objectNode = new ObjectMapper().createObjectNode();
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"JWT", "jwt"})
+            public void shouldAllowTypHeader(String validTyp) {
+                objectNode.put("typ", validTyp);
+
+                JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+                assertThat(header.parameters.typ, is(validTyp));
+            }
+
+            @DisplayName("should deserialize when provided optional enc/iv claims. " +
+                         "enc/iv are *not* claims that belong to the JWS header. " +
+                         "But for now we will allow tokens that contain these claims for backwards compatibility")
+            @Test
+            public void shouldAllowEncAndIvHeaders(@RandomValue String validEnc, @RandomValue String validIv) {
+                objectNode.put("enc", validEnc);
+                objectNode.put("iv", validIv);
+
+                JwtHeaderHelper.create(asBase64(objectNode.toString()));
+            }
+
+            @Test
+            public void shouldAllowJwkHeader() {
+                objectNode.put("jwk", "key");
+
+                JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+                assertThat(header.parameters.jwk, is("key"));
+            }
+
+            @Test
+            public void shouldAllowX509Headers() {
+                objectNode.put("x5u", "x509_url");
+                objectNode.put("x5c", "x509_cert");
+                objectNode.put("x5t", "x509_thumbprint_sha1");
+                objectNode.put("x5t#S256", "x509_sha256");
+
+                JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+                assertThat(header.parameters.x5u, is("x509_url"));
+                assertThat(header.parameters.x5c, is("x509_cert"));
+                assertThat(header.parameters.x5t, is("x509_thumbprint_sha1"));
+                assertThat(header.parameters.x5tS256, is("x509_sha256"));
+            }
+
+            @Test
+            public void shouldAllowCritHeader() {
+                objectNode.putArray("crit")
+                        .add("first-val")
+                        .add("value-2");
+
+                JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
+
+                assertThat(header.parameters.crit, hasItems("first-val", "value-2"));
+            }
         }
     }
 

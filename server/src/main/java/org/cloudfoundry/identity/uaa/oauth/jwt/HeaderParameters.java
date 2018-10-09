@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 public class HeaderParameters {
     private static final String JWT = "JWT";
     @JsonProperty
@@ -20,8 +22,20 @@ public class HeaderParameters {
     String kid;
     @JsonProperty
     String typ;
-
-    public Object cty;
+    @JsonProperty
+    String cty;
+    @JsonProperty
+    String jwk;
+    @JsonProperty
+    String x5u;
+    @JsonProperty
+    String x5c;
+    @JsonProperty
+    String x5t;
+    @JsonProperty(value = "x5t#S256")
+    String x5tS256;
+    @JsonProperty
+    List<String> crit;
 
     @SuppressWarnings("unused")
     HeaderParameters() {
