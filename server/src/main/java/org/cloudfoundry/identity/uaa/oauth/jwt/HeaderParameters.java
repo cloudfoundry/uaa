@@ -25,16 +25,22 @@ public class HeaderParameters {
     @JsonProperty
     String cty;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String jwk;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String x5u;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String x5c;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String x5t;
     @JsonProperty(value = "x5t#S256")
+    @JsonInclude(Include.NON_NULL)
     String x5tS256;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     List<String> crit;
 
     @SuppressWarnings("unused")

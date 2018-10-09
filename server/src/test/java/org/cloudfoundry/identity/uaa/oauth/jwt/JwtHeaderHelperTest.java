@@ -57,12 +57,18 @@ public class JwtHeaderHelperTest {
         @Tag("https://tools.ietf.org/html/rfc7516#section-4.1.2")
         @DisplayName("the enc/iv header claims are for JWE tokens.")
         @Test
-        public void shouldSerializeOnlyWithValidHeaders() {
+        public void shouldSerializeOnlyWithValidRequiredHeaders() {
             final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
             JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
             assertThat(header.toString(), not(containsString("enc")));
             assertThat(header.toString(), not(containsString("iv")));
+            assertThat(header.toString(), not(containsString("jwk")));
+            assertThat(header.toString(), not(containsString("x5u")));
+            assertThat(header.toString(), not(containsString("x5c")));
+            assertThat(header.toString(), not(containsString("x5t")));
+            assertThat(header.toString(), not(containsString("x5t#S256")));
+            assertThat(header.toString(), not(containsString("crit")));
         }
 
         @DisplayName("Optional headers from JWS spec")
