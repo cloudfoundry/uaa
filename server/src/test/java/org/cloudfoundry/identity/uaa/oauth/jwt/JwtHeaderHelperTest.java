@@ -26,10 +26,16 @@ public class JwtHeaderHelperTest {
     @DisplayName("JWS")
     @Nested
     class JWS {
+        ObjectNode objectNode;
+        @BeforeEach
+        public void setup() {
+            objectNode = new ObjectMapper().createObjectNode();
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {"JWT", "jwt"})
         public void containsValidRequiredHeaders(String validCty) {
-            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode = new ObjectMapper().createObjectNode();
             objectNode.put("cty", validCty);
 
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -40,7 +46,7 @@ public class JwtHeaderHelperTest {
         @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
         @Test
         public void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
-            ObjectNode objectNode = new ObjectMapper().createObjectNode();
+            objectNode = new ObjectMapper().createObjectNode();
             objectNode.put(randomVal, randomVal);
 
             Assertions.assertThrows(Exception.class, () ->
@@ -62,12 +68,6 @@ public class JwtHeaderHelperTest {
         @DisplayName("Optional headers from JWS spec")
         @Nested
         class OptionalHeaders {
-            ObjectNode objectNode;
-
-            @BeforeEach
-            public void setup() {
-                objectNode = new ObjectMapper().createObjectNode();
-            }
 
             @ParameterizedTest
             @ValueSource(strings = {"JWT", "jwt"})
