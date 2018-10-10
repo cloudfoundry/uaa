@@ -79,6 +79,7 @@ subprojects {
         testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
         testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
         testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
+        testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
         testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
     }

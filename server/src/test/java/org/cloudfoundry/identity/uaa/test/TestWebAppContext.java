@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.test;
 
 
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.*;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
@@ -23,12 +23,19 @@ import java.util.Map;
 @ImportResource(locations = {
   "file:../uaa/src/main/webapp/WEB-INF/spring-servlet.xml"
 })
-public class TestWebAppContext {
+public class TestWebAppContext implements InitializingBean {
+    @Autowired
+    DataSource dataSource;
+
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
         return new PropertySourcesPlaceholderConfigurer();
     }
 
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        dataSource.setJdbcInterceptors("org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptor");
+    }
 }
 
 class NestedMapPropertySourceFactory implements PropertySourceFactory {
