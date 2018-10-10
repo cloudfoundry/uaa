@@ -1,4 +1,4 @@
-# Configuration in this file ixs overridden by an external file
+# Configuration in this file is overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 
