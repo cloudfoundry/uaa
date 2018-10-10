@@ -359,5 +359,12 @@ public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, L
         ctxt = applicationContext;
     }
 
+    public String nonSslUrl() {
+        return String.format("ldap://localhost:%d/", port);
+    }
+
+    public String sslUrl() {
+        return String.format("ldaps://localhost:%d/", sslPort);
+    }
 }
 
