@@ -84,6 +84,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -1129,6 +1130,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .header("Content-Type", APPLICATION_JSON_VALUE)
         )
             .andDo(print())
+            .andExpect(header().string("Location", "http://localhost/login?error=invalid_login_request"))
             .andExpect(status().isFound()); //gets caught by the ui filter for unknown URIs but wantsJson;
     }
 
