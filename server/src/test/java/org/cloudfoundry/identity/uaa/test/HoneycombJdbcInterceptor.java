@@ -57,7 +57,7 @@ public class HoneycombJdbcInterceptor extends JdbcInterceptor {
         }
 
         return honeyClient.buildEventFactory()
-                .addField("testId", UUID.randomUUID().toString())
+                .addField("testId", System.getProperty("testId"))
                 .addField("cpuCores", Runtime.getRuntime().availableProcessors())
                 .addField("hostname", hostName)
                 .build();

@@ -180,6 +180,7 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
         it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+        it.systemProperty 'testId', System.getProperty('testId', '')
     }
 }
 
@@ -253,6 +254,8 @@ private EventFactory buildEventFactory() {
     )
 
     def uniqueTestID = UUID.randomUUID().toString()
+    System.setProperty("testId", uniqueTestID)
+
     return honeyClient.buildEventFactory()
             .addField("testId", uniqueTestID)
             .addField("cpuCores", Runtime.getRuntime().availableProcessors())
