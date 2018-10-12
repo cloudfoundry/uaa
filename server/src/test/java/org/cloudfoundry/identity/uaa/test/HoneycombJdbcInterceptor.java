@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 public class HoneycombJdbcInterceptor extends JdbcInterceptor {
@@ -36,14 +37,14 @@ public class HoneycombJdbcInterceptor extends JdbcInterceptor {
 
 
     private EventFactory buildEventFactory() {
-        if (System.getProperty("honeycomb.writekey", "").isEmpty() || System.getProperty("honeycomb.dataset", "").isEmpty()) {
+        if (System.getenv("HONEYCOMB_KEY") == null || System.getenv("HONEYCOMB_DATASET") == null) {
             return null;
         }
 
         HoneyClient honeyClient = LibHoney.create(
                 LibHoney.options()
-                        .setWriteKey(System.getProperty("honeycomb.writekey", ""))
-                        .setDataset(System.getProperty("honeycomb.dataset", ""))
+                        .setWriteKey(System.getenv("HONEYCOMB_KEY"))
+                        .setDataset(System.getenv("HONEYCOMB_DATASET"))
                         .build()
         );
 

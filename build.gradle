@@ -238,19 +238,23 @@ cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 private EventFactory buildEventFactory() {
-    if (System.getProperty('honeycomb.writekey', '').isEmpty() || System.getProperty('honeycomb.dataset', '').isEmpty()) {
+    def honeycombKey = System.getenv("HONEYCOMB_KEY")
+    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
+
+    if (honeycombKey == null || honeycombDataset == null) {
         return null
     }
 
     HoneyClient honeyClient  = create(
             options()
-                    .setWriteKey(System.getProperty('honeycomb.writekey', ''))
-                    .setDataset(System.getProperty('honeycomb.dataset', ''))
+                    .setWriteKey(honeycombKey)
+                    .setDataset(honeycombDataset)
                     .build()
     )
 
+    def uniqueTestID = UUID.randomUUID().toString()
     return honeyClient.buildEventFactory()
-            .addField("testId", UUID.randomUUID().toString())
+            .addField("testId", uniqueTestID)
             .addField("cpuCores", Runtime.getRuntime().availableProcessors())
             .addField("hostname", InetAddress.getLocalHost().getHostName())
             .build()
