@@ -25,7 +25,6 @@ Servers/
 coverage.ec
 .springBeans
 .gradle
-target/
 build/
 /classes/
 bin
