@@ -21,7 +21,7 @@ ext {
   powermockVersion = '2.0.0-beta.5'
   mssqlVersion = '6.2.2.jre8'
   passayVersion = '1.2.0'
-  postgresqlVersion = '42.1.4'
+  postgresqlVersion = '42.2.5'
   scimSDKVersion = '1.8.18'
   servletVersion = '3.1.0'
   seleniumJavaVersion = '3.9.1'
