@@ -362,7 +362,6 @@ public class LoginInfoEndpoint {
         idpForRedirect = evaluateLoginHint(model, session, samlIdentityProviders,
             oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys);
 
-        String defaultIdentityProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
         boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
         boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
         String defaultIdentityProviderName = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();

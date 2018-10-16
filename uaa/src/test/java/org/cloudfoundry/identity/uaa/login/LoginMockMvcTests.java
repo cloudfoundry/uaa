@@ -75,13 +75,18 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.xml.sax.InputSource;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
+import javax.xml.xpath.XPathFactory;
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -111,16 +116,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSec
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -1422,16 +1418,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         uaaIdentityProvider.setActive(false);
         identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        getMockMvc().perform(get("/login").accept(TEXT_HTML)
+        MvcResult mvcResult = getMockMvc().perform(get("/login").accept(TEXT_HTML)
                 .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(
-                    header()
-                        .string("Location",
-                                startsWith("http://auth.url?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
-                        )
-                );
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("http://auth.url"));
+        assertThat(queryParams, hasEntry("client_id", "uaa"));
+        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+        assertThat(queryParams, hasEntry("scope", "openid+roles"));
+        assertThat(queryParams, hasKey("nonce"));
+
         IdentityZoneHolder.clear();
     }
 
@@ -1453,16 +1455,60 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         uaaIdentityProvider.setActive(false);
         identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        getMockMvc().perform(get("/login").accept(TEXT_HTML)
-            .servletPath("/login")
-            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-            .andExpect(status().isFound())
-            .andExpect(
-                header()
-                    .string("Location",
-                        startsWith("https://accounts.google.com/o/oauth2/v2/auth?client_id=uaa&response_type=code+id_token&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
-                    )
-            );
+        MvcResult mvcResult = getMockMvc().perform(get("/login").accept(TEXT_HTML)
+                .servletPath("/login")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
+        assertThat(queryParams, hasEntry("client_id", "uaa"));
+        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+        assertThat(queryParams, hasEntry("scope", "openid+roles"));
+        assertThat(queryParams, hasKey("nonce"));
+
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void xOauthRedirect_stateParameterPassedGetsReturned() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient, false);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        String oauthAlias = createOIDCProviderInZone(identityZone, zoneAdminToken, null);
+
+        IdentityZoneHolder.set(identityZone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
+        IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        identityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+
+        MvcResult mvcResult = getMockMvc().perform(get("/login").accept(TEXT_HTML)
+                .servletPath("/login")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("http://auth.url"));
+        assertThat(queryParams, hasEntry("client_id", "uaa"));
+        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+        assertThat(queryParams, hasEntry("scope", "openid+roles"));
+        assertThat(queryParams, hasKey("nonce"));
+        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+
         IdentityZoneHolder.clear();
     }
 
@@ -1529,23 +1575,26 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
 
-        getMockMvc().perform(get("/login")
+        MvcResult mvcResult = getMockMvc().perform(get("/login")
                 .accept(TEXT_HTML)
                 .session(session)
                 .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
                 .andExpect(status().isFound())
-                .andExpect(
-                    header()
-                        .string("Location",
-                                startsWith("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles&nonce=")
-                        )
-                );
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("http://auth.url"));
+        assertThat(queryParams, hasEntry("client_id", "uaa"));
+        assertThat(queryParams, hasEntry("response_type", "code"));
+        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+        assertThat(queryParams, hasEntry("scope", "openid+roles"));
+        assertThat(queryParams, hasKey("nonce"));
+
         IdentityZoneHolder.clear();
-
-
-
     }
 
     @Test
@@ -2313,20 +2362,23 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         String originKey = createOIDCProvider(zone, "id_token code");
 
-        getMockMvc().perform(post("/login/idp_discovery")
-                                 .with(cookieCsrf())
-            .header("Accept", TEXT_HTML)
-            .servletPath("/login/idp_discovery")
-            .param("email", "marissa@test.org")
-            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(status().isFound())
-            .andExpect(
-                header()
-                    .string(
-                        "Location",
-                        startsWith("http://myauthurl.com?client_id=id&response_type=id_token+code&redirect_uri=http%3A%2F%2F"+subdomain+".localhost%2Flogin%2Fcallback%2F" +originKey+"&nonce=")
-                    )
-            );
+        MvcResult mvcResult = getMockMvc().perform(post("/login/idp_discovery")
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .servletPath("/login/idp_discovery")
+                .param("email", "marissa@test.org")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("http://myauthurl.com"));
+        assertThat(queryParams, hasEntry("client_id", "id"));
+        assertThat(queryParams, hasEntry("response_type", "id_token+code"));
+        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + subdomain + ".localhost%2Flogin%2Fcallback%2F" + originKey));
+        assertThat(queryParams, hasKey("nonce"));
     }
 
     @Test
@@ -2343,9 +2395,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                                  .servletPath("/login")
                                  .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&amp;redirect_uri=http%3A%2F%2F"+subdomain+".localhost%2Flogin%2Fcallback%2F" +originKey+"&amp;nonce=")))
-            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&amp;redirect_uri=http%3A%2F%2F"+subdomain+".localhost%2Flogin%2Fcallback%2F" +originKey2+"&amp;nonce=")));
-
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&")))
+            .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&")));
     }
 
     public String createOIDCProvider(IdentityZone zone) throws Exception {

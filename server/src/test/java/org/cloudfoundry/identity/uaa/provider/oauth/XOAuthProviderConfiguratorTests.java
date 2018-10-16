@@ -32,6 +32,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -40,13 +41,14 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertNotSame;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -343,18 +345,22 @@ public class XOAuthProviderConfiguratorTests {
         verify(cache).getUrlContent(any(), any());
     }
 
-
-
     @Test
     public void getCompleteAuthorizationURI_includesNonceOnOIDC() throws UnsupportedEncodingException {
-        String expected = String.format(baseExpect, oidc.getRelyingPartyId(), URLEncoder.encode("id_token code"), redirectUri, URLEncoder.encode("openid password.write"), "&nonce=");
-        assertThat(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc), startsWith(expected));
+        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, hasKey("nonce"));
     }
 
     @Test
     public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() throws UnsupportedEncodingException {
-        String expected = String.format(baseExpect, oauth.getRelyingPartyId(), URLEncoder.encode("code"), redirectUri, URLEncoder.encode("openid password.write"), "");
-        assertEquals(configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth), expected);
+        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth);
+
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, not(hasKey("nonce")));
     }
 
     @Test
@@ -364,6 +370,41 @@ public class XOAuthProviderConfiguratorTests {
         String authorizationURI = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
         verify(configurator).overlay(oidc);
         assertThat(authorizationURI, Matchers.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
+    }
+
+    @Test
+    public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
+        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+
+        assertThat(authzUri, startsWith(oidc.getAuthUrl().toString()));
+        assertThat(queryParams, hasEntry("client_id", oidc.getRelyingPartyId()));
+        assertThat(queryParams, hasEntry("response_type", "id_token+code"));
+        assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
+        assertThat(queryParams, hasEntry("scope", "openid+password.write"));
+        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        assertThat(queryParams, hasKey("nonce"));
+    }
+
+    @Test
+    public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
+        String authzUri = configurator.getCompleteAuthorizationURI(
+                "alias",
+                UaaUrlUtils.getBaseURL(request),
+                oauth
+        );
+
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+
+        assertThat(authzUri, startsWith(oidc.getAuthUrl().toString()));
+        assertThat(queryParams, hasEntry("client_id", oidc.getRelyingPartyId()));
+        assertThat(queryParams, hasEntry("response_type", "code"));
+        assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
+        assertThat(queryParams, hasEntry("scope", "openid+password.write"));
+        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
     }
 
     @Test

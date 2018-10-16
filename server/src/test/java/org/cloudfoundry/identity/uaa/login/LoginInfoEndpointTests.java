@@ -1128,7 +1128,7 @@ public class LoginInfoEndpointTests {
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
 
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);
@@ -1314,7 +1314,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
-        endpoint.loginForJson(model, null, mockHttpServletRequest);
+        endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
         assertNotNull(model.get("prompts"));
         assertTrue(model.get("prompts") instanceof Map);

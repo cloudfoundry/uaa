@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
@@ -111,6 +112,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
             query.add("client_id=" + definition.getRelyingPartyId());
             query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), "UTF-8"));
             query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, "UTF-8"));
+            query.add("state=" + RandomStringUtils.randomAlphanumeric(10));
             if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
                 query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
             }
