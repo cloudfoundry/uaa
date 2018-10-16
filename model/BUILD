@@ -1,0 +1,31 @@
+java_library(
+    name = "model",
+    visibility = ["//visibility:public"],
+    srcs = glob([
+        "src/main/java/**/*.java",
+    ]),
+    resources = glob([
+        "src/main/resources/**",
+    ]),
+    deps = [
+        "//metrics-data",
+        "@com_fasterxml_jackson_core_jackson_annotations//jar",
+        "@com_fasterxml_jackson_core_jackson_core//jar",
+        "@com_fasterxml_jackson_core_jackson_databind//jar",
+        "//third_party:javax_validation_validation_api",
+        "//third_party:org_springframework_spring_web",
+        "//third_party:org_springframework_spring_aop",
+        "//third_party:org_springframework_spring_beans",
+        "//third_party:org_springframework_spring_context",
+        "//third_party:org_springframework_spring_core",
+        "//third_party:commons_logging_commons_logging",
+        "//third_party:org_springframework_spring_webmvc",
+        "//third_party:org_springframework_spring_expression",
+        "//third_party:org_springframework_security_spring_security_config",
+        "//third_party:aopalliance_aopalliance",
+        "//third_party:org_springframework_security_spring_security_core",
+        "//third_party:org_springframework_security_oauth_spring_security_oauth2",
+        "//third_party:commons_codec_commons_codec",
+        "//third_party:org_slf4j_slf4j_api",
+    ],
+)
