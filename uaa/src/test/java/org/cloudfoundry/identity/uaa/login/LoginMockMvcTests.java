@@ -38,7 +38,7 @@ import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +61,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -528,14 +529,33 @@ public class LoginMockMvcTests {
             .andExpect(content().string(not(containsString("/create_account"))));
     }
 
-    @Test
-    @Disabled
-    public void testDefaultLogo() throws Exception {
-//        mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
 
-        mockMvc.perform(get("/login"))
-                .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
+    @Nested
+    @ExtendWith(SpringExtension.class)
+    @ActiveProfiles("default")
+    @WebAppConfiguration
+    @ContextConfiguration(classes = TestSpringContext.class)
+    @TestPropertySource(properties = "assetBaseUrl=//cdn.example.com/resources")
+    class DefaultLogo {
+        @Autowired
+        private WebApplicationContext webApplicationContext;
+
+        @BeforeEach
+        public void setup() {
+            FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+            mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                    .addFilter(springSecurityFilterChain)
+                    .build();
+
+        }
+
+        @Test
+        public void testDefaultLogo() throws Exception {
+            mockMvc.perform(get("/login"))
+                    .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
+        }
     }
+
 
     @Test
     public void testCustomLogo() throws Exception {
@@ -986,31 +1006,66 @@ public class LoginMockMvcTests {
 
     }
 
-    @Test
-    @Disabled
-    public void testLoginWithAnalytics() throws Exception {
-//        mockEnvironment.setProperty("analytics.code", "secret_code");
-//        mockEnvironment.setProperty("analytics.domain", "example.com");
+    @Nested
+    @ExtendWith(SpringExtension.class)
+    @ActiveProfiles("default")
+    @WebAppConfiguration
+    @ContextConfiguration(classes = TestSpringContext.class)
+    @TestPropertySource(properties = {"analytics.code=secret_code", "analytics.domain=example.com"})
+    class LoginWithAnalytics {
+        @Autowired
+        private WebApplicationContext webApplicationContext;
 
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
-                .andExpect(status().isOk())
-                .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
+        @BeforeEach
+        public void setup() {
+            FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+            mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                    .addFilter(springSecurityFilterChain)
+                    .build();
+
+        }
+
+        @Test
+        public void testLoginWithAnalytics() throws Exception {
+            mockMvc.perform(get("/login").accept(TEXT_HTML))
+                    .andExpect(status().isOk())
+                    .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
+        }
     }
 
     @Test
-    @Disabled
-    public void testDefaultAndExternalizedBranding() throws Exception {
+    public void testDefaultBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
-            .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
+                .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
+                .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
+                .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
+    }
 
-//        environment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
+    @Nested
+    @ExtendWith(SpringExtension.class)
+    @ActiveProfiles("default")
+    @WebAppConfiguration
+    @ContextConfiguration(classes = TestSpringContext.class)
+    @TestPropertySource(properties = {"assetBaseUrl=//cdn.example.com/pivotal"})
+    class Branding {
+        @Autowired
+        private WebApplicationContext webApplicationContext;
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
-            .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
+        @BeforeEach
+        public void setup() {
+            FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+            mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                    .addFilter(springSecurityFilterChain)
+                    .build();
+        }
+
+        @Test
+        public void testExternalizedBranding() throws Exception {
+            mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+                    .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
+                    .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
+                    .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
+        }
     }
 
     @Test
