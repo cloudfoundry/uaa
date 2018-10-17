@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
@@ -11,6 +12,7 @@ import org.mockito.Answers;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
@@ -22,8 +24,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class OidcMetadataDiscovererTest {
-    private OidcMetadataDiscoverer metadataDiscoverer;
+class OidcMetadataFetcherTest {
+    private OidcMetadataFetcher metadataDiscoverer;
     private UrlContentCache urlContentCache;
     private RestTemplate restTemplate;
 
@@ -36,16 +38,16 @@ class OidcMetadataDiscovererTest {
         urlContentCache = new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 2);
         restTemplate = mock(RestTemplate.class, Answers.RETURNS_DEEP_STUBS);
 
-        metadataDiscoverer = new OidcMetadataDiscoverer(urlContentCache, restTemplate, restTemplate);
+        metadataDiscoverer = new OidcMetadataFetcher(urlContentCache, restTemplate, restTemplate);
     }
 
     @Test
-    public void withoutDiscoveryUrl_shouldNotPerformDiscovery() throws IOException {
+    public void withoutDiscoveryUrl_shouldNotPerformDiscovery() throws OidcMetadataFetchingException, MalformedURLException {
         definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://not.updated"));
         definition.setTokenUrl(new URL("http://not.updated"));
 
-        metadataDiscoverer.performDiscoveryAndUpdateDefinition(definition);
+        metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
 
         assertThat(definition, is(notNullValue()));
         assertThat(definition.getDiscoveryUrl(), nullValue());
@@ -54,7 +56,7 @@ class OidcMetadataDiscovererTest {
     }
 
     @Test
-    public void withDiscoveryUrl_shouldPerformDiscovery() throws IOException {
+    public void withDiscoveryUrl_shouldPerformDiscovery() throws OidcMetadataFetchingException, MalformedURLException, JsonProcessingException {
         definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://should.be.updated"));
         definition.setTokenUrl(new URL("http://should.be.updated"));
@@ -62,7 +64,7 @@ class OidcMetadataDiscovererTest {
         when(restTemplate.getForObject(any(URI.class), eq(byte[].class)))
                 .thenReturn(objectMapper.writeValueAsBytes(buildOidcMetadata()));
 
-        metadataDiscoverer.performDiscoveryAndUpdateDefinition(definition);
+        metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
 
         assertThat(definition, is(notNullValue()));
         assertThat(definition.getAuthUrl().toString(), is("http://authz.endpoint"));
@@ -73,7 +75,7 @@ class OidcMetadataDiscovererTest {
     }
 
     @Test
-    public void withDiscoveryUrl_usesCache() throws IOException {
+    public void withDiscoveryUrl_usesCache() throws OidcMetadataFetchingException, MalformedURLException, JsonProcessingException {
         definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://should.be.updated"));
         definition.setTokenUrl(new URL("http://should.be.updated"));
@@ -84,8 +86,8 @@ class OidcMetadataDiscovererTest {
                 .thenReturn(objectMapper.writeValueAsBytes(buildOidcMetadata()))
                 .thenThrow(new RuntimeException("shouldn't have been called more than once"));
 
-        metadataDiscoverer.performDiscoveryAndUpdateDefinition(definition);
-        metadataDiscoverer.performDiscoveryAndUpdateDefinition(definition);
+        metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
+        metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
     }
 
     private OidcMetadata buildOidcMetadata() {

@@ -9,37 +9,41 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URL;
 
-public class OidcMetadataDiscoverer {
+public class OidcMetadataFetcher {
     private final UrlContentCache contentCache;
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
 
-    public OidcMetadataDiscoverer(UrlContentCache contentCache,
-                                  RestTemplate trustingRestTemplate,
-                                  RestTemplate nonTrustingRestTemplate
+    public OidcMetadataFetcher(UrlContentCache contentCache,
+                               RestTemplate trustingRestTemplate,
+                               RestTemplate nonTrustingRestTemplate
     ) {
         this.contentCache = contentCache;
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
     }
 
-    public void performDiscoveryAndUpdateDefinition(OIDCIdentityProviderDefinition definition) throws IOException {
-        if (shouldPerformDiscovery(definition)) {
+    public void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) throws OidcMetadataFetchingException {
+        if (shouldFetchMetadata(definition)) {
             OidcMetadata oidcMetadata =
-                    performDiscovery(definition.getDiscoveryUrl(), definition.isSkipSslValidation());
+                    fetchMetadata(definition.getDiscoveryUrl(), definition.isSkipSslValidation());
 
             updateIdpDefinition(definition, oidcMetadata);
         }
     }
 
-    private OidcMetadata performDiscovery(URL discoveryUrl, boolean shouldDoSslValidation) throws IOException {
+    private OidcMetadata fetchMetadata(URL discoveryUrl, boolean shouldDoSslValidation) throws OidcMetadataFetchingException {
         byte[] rawContents;
         if (shouldDoSslValidation) {
             rawContents = contentCache.getUrlContent(discoveryUrl.toString(), trustingRestTemplate);
         } else {
             rawContents = contentCache.getUrlContent(discoveryUrl.toString(), nonTrustingRestTemplate);
         }
-        return new ObjectMapper().readValue(rawContents, OidcMetadata.class);
+        try {
+            return new ObjectMapper().readValue(rawContents, OidcMetadata.class);
+        } catch (IOException e) {
+            throw new OidcMetadataFetchingException(e);
+        }
     }
 
     private void updateIdpDefinition(OIDCIdentityProviderDefinition definition, OidcMetadata oidcMetadata) {
@@ -50,7 +54,7 @@ public class OidcMetadataDiscoverer {
         definition.setIssuer(oidcMetadata.getIssuer());
     }
 
-    private boolean shouldPerformDiscovery(OIDCIdentityProviderDefinition definition) {
+    private boolean shouldFetchMetadata(OIDCIdentityProviderDefinition definition) {
         return definition.getDiscoveryUrl() != null && !StringUtils.isBlank(definition.getDiscoveryUrl().toString());
     }
 }
