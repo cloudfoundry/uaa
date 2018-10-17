@@ -249,7 +249,8 @@ public class IntegrationTestUtils {
               Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
               Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
               Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzonedoesnotexist.localhost").getAddress(), new byte[]{127, 0, 0, 1});
+              Arrays.equals(Inet4Address.getByName("testzonedoesnotexist.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
+              Arrays.equals(Inet4Address.getByName("testzoneinactive.localhost").getAddress(), new byte[]{127, 0, 0, 1});
         } catch (UnknownHostException e) {
             return false;
         }
@@ -660,11 +661,12 @@ public class IntegrationTestUtils {
         template.exchange(url + "/Groups/{groupId}", HttpMethod.DELETE, new HttpEntity<>(headers), ScimGroup.class, groupId);
     }
 
-    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
+    private static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
                                                            String url,
                                                            String id,
                                                            String subdomain,
-                                                           IdentityZoneConfiguration config) {
+                                                           IdentityZoneConfiguration config,
+                                                           boolean active) {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
 
@@ -672,6 +674,7 @@ public class IntegrationTestUtils {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
+            existing.setActive(active);
             HttpEntity<IdentityZone> updateZoneRequest = new HttpEntity<>(existing);
             ResponseEntity<String> getUpdatedZone = client.exchange(url + "/identity-zones/{id}", HttpMethod.PUT, updateZoneRequest, String.class, id);
             IdentityZone updatedZone = JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
@@ -683,9 +686,27 @@ public class IntegrationTestUtils {
           .setSubdomain(subdomain)
           .setName("The Twiglet Zone[" + id + "]")
           .setDescription("Like the Twilight Zone but tastier[" + id + "].")
-          .setConfig(config);
+          .setConfig(config)
+          .setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();
+    }
+
+    public static IdentityZone createInactiveIdentityZone(RestTemplate client, String url) {
+        createZoneOrUpdateSubdomain(client, url, "testzoneinactive", "testzoneinactive", new IdentityZoneConfiguration(), false);
+        ResponseEntity<IdentityZone> zoneGet = client.getForEntity(url + "/identity-zones/{id}", IdentityZone.class, "testzoneinactive");
+        if (!(zoneGet.getStatusCode() == HttpStatus.OK)) {
+            throw new RuntimeException("Could not create inactive zone.");
+        }
+        return zoneGet.getBody();
+    }
+
+    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
+                                                           String url,
+                                                           String id,
+                                                           String subdomain,
+                                                           IdentityZoneConfiguration config) {
+        return createZoneOrUpdateSubdomain(client, url, id, subdomain, config, true);
     }
 
     public static void addMemberToGroup(RestTemplate client,

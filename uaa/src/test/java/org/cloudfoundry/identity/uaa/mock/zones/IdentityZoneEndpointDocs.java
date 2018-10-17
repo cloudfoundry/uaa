@@ -58,6 +58,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
+    private static final String ACTIVE_DESC = "Indicates whether the identity zone is active. Defaults to true.";
     private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_UPDATE_DESC = "Keys which will be used to sign the token. If null value is specified for keys, then existing value will be retained.";
@@ -212,6 +213,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
             fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -371,6 +373,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].name").description(NAME_DESC),
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
+            fieldWithPath("[].active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(VARIES).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
@@ -517,6 +520,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
@@ -704,6 +708,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC),
             fieldWithPath("description").type(STRING).description(DESCRIPTION_DESC).optional(),
             fieldWithPath("version").description(VERSION_DESC),
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),

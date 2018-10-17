@@ -14,6 +14,7 @@ cat <<EOF >>/etc/hosts
 127.0.0.1 testzone4.localhost
 127.0.0.1 testzonedoesnotexist.localhost
 127.0.0.1 oidcloginit.localhost
+127.0.0.1 testzoneinactive.localhost
 EOF
 
 bootDB "${DB}"

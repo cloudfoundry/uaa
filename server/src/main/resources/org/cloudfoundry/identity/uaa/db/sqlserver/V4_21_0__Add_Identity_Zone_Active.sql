@@ -1,0 +1,1 @@
+ALTER TABLE identity_zone ADD active BIT NOT NULL DEFAULT 1;
