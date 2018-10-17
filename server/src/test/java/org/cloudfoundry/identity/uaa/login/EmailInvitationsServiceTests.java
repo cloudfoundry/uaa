@@ -10,12 +10,12 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +26,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.HttpClientErrorException;
@@ -45,19 +45,16 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = EmailInvitationsServiceTests.ContextConfiguration.class)
 @DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
@@ -81,17 +78,15 @@ public class EmailInvitationsServiceTests {
     @Autowired
     ClientServicesExtension clientDetailsService;
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
     }
@@ -118,15 +113,15 @@ public class EmailInvitationsServiceTests {
 
     @Test
     public void nonMatchingCodeIntent() {
-        expectedEx.expect(HttpClientErrorException.class);
-        expectedEx.expectMessage("400 BAD_REQUEST");
-
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
 
-        emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
+        HttpClientErrorException httpClientErrorException = Assertions.assertThrows(HttpClientErrorException.class,
+                () -> emailInvitationsService.acceptInvitation("code", "password").getRedirectUri());
+
+        assertThat(httpClientErrorException.getMessage(), CoreMatchers.containsString("400 BAD_REQUEST"));
     }
 
     @Test

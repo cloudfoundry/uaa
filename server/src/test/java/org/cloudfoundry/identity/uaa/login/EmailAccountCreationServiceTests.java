@@ -14,18 +14,14 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,7 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -47,24 +43,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailAccountCreationServiceTests {
 
@@ -82,10 +70,7 @@ public class EmailAccountCreationServiceTests {
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
@@ -115,7 +100,7 @@ public class EmailAccountCreationServiceTests {
         );
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -198,14 +183,16 @@ public class EmailAccountCreationServiceTests {
         testBeginActivationWithCompanyNameConfigured(utf8String);
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void testBeginActivationWithExistingUser() throws Exception {
         setUpForSuccess(null);
         user.setVerified(true);
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null));
     }
 
     @Test
@@ -331,19 +318,18 @@ public class EmailAccountCreationServiceTests {
         }
     }
 
-    @Test(expected = InvalidPasswordException.class)
+    @Test
     public void beginActivation_throwsException_ifPasswordViolatesPolicy() throws Exception {
         doThrow(new InvalidPasswordException("Oh hell no")).when(passwordValidator).validate(anyString());
 
-        emailAccountCreationService.beginActivation("user@example.com", "some password", null, null);
+        Assertions.assertThrows(InvalidPasswordException.class,
+                () -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null));
+
         verify(passwordValidator).validate("some password");
     }
 
     @Test
     public void nonMatchingCodeTypeDisallowsActivation() throws Exception {
-        expectedEx.expect(HttpClientErrorException.class);
-        expectedEx.expectMessage("400 BAD_REQUEST");
-
         Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
         Map<String, Object> data = new HashMap<>();
         data.put("user_id", "user-id");
@@ -354,12 +340,16 @@ public class EmailAccountCreationServiceTests {
 
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
 
-        emailAccountCreationService.completeActivation("the_secret_code");
+        HttpClientErrorException httpClientErrorException = Assertions.assertThrows(HttpClientErrorException.class,
+                () -> emailAccountCreationService.completeActivation("the_secret_code"));
+
+        assertThat(httpClientErrorException.getMessage(), containsString("400 BAD_REQUEST"));
     }
 
     private String setUpForSuccess(String redirectUri) throws Exception {
         return setUpForSuccess("newly-created-user-id", redirectUri);
     }
+
     private String setUpForSuccess(String userId, String redirectUri) throws Exception {
         user = new ScimUser(
                 userId,

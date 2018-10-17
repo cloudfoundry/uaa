@@ -22,17 +22,13 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +38,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -61,12 +57,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailChangeEmailServiceTest {
     private EmailChangeEmailService emailChangeEmailService;
@@ -82,13 +75,13 @@ public class EmailChangeEmailServiceTest {
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         scimUserProvisioning = mock(ScimUserProvisioning.class);
@@ -115,14 +108,16 @@ public class EmailChangeEmailServiceTest {
         );
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void beginEmailChangeWithUsernameConflict() throws Exception {
         ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
-        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null);
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
     }
 
     @Test
@@ -215,16 +210,21 @@ public class EmailChangeEmailServiceTest {
         Assert.assertEquals("http://app.com/redirect", response.get("redirect_url"));
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void testCompleteVerificationWithInvalidCode() throws Exception {
         when(codeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(null);
-        emailChangeEmailService.completeVerification("invalid_code");
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailChangeEmailService.completeVerification("invalid_code"));
+
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void testCompleteVerificationWithInvalidIntent() throws Exception {
         when(codeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
-        emailChangeEmailService.completeVerification("invalid_code");
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailChangeEmailService.completeVerification("invalid_code"));
     }
 
     @Test
