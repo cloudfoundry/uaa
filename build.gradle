@@ -102,6 +102,14 @@ subprojects {
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
+
+        afterSuite { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
+        }
+
+        afterTest { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
+        }
     }
 
     task packageSources(type: Jar) {
