@@ -15,9 +15,17 @@
 
 package org.cloudfoundry.identity.uaa.mock.limited;
 
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 
@@ -25,7 +33,13 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedMod
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
 public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
+    @Autowired
+    private WebApplicationContext webApplicationContext;
 
     private File statusFile;
     private File existingStatusFile = null;
@@ -34,16 +48,15 @@ public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
     @Override
     public void setUpContext() throws Exception {
         super.setUpContext();
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
+        statusFile = setLimitedModeStatusFile(webApplicationContext);
     }
-
 
     @After
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
+        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 
 }
