@@ -36,11 +36,11 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -61,7 +61,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -93,7 +93,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -104,7 +104,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
@@ -124,7 +124,7 @@ public class LoginMockMvcTests {
     private IdentityZone identityZone;
     private MockMvc mockMvc;
 
-    @Before
+    @BeforeEach
     public void setUpContext() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -158,14 +158,14 @@ public class LoginMockMvcTests {
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
     }
 
-    @After
+    @AfterEach
     public void resetGenerator() throws Exception {
         webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
         webApplicationContext.getBean(LoginInfoEndpoint.class).setGlobalLinks(globalLinks);
         webApplicationContext.getBean(HomeController.class).setGlobalLinks(globalLinks);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         setSelfServiceLinksEnabled(true);
         setDisableInternalUserManagement(false);
@@ -529,7 +529,7 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testDefaultLogo() throws Exception {
 //        mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
 
@@ -655,7 +655,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testForgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         mockMvc.perform(
             post("/forgot_password.do")
                 .param("username", "marissa")
@@ -678,7 +678,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangePasswordSubmitDoesValidateCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         ScimUser user = createUser(getUaa().getId());
         mockMvc.perform(
             post("/change_password.do")
@@ -987,7 +987,7 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testLoginWithAnalytics() throws Exception {
 //        mockEnvironment.setProperty("analytics.code", "secret_code");
 //        mockEnvironment.setProperty("analytics.domain", "example.com");
@@ -998,7 +998,7 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testDefaultAndExternalizedBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
@@ -1687,7 +1687,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testDeactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         String alias = "login-saml-"+generator.generate();
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1745,7 +1745,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailSubmitWithMissingCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1770,7 +1770,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailSubmitWithInvalidCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1795,7 +1795,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
         //example shows to to test a request that is secured by csrf and you wish to bypass it
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1814,7 +1814,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailSubmitWithCorrectCsrf() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1843,7 +1843,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailDoNotLoggedIn() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1871,7 +1871,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testChangeEmailNoCsrfReturns403AndInvalidRequest() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1897,7 +1897,7 @@ public class LoginMockMvcTests {
 
     @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
-        assumeFalse("Test only runs in non limited mode.", isLimitedMode());
+        assumeFalse(isLimitedMode(), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext);
         AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), asList(UaaAuthority.UAA_INVITED));
         MockHttpSession inviteSession = new MockHttpSession();

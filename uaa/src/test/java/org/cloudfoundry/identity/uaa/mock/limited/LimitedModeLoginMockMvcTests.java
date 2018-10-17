@@ -17,23 +17,21 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
@@ -44,7 +42,7 @@ public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
     private File statusFile;
     private File existingStatusFile = null;
 
-    @Before
+    @BeforeEach
     @Override
     public void setUpContext() throws Exception {
         super.setUpContext();
@@ -52,7 +50,7 @@ public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
         statusFile = setLimitedModeStatusFile(webApplicationContext);
     }
 
-    @After
+    @AfterEach
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
