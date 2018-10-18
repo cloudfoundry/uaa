@@ -17,14 +17,14 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestTemplate;
@@ -46,7 +46,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class XOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
-    private static Log log = LogFactory.getLog(XOAuthProviderConfigurator.class);
+    private static Logger log = LoggerFactory.getLogger(XOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final UrlContentCache contentCache;
