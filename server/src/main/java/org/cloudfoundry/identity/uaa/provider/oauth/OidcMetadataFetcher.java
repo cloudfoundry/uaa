@@ -9,6 +9,8 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URL;
 
+import static java.util.Optional.ofNullable;
+
 public class OidcMetadataFetcher {
     private final UrlContentCache contentCache;
     private final RestTemplate trustingRestTemplate;
@@ -51,7 +53,7 @@ public class OidcMetadataFetcher {
         definition.setTokenUrl(oidcMetadata.getTokenEndpoint());
         definition.setTokenKeyUrl(oidcMetadata.getJsonWebKeysUri());
         definition.setUserInfoUrl(oidcMetadata.getUserinfoEndpoint());
-        definition.setIssuer(oidcMetadata.getIssuer());
+        definition.setIssuer(ofNullable(definition.getIssuer()).orElse(oidcMetadata.getIssuer()));
     }
 
     private boolean shouldFetchMetadata(OIDCIdentityProviderDefinition definition) {
