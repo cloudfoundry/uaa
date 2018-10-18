@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,9 +75,13 @@ public class AccountsControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
 
+    private boolean selfServiceToReset = false;
+
     @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
+        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
@@ -84,6 +89,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     @AfterEach
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
     }
 
     @Test
@@ -190,6 +196,8 @@ public class AccountsControllerTest extends TestClassNullifier {
             .param("password", "pass")
             .param("password_confirmation", "word")
             .param("client_id", "app");
+
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
