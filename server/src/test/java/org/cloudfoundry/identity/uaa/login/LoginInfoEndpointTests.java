@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
@@ -123,6 +124,7 @@ public class LoginInfoEndpointTests {
     private IdentityZoneConfiguration originalConfiguration;
     private XOAuthProviderConfigurator configurator;
     private MfaChecker mfaChecker;
+    private OidcMetadataFetcher oidcMetadataFetcher;
 
     @Before
     public void setUpPrincipal() {
@@ -139,8 +141,9 @@ public class LoginInfoEndpointTests {
         when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
         originalConfiguration = IdentityZoneHolder.get().getConfig();
+        oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, mock(UrlContentCache.class), mock(RestTemplate.class), mock(RestTemplate.class));
+        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher);
         mfaChecker = spy(new MfaChecker(mock(IdentityProviderProvisioning.class)));
         model = new ExtendedModelMap();
     }

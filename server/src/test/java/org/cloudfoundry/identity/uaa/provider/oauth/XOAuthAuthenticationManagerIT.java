@@ -41,12 +41,10 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -177,12 +175,15 @@ public class XOAuthAuthenticationManagerIT {
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
         when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
+        OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
+                new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+                trustingRestTemplate,
+                nonTrustingRestTemplate
+        );
         xoAuthProviderConfigurator = spy(
                 new XOAuthProviderConfigurator(
                         provisioning,
-                        new ExpiringUrlCache(Duration.ofSeconds(10), new TimeServiceImpl(), 10),
-                        trustingRestTemplate,
-                        nonTrustingRestTemplate
+                        oidcMetadataFetcher
                 )
         );
         xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL)));

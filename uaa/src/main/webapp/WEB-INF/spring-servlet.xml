@@ -426,6 +426,10 @@
 
     <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+    </bean>
+
+    <bean class="org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher" id="oidcMetadataFetcher">
         <constructor-arg name="contentCache" ref="urlCache"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
