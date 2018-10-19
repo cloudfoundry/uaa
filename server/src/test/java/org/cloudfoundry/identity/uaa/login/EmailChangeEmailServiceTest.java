@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.account.EmailChangeEmailService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -62,6 +63,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailChangeEmailServiceTest {
+    public static final String IDENTITY_ZONE_NAME = "IZ Inc";
     private EmailChangeEmailService emailChangeEmailService;
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore codeStore;
@@ -103,7 +105,7 @@ public class EmailChangeEmailServiceTest {
         Mockito.verify(messageService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
-                eq("Account Email change verification"),
+                eq(String.format("%s Email change verification", IDENTITY_ZONE_NAME)),
                 contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
         );
     }
@@ -122,32 +124,51 @@ public class EmailChangeEmailServiceTest {
 
     @Test
     public void testBeginEmailChangeWithCompanyNameConfigured() throws Exception {
-        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
+
+        ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
+        user.setPrimaryEmail("user@example.com");
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", "user-001");
+        codeData.put("client_id", "app");
+        codeData.put("redirect_uri", "http://app.com");
+        codeData.put("email", "new@example.com");
+
+        IdentityZone identityZone = IdentityZoneHolder.get();
+        String zoneId = identityZone.getId();
+
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName("Best Company");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setBranding(branding);
-        IdentityZoneHolder.get().setConfig(config);
-        try {
-            emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
 
-            setUpForBeginEmailChange();
+        identityZone.setConfig(config);
 
-            ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(messageService).sendMessage(
-              eq("new@example.com"),
-              eq(MessageType.CHANGE_EMAIL),
-              eq("Best Company Email change verification"),
-              emailBodyArgument.capture()
-            );
+        IdentityZoneHolder.set(identityZone);
 
-            String emailBody = emailBodyArgument.getValue();
+        when(scimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
+        String data = JsonUtils.writeValueAsString(codeData);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
 
-            assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-            assertThat(emailBody, containsString("a Best Company account"));
-        } finally {
-            IdentityZoneHolder.get().setConfig(defaultConfig);
-        }
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
+
+        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(messageService).sendMessage(
+                eq("new@example.com"),
+                eq(MessageType.CHANGE_EMAIL),
+                eq("Best Company Email change verification"),
+                emailBodyArgument.capture()
+        );
+
+        String emailBody = emailBodyArgument.getValue();
+
+        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
+        assertThat(emailBody, containsString("a Best Company account"));
+
     }
 
     @Test
@@ -175,7 +196,24 @@ public class EmailChangeEmailServiceTest {
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
 
-        setUpForBeginEmailChange();
+        ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
+        user.setPrimaryEmail("user@example.com");
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", "user-001");
+        codeData.put("client_id", "app");
+        codeData.put("redirect_uri", "http://app.com");
+        codeData.put("email", "new@example.com");
+
+        String zoneId = IdentityZoneHolder.get().getId();
+
+        when(scimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
+        String data = JsonUtils.writeValueAsString(codeData);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
@@ -300,14 +338,21 @@ public class EmailChangeEmailServiceTest {
         codeData.put("redirect_uri", "http://app.com");
         codeData.put("email", "new@example.com");
 
-        when(scimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(Collections.singletonList(new ScimUser()));
+        IdentityZone identityZone = new IdentityZone();
+        String zoneId = RandomStringUtils.random(10);
+        identityZone.setId(zoneId);
+        identityZone.setName(IDENTITY_ZONE_NAME);
+
+        IdentityZoneHolder.set(identityZone);
+
+        when(scimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
 
         emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
 
-        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId()));
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
     }
 
 }
