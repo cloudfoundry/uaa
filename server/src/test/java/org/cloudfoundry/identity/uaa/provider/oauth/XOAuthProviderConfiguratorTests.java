@@ -222,66 +222,7 @@ public class XOAuthProviderConfiguratorTests {
         assertEquals(OIDCIdentityProviderDefinition.class, oidc.getParameterizedClass());
         assertEquals(RawXOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
     }
-//
-//    @Test
-//    public void overlay_noDiscoveryUrl() {
-//        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-//        verifyZeroInteractions(cache);
-//        assertSame(definition, configurator.overlay(definition));
-//    }
-//
-//    @Test
-//    public void overlay_withOverrideValues() throws MalformedURLException {
-//        String urlBase = "http://localhost:8080/uaa";
-//
-//
-//        config.setSkipSslValidation(true);
-//        //values from URL
-//        config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
-//        config.setTokenUrl(new URL(urlBase + "/oauth/token"));
-//        config.setTokenKeyUrl(new URL(urlBase + "/token_key"));
-//        config.setUserInfoUrl(new URL(urlBase + "/userinfo"));
-//        config.setIssuer(urlBase + "/oauth/token");
-//
-//        OIDCIdentityProviderDefinition overlay = configurator.overlay(config);
-//
-//        assertNotSame(config, overlay);
-//        assertEquals(config, overlay);
-//        verify(cache).getUrlContent(eq(discoveryUrl), eq(trustingRestTemplate));
-//    }
-//
-//    @Test
-//    public void overlay_withoutOverrideValues() throws MalformedURLException {
-//        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
-//
-//        config.setDiscoveryUrl(new URL(discoveryUrl));
-//        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-//        config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
-//        config.setStoreCustomAttributes(true);
-//        config.setShowLinkText(true);
-//        config.setLinkText("My OIDC Provider");
-//        config.setSkipSslValidation(true);
-//        config.setRelyingPartyId("identity");
-//        config.setRelyingPartySecret("identitysecret");
-//        config.setResponseType("id_token");
-//        List<String> requestedScopes = new ArrayList<>();
-//        requestedScopes.add("openid");
-//        requestedScopes.add("cloud_controller.read");
-//        config.setScopes(requestedScopes);
-//        config.setSkipSslValidation(false);
-//
-//        OIDCIdentityProviderDefinition overlay = configurator.overlay(config);
-//
-//        assertNotSame(config, overlay);
-//        assertNotEquals(config, overlay);
-//        assertEquals(new URL("https://accounts.google.com/o/oauth2/v2/auth"), overlay.getAuthUrl());
-//        assertEquals(new URL("https://www.googleapis.com/oauth2/v3/userinfo"), overlay.getUserInfoUrl());
-//        assertEquals("https://accounts.google.com", overlay.getIssuer());
-//        assertEquals(new URL("https://www.googleapis.com/oauth2/v4/token"), overlay.getTokenUrl());
-//        assertEquals(new URL("https://www.googleapis.com/oauth2/v3/certs"), overlay.getTokenKeyUrl());
-//
-//        verify(cache).getUrlContent(any(), any());
-//    }
+
 
     @Test
     public void getCompleteAuthorizationURI_includesNonceOnOIDC() throws UnsupportedEncodingException {

@@ -1139,8 +1139,8 @@ public class XOAuthAuthenticationManagerIT {
     private CompositeToken getCompositeAccessToken(List<String> removeClaims) {
         removeClaims.stream().forEach(c -> claims.remove(c));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
 
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         CompositeToken compositeToken = new CompositeToken("accessToken");

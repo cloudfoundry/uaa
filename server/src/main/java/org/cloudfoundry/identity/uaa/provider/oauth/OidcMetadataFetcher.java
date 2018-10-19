@@ -49,10 +49,10 @@ public class OidcMetadataFetcher {
     }
 
     private void updateIdpDefinition(OIDCIdentityProviderDefinition definition, OidcMetadata oidcMetadata) {
-        definition.setAuthUrl(oidcMetadata.getAuthorizationEndpoint());
-        definition.setTokenUrl(oidcMetadata.getTokenEndpoint());
-        definition.setTokenKeyUrl(oidcMetadata.getJsonWebKeysUri());
-        definition.setUserInfoUrl(oidcMetadata.getUserinfoEndpoint());
+        definition.setAuthUrl(ofNullable(definition.getAuthUrl()).orElse(oidcMetadata.getAuthorizationEndpoint()));
+        definition.setTokenUrl(ofNullable(definition.getTokenUrl()).orElse(oidcMetadata.getTokenEndpoint()));
+        definition.setTokenKeyUrl(ofNullable(definition.getTokenKeyUrl()).orElse(oidcMetadata.getJsonWebKeysUri()));
+        definition.setUserInfoUrl(ofNullable(definition.getUserInfoUrl()).orElse(oidcMetadata.getUserinfoEndpoint()));
         definition.setIssuer(ofNullable(definition.getIssuer()).orElse(oidcMetadata.getIssuer()));
     }
 
