@@ -68,8 +68,12 @@ public class TestWebAppContext implements InitializingBean {
                 .build();
     }
 
+    @Autowired
+    private EventFactory honeycombEventFactory;
+
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
+        HoneycombJdbcInterceptor.honeyCombEventFactory = honeycombEventFactory;
         dataSource.setJdbcInterceptors("org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptor");
     }
 }
