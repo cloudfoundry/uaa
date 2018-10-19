@@ -65,6 +65,7 @@ public class EmailAccountCreationServiceTests {
     private ExpiringCode code = null;
     private ClientDetails details = null;
     private PasswordValidator passwordValidator;
+    private IdentityZone identityZone;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
@@ -87,6 +88,8 @@ public class EmailAccountCreationServiceTests {
         request.setServerName("uaa.example.com");
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
+
+        identityZone = new IdentityZone();
     }
 
     private EmailAccountCreationService initEmailAccountCreationService() {
@@ -110,7 +113,12 @@ public class EmailAccountCreationServiceTests {
     public void testBeginActivation() throws Exception {
         String redirectUri = "";
         String data = setUpForSuccess(redirectUri);
-        String zoneId = IdentityZoneHolder.get().getId();
+
+        String zoneId = "BeginActivationZone";
+        identityZone.setId(zoneId);
+        identityZone.setSubdomain("uaa");
+        IdentityZoneHolder.set(identityZone);
+
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
