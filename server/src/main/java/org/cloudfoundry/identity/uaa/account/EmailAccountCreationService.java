@@ -70,7 +70,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     public void beginActivation(String email, String password, String clientId, String redirectUri) {
         passwordValidator.validate(password);
 
-        String subject = getSubjectText();
+        String subject = buildSubjectText();
         try {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri);
@@ -166,8 +166,14 @@ public class EmailAccountCreationService implements AccountCreationService {
         }
     }
 
-    private String getSubjectText() {
-        return StringUtils.hasText(IdentityZoneHolder.resolveBranding().getCompanyName()) && IdentityZoneHolder.isUaa() ?  "Activate your " + IdentityZoneHolder.resolveBranding().getCompanyName() + " account" : "Activate your account";
+    private String buildSubjectText() {
+        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+        boolean addBranding = StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa();
+        if(addBranding) {
+            return String.format("Activate your %s account", companyName);
+        } else {
+            return "Activate your account";
+        }
     }
 
     private String getEmailHtml(String code, String email) {
