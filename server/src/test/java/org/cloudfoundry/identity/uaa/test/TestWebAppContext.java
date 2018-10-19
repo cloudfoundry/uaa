@@ -16,6 +16,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.io.support.PropertySourceFactory;
+import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.yaml.snakeyaml.Yaml;
 
 import java.net.InetAddress;
@@ -39,8 +40,8 @@ public class TestWebAppContext implements InitializingBean {
     }
 
     @Bean
-    public EventFactory honeycombEventFactory(@Value("#{T(System).getenv('honeycomb.key')}") String honeycombKey,
-                                              @Value("#{T(System).getenv('honeycomb.dataset')}") String dataset,
+    public EventFactory honeycombEventFactory(@Value("#{T(System).getenv('HONEYCOMB_KEY')}") String honeycombKey,
+                                              @Value("#{T(System).getenv('HONEYCOMB_DATASET')}") String dataset,
                                               @Value("${testId:-1}") String testId) {
         HoneyClient honeyClient = LibHoney.create(
                 LibHoney.options()
@@ -66,6 +67,14 @@ public class TestWebAppContext implements InitializingBean {
                 .addField("cpuCores", Runtime.getRuntime().availableProcessors())
                 .addField("hostname", hostName)
                 .build();
+    }
+
+    @Bean
+    public HoneycombAuditEventTestListener honeycombAuditEventTestListener(EventFactory honeycombEventFactory) {
+        HoneycombAuditEventTestListener<AuthenticationFailureLockedEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(AuthenticationFailureLockedEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        return listener;
     }
 
     @Autowired
