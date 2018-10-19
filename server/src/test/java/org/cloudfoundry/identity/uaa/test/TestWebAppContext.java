@@ -1,12 +1,16 @@
 package org.cloudfoundry.identity.uaa.test;
 
 
+import io.honeycomb.libhoney.EventFactory;
+import io.honeycomb.libhoney.HoneyClient;
+import io.honeycomb.libhoney.LibHoney;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.Resource;
@@ -14,6 +18,8 @@ import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.io.support.PropertySourceFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 @Configuration
@@ -30,6 +36,36 @@ public class TestWebAppContext implements InitializingBean {
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
         return new PropertySourcesPlaceholderConfigurer();
+    }
+
+    @Bean
+    public EventFactory honeycombEventFactory(@Value("#{T(System).getenv('honeycomb.key')}") String honeycombKey,
+                                              @Value("#{T(System).getenv('honeycomb.dataset')}") String dataset,
+                                              @Value("${testId:-1}") String testId) {
+        HoneyClient honeyClient = LibHoney.create(
+                LibHoney.options()
+                        .setWriteKey(honeycombKey)
+                        .setDataset(dataset)
+                        .build()
+        );
+
+        if (honeycombKey == null || dataset == null) {
+            return honeyClient.buildEventFactory().build();
+        }
+
+        String hostName = "";
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        return honeyClient.buildEventFactory()
+                .addField("testId", testId)
+                .addField("cpuCores", Runtime.getRuntime().availableProcessors())
+                .addField("hostname", hostName)
+                .build();
     }
 
     @Override
