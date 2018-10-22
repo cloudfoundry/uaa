@@ -14,12 +14,14 @@ package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
 public class ClientMetadataAdminEndpointsMockMvcTest {
+    @Rule
+    public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();
+
     @Autowired
     public WebApplicationContext webApplicationContext;
     private String adminClientTokenWithClientsWrite;
