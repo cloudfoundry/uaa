@@ -13,8 +13,6 @@ public class HoneycombAuditEventListenerRule implements TestRule {
                 HoneycombAuditEventTestListener.testRunning = description.getDisplayName();
 
                 base.evaluate();
-
-                HoneycombAuditEventTestListener.testRunning = null;
             }
         };
     }

@@ -14,6 +14,7 @@ import org.springframework.security.authentication.event.AuthenticationFailureLo
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 @Configuration
 @ImportResource(locations = {
@@ -49,11 +50,21 @@ public class TestSpringContext {
             e.printStackTrace();
         }
 
-        return honeyClient.buildEventFactory()
+        EventFactory.Builder builder = honeyClient.buildEventFactory()
+                .addField("junit", "4")
                 .addField("testId", testId)
                 .addField("cpuCores", Runtime.getRuntime().availableProcessors())
-                .addField("hostname", hostName)
-                .build();
+                .addField("hostname", hostName);
+
+        for (Map.Entry entry : System.getProperties().entrySet()) {
+            builder.addField(entry.getKey().toString(), entry.getValue());
+        }
+
+        builder.addField("DB", System.getenv().get("DB"));
+        builder.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"));
+        builder.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"));
+
+        return builder.build();
     }
 
     @Bean

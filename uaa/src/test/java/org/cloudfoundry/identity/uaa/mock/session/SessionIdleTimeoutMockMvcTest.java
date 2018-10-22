@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.mock.session;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,9 @@ import static org.junit.Assert.assertNotNull;
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
 public class SessionIdleTimeoutMockMvcTest {
+    @Rule
+    public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();
+
     @Autowired
     public WebApplicationContext webApplicationContext;
 

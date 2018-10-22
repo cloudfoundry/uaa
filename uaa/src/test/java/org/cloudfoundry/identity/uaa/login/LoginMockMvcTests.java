@@ -31,6 +31,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -106,6 +108,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
@@ -532,6 +536,8 @@ public class LoginMockMvcTests {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
@@ -1008,6 +1014,8 @@ public class LoginMockMvcTests {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
@@ -1043,6 +1051,8 @@ public class LoginMockMvcTests {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
