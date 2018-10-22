@@ -3,8 +3,11 @@ package org.cloudfoundry.identity.uaa;
 import io.honeycomb.libhoney.EventFactory;
 import io.honeycomb.libhoney.HoneyClient;
 import io.honeycomb.libhoney.LibHoney;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListener;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
@@ -68,10 +71,29 @@ public class TestSpringContext {
     }
 
     @Bean
-    public HoneycombAuditEventTestListener honeycombAuditEventTestListener(EventFactory honeycombEventFactory) {
+    public HoneycombAuditEventTestListener honeycombAuditEventTestListenerAuthenticationFailureLockedEvent(ConfigurableApplicationContext configurableApplicationContext, EventFactory honeycombEventFactory) {
         HoneycombAuditEventTestListener<AuthenticationFailureLockedEvent> listener =
                 HoneycombAuditEventTestListener.forEventClass(AuthenticationFailureLockedEvent.class);
         listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
+        return listener;
+    }
+
+    @Bean
+    public HoneycombAuditEventTestListener honeycombAuditEventTestListenerIdentityProviderAuthenticationFailureEvent(ConfigurableApplicationContext configurableApplicationContext,EventFactory honeycombEventFactory) {
+        HoneycombAuditEventTestListener<IdentityProviderAuthenticationFailureEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(IdentityProviderAuthenticationFailureEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
+        return listener;
+    }
+
+    @Bean
+    public HoneycombAuditEventTestListener honeycombAuditEventTestListenerMfaAuthenticationFailureEvent(ConfigurableApplicationContext configurableApplicationContext, EventFactory honeycombEventFactory) {
+        HoneycombAuditEventTestListener<MfaAuthenticationFailureEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(MfaAuthenticationFailureEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
         return listener;
     }
 }

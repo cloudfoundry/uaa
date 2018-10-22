@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.test;
 import io.honeycomb.libhoney.EventFactory;
 import org.springframework.context.ApplicationEvent;
 
+import java.util.function.Predicate;
+
 public class HoneycombAuditEventTestListener<T extends ApplicationEvent> extends TestApplicationEventListener<T> {
     public static String testRunning;
 
@@ -28,12 +30,13 @@ public class HoneycombAuditEventTestListener<T extends ApplicationEvent> extends
     protected void handleEvent(ApplicationEvent applicationEvent) {
         super.handleEvent(applicationEvent);
 
-        this.events.stream().forEach(event -> {
+        this.events.removeIf(event -> {
             honeycombEventFactory.createEvent()
                     .addField("auditEvent", event.getClass().getSimpleName())
                     .addField("eventSource", event.toString())
                     .addField("testName", testRunning)
                     .send();
+            return true;
         });
     }
 }
