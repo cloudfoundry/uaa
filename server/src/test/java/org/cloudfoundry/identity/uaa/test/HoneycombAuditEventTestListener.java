@@ -3,8 +3,6 @@ package org.cloudfoundry.identity.uaa.test;
 import io.honeycomb.libhoney.EventFactory;
 import org.springframework.context.ApplicationEvent;
 
-import java.util.function.Predicate;
-
 public class HoneycombAuditEventTestListener<T extends ApplicationEvent> extends TestApplicationEventListener<T> {
     public static String testRunning;
 

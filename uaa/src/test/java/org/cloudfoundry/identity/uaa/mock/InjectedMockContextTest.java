@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
