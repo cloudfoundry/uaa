@@ -12,6 +12,7 @@ java_library(
         "@com_fasterxml_jackson_core_jackson_annotations//jar",
         "@com_fasterxml_jackson_core_jackson_core//jar",
         "@com_fasterxml_jackson_core_jackson_databind//jar",
+        "@org_codehaus_jackson_jackson_mapper_asl//jar",
         "//third_party:javax_validation_validation_api",
         "//third_party:org_springframework_spring_web",
         "//third_party:org_springframework_spring_aop",
