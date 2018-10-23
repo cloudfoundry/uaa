@@ -29,11 +29,13 @@ public class HoneycombAuditEventTestListener<T extends ApplicationEvent> extends
         super.handleEvent(applicationEvent);
 
         this.events.removeIf(event -> {
-            honeycombEventFactory.createEvent()
-                    .addField("auditEvent", event.getClass().getSimpleName())
-                    .addField("eventSource", event.toString())
-                    .addField("testName", testRunning)
-                    .send();
+            try {
+                honeycombEventFactory.createEvent()
+                        .addField("auditEvent", event.getClass().getSimpleName())
+                        .addField("eventSource", event.toString())
+                        .addField("testName", testRunning)
+                        .send();
+            } catch(Exception _) {}
             return true;
         });
     }
