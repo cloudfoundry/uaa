@@ -116,7 +116,7 @@ public class InvitationsEndpoint {
                             URL inviteLink = new URL(invitationLink);
                             invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
                         } catch (MalformedURLException mue) {
-                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url: %s", invitationLink)));
                         }
                     } else if (providers.size() == 0) {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
