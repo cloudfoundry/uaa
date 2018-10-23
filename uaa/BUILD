@@ -1,7 +1,7 @@
-#load("@io_bazel_rules_appengine//appengine:java_appengine.bzl", "appengine_war")
-load("//uaa:war_rules.bzl", "war_file")
+load("@io_bazel_rules_appengine//appengine:java_appengine.bzl", "appengine_war")
+#load("//uaa:war_rules.bzl", "war_file")
 
-war_file(
+appengine_war(
     name = "uaa",
     jars = [
         "//metrics-data",

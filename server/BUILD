@@ -14,7 +14,7 @@ java_library(
         "@com_fasterxml_jackson_core_jackson_core//jar",
         "@com_fasterxml_jackson_core_jackson_databind//jar",
         "@org_codehaus_jackson_jackson_mapper_asl//jar",
-        "@javax_servlet_api//jar:jar",
+        #"@javax_servlet_api//jar:jar",
         "//third_party:org_apache_tomcat_tomcat_jdbc",
         "//third_party:org_apache_tomcat_tomcat_juli",
         "//third_party:javax_mail_mail",
