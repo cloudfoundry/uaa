@@ -12,18 +12,26 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock;
 
+import io.honeycomb.libhoney.EventFactory;
+import io.honeycomb.libhoney.HoneyClient;
+import io.honeycomb.libhoney.LibHoney;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListener;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.EventListener;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.*;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
@@ -78,6 +86,18 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
 
+        EventFactory honeycombEventFactory = honeycombEventFactory(
+                System.getenv("HONEYCOMB_KEY"),
+                System.getenv("HONEYCOMB_DATASET"),
+                Optional.ofNullable(System.getProperty("testId")).orElse("-1")
+        );
+        honeycombAuditEventTestListenerAuthenticationFailureLockedEvent(
+                webApplicationContext, honeycombEventFactory);
+        honeycombAuditEventTestListenerIdentityProviderAuthenticationFailureEvent(
+                webApplicationContext, honeycombEventFactory);
+        honeycombAuditEventTestListenerMfaAuthenticationFailureEvent(
+                webApplicationContext, honeycombEventFactory);
+
         return webApplicationContext;
     }
 
@@ -89,5 +109,72 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
             mockEnvironment.setProperty("spring_profiles", "default");
         }
         return mockEnvironment;
+    }
+
+    private static EventFactory honeycombEventFactory(String honeycombKey, String dataset, String testId) {
+        HoneyClient honeyClient = LibHoney.create(
+                LibHoney.options()
+                        .setWriteKey(honeycombKey)
+                        .setDataset(dataset)
+                        .build()
+        );
+
+        if (honeycombKey == null || dataset == null) {
+            return honeyClient.buildEventFactory().build();
+        }
+
+        String hostName = "";
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        EventFactory.Builder builder = honeyClient.buildEventFactory()
+                .addField("junit", "4")
+                .addField("testId", testId)
+                .addField("cpuCores", Runtime.getRuntime().availableProcessors())
+                .addField("hostname", hostName);
+
+        for (Map.Entry entry : System.getProperties().entrySet()) {
+            builder.addField(entry.getKey().toString(), entry.getValue());
+        }
+
+        builder.addField("DB", System.getenv().get("DB"));
+        builder.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"));
+        builder.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"));
+
+        return builder.build();
+    }
+
+    private static HoneycombAuditEventTestListener honeycombAuditEventTestListenerAuthenticationFailureLockedEvent(
+            ConfigurableApplicationContext configurableApplicationContext, EventFactory honeycombEventFactory) {
+
+        HoneycombAuditEventTestListener<AuthenticationFailureLockedEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(AuthenticationFailureLockedEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
+        return listener;
+    }
+
+    private static HoneycombAuditEventTestListener honeycombAuditEventTestListenerIdentityProviderAuthenticationFailureEvent(
+            ConfigurableApplicationContext configurableApplicationContext,EventFactory honeycombEventFactory) {
+
+        HoneycombAuditEventTestListener<IdentityProviderAuthenticationFailureEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(IdentityProviderAuthenticationFailureEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
+        return listener;
+    }
+
+    private static HoneycombAuditEventTestListener honeycombAuditEventTestListenerMfaAuthenticationFailureEvent(
+            ConfigurableApplicationContext configurableApplicationContext, EventFactory honeycombEventFactory) {
+
+        HoneycombAuditEventTestListener<MfaAuthenticationFailureEvent> listener =
+                HoneycombAuditEventTestListener.forEventClass(MfaAuthenticationFailureEvent.class);
+        listener.setHoneycombEventFactory(honeycombEventFactory);
+        configurableApplicationContext.addApplicationListener(listener);
+        return listener;
     }
 }
