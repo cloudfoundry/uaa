@@ -40,6 +40,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
@@ -1534,6 +1535,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setState(state);
 
         session.setAttribute("authorizationRequest", authorizationRequest);
+        session.setAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", unmodifiableMap(authorizationRequest));
 
         MvcResult result = getMockMvc().perform(
                 post("/oauth/authorize")
@@ -1570,6 +1572,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
         session.setAttribute("authorizationRequest", authorizationRequest);
+        session.setAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", unmodifiableMap(authorizationRequest));
 
         MvcResult result = getMockMvc().perform(
                 post("/oauth/authorize")
@@ -4260,5 +4263,35 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         public void setAuthentication(Authentication authentication) {
             this.authentication = authentication;
         }
+    }
+
+    Map<String, Object> unmodifiableMap(AuthorizationRequest authorizationRequest) {
+        Map<String, Object> authorizationRequestMap = new HashMap<>();
+
+        authorizationRequestMap.put(OAuth2Utils.CLIENT_ID, authorizationRequest.getClientId());
+        authorizationRequestMap.put(OAuth2Utils.STATE, authorizationRequest.getState());
+        authorizationRequestMap.put(OAuth2Utils.REDIRECT_URI, authorizationRequest.getRedirectUri());
+
+        if (authorizationRequest.getResponseTypes() != null) {
+            authorizationRequestMap.put(OAuth2Utils.RESPONSE_TYPE,
+                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getResponseTypes())));
+        }
+        if (authorizationRequest.getScope() != null) {
+            authorizationRequestMap.put(OAuth2Utils.SCOPE,
+                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getScope())));
+        }
+
+        authorizationRequestMap.put("approved", authorizationRequest.isApproved());
+
+        if (authorizationRequest.getResourceIds() != null) {
+            authorizationRequestMap.put("resourceIds",
+                    Collections.unmodifiableSet(new HashSet<String>(authorizationRequest.getResourceIds())));
+        }
+        if (authorizationRequest.getAuthorities() != null) {
+            authorizationRequestMap.put("authorities",
+                    Collections.unmodifiableSet(new HashSet<GrantedAuthority>(authorizationRequest.getAuthorities())));
+        }
+
+        return authorizationRequestMap;
     }
 }

@@ -115,6 +115,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
 
         assertNotNull(session.getAttribute("authorizationRequest"));
+        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
         //no token
         getMockMvc().perform(
@@ -136,6 +137,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(status().is4xxClientError());
 
         assertNotNull(session.getAttribute("authorizationRequest"));
+        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
         //valid token
         getMockMvc().perform(
@@ -150,6 +152,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(redirectedUrlPattern("**/*code=*"));
 
         assertNull(session.getAttribute("authorizationRequest"));
+        assertNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
         getMockMvc().perform(
             get("/oauth/authorize")

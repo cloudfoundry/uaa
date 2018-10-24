@@ -6,21 +6,26 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.springframework.web.bind.support.SimpleSessionStatus;
+import org.springframework.web.servlet.View;
 
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +40,10 @@ public class UaaAuthorizationEndpointTest {
     private Set<String> responseTypes;
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
+    private HashMap<String, Object> model = new HashMap<>();
+    private SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
+    private UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken("foo", "bar", Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
+
     @Before
     public void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
@@ -47,6 +56,7 @@ public class UaaAuthorizationEndpointTest {
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
+        when(authorizationCodeServices.createAuthorizationCode(any(OAuth2Authentication.class))).thenReturn("code");
     }
 
 
@@ -149,5 +159,149 @@ public class UaaAuthorizationEndpointTest {
         String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
 
         assertThat(result, containsString("session_state=opbshash"));
+    }
+
+    @Test
+    public void approveUnmodifiedRequest() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest("foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        when(authorizationCodeServices.createAuthorizationCode(any(OAuth2Authentication.class))).thenReturn("code");
+
+        View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThat(view, notNullValue());
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedScope() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+
+        authorizationRequest.setScope(Arrays.asList("read", "write"));		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedClientId() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setClientId("bar");		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedState() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setState("state-5678");		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedRedirectUri() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setRedirectUri("http://somewhere.com");		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedResponseTypes() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setResponseTypes(Collections.singleton("implicit"));		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedApproved() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        authorizationRequest.setApproved(false);
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setApproved(true);		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedResourceIds() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setResourceIds(Collections.singleton("resource-other"));		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testApproveWithModifiedAuthorities() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));		// Modify authorization request
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+
+        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
+                                                         String scope, Set<String> responseTypes) {
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put(OAuth2Utils.CLIENT_ID, clientId);
+        if (redirectUri != null) {
+            parameters.put(OAuth2Utils.REDIRECT_URI, redirectUri);
+        }
+        if (state != null) {
+            parameters.put(OAuth2Utils.STATE, state);
+        }
+        if (scope != null) {
+            parameters.put(OAuth2Utils.SCOPE, scope);
+        }
+        if (responseTypes != null) {
+            parameters.put(OAuth2Utils.RESPONSE_TYPE, OAuth2Utils.formatParameterList(responseTypes));
+        }
+        return new AuthorizationRequest(parameters, Collections.emptyMap(),
+                parameters.get(OAuth2Utils.CLIENT_ID),
+                OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)), null, null, false,
+                parameters.get(OAuth2Utils.STATE), parameters.get(OAuth2Utils.REDIRECT_URI),
+                OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.RESPONSE_TYPE)));
     }
 }
