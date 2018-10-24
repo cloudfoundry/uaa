@@ -29,16 +29,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.common.exceptions.ClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
-import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
+import org.springframework.security.oauth2.common.exceptions.*;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -95,6 +86,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_PREFIX;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -367,6 +359,19 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         Map<String, Object> originalAuthorizationRequest = (Map<String, Object>) model.get("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST");
         if (isAuthorizationRequestModified(authorizationRequest, originalAuthorizationRequest)) {
             throw new InvalidRequestException("Changes were detected from the original authorization request.");
+        }
+
+        for (String approvalParameter : approvalParameters.keySet()) {
+            if (approvalParameter.startsWith(SCOPE_PREFIX)) {
+                String scope = approvalParameters.get(approvalParameter).substring(SCOPE_PREFIX.length());
+                Set<String> originalScopes = (Set<String>) originalAuthorizationRequest.get("scope");
+                if (!originalScopes.contains(scope)) {
+                    sessionStatus.setComplete();
+
+                    return new RedirectView(getUnsuccessfulRedirect(authorizationRequest,
+                            new InvalidScopeException("The requested scopes are invalid. Please use valid scope names in the request."), false), false, true, false);
+                }
+            }
         }
 
         try {

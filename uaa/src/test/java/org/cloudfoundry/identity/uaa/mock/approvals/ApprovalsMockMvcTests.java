@@ -49,10 +49,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_O
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
@@ -122,7 +119,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             post("/oauth/authorize")
                 .session(session)
                 .param(USER_OAUTH_APPROVAL, "true")
-                .param("scope.0","test.scope1")
+                .param("scope.0","scope.test.scope1")
         )
             .andExpect(status().is4xxClientError());
 
@@ -132,7 +129,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                 .with(cookieCsrf().useInvalidToken())
                 .session(session)
                 .param(USER_OAUTH_APPROVAL, "true")
-                .param("scope.0","test.scope1")
+                .param("scope.0","scope.test.scope1")
         )
             .andExpect(status().is4xxClientError());
 
@@ -145,8 +142,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                 .with(cookieCsrf())
                 .session(session)
                 .param(USER_OAUTH_APPROVAL, "true")
-                .param("scope.0","test.scope1")
-                .param("scope.1","test.scope2")
+                .param("scope.0","scope.test.scope1")
+                .param("scope.1","scope.test.scope2")
         )
             .andExpect(status().isFound())
             .andExpect(redirectedUrlPattern("**/*code=*"));
@@ -161,6 +158,39 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                 .param(STATE, state)
                 .param(CLIENT_ID, client1.getClientId()))
             .andExpect(status().isFound()); //approval page no longer showing up
+    }
+
+    @Test
+    public void test_oauth_authorize_modified_scope() throws Exception {
+        String state = generator.generate();
+
+        MockHttpSession session = getAuthenticatedSession(user1);
+        getMockMvc().perform(
+            get("/oauth/authorize")
+                .session(session)
+                .param(RESPONSE_TYPE, "code")
+                .param(STATE, state)
+                .param(CLIENT_ID, client1.getClientId()))
+            .andExpect(status().isOk()); //200 means the approvals page
+
+
+        assertNotNull(session.getAttribute("authorizationRequest"));
+        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+
+        getMockMvc().perform(
+            post("/oauth/authorize")
+                .with(cookieCsrf())
+                .session(session)
+                .param(USER_OAUTH_APPROVAL, "true")
+                .param("scope.0","scope.different.scope")
+                .param("scope.1","scope.test.scope2")
+        )
+        .andDo(print())
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrlPattern("http://test.example.org/redirect?error=invalid_scope&error_description=The%20requested%20scopes%20are%20invalid.%20Please%20use%20valid%20scope%20names%20in%20the%20request*"));
+
+        assertNull(session.getAttribute("authorizationRequest"));
+        assertNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
     }
 
     @Test

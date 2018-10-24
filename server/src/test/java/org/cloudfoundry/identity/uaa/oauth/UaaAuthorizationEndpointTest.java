@@ -19,12 +19,15 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -174,6 +177,8 @@ public class UaaAuthorizationEndpointTest {
 
         View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
         assertThat(view, notNullValue());
+        assertThat(view, instanceOf(RedirectView.class));
+        assertThat(((RedirectView)view).getUrl(), not(containsString("error=invalid_scope")));
     }
 
     @Test(expected = InvalidRequestException.class)
@@ -280,6 +285,24 @@ public class UaaAuthorizationEndpointTest {
         approvalParameters.put("user_oauth_approval", "true");
 
         uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+    }
+
+    @Test
+    public void testApproveWithModifiedApprovalParameters() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        authorizationRequest.setApproved(false);
+        model.put("authorizationRequest", authorizationRequest);
+        model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+        approvalParameters.put("scope.0", "foobar");
+
+        View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+
+        assertThat(view, instanceOf(RedirectView.class));
+        assertThat(((RedirectView)view).getUrl(), containsString("error=invalid_scope"));
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
