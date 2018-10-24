@@ -1,0 +1,5 @@
+sh_library(
+    name = "apache_tomcat_lib",
+    visibility = ["//visibility:public"],
+    data = glob(["**"]),
+)

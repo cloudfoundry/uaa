@@ -1,5 +1,10 @@
 load("@io_bazel_rules_appengine//appengine:java_appengine.bzl", "appengine_war")
-#load("//uaa:war_rules.bzl", "war_file")
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+exports_files(["src/main/resources/required_configuration.yml"])
 
 appengine_war(
     name = "uaa",
@@ -146,26 +151,3 @@ appengine_war(
     data_path = "/uaa/src/main/webapp",
     #data_path = "/webapp",
 )
-
-#java_library(
-    #name = "uaa",
-    #visibility = ["//visibility:public"],
-    #srcs = glob([
-        #"src/main/java/**/*.java",
-    #]),
-    #resources = glob([
-        #"src/main/resources/**",
-        #"src/main/webapp/**",
-    #]),
-    #runtime_deps = [
-        #"//metrics-data",
-        #"//model",
-        #"//server",    
-        #"@com_fasterxml_jackson_core_jackson_annotations//jar",
-        #"@com_fasterxml_jackson_core_jackson_core//jar",
-        #"@com_fasterxml_jackson_core_jackson_databind//jar",
-        #"@org_codehaus_jackson_jackson_mapper_asl//jar",
-        ##"@org_springframework_security_spring_security_config//jar",
-    #],
-#)
-
