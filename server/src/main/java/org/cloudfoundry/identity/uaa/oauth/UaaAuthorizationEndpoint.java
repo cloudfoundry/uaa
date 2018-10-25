@@ -360,6 +360,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         @SuppressWarnings("unchecked")
         Map<String, Object> originalAuthorizationRequest = (Map<String, Object>) model.get(ORIGINAL_AUTHORIZATION_REQUEST);
         if (isAuthorizationRequestModified(authorizationRequest, originalAuthorizationRequest)) {
+            logger.warn("The requested scopes are invalid");
             throw new InvalidRequestException("Changes were detected from the original authorization request.");
         }
 
@@ -370,6 +371,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                 if (!originalScopes.contains(scope)) {
                     sessionStatus.setComplete();
 
+                    logger.warn("The requested scopes are invalid");
                     return new RedirectView(getUnsuccessfulRedirect(authorizationRequest,
                             new InvalidScopeException("The requested scopes are invalid. Please use valid scope names in the request."), false), false, true, false);
                 }
