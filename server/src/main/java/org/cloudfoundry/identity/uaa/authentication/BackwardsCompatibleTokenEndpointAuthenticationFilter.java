@@ -125,7 +125,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 SecurityContextHolder.getContext().setAuthentication(userAuthentication);
                 AuthorizationRequest authorizationRequest = oAuth2RequestFactory.createAuthorizationRequest(map);
 
-                //authorizationRequest.setScope(getScope(request));
                 if (clientAuth.isAuthenticated()) {
                     // Ensure the OAuth2Authentication is authenticated
                     authorizationRequest.setApproved(true);
