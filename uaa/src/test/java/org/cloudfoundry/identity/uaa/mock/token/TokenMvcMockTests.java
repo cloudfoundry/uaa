@@ -1542,7 +1542,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .session(session)
                         .with(cookieCsrf())
                         .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
-                        .param("scope.0", "openid")
+                        .param("scope.0", "scope.openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
@@ -1579,7 +1579,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .session(session)
                         .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                         .with(cookieCsrf())
-                        .param("scope.0", "openid")
+                        .param("scope.0", "scope.openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
