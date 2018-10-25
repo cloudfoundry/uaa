@@ -152,22 +152,14 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
-        String grantType = authorizationParameters.get(GRANT_TYPE);
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
-        if ((scopes == null || scopes.isEmpty())) {
-            if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
-                // The client authorities should be a list of requestedScopes
-                scopes = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
-            }
-            else {
-                // The default for a user token is the requestedScopes registered with
-                // the client
+        if (scopes == null || scopes.isEmpty()) {
+                // The default for a user token is the requestedScopes registered with the client
                 scopes = clientDetails.getScope();
-            }
         }
 
-        if (!GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType) && securityContextAccessor.isUser()) {
+        if (securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
             Collection<? extends GrantedAuthority> authorities = uaaUser.getAuthorities();

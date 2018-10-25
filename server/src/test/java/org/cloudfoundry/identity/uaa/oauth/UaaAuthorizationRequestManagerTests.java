@@ -213,13 +213,6 @@ public class UaaAuthorizationRequestManagerTests {
         assertNotNull(factory.createAuthorizationRequest(parameters));
     }
 
-    @Test
-    public void testScopeDefaultsToAuthoritiesForClientCredentials() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz"), request.getScope());
-    }
 
     @Test
     public void testScopeIncludesAuthoritiesForUser() {
@@ -313,31 +306,6 @@ public class UaaAuthorizationRequestManagerTests {
         expectedException.expectMessage("[one, two] is invalid. This user is not allowed any of the requested scopes");
         factory.createAuthorizationRequest(parameters);
         throw new AssertionError();
-    }
-
-    @Test
-    public void testResourecIdsExtracted() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
-    }
-
-    @Test
-    public void testResourecIdsDoNotIncludeUaa() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("spam"), request.getResourceIds());
-    }
-
-    @Test
-    public void testResourceIdsWithCustomSeparator() {
-        factory.setScopeSeparator("--");
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo--bar,spam--baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
     }
 
     @Test
