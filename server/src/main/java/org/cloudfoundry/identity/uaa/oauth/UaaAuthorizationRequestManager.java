@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -65,6 +67,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
  *
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
+    private static final Logger logger = LoggerFactory.getLogger(UaaAuthorizationRequestManager.class);
 
     private final ClientServicesExtension clientDetailsService;
 
@@ -259,11 +262,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
         // Check that a token with empty scope is not going to be granted
         if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
+            logger.warn("The requested scopes are invalid");
             throw new InvalidScopeException(requestedScopes + " is invalid. This user is not allowed any of the requested scopes");
         }
 
         Collection<String> requiredUserGroups = ofNullable((Collection<String>) clientDetails.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet());
         if (!UaaTokenUtils.hasRequiredUserAuthorities(requiredUserGroups, authorities)) {
+            logger.warn("The requested scopes are invalid");
             throw new InvalidScopeException("User does not meet the client's required group criteria.");
         }
 
