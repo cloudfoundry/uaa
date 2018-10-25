@@ -96,9 +96,11 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_
  * https://github.com/fhanik/spring-security-oauth/compare/feature/extendable-redirect-generator?expand=1
  */
 @Controller
-@SessionAttributes({"authorizationRequest", "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"})
+@SessionAttributes({UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST})
 public class UaaAuthorizationEndpoint extends AbstractEndpoint implements AuthenticationEntryPoint {
 
+    static final String AUTHORIZATION_REQUEST = "authorizationRequest";
+    static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
     private RedirectResolver redirectResolver;
@@ -219,9 +221,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                 // Place auth request into the model so that it is stored in the session
                 // for approveOrDeny to use. That way we make sure that auth request comes from the session,
                 // so any auth request parameters passed to approveOrDeny will be ignored and retrieved from the session.
-                model.put("authorizationRequest", authorizationRequest);
+                model.put(AUTHORIZATION_REQUEST, authorizationRequest);
                 model.put("original_uri", UrlUtils.buildFullRequestUrl(request));
-                model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", unmodifiableMap(authorizationRequest));
+                model.put(ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
 
                 return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
             }
@@ -347,7 +349,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
               "User must be authenticated with Spring Security before authorizing an access token.");
         }
 
-        AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get("authorizationRequest");
+        AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get(AUTHORIZATION_REQUEST);
 
         if (authorizationRequest == null) {
             sessionStatus.setComplete();
@@ -356,7 +358,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         // Check to ensure the Authorization Request was not modified during the user approval step
         @SuppressWarnings("unchecked")
-        Map<String, Object> originalAuthorizationRequest = (Map<String, Object>) model.get("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST");
+        Map<String, Object> originalAuthorizationRequest = (Map<String, Object>) model.get(ORIGINAL_AUTHORIZATION_REQUEST);
         if (isAuthorizationRequestModified(authorizationRequest, originalAuthorizationRequest)) {
             throw new InvalidRequestException("Changes were detected from the original authorization request.");
         }
@@ -778,7 +780,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         // If it's already there then we are in the approveOrDeny phase and we can use the saved request
         AuthorizationRequest authorizationRequest = (AuthorizationRequest) sessionAttributeStore.retrieveAttribute(
-          webRequest, "authorizationRequest");
+          webRequest, AUTHORIZATION_REQUEST);
         if (authorizationRequest != null) {
             return authorizationRequest;
         }
