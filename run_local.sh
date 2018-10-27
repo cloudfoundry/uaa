@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 echo "--------------------------"
 echo "NOTE: This script should only be run by Bazel"
 echo "--------------------------"

@@ -12,20 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
-import org.cloudfoundry.identity.uaa.approval.impl.ApprovalsJsonDeserializer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonDeserialize(using = ApprovalsJsonDeserializer.class)
+@JsonDeserialize(using = Approval.ApprovalsJsonDeserializer.class)
 public class Approval {
 
     public Approval() {
@@ -152,4 +156,30 @@ public class Approval {
         return this;
     }
 
+    class ApprovalsJsonDeserializer extends JsonDeserializer<Approval> {
+        @Override
+        public Approval deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+            Approval approval = new Approval();
+            while (jp.nextToken() != JsonToken.END_OBJECT) {
+                if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
+                    String fieldName = jp.getCurrentName();
+                    jp.nextToken();
+                    if ("userId".equalsIgnoreCase(fieldName)) {
+                        approval.setUserId(jp.readValueAs(String.class));
+                    } else if ("clientId".equalsIgnoreCase(fieldName)) {
+                        approval.setClientId(jp.readValueAs(String.class));
+                    } else if ("scope".equalsIgnoreCase(fieldName)) {
+                        approval.setScope(jp.readValueAs(String.class));
+                    } else if ("status".equalsIgnoreCase(fieldName)) {
+                        approval.setStatus(jp.readValueAs(ApprovalStatus.class));
+                    } else if ("expiresAt".equalsIgnoreCase(fieldName)) {
+                        approval.setExpiresAt(jp.readValueAs(Date.class));
+                    } else if ("lastUpdatedAt".equalsIgnoreCase(fieldName)) {
+                        approval.setLastUpdatedAt(jp.readValueAs(Date.class));
+                    }
+                }
+            }
+            return approval;
+        }
+    }
 }
