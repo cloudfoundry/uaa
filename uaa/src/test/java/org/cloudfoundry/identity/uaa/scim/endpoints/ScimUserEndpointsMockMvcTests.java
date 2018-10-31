@@ -40,11 +40,9 @@ import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,6 +116,11 @@ class ScimUserEndpointsMockMvcTests {
     private MockMvc mockMvc;
     private TestClient testClient;
 
+    @Autowired
+    private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
+    @Autowired
+    private JdbcMfaProviderProvisioning jdbcMfaProviderProvisioning;
+
     @BeforeEach
     void setUp() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -142,6 +145,11 @@ class ScimUserEndpointsMockMvcTests {
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
 
         usersMaxCount = Integer.parseInt(webApplicationContext.getEnvironment().getProperty("userMaxCount"));
+    }
+
+    @AfterEach
+    void tearDown() {
+        jdbcIdentityZoneProvisioning.retrieveAll().forEach(identityZone -> jdbcMfaProviderProvisioning.deleteByIdentityZone(identityZone.getId()));
     }
 
     @Test
