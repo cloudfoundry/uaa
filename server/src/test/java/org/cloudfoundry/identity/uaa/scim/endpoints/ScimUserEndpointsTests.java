@@ -210,8 +210,10 @@ public class ScimUserEndpointsTests {
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
+        joel.setExternalId("b2f345ee-d893-44a9-b6ee-0abe865ff886");
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
+        dale.setExternalId("dc2d1cdf-15a1-4faf-8320-07eb8e8f864d");
         joel = dao.createUser(joel, "password", IdentityZoneHolder.get().getId());
         dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
 
@@ -848,6 +850,33 @@ public class ScimUserEndpointsTests {
         assertEquals(1, results.getTotalResults());
         assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
         assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testFindIdsByExternalId() {
+        SearchResults<?> results = endpoints.findUsers("id", "external_id eq \"b2f345ee-d893-44a9-b6ee-0abe865ff886\"", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testFindIdsByExternalIdNonexistent() {
+        SearchResults<?> results = endpoints.findUsers("id", "external_id eq \"does-not-exist\"", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(0, results.getResources().size());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testFindIdsByExternalIdWrongFormat() {
+        SearchResults<?> results = endpoints.findUsers("id", "external_id eq \"#######\"", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(0, results.getResources().size());
     }
 
     @SuppressWarnings("unchecked")

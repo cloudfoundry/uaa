@@ -49,6 +49,8 @@ public class SimpleSearchQueryConverterTests {
 
     String validQuery = "user_id eq \"7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890\"" +
         "and " +
+        "external_id eq \"2b0640e9-2b45-4d61-ab55-48b96e06e812\"" +
+        "and " +
         "client_id eq \"app\"" +
         "and " +
         "meta.lastmodified gt \"some-value\"" +

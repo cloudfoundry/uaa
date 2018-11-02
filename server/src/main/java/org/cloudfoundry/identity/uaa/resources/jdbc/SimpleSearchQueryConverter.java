@@ -93,7 +93,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             "gm.external_group",
             "gm.origin",
             "g.displayname",
-            "g.id"
+            "g.id",
+            "external_id"
         )
     );
 
