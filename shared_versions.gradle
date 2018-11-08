@@ -16,6 +16,7 @@ ext {
   javamailVersion = '1.4.7'
   jsonPathVersion = '2.4.0'
   junitVersion = '4.12'
+  log4j2Version = '2.11.1'
   mariaDBClientVersion = '2.2.0'
   mockitoVersion = '2.13.0'
   powermockVersion = '2.0.0-beta.5'

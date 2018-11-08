@@ -16,7 +16,7 @@ dependencies {
   compile project(':cloudfoundry-identity-metrics-data')
   compile group: 'org.springframework.boot', name: 'spring-boot-starter', version: parent.springBootVersion
   compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-  compile group: 'log4j', name: 'log4j', version: '1.2.14'
+  compile group: 'org.apache.logging.log4j', name: 'log4j', version: parent.log4j2Version
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
