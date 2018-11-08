@@ -14,9 +14,12 @@ targetCompatibility = 1.8
 
 dependencies {
   compile project(':cloudfoundry-identity-metrics-data')
-  compile group: 'org.springframework.boot', name: 'spring-boot-starter', version: parent.springBootVersion
+  compile("org.springframework.boot:spring-boot-starter:${parent.springBootVersion}") {
+    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+  }
   compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
   compile group: 'org.apache.logging.log4j', name: 'log4j', version: parent.log4j2Version
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
