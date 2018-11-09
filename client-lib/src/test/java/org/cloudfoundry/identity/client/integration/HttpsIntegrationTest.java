@@ -48,7 +48,7 @@ public class HttpsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        redirectUri = "https://uaa.oms.identity.team";
+        redirectUri = "https://login.oms.identity.team";
         clientId = "xxx";
         clientSecret = "xxx";
         factory =
@@ -58,6 +58,7 @@ public class HttpsIntegrationTest {
     }
 
     @Test
+    @Ignore("Ignored. Client credentials are not up to date. In 4.20.0 upstream, the entire client lib is removed.")
     public void test_ignore_self_signed_cert_happy_path() throws Exception {
         test_self_signed_cert(true);
     }
