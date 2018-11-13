@@ -29,7 +29,7 @@ ext {
   slf4jVersion = '1.7.25'
   snakeYamlVersion = '1.18'
   springVersion = '4.3.20.RELEASE'
-  springBootVersion = '1.5.5.RELEASE'
+  springBootVersion = '1.5.17.RELEASE'
   springSecurityVersion = '4.2.9.RELEASE'
   springSecurityJwtVersion = '1.0.8.RELEASE'
   springSecurityOAuthVersion = '2.0.16.RELEASE'
