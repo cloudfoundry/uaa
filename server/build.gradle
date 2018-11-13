@@ -76,6 +76,8 @@ dependencies {
 
   compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
+  compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
 
   testCompile('com.github.sbrannen:spring-test-junit5:1.2.0')
