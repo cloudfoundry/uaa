@@ -4,6 +4,7 @@ ext {
   bcpkixVersion  = '1.60'
   bcprovVersion  = '1.60'
   cglibVersion = '3.2.5'
+  codehausGroovyVersion = '2.5.2'
   commonsHttpClientVersion = '4.5.3'
   commonsLoggingVersion = '1.2'
   flywayVersion = '4.2.0'
