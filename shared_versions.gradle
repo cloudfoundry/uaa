@@ -33,7 +33,7 @@ ext {
   springBootVersion = '1.5.17.RELEASE'
   springSecurityVersion = '4.2.9.RELEASE'
   springSecurityJwtVersion = '1.0.8.RELEASE'
-  springSecurityOAuthVersion = '2.0.16.RELEASE'
+  springSecurityOAuthVersion = '2.3.4.RELEASE'
   springSecurityLdapVersion = '2.3.2.RELEASE'
   springSecuritySamlVersion = '1.0.4.RELEASE'
   springRetryVersion = '1.2.1.RELEASE'
