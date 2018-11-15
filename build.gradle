@@ -8,9 +8,6 @@ import io.honeycomb.libhoney.EventFactory
 import static io.honeycomb.libhoney.LibHoney.create
 import static io.honeycomb.libhoney.LibHoney.options
 
-apply from: file('shared_versions.gradle')
-apply plugin: 'com.bmuschko.cargo'
-
 buildscript {
     apply from: file('shared_versions.gradle')
 
@@ -34,6 +31,9 @@ buildscript {
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
     }
 }
+
+apply from: file('shared_versions.gradle')
+apply plugin: 'com.bmuschko.cargo'
 
 allprojects {
     apply plugin: 'maven'
