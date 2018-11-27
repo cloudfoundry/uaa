@@ -50,6 +50,4 @@ function bootDB {
     echo -n "."
     sleep 1
   done
-  echo "Unable to connect to $db"
-  exit 1
 }
