@@ -12,8 +12,8 @@ function bootDB {
     initDB="psql -c 'drop database if exists uaa;' -U postgres; psql -c 'create database uaa;' -U postgres; psql -c 'drop user if exists root;' --dbname=uaa -U postgres; psql -c \"create user root with superuser password 'changeme';\" --dbname=uaa -U postgres; psql -c 'show max_connections;' --dbname=uaa -U postgres;"
   elif [ "$db" = "mysql" ]  || [ "$db" = "mysql-5.6" ]; then
     launchDB="(MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld &> /var/log/mysql-boot.log) &"
-    testConnection="echo '\s;' | mysql &>/dev/null"
-    initDB=""
+    testConnection="echo '\s;' | mysql -uroot -pchangeme &>/dev/null"
+    initDB="mysql -uroot -pchangeme -e 'ALTER DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';"
   elif [ "$db" = "percona" ]; then
     launchDB="bash /entrypoint.sh &> /var/log/mysql-boot.log"
     testConnection="echo '\s;' | mysql &>/dev/null"
