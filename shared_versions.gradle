@@ -40,9 +40,9 @@ ext {
   thymeleafVersion = '3.0.6.RELEASE'
   thymeleafDialectVersion = '2.3.0'
   thymeleafExtrasVersion = '3.0.2.RELEASE'
-  tomcatVersion = '8.5.32'
+  tomcatVersion = '9.0.13'
   tomcatJdbcPoolVersion = '8.5.32'
-  tomcatContainerId = 'tomcat8x'
+  tomcatContainerId = 'tomcat9x'
   validationAPIVersion = '2.0.1.Final'
   zxingVersion = '3.3.1'
 }
