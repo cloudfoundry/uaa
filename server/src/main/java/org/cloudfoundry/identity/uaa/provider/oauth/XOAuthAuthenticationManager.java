@@ -151,7 +151,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             try {
                 return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
-                //throw new InsufficientAuthenticationException(String.format("Unable to map issuer, %s , to a single registered provider", issuer));
+                logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
             //2. If not, check if issuer is self
             if (idTokenWasIssuedByTheUaa(issuer)) {
