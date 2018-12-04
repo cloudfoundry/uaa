@@ -482,7 +482,7 @@ public class XOAuthAuthenticationManagerIT {
         String username = RandomStringUtils.random(50);
         claims.put("sub", username);
         claims.put("iss", idpProvider.getConfig().getIssuer());
-        claims.put("origin", idpProvider.getId());
+        claims.put("origin", idpProvider.getOriginKey());
 
         CompositeToken token = getCompositeAccessToken();
         String idToken = token.getIdTokenValue();
@@ -494,6 +494,7 @@ public class XOAuthAuthenticationManagerIT {
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username, is(externalAuthenticationDetails.getUsername()));
+        assertThat(externalAuthenticationDetails.getClaims().get(ClaimConstants.ORIGIN), is(idpProvider.getOriginKey()));
     }
 
     @Test
