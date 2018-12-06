@@ -28,6 +28,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,6 +105,26 @@ public class PasswordGrantIT {
         postBody.add("username", testAccounts.getUserName());
         postBody.add("password", testAccounts.getPassword());
         postBody.add("login_hint", "{\"origin\":\"uaa\"}");
+
+        ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Void.class);
+
+        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
+
+        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add("grant_type", "password");
+        postBody.add("username", testAccounts.getUserName());
+        postBody.add("password", testAccounts.getPassword());
+        postBody.add("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"));
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
                 HttpMethod.POST,
