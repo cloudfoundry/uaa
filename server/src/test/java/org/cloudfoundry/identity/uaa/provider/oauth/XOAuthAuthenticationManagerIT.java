@@ -897,14 +897,14 @@ public class XOAuthAuthenticationManagerIT {
     }
 
     @Test
-    public void failsIfProviderIsNotOIDCOrOAuth() {
+    public void unableToAuthenticate_whenProviderIsNotOIDCOrOAuth() {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(MultitenancyFixture.identityProvider("the_origin", "uaa"));
         Authentication authentication = xoAuthAuthenticationManager.authenticate(xCodeToken);
         assertNull(authentication);
     }
 
     @Test
-    public void failsIfProviderIsNotFound() {
+    public void unableToAuthenticate_whenProviderIsNotFound() {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(null);
         Authentication authentication = xoAuthAuthenticationManager.authenticate(xCodeToken);
         assertNull(authentication);

@@ -266,7 +266,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
+    public void incorrectResponseFromSamlIDP_showErrorFromSaml() throws Exception {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
