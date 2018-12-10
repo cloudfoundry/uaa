@@ -196,6 +196,7 @@
     </bean>
 
     <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
+        <constructor-arg value="${password.historyRestriction:1}"/>
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
         <property name="passwordValidator" ref="uaaPasswordValidator" />
         <property name="messageConverters">

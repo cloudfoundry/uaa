@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -25,6 +25,8 @@ import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,8 +43,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-
 @Controller
 public class PasswordChangeEndpoint {
 
@@ -52,10 +52,21 @@ public class PasswordChangeEndpoint {
 
     private PasswordValidator passwordValidator = new NullPasswordValidator();
 
+    private final int passwordHistoryRestriction;
+
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
                     new HttpMessageConverter<?>[0]);
+
+    /**
+     * Constructor.
+     *
+     * @param passwordHistoryRestriction new passwords must be different than this number of previous passwords to be considered valid
+     */
+    public PasswordChangeEndpoint(final int passwordHistoryRestriction) {
+        this.passwordHistoryRestriction = passwordHistoryRestriction;
+    }
 
     public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
         this.dao = provisioning;
@@ -87,8 +98,8 @@ public class PasswordChangeEndpoint {
         String newPassword = change.getPassword();
 
         throwIfPasswordChangeNotPermitted(userId, oldPassword, zoneId);
-        if (dao.checkPasswordMatches(userId, newPassword, zoneId)) {
-            throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+        if (dao.checkPasswordHistoryMatches(userId, newPassword, zoneId, passwordHistoryRestriction)) {
+            throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(newPassword);
         dao.changePassword(userId, oldPassword, newPassword, zoneId);

@@ -12,6 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.VARCHAR;
+import static org.springframework.util.StringUtils.hasText;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -59,9 +63,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static java.sql.Types.VARCHAR;
-import static org.springframework.util.StringUtils.hasText;
-
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
 
@@ -88,6 +89,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String UPDATE_PASSWD_LASTMODIFIED_SQL = "update users set passwd_lastmodified=? where id=? and identity_zone_id=?";
 
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
+
+    public static final String ADD_PASSWORD_HISTORY_SQL = "insert into password_history (user_id, identity_zone_id, password, changed) values (?,?,?,?)";
+
+    public static final String GET_PASSWORD_HISTORY_SQL = "select password from password_history where user_id=? and identity_zone_id=? order by changed desc limit ?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
@@ -285,13 +290,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return; //we don't want to update the same password
         }
         final String encNewPassword = passwordEncoder.encode(newPassword);
+        final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                Timestamp t = new Timestamp(System.currentTimeMillis());
-                ps.setTimestamp(1, t);
+                ps.setTimestamp(1, timestamp);
                 ps.setString(2, encNewPassword);
-                ps.setTimestamp(3, getPasswordLastModifiedTimestamp(t));
+                ps.setTimestamp(3, getPasswordLastModifiedTimestamp(timestamp));
                 ps.setString(4, id);
                 ps.setString(5, zoneId);
             }
@@ -302,6 +307,17 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (updated != 1) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
         }
+
+        // add new password to history table
+        jdbcTemplate.update(ADD_PASSWORD_HISTORY_SQL, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                ps.setString(1, id);
+                ps.setString(2, zoneId);
+                ps.setString(3, encNewPassword);
+                ps.setTimestamp(4, timestamp);
+            }
+        });
     }
 
     // Checks the existing password for a user
@@ -320,6 +336,26 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         return passwordEncoder.matches(password, currentPassword);
+    }
+
+    @Override
+    public boolean checkPasswordHistoryMatches(final String id, final String password, final String zoneId, final int historyLength) {
+
+        final List<String> passwordHistory =
+                    jdbcTemplate.queryForList(
+                            GET_PASSWORD_HISTORY_SQL,
+                            new Object[] { id, zoneId, historyLength},
+                            new int[] { VARCHAR, VARCHAR, INTEGER },
+                            String.class
+                    );
+
+        for (final String pastPassword : passwordHistory) {
+            if (passwordEncoder.matches(password, pastPassword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

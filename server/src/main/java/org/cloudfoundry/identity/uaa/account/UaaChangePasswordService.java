@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import java.util.Date;
-import java.util.List;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -32,18 +31,20 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import java.util.Date;
+import java.util.List;
 
 public class UaaChangePasswordService implements ChangePasswordService, ApplicationEventPublisherAware {
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final PasswordValidator passwordValidator;
     private ApplicationEventPublisher publisher;
+    private final int passwordHistoryRestriction;
 
-    public UaaChangePasswordService(ScimUserProvisioning scimUserProvisioning, PasswordValidator passwordValidator) {
+    public UaaChangePasswordService(ScimUserProvisioning scimUserProvisioning, PasswordValidator passwordValidator, int passwordHistoryRestriction) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.passwordValidator = passwordValidator;
+        this.passwordHistoryRestriction = passwordHistoryRestriction;
     }
 
     @Override
@@ -60,8 +61,8 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         try {
-            if (scimUserProvisioning.checkPasswordMatches(user.getId(), newPassword, IdentityZoneHolder.get().getId())) {
-                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+            if (scimUserProvisioning.checkPasswordHistoryMatches(user.getId(), newPassword, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
+                throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
             publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));

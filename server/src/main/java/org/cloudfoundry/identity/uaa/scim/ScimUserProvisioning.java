@@ -31,6 +31,8 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     boolean checkPasswordMatches(String id, String password, String zoneId) throws ScimResourceNotFoundException;
 
+    boolean checkPasswordHistoryMatches(String id, String password, String zoneId, int historyLength) throws ScimResourceNotFoundException;
+
     boolean checkPasswordChangeIndividuallyRequired(String id, String zoneId) throws ScimResourceNotFoundException;
 
     void updateLastLogonTime(String id, String zoneId);

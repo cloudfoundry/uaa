@@ -12,6 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import static java.util.Collections.emptyList;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.util.StringUtils.isEmpty;
+
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
@@ -47,10 +51,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Collections.emptyList;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-import static org.springframework.util.StringUtils.isEmpty;
-
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
@@ -60,6 +60,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
     private final ClientServicesExtension clientDetailsService;
+    private final int passwordHistoryRestriction;
     private ResourcePropertySource resourcePropertySource;
     private ApplicationEventPublisher publisher;
 
@@ -67,12 +68,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                                    ExpiringCodeStore expiringCodeStore,
                                    PasswordValidator passwordValidator,
                                    ClientServicesExtension clientDetailsService,
-                                   ResourcePropertySource resourcePropertySource) {
+                                   ResourcePropertySource resourcePropertySource,
+                                   int passwordHistoryRestriction) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
         this.clientDetailsService = clientDetailsService;
         this.resourcePropertySource = resourcePropertySource;
+        this.passwordHistoryRestriction = passwordHistoryRestriction;
     }
 
     @Override
@@ -115,8 +118,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {
-            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword, IdentityZoneHolder.get().getId())) {
-                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+            if (scimUserProvisioning.checkPasswordHistoryMatches(userId, newPassword, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
+                throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
             }
             if (isUserModified(user, userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
