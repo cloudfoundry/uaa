@@ -3921,6 +3921,37 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertThat(headerMap, not(hasKey("iv")));
     }
 
+    @Test
+    public void authorizationCanRedirectToSubpathOfConfiguredRedirect() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser" + generator.generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String state = generator.generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI + "/subpath"))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI + "/subpath"));
+    }
+
     private String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
         String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
         OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
