@@ -15,9 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -26,6 +26,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AntPathRedirectResolverTests {
 
@@ -33,121 +34,155 @@ public class AntPathRedirectResolverTests {
     private final String requestedRedirectHttps = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
     private final AntPathRedirectResolver resolver = new AntPathRedirectResolver();
 
-    @Test
-    public void noTrailingAsterisk() {
-        final String clientRedirectUri = "http://subdomain.domain.com/";
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+    @Nested
+    @DisplayName("redirectMatches")
+    class RedirectMatches {
+        @Test
+        void trailingSlash() {
+            final String clientRedirectUri = "http://subdomain.domain.com/";
+
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+        }
+
+        @Test
+        void trailingPath() {
+            final String clientRedirectUri = "http://subdomain.domain.com/one";
+
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+        }
+
+        @Test
+        void singleTrailingAsterisk() {
+            final String clientRedirectUri = "http://subdomain.domain.com/*";
+
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+        }
+
+        @Test
+        void singleTrailingAsterisk_withPath() {
+            final String clientRedirectUri = "http://subdomain.domain.com/one*";
+
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one-foo-bar", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+        }
+
+        @Test
+        void singleAsterisk_insidePath() {
+            String clientRedirectUri = "http://subdomain.domain.com/one/*/four";
+
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/four", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/middle/four", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three/four", clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Matches_Happy_Day() {
+            String clientRedirectUri = "**";
+
+            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Any_Scheme() {
+            String clientRedirectUri = "http*://subdomain.domain.com/**";
+
+            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Http_Only_Scheme() {
+            String clientRedirectUri = "http://subdomain.domain.com/**";
+
+            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Https_Only_Scheme() {
+            String clientRedirectUri = "https://subdomain.domain.com/**";
+
+            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Query_Path() {
+            String clientRedirectUri = "http*://subdomain.domain.com/path1/path2**";
+
+            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+
+            clientRedirectUri = "http*://subdomain.domain.com/path1/<invalid>**";
+
+            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+        }
+
+        @Test
+        void redirect_Subdomain() {
+            String clientRedirectUri = "http*://*.domain.com/path1/path2**";
+
+            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+
+            clientRedirectUri = "http*://*.domain.com/path1/<invalid>**";
+
+            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+        }
+
     }
 
-    @Test
-    public void singleTrailingAsterisk() {
-        final String clientRedirectUri = "http://subdomain.domain.com/*";
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+    @Nested
+    @DisplayName("resolveRedirect")
+    class ResolveRedirect {
+
+        @Test
+        void clientWithValidRedirectUri_shouldResolve() {
+            ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", requestedRedirectHttp);
+            String resolvedRedirect = resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
+            assertThat(resolvedRedirect, equalTo(requestedRedirectHttp));
+        }
+
+        @Test
+        void clientMissingRedirectUri() {
+            ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "");
+
+            RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect(requestedRedirectHttp, clientDetails));
+
+            assertThat(exception.getMessage(), containsString("Client registration is missing redirect_uri"));
+        }
+
+        @Test
+        void clientWithInvalidRedirectUri() {
+            ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "*, */*");
+
+            RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect(requestedRedirectHttp, clientDetails));
+
+            assertThat(exception.getMessage(), containsString("Client registration contains invalid redirect_uri"));
+            assertThat(exception.getMessage(), containsString("*,  */*"));
+        }
+
     }
 
-    @Test
-    public void singleTrailingAsterisk_withPath() {
-        final String clientRedirectUri = "http://subdomain.domain.com/one*";
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one-foo-bar", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
-    }
-
-    @Test
-    public void singleAsterisk_insidePath() {
-        String clientRedirectUri = "http://subdomain.domain.com/one/*/four";
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/four", clientRedirectUri));
-        assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/middle/four", clientRedirectUri));
-        assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three/four", clientRedirectUri));
-    }
-
-    @Test
-    public void redirect_Matches_Happy_Day() {
-        String path = "**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttp, path));
-        assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
-    }
-
-    @Test
-    public void clientWithValidRedirectUri_shouldResolve() {
-        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"", requestedRedirectHttp);
-        String resolvedRedirect = resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
-        assertThat(resolvedRedirect, equalTo(requestedRedirectHttp));
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Test
-    public void clientMissingRedirectUri() {
-        expectedException.expect(RedirectMismatchException.class);
-        expectedException.expectMessage(containsString("Client registration is missing redirect_uri"));
-
-        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"");
-        resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
-    }
-
-    @Test
-    public void clientWithInvalidRedirectUri() {
-        expectedException.expect(RedirectMismatchException.class);
-        expectedException.expectMessage(containsString("Client registration contains invalid redirect_uri"));
-        expectedException.expectMessage(containsString("*,  */*"));
-
-        ClientDetails clientDetails = new BaseClientDetails("client1", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"", "*, */*");
-        resolver.resolveRedirect(requestedRedirectHttp, clientDetails);
-    }
-
-    @Test
-    public void redirect_Any_Scheme() {
-        String path = "http*://subdomain.domain.com/**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttp, path));
-        assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
-    }
-
-    @Test
-    public void redirect_Http_Only_Scheme() {
-        String path = "http://subdomain.domain.com/**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttp, path));
-        assertFalse(resolver.redirectMatches(requestedRedirectHttps, path));
-    }
-
-    @Test
-    public void redirect_Https_Only_Scheme() {
-        String path = "https://subdomain.domain.com/**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
-        assertFalse(resolver.redirectMatches(requestedRedirectHttp, path));
-    }
-
-    @Test
-    public void redirect_Query_Path() {
-        String path = "http*://subdomain.domain.com/path1/path2**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
-        assertTrue(resolver.redirectMatches(requestedRedirectHttp, path));
-
-        path = "http*://subdomain.domain.com/path1/path3**";
-        assertFalse(resolver.redirectMatches(requestedRedirectHttps, path));
-        assertFalse(resolver.redirectMatches(requestedRedirectHttp, path));
-    }
-
-    @Test
-    public void redirect_Subdomain() {
-        String path = "http*://*.domain.com/path1/path2**";
-        assertTrue(resolver.redirectMatches(requestedRedirectHttps, path));
-        assertTrue(resolver.redirectMatches(requestedRedirectHttp, path));
-
-        path = "http*://*.domain.com/path1/path3**";
-        assertFalse(resolver.redirectMatches(requestedRedirectHttps, path));
-        assertFalse(resolver.redirectMatches(requestedRedirectHttp, path));
-    }
 }
