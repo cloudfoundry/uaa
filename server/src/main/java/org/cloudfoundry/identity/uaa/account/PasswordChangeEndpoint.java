@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -59,12 +60,15 @@ public class PasswordChangeEndpoint {
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
                     new HttpMessageConverter<?>[0]);
 
+    private ResourcePropertySource messages;
+
     /**
      * Constructor.
      *
      * @param passwordHistoryRestriction new passwords must be different than this number of previous passwords to be considered valid
      */
-    public PasswordChangeEndpoint(final int passwordHistoryRestriction) {
+    public PasswordChangeEndpoint(final ResourcePropertySource messages, final int passwordHistoryRestriction) {
+        this.messages = messages;
         this.passwordHistoryRestriction = passwordHistoryRestriction;
     }
 
@@ -99,7 +103,7 @@ public class PasswordChangeEndpoint {
 
         throwIfPasswordChangeNotPermitted(userId, oldPassword, zoneId);
         if (dao.checkPasswordHistoryMatches(userId, newPassword, zoneId, passwordHistoryRestriction)) {
-            throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
+            throw new InvalidPasswordException(messages.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(newPassword);
         dao.changePassword(userId, oldPassword, newPassword, zoneId);

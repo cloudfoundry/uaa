@@ -86,7 +86,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     @Override
     public void resetUserPassword(String userId, String password) {
-        if (scimUserProvisioning.checkPasswordMatches(userId, password, IdentityZoneHolder.get().getId())) {
+        if (scimUserProvisioning.checkPasswordHistoryMatches(userId, password, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
             throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(password);
@@ -119,7 +119,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         Authentication authentication = constructAuthentication(uaaUser);
         try {
             if (scimUserProvisioning.checkPasswordHistoryMatches(userId, newPassword, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
-                throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
+                throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
             }
             if (isUserModified(user, userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");

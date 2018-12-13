@@ -173,6 +173,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         final String identityZoneId = zoneId;
         final String origin = user.getOrigin();
 
+        final Timestamp t = new Timestamp(new Date().getTime());
+        final Timestamp timestamp = getPasswordLastModifiedTimestamp(t);
+
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
@@ -201,7 +204,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(14, identityZoneId);
                     ps.setString(15, user.getSalt());
 
-                    ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
+                    ps.setTimestamp(16, timestamp);
                     ps.setNull(17, Types.BIGINT);
                     ps.setNull(18, Types.BIGINT);
                     ps.setString(19, user.getPassword());
@@ -216,6 +219,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             userDetails.put("user_id", existingUser.getId());
             throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         }
+
+        updatePasswordHistory(id, zoneId, user.getPassword(), timestamp);
+
         return retrieve(id, zoneId);
     }
 
@@ -309,15 +315,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         // add new password to history table
-        jdbcTemplate.update(ADD_PASSWORD_HISTORY_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setString(1, id);
-                ps.setString(2, zoneId);
-                ps.setString(3, encNewPassword);
-                ps.setTimestamp(4, timestamp);
-            }
-        });
+        updatePasswordHistory(id, zoneId, encNewPassword, timestamp);
     }
 
     // Checks the existing password for a user
@@ -556,5 +554,18 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public void updateLastLogonTime(String id, String zoneId) {
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
+    }
+
+    private void updatePasswordHistory(String id, String zoneId, String encNewPassword, Timestamp timestamp) {
+        // add new password to history table
+        jdbcTemplate.update(ADD_PASSWORD_HISTORY_SQL, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                ps.setString(1, id);
+                ps.setString(2, zoneId);
+                ps.setString(3, encNewPassword);
+                ps.setTimestamp(4, timestamp);
+            }
+        });
     }
 }
