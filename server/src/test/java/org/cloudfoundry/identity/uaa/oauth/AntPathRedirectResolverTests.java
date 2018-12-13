@@ -137,6 +137,13 @@ public class AntPathRedirectResolverTests {
         }
 
         @Test
+        public void redirect_withHashFragments() {
+            String clientRedirectUri = "http://test.example.org/redirect";
+
+            assertTrue(resolver.redirectMatches(clientRedirectUri + "#fragment", clientRedirectUri));
+        }
+
+        @Test
         void redirect_Subdomain() {
             String clientRedirectUri = "http*://*.domain.com/path1/path2**";
 

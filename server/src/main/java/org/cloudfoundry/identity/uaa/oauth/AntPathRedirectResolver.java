@@ -35,11 +35,11 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
     protected boolean redirectMatches(String requestedRedirect, String redirectUri) {
         AntPathMatcher matcher = new AntPathMatcher("/");
 
-        redirectUri = supportLegacySubpathMatching(redirectUri);
+        final String legacySubpathRedirectUri = supportLegacySubpathMatching(redirectUri);
 
-        if (redirectUri!=null &&
-            redirectUri.contains("*") &&
-            matcher.match(redirectUri, requestedRedirect)) {
+        if (legacySubpathRedirectUri!=null &&
+            legacySubpathRedirectUri.contains("*") &&
+            matcher.match(legacySubpathRedirectUri, requestedRedirect)) {
             return true;
         } else {
             return super.redirectMatches(requestedRedirect, redirectUri);
