@@ -181,7 +181,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    Timestamp t = new Timestamp(new Date().getTime());
                     ps.setString(1, id);
                     ps.setInt(2, user.getVersion());
                     ps.setTimestamp(3, t);
