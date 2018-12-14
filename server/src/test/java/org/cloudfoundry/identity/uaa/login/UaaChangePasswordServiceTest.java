@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -46,6 +47,7 @@ public class UaaChangePasswordServiceTest {
     private UaaChangePasswordService subject;
     private ScimUserProvisioning scimUserProvisioning;
     private PasswordValidator passwordValidator;
+    private ResourcePropertySource messages;
 
     @Before
     public void setUp() throws Exception {
@@ -53,7 +55,9 @@ public class UaaChangePasswordServiceTest {
         SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         passwordValidator = mock(PasswordValidator.class);
-        subject = new UaaChangePasswordService(scimUserProvisioning, passwordValidator);
+        messages = mock(ResourcePropertySource.class);
+        when(messages.getProperty("force_password_change.same_as_old")).thenReturn("invalid password message");
+        subject = new UaaChangePasswordService(scimUserProvisioning, passwordValidator, messages, 3);
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -80,12 +84,12 @@ public class UaaChangePasswordServiceTest {
     public void changePassword_ReturnsUnprocessableEntity_PasswordNoveltyViolation() {
         List<ScimUser> results = getScimUsers();
         when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
-        when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1", IdentityZoneHolder.get().getId())).thenReturn(true);
+        when(scimUserProvisioning.checkPasswordHistoryMatches("id", "samePassword1", IdentityZoneHolder.get().getId(), 3)).thenReturn(true);
         try {
             subject.changePassword("username", "samePassword1", "samePassword1");
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("Your new password cannot be the same as the old password.", e.getLocalizedMessage());
+            assertEquals("invalid password message", e.getLocalizedMessage());
         }
     }
 

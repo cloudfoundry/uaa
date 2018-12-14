@@ -78,7 +78,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         passwordValidator = mock(PasswordValidator.class);
         clientDetailsService = mock(ClientServicesExtension.class);
         resourcePropertySource = mock(ResourcePropertySource.class);
-        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
+        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource, 1);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
         controller.setCodeStore(expiringCodeStore);
         controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });

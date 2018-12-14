@@ -150,6 +150,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         jdbcTemplate.execute("delete from users where upper(userName) = 'USER@EXAMPLE.COM'");
         jdbcTemplate.execute("delete from identity_provider where identity_zone_id = 'my-zone-id'");
         jdbcTemplate.execute("delete from identity_zone where id = 'my-zone-id'");
+        jdbcTemplate.execute("delete from password_history where identity_zone_id = 'my-zone-id'");
         IdentityZoneHolder.clear();
     }
 
@@ -317,6 +318,23 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         user = db.retrieve(created.getId(), IdentityZoneHolder.get().getId());
         assertNotNull(user.getPasswordLastModified());
         assertTrue(Math.abs(user.getMeta().getLastModified().getTime() - user.getPasswordLastModified().getTime()) < 1001);
+
+        assertTrue(db.checkPasswordHistoryMatches(created.getId(), "j7hyqpassXXX", IdentityZoneHolder.get().getId(), 1));
+    }
+
+    @Test
+    public void passwordHistoryIsRecorded() {
+
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+
+        ScimUser created = db.createUser(user, "password1", IdentityZoneHolder.get().getId());
+        db.changePassword(created.getId(), "password1", "password2", IdentityZoneHolder.get().getId());
+        db.changePassword(created.getId(), "password2", "password3", IdentityZoneHolder.get().getId());
+
+        assertFalse(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 1));
+        assertFalse(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 2));
+        assertTrue(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 3));
     }
 
     @Test

@@ -72,6 +72,7 @@ public class UaaResetPasswordServiceTests {
     private ScimUserProvisioning scimUserProvisioning;
     private PasswordValidator passwordValidator;
     private ClientServicesExtension clientDetailsService;
+    private ResourcePropertySource messages;
 
     @Before
     public void setUp() throws Exception {
@@ -82,8 +83,10 @@ public class UaaResetPasswordServiceTests {
         passwordValidator = mock(PasswordValidator.class);
         clientDetailsService = mock(ClientServicesExtension.class);
 
-        ResourcePropertySource resourcePropertySource = mock(ResourcePropertySource.class);
-        uaaResetPasswordService = new UaaResetPasswordService(scimUserProvisioning, codeStore, passwordValidator, clientDetailsService, resourcePropertySource);
+        messages = mock(ResourcePropertySource.class);
+        when(messages.getProperty("force_password_change.same_as_old")).thenReturn("invalid password message");
+
+        uaaResetPasswordService = new UaaResetPasswordService(scimUserProvisioning, codeStore, passwordValidator, clientDetailsService, messages, 3);
     }
 
     @After
@@ -217,8 +220,7 @@ public class UaaResetPasswordServiceTests {
             new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(codeStore.retrieveCode("good_code", IdentityZoneHolder.get().getId())).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id", IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld", IdentityZoneHolder.get().getId()))
-            .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
+        when(scimUserProvisioning.checkPasswordHistoryMatches("user-id", "Passwo3dAsOld", IdentityZoneHolder.get().getId(), 3)).thenReturn(true);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);
@@ -226,7 +228,7 @@ public class UaaResetPasswordServiceTests {
             uaaResetPasswordService.resetPassword(expiringCode, "Passwo3dAsOld");
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("Your new password cannot be the same as the old password.", e.getMessage());
+            assertEquals("invalid password message", e.getMessage());
             assertEquals(UNPROCESSABLE_ENTITY, e.getStatus());
         }
     }
@@ -303,7 +305,7 @@ public class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
-        when(scimUserProvisioning.checkPasswordMatches("user-id", "password", IdentityZoneHolder.get().getId()))
+        when(scimUserProvisioning.checkPasswordHistoryMatches("user-id", "password", IdentityZoneHolder.get().getId(), 3))
             .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
         uaaResetPasswordService.resetUserPassword(userId, "password");
 

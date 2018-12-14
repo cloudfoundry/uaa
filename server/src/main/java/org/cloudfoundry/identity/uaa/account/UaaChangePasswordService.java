@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,11 +40,13 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
     private final ScimUserProvisioning scimUserProvisioning;
     private final PasswordValidator passwordValidator;
     private ApplicationEventPublisher publisher;
+    private ResourcePropertySource messages;
     private final int passwordHistoryRestriction;
 
-    public UaaChangePasswordService(ScimUserProvisioning scimUserProvisioning, PasswordValidator passwordValidator, int passwordHistoryRestriction) {
+    public UaaChangePasswordService(ScimUserProvisioning scimUserProvisioning, PasswordValidator passwordValidator, ResourcePropertySource messages, int passwordHistoryRestriction) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.passwordValidator = passwordValidator;
+        this.messages = messages;
         this.passwordHistoryRestriction = passwordHistoryRestriction;
     }
 
@@ -62,7 +65,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         try {
             if (scimUserProvisioning.checkPasswordHistoryMatches(user.getId(), newPassword, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
-                throw new InvalidPasswordException("Your new password was is in your password history.", UNPROCESSABLE_ENTITY);
+                throw new InvalidPasswordException(messages.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
             publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
