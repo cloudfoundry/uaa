@@ -140,13 +140,13 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void changePassword_PasswordNoveltyViolationReported_NewPasswordSameAsCurrentPassword() throws Exception {
-        doThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.")).when(changePasswordService).changePassword("bob", "secret", "new secret");
+        doThrow(new InvalidPasswordException("Your new password cannot be the same as one in your recent password history.")).when(changePasswordService).changePassword("bob", "secret", "new secret");
 
         MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "new secret");
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("change_password"))
-            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
+            .andExpect(model().attribute("message", "Your new password cannot be the same as one in your recent password history."));
     }
 
     private MockHttpServletRequestBuilder createRequest(String currentPassword, String newPassword, String confirmPassword) {

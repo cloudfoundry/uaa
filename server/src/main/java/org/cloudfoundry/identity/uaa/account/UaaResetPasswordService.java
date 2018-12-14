@@ -12,10 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import static java.util.Collections.emptyList;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-import static org.springframework.util.StringUtils.isEmpty;
-
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
@@ -29,7 +25,6 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -50,6 +45,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Collections.emptyList;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {
 
@@ -86,9 +84,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     @Override
     public void resetUserPassword(String userId, String password) {
-        if (scimUserProvisioning.checkPasswordHistoryMatches(userId, password, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
-            throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
-        }
         passwordValidator.validate(password);
         ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         UaaUser uaaUser = getUaaUser(user);
@@ -118,9 +113,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = constructAuthentication(uaaUser);
         try {
-            if (scimUserProvisioning.checkPasswordHistoryMatches(userId, newPassword, IdentityZoneHolder.get().getId(), passwordHistoryRestriction)) {
-                throw new InvalidPasswordException(resourcePropertySource.getProperty("force_password_change.same_as_old").toString(), UNPROCESSABLE_ENTITY);
-            }
             if (isUserModified(user, userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
             }
@@ -213,8 +205,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         return new UaaAuthentication(new UaaPrincipal(uaaUser), emptyList(), null);
     }
 
-    private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
-        scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId());
+    private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword) {
+        scimUserProvisioning.changePasswordWithHistoryCheck(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId(),
+                passwordHistoryRestriction);
         scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false, IdentityZoneHolder.get().getId());
         publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
     }

@@ -54,6 +54,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -273,7 +274,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .andExpect(jsonPath("$.user_id").value("eyedee"))
                 .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning).changePasswordWithHistoryCheck("eyedee", null, "new_secret", IdentityZoneHolder.get().getId(), 1);
     }
 
     @Test
@@ -320,7 +321,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .andExpect(jsonPath("$.user_id").value("eyedee"))
             .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(scimUserProvisioning).changePasswordWithHistoryCheck("eyedee", null, "new_secret", IdentityZoneHolder.get().getId(), 1);
         verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1, IdentityZoneHolder.get().getId());
     }
 
@@ -370,7 +371,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setVerified(true);
 
         when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
-        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret", IdentityZoneHolder.get().getId())).thenReturn(true);
+        doThrow(new InvalidPasswordException("Your new password cannot be the same as one in your recent password history.", UNPROCESSABLE_ENTITY))
+                .when(scimUserProvisioning).changePasswordWithHistoryCheck("eyedee", null, "new_secret", IdentityZoneHolder.get().getId(), 1);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)
@@ -381,6 +383,6 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Your new password cannot be the same as the old password.").put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
+                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Your new password cannot be the same as one in your recent password history.").put("message", "Your new password cannot be the same as one in your recent password history.").put("error", "invalid_password"))));
     }
 }

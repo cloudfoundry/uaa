@@ -12,10 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static java.sql.Types.INTEGER;
-import static java.sql.Types.VARCHAR;
-import static org.springframework.util.StringUtils.hasText;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -62,6 +58,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.VARCHAR;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
@@ -220,7 +221,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         }
 
-        updatePasswordHistory(id, zoneId, user.getPassword(), timestamp);
+        updatePasswordHistory(id, zoneId, user.getPassword(), t);
 
         return retrieve(id, zoneId);
     }
@@ -292,17 +293,38 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (oldPassword != null && !checkPasswordMatches(id, oldPassword, zoneId)) {
             throw new BadCredentialsException("Old password is incorrect");
         }
+
+        changePasswordAndWriteHistory(id, newPassword, zoneId);
+    }
+
+    @Override
+    public void changePasswordWithHistoryCheck(final String id, final String oldPassword, final String newPassword, final String zoneId,
+            final int historyLength) throws ScimResourceNotFoundException {
+        if (oldPassword != null && !checkPasswordMatches(id, oldPassword, zoneId)) {
+            throw new BadCredentialsException("Old password is incorrect");
+        }
+
+        // ensure a recent password isn't being used
+        if (checkPasswordHistoryMatches(id, newPassword, zoneId, historyLength)) {
+            throw new InvalidPasswordException("Your new password cannot be the same as one in your recent password history.", UNPROCESSABLE_ENTITY);
+        }
+
+        changePasswordAndWriteHistory(id, newPassword, zoneId);
+    }
+
+    private void changePasswordAndWriteHistory(final String id, final String newPassword, final String zoneId) {
         if (checkPasswordMatches(id, newPassword, zoneId)) {
             return; //we don't want to update the same password
         }
         final String encNewPassword = passwordEncoder.encode(newPassword);
-        final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        final Timestamp t = new Timestamp(System.currentTimeMillis());
+        final Timestamp timestamp = getPasswordLastModifiedTimestamp(t);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setTimestamp(1, timestamp);
+                ps.setTimestamp(1, t);
                 ps.setString(2, encNewPassword);
-                ps.setTimestamp(3, getPasswordLastModifiedTimestamp(timestamp));
+                ps.setTimestamp(3, timestamp);
                 ps.setString(4, id);
                 ps.setString(5, zoneId);
             }
@@ -315,7 +337,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         // add new password to history table
-        updatePasswordHistory(id, zoneId, encNewPassword, timestamp);
+        updatePasswordHistory(id, zoneId, encNewPassword, t);
     }
 
     // Checks the existing password for a user
@@ -336,8 +358,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return passwordEncoder.matches(password, currentPassword);
     }
 
-    @Override
-    public boolean checkPasswordHistoryMatches(final String id, final String password, final String zoneId, final int historyLength) {
+    private boolean checkPasswordHistoryMatches(final String id, final String password, final String zoneId, final int historyLength) {
+
+        if (historyLength < 1) {
+            return false;
+        }
 
         final List<String> passwordHistory =
                     jdbcTemplate.queryForList(

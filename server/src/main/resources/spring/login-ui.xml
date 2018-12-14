@@ -554,7 +554,6 @@
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="uaaPasswordValidator"/>
-        <constructor-arg ref="messagePropertiesSource"/>
         <constructor-arg value="${password.historyRestriction:1}"/>
     </bean>
 

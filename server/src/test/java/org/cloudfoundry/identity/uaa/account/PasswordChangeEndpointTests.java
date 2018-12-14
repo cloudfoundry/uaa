@@ -29,7 +29,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
@@ -50,8 +49,6 @@ public class PasswordChangeEndpointTests {
     private PasswordChangeEndpoint endpoints;
 
     private JdbcScimUserProvisioning dao;
-
-    private ResourcePropertySource messages;
 
     private static EmbeddedDatabase database;
     private static Flyway flyway;
@@ -75,10 +72,7 @@ public class PasswordChangeEndpointTests {
                         new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 
-        messages = mock(ResourcePropertySource.class);
-        when(messages.getProperty("force_password_change.same_as_old")).thenReturn("invalid password message");
-
-        endpoints = new PasswordChangeEndpoint(messages, 1);
+        endpoints = new PasswordChangeEndpoint(1);
         endpoints.setScimUserProvisioning(dao);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
@@ -201,14 +195,14 @@ public class PasswordChangeEndpointTests {
             endpoints.changePassword(joel.getId(), change);
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("invalid password message", e.getLocalizedMessage());
+            assertEquals("Your new password cannot be the same as one in your recent password history.", e.getLocalizedMessage());
         }
     }
 
     @Test
     public void changePasswordFailsForNewPasswordIsSameAsOneInPasswordHistory() {
 
-        endpoints = new PasswordChangeEndpoint(messages,3);
+        endpoints = new PasswordChangeEndpoint(3);
         endpoints.setScimUserProvisioning(dao);
 
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
@@ -228,7 +222,7 @@ public class PasswordChangeEndpointTests {
             endpoints.changePassword(joel.getId(), change);
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("invalid password message", e.getLocalizedMessage());
+            assertEquals("Your new password cannot be the same as one in your recent password history.", e.getLocalizedMessage());
         }
     }
 }

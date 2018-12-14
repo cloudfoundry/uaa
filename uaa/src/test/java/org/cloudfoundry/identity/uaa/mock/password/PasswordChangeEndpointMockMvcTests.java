@@ -113,7 +113,7 @@ public class PasswordChangeEndpointMockMvcTests {
             .content(JsonUtils.writeValueAsString(request)))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.error").value("invalid_password"))
-            .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
+            .andExpect(jsonPath("$.message").value("Your new password cannot be the same as one in your recent password history."));
     }
 
     @Test

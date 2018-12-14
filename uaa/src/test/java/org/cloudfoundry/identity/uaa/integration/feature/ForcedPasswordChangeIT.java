@@ -125,7 +125,7 @@ public class ForcedPasswordChangeIT {
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(),
-            containsString("Your new password cannot be the same as the old password."));
+            containsString("Your new password cannot be the same as one in your recent password history."));
     }
 
     @Test

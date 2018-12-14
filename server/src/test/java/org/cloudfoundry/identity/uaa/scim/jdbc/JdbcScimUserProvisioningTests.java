@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -319,7 +320,12 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertNotNull(user.getPasswordLastModified());
         assertTrue(Math.abs(user.getMeta().getLastModified().getTime() - user.getPasswordLastModified().getTime()) < 1001);
 
-        assertTrue(db.checkPasswordHistoryMatches(created.getId(), "j7hyqpassXXX", IdentityZoneHolder.get().getId(), 1));
+        try {
+            db.changePasswordWithHistoryCheck(created.getId(), "j7hyqpassXXX", "j7hyqpassXXX", IdentityZoneHolder.get().getId(), 1);
+            fail();
+        } catch (final InvalidPasswordException e) {
+            assertEquals(e.getMessage(), "Your new password cannot be the same as one in your recent password history.");
+        }
     }
 
     @Test
@@ -332,9 +338,22 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         db.changePassword(created.getId(), "password1", "password2", IdentityZoneHolder.get().getId());
         db.changePassword(created.getId(), "password2", "password3", IdentityZoneHolder.get().getId());
 
-        assertFalse(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 1));
-        assertFalse(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 2));
-        assertTrue(db.checkPasswordHistoryMatches(created.getId(), "password1", IdentityZoneHolder.get().getId(), 3));
+        // history now: password1, password2, password3
+        db.changePasswordWithHistoryCheck(created.getId(), "password3", "password1", IdentityZoneHolder.get().getId(), 1);
+
+        // history now: password1, password2, password3, password1
+        db.changePasswordWithHistoryCheck(created.getId(), "password1", "password2", IdentityZoneHolder.get().getId(), 2);
+
+        // history now: password1, password2, password3, password1, password2
+        try {
+            db.changePasswordWithHistoryCheck(created.getId(), "password2", "password3", IdentityZoneHolder.get().getId(), 3);
+            fail();
+        } catch (final InvalidPasswordException e) {
+            assertEquals(e.getMessage(), "Your new password cannot be the same as one in your recent password history.");
+        }
+
+        // history now: password1, password2, password3, password1, password2
+        db.changePasswordWithHistoryCheck(created.getId(), "password2", "password2", IdentityZoneHolder.get().getId(), 0);
     }
 
     @Test

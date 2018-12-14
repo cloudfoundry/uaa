@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -42,12 +41,12 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 public class UaaChangePasswordServiceTest {
     private UaaChangePasswordService subject;
     private ScimUserProvisioning scimUserProvisioning;
     private PasswordValidator passwordValidator;
-    private ResourcePropertySource messages;
 
     @Before
     public void setUp() throws Exception {
@@ -55,9 +54,7 @@ public class UaaChangePasswordServiceTest {
         SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         passwordValidator = mock(PasswordValidator.class);
-        messages = mock(ResourcePropertySource.class);
-        when(messages.getProperty("force_password_change.same_as_old")).thenReturn("invalid password message");
-        subject = new UaaChangePasswordService(scimUserProvisioning, passwordValidator, messages, 3);
+        subject = new UaaChangePasswordService(scimUserProvisioning, passwordValidator, 3);
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -84,12 +81,13 @@ public class UaaChangePasswordServiceTest {
     public void changePassword_ReturnsUnprocessableEntity_PasswordNoveltyViolation() {
         List<ScimUser> results = getScimUsers();
         when(scimUserProvisioning.query(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(results);
-        when(scimUserProvisioning.checkPasswordHistoryMatches("id", "samePassword1", IdentityZoneHolder.get().getId(), 3)).thenReturn(true);
+        doThrow(new InvalidPasswordException("Your new password cannot be the same as one in your recent password history.", UNPROCESSABLE_ENTITY))
+                .when(scimUserProvisioning).changePasswordWithHistoryCheck("id", "samePassword1", "samePassword1", IdentityZoneHolder.get().getId(), 3);
         try {
             subject.changePassword("username", "samePassword1", "samePassword1");
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("invalid password message", e.getLocalizedMessage());
+            assertEquals("Your new password cannot be the same as one in your recent password history.", e.getLocalizedMessage());
         }
     }
 
@@ -101,7 +99,7 @@ public class UaaChangePasswordServiceTest {
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
         verify(scimUserProvisioning).query(anyString(), eq(zoneId));
-        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", zoneId);
+        verify(scimUserProvisioning).changePasswordWithHistoryCheck("id", "currentPassword", "validPassword", zoneId, 3);
     }
 
     @Test
@@ -113,7 +111,7 @@ public class UaaChangePasswordServiceTest {
         verify(passwordValidator).validate("validPassword");
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(scimUserProvisioning).query(captor.capture(), eq(zoneId));
-        verify(scimUserProvisioning).changePassword("id", "currentPassword", "validPassword", zoneId);
+        verify(scimUserProvisioning).changePasswordWithHistoryCheck("id", "currentPassword", "validPassword", zoneId, 3);
         assertThat(captor.getValue(), containsString("origin eq \"uaa\""));
     }
 
