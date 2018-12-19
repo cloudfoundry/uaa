@@ -32,7 +32,7 @@ configurations.driver.each {File file ->
   loader.addURL(file.toURL())
 }
 
-task createSQLServerUAA << {
+task createSQLServerUAA {
   def props = [user: 'sa', password: 'changemeCHANGEME1234!'] as Properties
   def url = 'jdbc:sqlserver://localhost:1433;database=master;'
   def driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
