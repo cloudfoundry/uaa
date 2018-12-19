@@ -451,31 +451,14 @@ public class XOAuthAuthenticationManagerIT {
     }
 
     @Test
-    public void when_exchanging_an_id_token_retrieved_by_uaa_via_an_oidc_idp_for_an_access_token() {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> idpProvider = getProvider();
-        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
-
-        claims.put("iss", UAA_ISSUER_URL);
-        claims.put("origin", idpProvider.getId());
-
-        CompositeToken token = getCompositeAccessToken();
-        String idToken = token.getIdTokenValue();
-        xCodeToken.setIdToken(idToken);
-        xCodeToken.setOrigin(null);
-
-
-        assertThrows(InsufficientAuthenticationException.class, () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken));
-    }
-
-    @Test
-    public void when_exchanging_an_id_token_retrieved_by_an_external_oidc_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
+    public void when_exchanging_an_id_token_retrieved_by_uaa_via_an_oidc_idp_for_an_access_token_origin_should_be_kept() {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> idpProvider = getProvider();
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
 
         String username = RandomStringUtils.random(50);
         claims.put("sub", username);
-        claims.put("iss", idpProvider.getConfig().getIssuer());
-        claims.put("origin", idpProvider.getId());
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", idpProvider.getOriginKey());
 
         CompositeToken token = getCompositeAccessToken();
         String idToken = token.getIdTokenValue();
@@ -487,6 +470,57 @@ public class XOAuthAuthenticationManagerIT {
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username, is(externalAuthenticationDetails.getUsername()));
+        assertThat(externalAuthenticationDetails.getClaims().get(ClaimConstants.ORIGIN), is(idpProvider.getOriginKey()));
+        assertThat(xoAuthAuthenticationManager.getOrigin(), is(idpProvider.getOriginKey()));
+    }
+
+    @Test
+    public void when_exchanging_an_id_token_retrieved_by_uaa_via_an_registered_oidc_idp_for_an_access_token_origin_should_be_taken_from_token() {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken.setIdToken(idToken);
+        xCodeToken.setOrigin(null);
+
+
+        XOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = xoAuthAuthenticationManager
+                .getExternalAuthenticationDetails(xCodeToken);
+
+        assertThat(username, is(externalAuthenticationDetails.getUsername()));
+        assertThat(externalAuthenticationDetails.getClaims().get(ClaimConstants.ORIGIN), is(OriginKeys.UAA));
+        assertThat(xoAuthAuthenticationManager.getOrigin(), is(idpProvider.getOriginKey()));
+    }
+
+    @Test
+    public void when_exchanging_an_id_token_retrieved_by_an_external_oidc_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> idpProvider = getProvider();
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", idpProvider.getConfig().getIssuer());
+        claims.put("origin", idpProvider.getOriginKey());
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken.setIdToken(idToken);
+        xCodeToken.setOrigin(null);
+
+
+        XOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = xoAuthAuthenticationManager
+                .getExternalAuthenticationDetails(xCodeToken);
+
+        assertThat(username, is(externalAuthenticationDetails.getUsername()));
+        assertThat(externalAuthenticationDetails.getClaims().get(ClaimConstants.ORIGIN), is(idpProvider.getOriginKey()));
     }
 
     @Test
@@ -1175,6 +1209,6 @@ public class XOAuthAuthenticationManagerIT {
         }
     }
     private static Stream<String> invalidOrigins() {
-        return Stream.of("", "not_uaa_origin", null);
+        return Stream.of("", null);
     }
 }
