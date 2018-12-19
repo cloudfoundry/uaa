@@ -54,6 +54,7 @@ public class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
             parameterWithName("client_secret").type(STRING).required().description("Required unless a basic authorization header is used"),
             parameterWithName("grant_type").type(STRING).required().description("Must be set to `"+ GRANT_TYPE_JWT_BEARER+"`"),
             parameterWithName("scope").type(STRING).optional(null).description("Optional parameter to limit the number of scopes in the `scope` claim of the access token"),
+            parameterWithName("response_type").type(STRING).optional(null).description("May be set to `token` or `token id_token` or `id_token`"),
             parameterWithName("token_format").type(STRING).optional(null).description("May be set to `opaque` to retrieve revocable and non identifiable access token")
         );
 
