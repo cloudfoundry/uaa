@@ -35,31 +35,13 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
     protected boolean redirectMatches(String requestedRedirect, String redirectUri) {
         AntPathMatcher matcher = new AntPathMatcher("/");
 
-        final String legacySubpathRedirectUri = supportLegacySubpathMatching(redirectUri);
-
-        if (legacySubpathRedirectUri!=null &&
-            legacySubpathRedirectUri.contains("*") &&
-            matcher.match(legacySubpathRedirectUri, requestedRedirect)) {
+        if (redirectUri!=null &&
+            redirectUri.contains("*") &&
+            matcher.match(redirectUri, requestedRedirect)) {
             return true;
         } else {
             return super.redirectMatches(requestedRedirect, redirectUri);
         }
-    }
-
-    /**
-     * Provides support to allow redirect URI matching for all subpaths within a URI.
-     *
-     * @param redirectUri
-     * @return
-     */
-    private String supportLegacySubpathMatching(String redirectUri) {
-        if (redirectUri.endsWith("/")) {
-            redirectUri += "**";
-        } else if (!redirectUri.endsWith("*")) {
-            redirectUri += "/**";
-        }
-
-        return redirectUri;
     }
 
     @Override

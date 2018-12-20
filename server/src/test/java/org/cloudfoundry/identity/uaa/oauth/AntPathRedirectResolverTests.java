@@ -35,6 +35,144 @@ public class AntPathRedirectResolverTests {
     private final AntPathRedirectResolver resolver = new AntPathRedirectResolver();
 
     @Nested
+    class WhenMatchingAgainstJustTLD {
+        private final String clientRedirectUri = "http://domain.com";
+
+        @Test
+        public void allSubdomainsShouldMatch() {
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+        }
+
+        @Test
+        public void allPathsShouldMatch() {
+            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void allPathsInAnySubdomainShouldMatch() {
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertTrue(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void doesNotMatchDifferentTld() {
+            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+        }
+        
+        @Test
+        public void doesNotMatchDifferentProtocol() {
+            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+        }
+    }
+
+    @Nested
+    class WhenMatchingWithSinglePathPattern {
+        private final String clientRedirectUri = "http://domain.com/*";
+
+        @Test
+        public void shouldNotMatchSubdomains() {
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+        }
+
+        @Test
+        public void allPathsShouldMatch() {
+            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void shouldNotMatchSubdomainsWithPaths() {
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void doesNotMatchDifferentTld() {
+            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+        }
+
+        @Test
+        public void doesNotMatchDifferentProtocol() {
+            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+        }
+    }
+
+    @Nested
+    class WhenMatchingWithAllSubPathsPattern {
+        private final String clientRedirectUri = "http://domain.com/**";
+
+        @Test
+        public void shouldNotMatchSubdomains() {
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+        }
+
+        @Test
+        public void allPathsShouldMatch() {
+            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void shouldNotMatchSubdomainsWithPaths() {
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+        }
+
+        @Test
+        public void doesNotMatchDifferentTld() {
+            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+        }
+
+        @Test
+        public void doesNotMatchDifferentProtocol() {
+            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+        }
+    }
+
+    @Nested
     @DisplayName("redirectMatches")
     class RedirectMatches {
         @Test
