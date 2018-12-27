@@ -411,7 +411,7 @@ public class SamlTestUtils {
 //        assertion.getSubject().getNameID().setFormat(format);
         assertion.getSubject().setPrincipal(
             new NameIdPrincipal()
-                .setFormat(NameId.valueOf(format))
+                .setFormat(NameId.fromUrn(format))
                 .setValue(username)
         );
 
