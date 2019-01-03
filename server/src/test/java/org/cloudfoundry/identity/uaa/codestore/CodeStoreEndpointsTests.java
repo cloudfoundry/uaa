@@ -31,14 +31,11 @@ import static org.mockito.Mockito.when;
 public class CodeStoreEndpointsTests extends JdbcTestBase {
 
     private CodeStoreEndpoints codeStoreEndpoints;
-
     private ExpiringCodeStore expiringCodeStore;
-
-    private TimeService timeService = new TimeServiceImpl();
     private AtomicLong currentTime;
 
     @Before
-    public void initCodeStoreTests() throws Exception {
+    public void initCodeStoreTests() {
         codeStoreEndpoints = new CodeStoreEndpoints();
         currentTime = new AtomicLong(System.currentTimeMillis());
 
@@ -52,7 +49,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCode() throws Exception {
+    public void testGenerateCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
@@ -70,7 +67,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullData() throws Exception {
+    public void testGenerateCodeWithNullData() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, null);
 
@@ -84,7 +81,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullExpiresAt() throws Exception {
+    public void testGenerateCodeWithNullExpiresAt() {
         String data = "{}";
         ExpiringCode expiringCode = new ExpiringCode(null, null, data, null);
 
@@ -98,7 +95,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithExpiresAtInThePast() throws Exception {
+    public void testGenerateCodeWithExpiresAtInThePast() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(currentTime.get() - 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
@@ -113,7 +110,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithDuplicateCode() throws Exception {
+    public void testGenerateCodeWithDuplicateCode() {
         RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
@@ -133,7 +130,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCode() throws Exception {
+    public void testRetrieveCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
@@ -153,7 +150,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithCodeNotFound() throws Exception {
+    public void testRetrieveCodeWithCodeNotFound() {
         try {
             codeStoreEndpoints.retrieveCode("unknown");
 
@@ -164,7 +161,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithNullCode() throws Exception {
+    public void testRetrieveCodeWithNullCode() {
         try {
             codeStoreEndpoints.retrieveCode(null);
 
@@ -175,7 +172,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testStoreLargeData() throws Exception {
+    public void testStoreLargeData() {
         char[] oneMb = new char[1024 * 1024];
         Arrays.fill(oneMb, 'a');
         String data = new String(oneMb);
@@ -191,7 +188,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithExpiredCode() throws Exception {
+    public void testRetrieveCodeWithExpiredCode() {
         String data = "{}";
         int expiresIn = 1000;
         Timestamp expiresAt = new Timestamp(currentTime.get() + expiresIn);
