@@ -53,7 +53,7 @@ task createDockerfile(type: Dockerfile) {
   instruction 'RUN bash -c "addgroup --gid 1110 docker"'
   instruction 'RUN bash -c "adduser --uid 1100 --disabled-password --gecos \'\' dockeruser"'
   instruction 'RUN bash -c "adduser dockeruser docker"'
-  instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/uaa.war'
+  instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/ROOT.war'
   instruction 'ADD uaa.yml /uaa/uaa.yml'
   instruction 'RUN bash -c "echo $LOGIN_CONFIG_URL"'
   instruction 'RUN bash -c "chown -R dockeruser:docker /usr/local/tomcat"'
