@@ -12,13 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.acceptance;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-
-import java.io.File;
-import java.util.List;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
@@ -32,11 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -55,10 +45,16 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.File;
+import java.util.List;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -99,6 +95,15 @@ public class SamlLoginAT {
     @Value("${RUN_AGAINST_LOCAL_UAA:false}")
     boolean runAgainstLocalUaa;
 
+    @Value("${UAA_HOST:}")
+    String uaaHost;
+
+    @Value("${UAA_PORT:}")
+    String uaaPort;
+
+    @Value("${UAA_PATH:}")
+    String uaaPath;
+
     @Autowired
     TestAccounts testAccounts;
 
@@ -128,7 +133,8 @@ public class SamlLoginAT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         if (this.runAgainstLocalUaa) {
-            this.baseUrl = "http://" + this.zoneSubdomain + ".localhost:8080/uaa";
+            String path = StringUtils.isEmpty(this.uaaPath) ? "" : "/" + this.uaaPath;
+            this.baseUrl = "http://" + this.zoneSubdomain + "." + this.uaaHost + ":" + this.uaaPort + path;
         }
         else {
             this.baseUrl = "https://" + this.zoneSubdomain + "."  + this.publishedHost + "." + this.cfDomain;
