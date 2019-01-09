@@ -142,6 +142,8 @@ public class LoginMockMvcTests {
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
         originalConfiguration = webApplicationContext.getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
         identityZoneConfiguration = webApplicationContext.getBean(IdentityZoneProvisioning.class).retrieve(getUaa().getId()).getConfig();
+        IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
+
         bootstrapMfaProvider();
     }
 
