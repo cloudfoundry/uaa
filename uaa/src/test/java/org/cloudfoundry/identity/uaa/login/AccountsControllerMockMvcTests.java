@@ -1,37 +1,52 @@
-package org.cloudfoundry.identity.uaa.login;
+    package org.cloudfoundry.identity.uaa.login;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.message.EmailService;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.StandardServletEnvironment;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -48,7 +63,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
-public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class AccountsControllerMockMvcTests {
 
     private static SimpleSmtpServer mailServer;
     private final String LOGIN_REDIRECT = "/login?success=verify_success";
@@ -58,24 +79,36 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     private JavaMailSender originalSender;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
-    @BeforeClass
-    public static void startMailServer() {
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+    private MockMvc mockMvc;
+    private TestClient testClient;
+
+    @BeforeAll
+    static void startMailServer() {
         mailServer = SimpleSmtpServer.start(2525);
     }
 
-    @Before
-    public void setUp() throws Exception {
-        originalSender = getWebApplicationContext().getBean("emailService", EmailService.class).getMailSender();
+    @BeforeEach
+    void setUp() {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        testClient = new TestClient(mockMvc);
+
+        originalSender = webApplicationContext.getBean("emailService", EmailService.class).getMailSender();
 
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("localhost");
         mailSender.setPort(2525);
-        getWebApplicationContext().getBean("emailService", EmailService.class).setMailSender(mailSender);
+        webApplicationContext.getBean("emailService", EmailService.class).setMailSender(mailSender);
 
         userEmail = "user" +new RandomValueStringGenerator().generate()+ "@example.com";
-        Assert.assertNotNull(getWebApplicationContext().getBean("messageService"));
+        Assert.assertNotNull(webApplicationContext.getBean("messageService"));
 
-        mockMvcTestClient = new MockMvcTestClient(getMockMvc());
+        mockMvcTestClient = new MockMvcTestClient(mockMvc);
 
         for (Iterator i = mailServer.getReceivedEmail(); i.hasNext();) {
             i.next();
@@ -83,55 +116,62 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         }
     }
 
-    @After
-    public void restoreMailSender() {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
-        getWebApplicationContext().getBean("emailService", EmailService.class).setMailSender(originalSender);
+    private void setProperty(String name, String value) {
+        StandardServletEnvironment env = (StandardServletEnvironment) webApplicationContext.getEnvironment();
+        MockPropertySource mockPropertySource = new MockPropertySource();
+        mockPropertySource.setProperty(name, value);
+        env.getPropertySources().addLast(mockPropertySource);
+        Assert.assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
     }
 
-    @After
-    public void resetGenerator() {
-        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    @AfterEach
+    void restoreMailSender() {
+        setProperty("assetBaseUrl", "/resources/oss");
+        webApplicationContext.getBean("emailService", EmailService.class).setMailSender(originalSender);
     }
 
+    @AfterEach
+    void resetGenerator() {
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    }
 
-    @AfterClass
-    public static void stopMailServer() {
+    @AfterAll
+    static void stopMailServer() {
         if (mailServer!=null) {
             mailServer.stop();
         }
     }
 
     @Test
-    public void testCreateActivationEmailPage() throws Exception {
-        getMockMvc().perform(get("/create_account"))
+    void testCreateActivationEmailPage() throws Exception {
+        mockMvc.perform(get("/create_account"))
                 .andExpect(content().string(containsString("Create your account")));
     }
 
     @Test
-    public void testCreateActivationEmailPageWithinZone() throws Exception {
+    void testCreateActivationEmailPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(content().string(containsString("Create your account")));
     }
 
     @Test
-    public void testActivationEmailSentPage() throws Exception {
-        getMockMvc().perform(get("/accounts/email_sent"))
+    void testActivationEmailSentPage() throws Exception {
+        mockMvc.perform(get("/accounts/email_sent"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Create your account")))
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
     }
 
     @Test
-    public void testActivationEmailSentPageWithinZone() throws Exception {
+    void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
-        getMockMvc().perform(get("/accounts/email_sent")
+        mockMvc.perform(get("/accounts/email_sent")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("Create your account")))
@@ -140,30 +180,30 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testPageTitle() throws Exception {
-        getMockMvc().perform(get("/create_account"))
+    void testPageTitle() throws Exception {
+        mockMvc.perform(get("/create_account"))
             .andExpect(content().string(containsString("<title>Cloud Foundry</title>")));
     }
 
     @Test
-    public void testPageTitleWithinZone() throws Exception {
+    void testPageTitleWithinZone() throws Exception {
         String subdomain = generator.generate();
-        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
     @Test
-    public void testCreateAccountWithdisableSelfService() throws Exception {
+    void testCreateAccountWithdisableSelfService() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(getMockMvc(), getWebApplicationContext(), getBaseClientDetails() ,zone);
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails() ,zone);
 
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(model().attribute("error_message_code", "self_service_disabled"))
                 .andExpect(view().name("error"))
@@ -171,14 +211,14 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testDisableSelfServiceCreateAccountPost() throws Exception {
+    void testDisableSelfServiceCreateAccountPost() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(getMockMvc(), getWebApplicationContext(), getBaseClientDetails() ,zone);
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails() ,zone);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
@@ -190,32 +230,28 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
-
-        getMockMvc().perform(get("/create_account"))
+    void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
+        mockMvc.perform(get("/create_account"))
             .andExpect(content().string(containsString("background-image: url(/resources/oss/images/product-logo.png);")));
     }
 
     @Test
-    public void zoneLogoNull_doNotDisplayImage() throws Exception {
+    void zoneLogoNull_doNotDisplayImage() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
-
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
     }
 
     @Test
-    public void testCreatingAnAccount() throws Exception {
+    void testCreatingAnAccount() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
@@ -223,11 +259,11 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        JdbcScimUserProvisioning scimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
+        JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
         ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).get(0);
         assertFalse(scimUser.isVerified());
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
@@ -246,12 +282,12 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreatingAnAccountWithAnEmptyClientId() throws Exception {
+    void testCreatingAnAccountWithAnEmptyClientId() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
@@ -260,7 +296,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
@@ -279,22 +315,22 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreatingAnAccountWithClientRedirect() throws Exception {
+    void testCreatingAnAccountWithClientRedirect() throws Exception {
         createAccount("http://redirect.uri/client", "http://redirect.uri/client");
     }
 
     @Test
-    public void testCreatingAnAccountWithFallbackClientRedirect() throws Exception {
+    void testCreatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://redirect.uri/fallback", null);
     }
 
     @Test
-    public void testCreatingAnAccountWithNoClientRedirect() throws Exception {
+    void testCreatingAnAccountWithNoClientRedirect() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
             .param("email", userEmail)
             .param("password", "secr3T")
@@ -307,7 +343,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertTrue(message.getBody().contains("Cloud Foundry"));
         assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl(LOGIN_REDIRECT))
@@ -326,10 +362,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreatingAnAccountInAnotherZoneWithNoClientRedirect() throws Exception {
+    void testCreatingAnAccountInAnotherZoneWithNoClientRedirect() throws Exception {
         String subdomain = "mysubdomain2";
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
         IdentityZone identityZone = new IdentityZone();
@@ -338,13 +374,13 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         identityZone.setId(new RandomValueStringGenerator().generate());
 
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.write");
-        getMockMvc().perform(post("/identity-zones")
+        mockMvc.perform(post("/identity-zones")
             .header("Authorization", "Bearer " + zonesCreateToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("email", userEmail)
@@ -363,7 +399,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain+".localhost"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
             .param("code", "test" + generator.counter.get())
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(status().isFound())
@@ -384,10 +420,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreatingAnAccountInAnotherZoneWithClientRedirect() throws Exception {
+    void testCreatingAnAccountInAnotherZoneWithClientRedirect() throws Exception {
         String subdomain = "mysubdomain1";
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
         IdentityZone identityZone = new IdentityZone();
@@ -395,9 +431,9 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         identityZone.setName(subdomain);
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), getBaseClientDetails());
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getBaseClientDetails());
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                                  .with(cookieCsrf())
             .param("email", userEmail)
@@ -414,7 +450,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain+".localhost"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
             .param("code", "test" + generator.counter.get())
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=http://myzoneclient.example.com"))
@@ -442,14 +478,14 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void redirectToSavedRequest_ifPresent() throws Exception {
+    void redirectToSavedRequest_ifPresent() throws Exception {
         MockHttpSession session = MockMvcUtils.getSavedRequestSession();
 
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
             .with(cookieCsrf())
                 .session(session)
                 .param("email", "testuser@test.org")
@@ -457,7 +493,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .param("password_confirmation", "test-password"))
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
                 .session(session)
                 .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
@@ -468,8 +504,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void ifInvalidOrExpiredCode_goTo_createAccountDefaultPage() throws Exception {
-        getMockMvc().perform(get("/verify_user")
+    void ifInvalidOrExpiredCode_goTo_createAccountDefaultPage() throws Exception {
+        mockMvc.perform(get("/verify_user")
             .param("code", "expired-code"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "code_expired"))
@@ -478,11 +514,12 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void ifInvalidOrExpiredCode_withNonDefaultSignupLinkProperty_goToNonDefaultSignupPage() throws Exception {
+    void ifInvalidOrExpiredCode_withNonDefaultSignupLinkProperty_goToNonDefaultSignupPage() throws Exception {
         String signUpLink = "http://mypage.com/signup";
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("links.signup", signUpLink);
 
-        getMockMvc().perform(get("/verify_user")
+        setProperty("links.signup", signUpLink);
+
+        mockMvc.perform(get("/verify_user")
             .param("code", "expired-code"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "code_expired"))
@@ -491,55 +528,55 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testConsentIfConfigured_displaysConsentTextAndLink() throws Exception {
+    void testConsentIfConfigured_displaysConsentTextAndLink() throws Exception {
         String randomZoneSubdomain = generator.generate();
         String consentText = "Terms and Conditions";
         String consentLink = "http://google.com";
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
-            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+            randomZoneSubdomain, mockMvc, webApplicationContext);
 
         zone.getConfig().setBranding(new BrandingInformation());
         zone.getConfig().getBranding().setConsent(new Consent());
         zone.getConfig().getBranding().getConsent().setText(consentText);
         zone.getConfig().getBranding().getConsent().setLink(consentLink);
-        MockMvcUtils.updateZone(getMockMvc(), zone);
+        MockMvcUtils.updateZone(mockMvc, zone);
 
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
             .andExpect(content().string(containsString(consentText)))
             .andExpect(content().string(containsString(consentLink)));
     }
 
     @Test
-    public void testConsentIfConfigured_displayConsentTextWhenNoLinkConfigured() throws Exception {
+    void testConsentIfConfigured_displayConsentTextWhenNoLinkConfigured() throws Exception {
         String randomZoneSubdomain = generator.generate();
         String consentText = "Terms and Conditions";
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
-            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+            randomZoneSubdomain, mockMvc, webApplicationContext);
 
         zone.getConfig().setBranding(new BrandingInformation());
         zone.getConfig().getBranding().setConsent(new Consent());
         zone.getConfig().getBranding().getConsent().setText(consentText);
-        MockMvcUtils.updateZone(getMockMvc(), zone);
+        MockMvcUtils.updateZone(mockMvc, zone);
 
-        getMockMvc().perform(get("/create_account")
+        mockMvc.perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
             .andExpect(content().string(containsString(consentText)));
     }
 
     @Test
-    public void testConsentIfConfigured_displaysMeaningfulErrorWhenConsentNotProvided() throws Exception {
+    void testConsentIfConfigured_displaysMeaningfulErrorWhenConsentNotProvided() throws Exception {
         String randomZoneSubdomain = generator.generate();
         String consentText = "Terms and Conditions";
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
-            randomZoneSubdomain, getMockMvc(), getWebApplicationContext());
+            randomZoneSubdomain, mockMvc, webApplicationContext);
 
         zone.getConfig().setBranding(new BrandingInformation());
         zone.getConfig().getBranding().setConsent(new Consent());
         zone.getConfig().getBranding().getConsent().setText(consentText);
-        MockMvcUtils.updateZone(getMockMvc(), zone);
+        MockMvcUtils.updateZone(mockMvc, zone);
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
             .with(cookieCsrf())
             .param("email", userEmail)
@@ -560,18 +597,18 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(), "clients.admin");
-        return MockMvcUtils.createClient(getMockMvc(), adminToken, clientDetails);
+        return MockMvcUtils.createClient(mockMvc, adminToken, clientDetails);
     }
 
     private void createAccount(String expectedRedirectUri, String redirectUri) throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
         BaseClientDetails clientDetails = createTestClient();
 
 
-        getMockMvc().perform(post("/create_account.do")
+        mockMvc.perform(post("/create_account.do")
                                  .with(cookieCsrf())
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
@@ -586,7 +623,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertTrue(message.getBody().contains("Cloud Foundry"));
         assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
 
-        getMockMvc().perform(get("/verify_user")
+        mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=" + expectedRedirectUri))
@@ -615,7 +652,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             req.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }
 
-        return getMockMvc().perform(req)
+        return mockMvc.perform(req)
             .andExpect(status().isFound());
     }
 }
