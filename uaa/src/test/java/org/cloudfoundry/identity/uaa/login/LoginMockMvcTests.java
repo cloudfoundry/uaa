@@ -696,7 +696,7 @@ public class LoginMockMvcTests {
     public void testChangePasswordPageDoesHaveCsrf() throws Exception {
         mockMvc.perform(
             get("/change_password")
-                .with(securityContext(MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext)))
+                .with(securityContext(MockMvcUtils.getMarissaSecurityContext(webApplicationContext)))
         )
             .andExpect(status().isOk())
             .andExpect(view().name("change_password"))
@@ -710,7 +710,7 @@ public class LoginMockMvcTests {
         ScimUser user = createUser(getUaa().getId());
         mockMvc.perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), webApplicationContext)))
+                .with(securityContext(MockMvcUtils.getUaaSecurityContext(user.getUserName(), webApplicationContext)))
                 .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
@@ -720,7 +720,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), webApplicationContext)))
+                .with(securityContext(MockMvcUtils.getUaaSecurityContext(user.getUserName(), webApplicationContext)))
                 .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")

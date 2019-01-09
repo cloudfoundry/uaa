@@ -22,7 +22,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -55,13 +55,13 @@ public class InvitationsEndpointDocs extends InjectedMockContextTest {
 
     @Before
     public void setup() throws Exception {
-        String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         domain = generator.generate().toLowerCase()+".com";
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
-        utils().createClient(getMockMvc(), adminToken, clientId, clientSecret, null, Arrays.asList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
-        token = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.invite", null, true);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, clientId, clientSecret, null, Arrays.asList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
+        token = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.invite", null, true);
     }
 
     @Test

@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
@@ -119,7 +119,7 @@ public class LdapCertificateMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void createzones() throws Exception {
-        trustedCertZone = utils().createOtherIdentityZoneAndReturnResult(
+        trustedCertZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                 gen.generate(),
                 getMockMvc(),
                 getWebApplicationContext(),
@@ -143,7 +143,7 @@ public class LdapCertificateMockMvcTests extends InjectedMockContextTest {
         );
 
         MockMvcUtils.createIdentityProvider(getMockMvc(), trustedCertZone, OriginKeys.LDAP, definition);
-        trustedButExpiredCertZone = utils().createOtherIdentityZoneAndReturnResult(
+        trustedButExpiredCertZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                 gen.generate(),
                 getMockMvc(),
                 getWebApplicationContext(),

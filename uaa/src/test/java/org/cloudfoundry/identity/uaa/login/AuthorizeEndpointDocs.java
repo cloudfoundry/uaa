@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.net.URLEncoder;
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -98,7 +98,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void apiCodeRequest() throws Exception {
-        String cfAccessToken = utils().getUserOAuthAccessToken(
+        String cfAccessToken = MockMvcUtils.getUserOAuthAccessToken(
             getMockMvc(),
             "cf",
             "",

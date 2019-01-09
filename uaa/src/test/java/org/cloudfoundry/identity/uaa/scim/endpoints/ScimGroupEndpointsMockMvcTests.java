@@ -66,7 +66,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
@@ -132,7 +132,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,other.scope";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo", "bar", "scim.read"), Arrays.asList("client_credentials", "password"), authorities);
+        MockMvcUtils.createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo", "bar", "scim.read"), Arrays.asList("client_credentials", "password"), authorities);
         scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.read password.write");
         scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.write password.write");
 
@@ -158,7 +158,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testIdentityClientManagesZoneAdmins() throws Exception {
-        IdentityZone zone = utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
+        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityClientToken);
         ScimGroupMember member = new ScimGroupMember(scimUser.getId());
         ScimGroup group = new ScimGroup(null, "zones." + zone.getId() + ".admin", zone.getId());
         group.setMembers(Arrays.asList(member));
@@ -223,7 +223,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLimitedScopesWithoutMember() throws Exception {
-        IdentityZone zone = utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
+        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityClientToken);
         ScimGroup group = new ScimGroup("zones." + zone.getId() + ".admin");
 
         MockHttpServletRequestBuilder post = post("/Groups/zones")
@@ -253,7 +253,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     private ResultActions[] addAndDeleteMemberstoZoneManagementGroups(String displayName, HttpStatus create, HttpStatus delete) throws Exception {
         ResultActions[] result = new ResultActions[2];
-        IdentityZone zone = utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
+        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityClientToken);
         ScimGroupMember member = new ScimGroupMember(scimUser.getId());
         ScimGroup group = new ScimGroup(String.format(displayName, zone.getId()));
         group.setMembers(Arrays.asList(member));
@@ -289,7 +289,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGroupOperations_as_Zone_Admin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String zoneAdminToken = result.getZoneAdminToken();
         IdentityZone zone = result.getIdentityZone();
 
@@ -404,7 +404,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
-        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
             subdomain, getMockMvc(), getWebApplicationContext(), bootstrapClient
         );
 
@@ -477,13 +477,13 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
-        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
             subdomain, getMockMvc(), getWebApplicationContext(), bootstrapClient
         );
 
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails) utils().createClient(getMockMvc(), result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read"), Arrays.asList("client_credentials", "password"), "scim.read", null, result.getIdentityZone());
+        BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read"), Arrays.asList("client_credentials", "password"), "scim.read", null, result.getIdentityZone());
         zonedClientDetails.setClientSecret(zonedClientSecret);
 
         ScimUser zoneUser = createUserAndAddToGroups(result.getIdentityZone(), new HashSet(Arrays.asList("scim.read")));

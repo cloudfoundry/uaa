@@ -177,8 +177,8 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
@@ -230,8 +230,8 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
         return user;
     }
 
@@ -241,8 +241,8 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
 
         PredictableGenerator generator = new PredictableGenerator();
@@ -269,8 +269,8 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
@@ -323,8 +323,8 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");

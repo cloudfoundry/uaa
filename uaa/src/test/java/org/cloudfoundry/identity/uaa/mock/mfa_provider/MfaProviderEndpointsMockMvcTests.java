@@ -174,7 +174,7 @@ public class MfaProviderEndpointsMockMvcTests {
 
     @Test
     public void testCreateMfaForOtherZone() throws Exception {
-        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, adminToken);
+        IdentityZone identityZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, adminToken);
 
         MfaProvider mfaProvider = constructGoogleMfaProvider();
         MvcResult mfaResponse = mockMvc.perform(
@@ -231,7 +231,7 @@ public class MfaProviderEndpointsMockMvcTests {
 
     @Test
     public void testGetMfaInOtherZone() throws Exception {
-        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, adminToken);
+        IdentityZone identityZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, adminToken);
 
         MfaProvider mfaProvider = constructGoogleMfaProvider();
         MvcResult createResult = mockMvc.perform(
@@ -282,7 +282,7 @@ public class MfaProviderEndpointsMockMvcTests {
 
     @Test
     public void testDeleteZoneActiveMfaProviderShouldFail() throws Exception {
-        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, adminToken);
+        IdentityZone identityZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, adminToken);
 
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         mfaProvider = JsonUtils.readValue(mockMvc.perform(post("/mfa-providers")
@@ -323,7 +323,7 @@ public class MfaProviderEndpointsMockMvcTests {
 
     @Test
     public void testDeleteZoneAlsoDeletesMfaProviderInThatZone() throws Exception {
-        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, adminToken);
+        IdentityZone identityZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, adminToken);
 
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
         MockHttpServletResponse response = mockMvc.perform(post("/mfa-providers")

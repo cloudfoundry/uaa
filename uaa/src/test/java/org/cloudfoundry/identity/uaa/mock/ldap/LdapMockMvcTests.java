@@ -96,7 +96,7 @@ import javax.servlet.http.HttpSession;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.NONE;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.SIMPLE;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -214,7 +214,7 @@ public class LdapMockMvcTests  {
     public void createTestZone() throws Exception {
 
         String userId = new RandomValueStringGenerator().generate().toLowerCase();
-        zone = utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI);
+        zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setLdapProfileFile("ldap/" + ldapProfile);
@@ -248,7 +248,7 @@ public class LdapMockMvcTests  {
                 .header("Authorization", "Bearer " + zone.getDefaultZoneAdminToken())
                 .accept(APPLICATION_JSON))
             .andExpect(status().isOk());
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener);
     }
 
 
@@ -263,7 +263,7 @@ public class LdapMockMvcTests  {
         updateLdapProvider();
         String redirectUri = "http://" + host;
 
-        URL url = utils().inviteUser(
+        URL url = MockMvcUtils.inviteUser(
             getWebApplicationContext(),
             getMockMvc(),
             email,
@@ -275,7 +275,7 @@ public class LdapMockMvcTests  {
         );
 
 
-        String code = utils().extractInvitationCode(url.toString());
+        String code = MockMvcUtils.extractInvitationCode(url.toString());
 
         String userInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
         String userInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
@@ -350,8 +350,8 @@ public class LdapMockMvcTests  {
         //email mismatch
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
         email = "different@test.com";
-        url = utils().inviteUser(getWebApplicationContext(), getMockMvc(), email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), LDAP, REDIRECT_URI);
-        code = utils().extractInvitationCode(url.toString());
+        url = MockMvcUtils.inviteUser(getWebApplicationContext(), getMockMvc(), email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), LDAP, REDIRECT_URI);
+        code = MockMvcUtils.extractInvitationCode(url.toString());
 
         actions = getMockMvc().perform(get("/invitations/accept")
                                            .param("code", code)
@@ -483,10 +483,10 @@ public class LdapMockMvcTests  {
         Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
         Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
 
-        String identityAccessToken = utils().getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
-        String adminAccessToken = utils().getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
-        IdentityZone zone = utils().createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
-        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
+        String identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
+        String adminAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
+        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
 
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
             "ldap://localhost:33389",
@@ -737,7 +737,7 @@ public class LdapMockMvcTests  {
         assertEquals(zone.getZone().getIdentityZone().getId(), user.getZoneId());
 
         provider.setActive(false);
-        utils().createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
 
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                                  .with(cookieCsrf())
@@ -750,7 +750,7 @@ public class LdapMockMvcTests  {
 
 
         provider.setActive(true);
-        utils().createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
 
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                                  .with(cookieCsrf())
@@ -1083,7 +1083,7 @@ public class LdapMockMvcTests  {
         ScimUser user = new ScimUser(null, username, "Marissa","Koala");
         user.setPrimaryEmail("marissa@test.org");
         user.setPassword(password);
-        utils().createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
+        MockMvcUtils.createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
 
         MvcResult result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
@@ -1401,7 +1401,7 @@ public class LdapMockMvcTests  {
             user.addEmail(userName);
             user.setVerified(true);
             user.setPassword("n1cel0ngp455w0rd");
-            user = utils().createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
+            user = MockMvcUtils.createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
             assertNotNull(user.getId());
             performAuthentication(userName, "n1cel0ngp455w0rd", HttpStatus.OK);
         }
@@ -1432,7 +1432,7 @@ public class LdapMockMvcTests  {
     }
 
     public void updateLdapProvider() throws Exception {
-        provider = utils().createIdpUsingWebRequest(
+        provider = MockMvcUtils.createIdpUsingWebRequest(
             getMockMvc(),
             zone.getZone().getIdentityZone().getId(),
             zone.getZone().getZoneAdminToken(),

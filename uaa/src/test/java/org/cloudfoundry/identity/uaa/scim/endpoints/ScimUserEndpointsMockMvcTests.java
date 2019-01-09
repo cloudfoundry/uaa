@@ -74,7 +74,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -102,7 +101,6 @@ class ScimUserEndpointsMockMvcTests {
     private String scimCreateToken;
     private String uaaAdminToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private MockMvcUtils mockMvcUtils = utils();
     private ClientDetails clientDetails;
     private ScimUserProvisioning usersRepository;
     private JdbcIdentityProviderProvisioning identityProviderProvisioning;
@@ -134,7 +132,7 @@ class ScimUserEndpointsMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,uaa.admin";
-        clientDetails = utils().createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo", "bar"), Collections.singletonList("client_credentials"), authorities);
+        clientDetails = MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo", "bar"), Collections.singletonList("client_credentials"), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.create");
         usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
@@ -241,7 +239,7 @@ class ScimUserEndpointsMockMvcTests {
         IdentityZone identityZone = getIdentityZone();
 
         String authorities = "uaa.admin";
-        clientDetails = utils().createClient(mockMvc, uaaAdminToken, "testClientId", "testClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, identityZone);
+        clientDetails = MockMvcUtils.createClient(mockMvc, uaaAdminToken, "testClientId", "testClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, identityZone);
         String uaaAdminTokenFromOtherZone = testClient.getClientCredentialsOAuthAccessToken("testClientId", "testClientSecret", "uaa.admin", identityZone.getSubdomain());
 
         byte[] requestBody = JsonUtils.writeValueAsBytes(getScimUser());
@@ -286,12 +284,12 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void verification_link_in_non_default_zone() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        MockMvcUtils.IdentityZoneCreationResult zoneResult = utils().createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails) utils().createClient(mockMvc, zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials"}), "scim.create", null, zoneResult.getIdentityZone());
+        BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc, zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials"}), "scim.create", null, zoneResult.getIdentityZone());
         zonedClientDetails.setClientSecret(zonedClientSecret);
-        String zonedScimCreateToken = utils().getClientCredentialsOAuthAccessToken(mockMvc, zonedClientDetails.getClientId(), zonedClientDetails.getClientSecret(), "scim.create", subdomain);
+        String zonedScimCreateToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, zonedClientDetails.getClientId(), zonedClientDetails.getClientSecret(), "scim.create", subdomain);
 
         ScimUser joel = setUpScimUser(zoneResult.getIdentityZone());
 
@@ -327,10 +325,10 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void verification_link_in_non_default_zone_using_switch() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        MockMvcUtils.IdentityZoneCreationResult zoneResult = utils().createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
         String zonedClientId = "admin";
         String zonedClientSecret = "adminsecret";
-        String zonedScimCreateToken = utils().getClientCredentialsOAuthAccessToken(mockMvc, zonedClientId, zonedClientSecret, "uaa.admin", null);
+        String zonedScimCreateToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, zonedClientId, zonedClientSecret, "uaa.admin", null);
 
         ScimUser joel = setUpScimUser(zoneResult.getIdentityZone());
 
@@ -512,7 +510,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void listUsers_in_anotherZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
         String zoneAdminToken = result.getZoneAdminToken();
 
         int usersMaxCountWithOffset = usersMaxCount + 1;
@@ -547,7 +545,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInZoneUsingAdminClient() throws Exception {
         String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -557,7 +555,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInZoneUsingZoneAdminUser() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
         String zoneAdminToken = result.getZoneAdminToken();
         createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
     }
@@ -579,10 +577,10 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
         String otherSubdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(otherSubdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(otherSubdomain, mockMvc, webApplicationContext);
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -953,7 +951,7 @@ class ScimUserEndpointsMockMvcTests {
     void testDeleteMfaUserCredentialsWithZoneSwitching() throws Exception {
         IdentityZone identityZone = getIdentityZone();
         String authorities = "zones." + identityZone.getId() + ".admin";
-        clientDetails = utils().createClient(mockMvc, uaaAdminToken, "switchClientId", "switchClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, IdentityZone.getUaa());
+        clientDetails = MockMvcUtils.createClient(mockMvc, uaaAdminToken, "switchClientId", "switchClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, IdentityZone.getUaa());
         String uaaAdminTokenFromOtherZone = testClient.getClientCredentialsOAuthAccessToken("switchClientId", "switchClientSecret", authorities);
         ScimUser user = setUpScimUser(identityZone);
         MfaProvider provider = createMfaProvider(identityZone.getId());
@@ -1101,7 +1099,7 @@ class ScimUserEndpointsMockMvcTests {
 
     private IdentityZone getIdentityZone() throws Exception {
         String subdomain = generator.generate();
-        return mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        return MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
     }
 
     private ScimUser createUser(String token) throws Exception {

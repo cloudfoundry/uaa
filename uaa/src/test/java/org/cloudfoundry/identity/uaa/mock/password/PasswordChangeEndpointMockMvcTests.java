@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -79,7 +79,7 @@ public class PasswordChangeEndpointMockMvcTests {
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "password.write");
         clientDetails.setClientSecret(clientSecret);
 
-        utils().createClient(mockMvc, adminToken, clientDetails);
+        MockMvcUtils.createClient(mockMvc, adminToken, clientDetails);
 
         passwordWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"password.write");
     }
@@ -254,6 +254,6 @@ public class PasswordChangeEndpointMockMvcTests {
         ScimUser user = new ScimUser(id, id + "user@example.com", "name", "familyname");
         user.addEmail(id + "user@example.com");
         user.setPassword(password);
-        return utils().createUser(mockMvc, adminToken, user);
+        return MockMvcUtils.createUser(mockMvc, adminToken, user);
     }
 }

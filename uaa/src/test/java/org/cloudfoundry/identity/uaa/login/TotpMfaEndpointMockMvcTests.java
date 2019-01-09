@@ -117,7 +117,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
     public void cleanup() throws Exception {
         uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener);
     }
 
     @Test
@@ -208,7 +208,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testMFARegistrationHonorsRedirectUri() throws Exception {
         ClientDetailsModification client =
-                MockMvcUtils.utils().getClientDetailsModification(
+                MockMvcUtils.getClientDetailsModification(
                         "auth-client-id",
                         "secret",
                         Collections.emptyList(),
@@ -221,7 +221,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         information.put("autoapprove", "true");
         client.setAdditionalInformation(information);
 
-        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, IdentityZone.getUaa(), status().isCreated());
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client, IdentityZone.getUaa(), status().isCreated());
 
         //Not using param function because params won't end up in paramsMap.
         String oauthUrl = "/oauth/authorize?client_id=auth-client-id&client_secret=secret&redirect_uri=http://example.com";

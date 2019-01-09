@@ -118,7 +118,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
         testUser = new ScimUser(null, username, "givenname", "familyname");
         testUser.setPrimaryEmail(username);
         testUser.setPassword(testPassword);
-        testUser = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, testUser);
+        testUser = MockMvcUtils.createUser(getMockMvc(), adminToken, testUser);
         testUser.setPassword(testPassword);
 
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
@@ -465,137 +465,137 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     @Test
     public void test_InZone_ClientWrite_Failure_with_Min_Length_Secret() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(7, 255, 0, 0, 0, 0, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Failure_with_Secret_Too_Long() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Failure_with_Secret_Requires_Uppercase_Character() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 1, 0, 0, 0, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Failure_with_Secret_Requires_Lowercase_Character() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 1, 0, 0, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("SECRET");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Success_with_Complex_Secret_Policy() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("Secret1@");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isCreated());
     }
 
     @Test
     public void test_InZone_ClientWrite_Failure_with_Secret_Requires_Special_Character() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 1, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Failure_with_Secret_Requires_Digit() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         result.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 1, 0, 6));
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), result.getIdentityZone().getId(), result.getIdentityZone().getConfig());
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://sample.redirect");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isBadRequest());
     }
 
     @Test
     public void test_InZone_ClientWrite_Using_ZonesDotAdmin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://some.redirect.url.com");
         client.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone(),
             status().isCreated());
     }
 
     @Test
     public void test_InZone_ClientWrite_Using_ZonesDotClientsDotAdmin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "zones." + id + ".clients.admin", "http://some.redirect.url.com");
         client.setClientSecret("secret");
-        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client = MockMvcUtils.createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
-        String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.admin");
+        String zonesClientsAdminToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.admin");
 
         BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://some.redirect.url.com");
         newclient.setClientSecret("secret");
-        newclient = MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient,
+        newclient = MockMvcUtils.createClient(getMockMvc(), zonesClientsAdminToken, newclient,
             result.getIdentityZone(), status().isCreated());
 
-        MockMvcUtils.utils().updateClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
+        MockMvcUtils.updateClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
     }
 
     @Test
     public void manageClientInOtherZone_Using_AdminUserTokenFromDefaultZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String zoneId = result.getIdentityZone().getId();
         String clientId = generator.generate();
 
@@ -603,7 +603,7 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
 
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://some.redirect.url.com");
         client.setClientSecret("secret");
-        BaseClientDetails createdClient = MockMvcUtils.utils().createClient(getMockMvc(), adminUserToken, client,
+        BaseClientDetails createdClient = MockMvcUtils.createClient(getMockMvc(), adminUserToken, client,
             result.getIdentityZone(), status().isCreated());
 
         assertEquals(client.getClientId(), createdClient.getClientId());
@@ -643,41 +643,41 @@ public class ClientAdminEndpointsMockMvcTests extends AdminClientCreator {
     @Test
     public void test_InZone_ClientRead_Using_ZonesDotClientsDotAdmin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "zones." + id + ".clients.admin", "http://some.redirect.url.com");
         client.setClientSecret("secret");
-        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client = MockMvcUtils.createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
-        String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.admin");
+        String zonesClientsAdminToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.admin");
 
         BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://some.redirect.url.com");
         newclient.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient,
+        MockMvcUtils.createClient(getMockMvc(), zonesClientsAdminToken, newclient,
             result.getIdentityZone(), status().isCreated());
     }
 
     @Test
     public void test_InZone_ClientRead_Using_ZonesDotClientsDotRead() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String id = result.getIdentityZone().getId();
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "zones." + id + ".clients.read", "http://some.redirect.url.com");
         client.setClientSecret("secret");
-        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client = MockMvcUtils.createClient(getMockMvc(), adminToken, client);
         client.setClientSecret("secret");
 
-        String zonesClientsReadToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.read");
+        String zonesClientsReadToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.read");
 
         BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", "http://some.redirect.url.com");
         newclient.setClientSecret("secret");
-        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), newclient,
+        MockMvcUtils.createClient(getMockMvc(), result.getZoneAdminToken(), newclient,
             result.getIdentityZone(), status().isCreated());
 
-        MockMvcUtils.utils().getClient(getMockMvc(), zonesClientsReadToken, newclient.getClientId(), result.getIdentityZone());
+        MockMvcUtils.getClient(getMockMvc(), zonesClientsReadToken, newclient.getClientId(), result.getIdentityZone());
     }
 
     @Test

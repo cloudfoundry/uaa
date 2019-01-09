@@ -48,7 +48,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -72,7 +71,6 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     public static final String REDIRECT_URI = "http://invitation.redirect.test";
     private JavaMailSender originalSender;
     private FakeJavaMailSender fakeJavaMailSender = new FakeJavaMailSender();
-    private MockMvcUtils utils = MockMvcUtils.utils();
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String clientId;
     private String clientSecret;
@@ -81,17 +79,17 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     private String userInviteToken;
 
     public ZoneScimInviteData createZoneForInvites() throws Exception {
-        return utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
+        return MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
     }
 
     @Before
     public void setUp() throws Exception {
-        adminToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.admin clients.read clients.write clients.secret scim.read scim.write", null);
+        adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.admin clients.read clients.write clients.secret scim.read scim.write", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
-        MockMvcUtils.utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.singleton(REDIRECT_URI), IdentityZone.getUaa());
-        userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);
+        MockMvcUtils.createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.singleton(REDIRECT_URI), IdentityZone.getUaa());
+        userInviteToken = MockMvcUtils.getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
     }
 
@@ -146,8 +144,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         String clientId = "authclient-"+new RandomValueStringGenerator().generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE,"",redirectUri);
         client.setClientSecret("secret");
-        String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "", null);
-        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "", null);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, client);
 
         String state = new RandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
@@ -389,12 +387,12 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     protected IdentityProvider createIdentityProvider(IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
-        return utils().createIdentityProvider(getMockMvc(), zone, nameAndOriginKey, definition);
+        return MockMvcUtils.createIdentityProvider(getMockMvc(), zone, nameAndOriginKey, definition);
     }
 
     protected SamlIdentityProviderDefinition getSamlIdentityProviderDefinition(IdentityZoneCreationResult zone, String entityID) {
         return new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(utils.IDP_META_DATA, entityID))
+            .setMetaDataLocation(String.format(MockMvcUtils.IDP_META_DATA, entityID))
             .setIdpEntityAlias(entityID)
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("Test Saml Provider")
@@ -402,11 +400,11 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     public URL inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {
-        return utils().inviteUser(getWebApplicationContext(), getMockMvc(), email, userInviteToken, subdomain, clientId, expectedOrigin,REDIRECT_URI);
+        return MockMvcUtils.inviteUser(getWebApplicationContext(), getMockMvc(), email, userInviteToken, subdomain, clientId, expectedOrigin,REDIRECT_URI);
     }
 
     private String extractInvitationCode(String inviteLink) throws Exception {
-        return utils().extractInvitationCode(inviteLink);
+        return MockMvcUtils.extractInvitationCode(inviteLink);
     }
 
 }

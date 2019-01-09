@@ -118,10 +118,10 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        scimReadToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+        scimReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
             "scim.read", null, true);
 
-        scimWriteToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+        scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
             "scim.write", null, true);
     }
 
@@ -422,7 +422,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         ScimUser member = new ScimUser(null, userName, "cool-name", "cool-familyName");
         member.setPassword("password");
         member.setPrimaryEmail("cool@chill.com");
-        member = MockMvcUtils.utils().createUser(getMockMvc(), scimWriteToken, member);
+        member = MockMvcUtils.createUser(getMockMvc(), scimWriteToken, member);
         return member;
     }
 

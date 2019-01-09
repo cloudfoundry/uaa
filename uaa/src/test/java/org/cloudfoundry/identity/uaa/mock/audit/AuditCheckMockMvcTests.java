@@ -170,12 +170,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @After
     public void resetLoginClient() throws Exception {
         clientRegistrationService.updateClientDetails(originalLoginClient);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), testListener);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), authSuccessListener);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener2);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), authSuccessListener2);
-        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), auditListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), testListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), authSuccessListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener2);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), authSuccessListener2);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), auditListener);
         SecurityContextHolder.clearContext();
     }
 

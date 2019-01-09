@@ -298,11 +298,6 @@ public final class MockMvcUtils {
         }
     }
 
-
-    public static MockMvcUtils utils() {
-        return null;
-    }
-
     public static File getLimitedModeStatusFile(ApplicationContext context) {
         return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
     }
@@ -555,7 +550,7 @@ public final class MockMvcUtils {
         } else if (definition instanceof UaaIdentityProviderDefinition) {
             provider.setType(OriginKeys.UAA);
         }
-        provider = utils().createIdpUsingWebRequest(mockMvc,
+        provider = MockMvcUtils.createIdpUsingWebRequest(mockMvc,
           zone.getIdentityZone().getId(),
           zone.getZoneAdminToken(),
           provider,
@@ -566,16 +561,16 @@ public final class MockMvcUtils {
     public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String userId, String redirectUri) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
-        IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
+        IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
 
         List<String> redirectUris = Arrays.asList(redirectUri, "http://" + zone.getIdentityZone().getSubdomain() + ".localhost");
         BaseClientDetails appClient = new BaseClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", String.join(",", redirectUris));
 
         appClient.setClientSecret("secret");
-        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
+        appClient = MockMvcUtils.createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
           status().isCreated());
         appClient.setClientSecret("secret");
-        String adminToken = utils().getClientCredentialsOAuthAccessToken(
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
           mockMvc,
           appClient.getClientId(),
           appClient.getClientSecret(),
@@ -1085,10 +1080,10 @@ public final class MockMvcUtils {
         user.setUserName(new RandomValueStringGenerator().generate());
         user.setPrimaryEmail(user.getUserName() + "@test.org");
         user.setPassword("secr3T");
-        user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
+        user = MockMvcUtils.createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaa().getId());
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
-        MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
+        MockMvcUtils.createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc,
           "identity",
           "identitysecret",

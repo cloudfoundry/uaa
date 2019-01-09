@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.junit.Assert.assertEquals;
@@ -64,7 +64,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
 
         IdentityZone identityZone = createZone(identityToken);
         String zoneId = identityZone.getId();
-        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, zoneId);
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(),adminToken, zoneId);
         // Using Identity Client, authenticate in originating Zone
         // - Create Client using X-Identity-Zone-Id header in new Zone
         ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), HEADER, zoneId);
@@ -81,7 +81,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingZoneWithSubdomain() throws Exception {
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
         ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), SUBDOMAIN_HEADER, identityZone.getSubdomain());
 
         getMockMvc().perform(
@@ -119,7 +119,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingToInvalidSubDomain() throws Exception{
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
 
         createClientInOtherZone(zoneAdminToken, status().isNotFound(), SUBDOMAIN_HEADER, "InvalidSubDomain");
     }
@@ -127,7 +127,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingToNonExistentZone() throws Exception {
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
 
         createClientInOtherZone(zoneAdminToken, status().isNotFound(), HEADER, "i-do-not-exist");
     }
@@ -146,11 +146,11 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
         // Create a User
         String username = generator.generate() + "@example.com";
         ScimUser user = getScimUser(username);
-        ScimUser createdUser = utils().createUser(getMockMvc(), adminToken, user);
+        ScimUser createdUser = MockMvcUtils.createUser(getMockMvc(), adminToken, user);
         ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
-        utils().createGroup(getMockMvc(), adminToken, group);
-        String userToken = utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);
+        MockMvcUtils.createGroup(getMockMvc(), adminToken, group);
+        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);
         createClientInOtherZone(userToken, status().isCreated(), HEADER, zoneId);
     }
 
@@ -169,8 +169,8 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
         final String zoneId = createZone(identityToken).getId();
         ScimUser user = createScimUserUsingZonesScimWrite(zoneId);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
-        String scimReadZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.read");
-        ScimUser readUser = utils().readUserInZone(getMockMvc(), scimReadZoneToken, user.getId(), "", zoneId);
+        String scimReadZoneToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.read");
+        ScimUser readUser = MockMvcUtils.readUserInZone(getMockMvc(), scimReadZoneToken, user.getId(), "", zoneId);
         assertEquals(user.getId(), readUser.getId());
     }
 
@@ -178,7 +178,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     public void test_scim_create_in_another_zone() throws Exception {
         final String zoneId = createZone(identityToken).getId();
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
-        String scimCreateZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.create");
+        String scimCreateZoneToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.create");
         createUserInAnotherZone(scimCreateZoneToken, zoneId);
     }
 
@@ -189,18 +189,18 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     }
     public ScimUser createScimUserUsingZonesScimWrite(String zoneId) throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
-        String scimWriteZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.write");
+        String scimWriteZoneToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.write");
         return createUserInAnotherZone(scimWriteZoneToken, zoneId);
     }
 
     private IdentityZone createZone(String accessToken) throws Exception {
-        return utils().createZoneUsingWebRequest(getMockMvc(), accessToken);
+        return MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), accessToken);
     }
 
     private ScimUser createUserInAnotherZone(String accessToken, String zoneId) throws Exception {
         String username = generator.generate() + "@example.com";
         ScimUser user = getScimUser(username);
-        ScimUser createdUser = utils().createUserInZone(getMockMvc(), accessToken, user, "", zoneId);
+        ScimUser createdUser = MockMvcUtils.createUserInZone(getMockMvc(), accessToken, user, "", zoneId);
         return createdUser;
     }
 

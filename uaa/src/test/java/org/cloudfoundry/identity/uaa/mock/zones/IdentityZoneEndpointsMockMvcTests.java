@@ -152,7 +152,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private String identityClientZonesReadToken = null;
     private String identityClientZonesWriteToken = null;
     private String adminToken = null;
-    private MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestApplicationEventListener<IdentityZoneModifiedEvent> zoneModifiedEventListener;
     private TestApplicationEventListener<ClientCreateEvent> clientCreateEventListener;
@@ -200,12 +199,12 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             "uaa.admin"
         );
 
-        zoneModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), IdentityZoneModifiedEvent.class);
-        clientCreateEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientCreateEvent.class);
-        clientDeleteEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientDeleteEvent.class);
-        groupModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), GroupModifiedEvent.class);
-        userModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), UserModifiedEvent.class);
-        uaaEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), AbstractUaaEvent.class);
+        zoneModifiedEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), IdentityZoneModifiedEvent.class);
+        clientCreateEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), ClientCreateEvent.class);
+        clientDeleteEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), ClientDeleteEvent.class);
+        groupModifiedEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), GroupModifiedEvent.class);
+        userModifiedEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), UserModifiedEvent.class);
+        uaaEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), AbstractUaaEvent.class);
         JdbcTemplate jdbcTemplate = getWebApplicationContext().getBean(JdbcTemplate.class);
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
 
@@ -240,11 +239,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @After
     public void after() throws Exception {
         IdentityZoneHolder.clear();
-        mockMvcUtils.removeEventListener(getWebApplicationContext(), zoneModifiedEventListener);
-        mockMvcUtils.removeEventListener(getWebApplicationContext(), clientCreateEventListener);
-        mockMvcUtils.removeEventListener(getWebApplicationContext(), clientDeleteEventListener);
-        mockMvcUtils.removeEventListener(getWebApplicationContext(), groupModifiedEventListener);
-        mockMvcUtils.removeEventListener(getWebApplicationContext(), userModifiedEventListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), zoneModifiedEventListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), clientCreateEventListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), clientDeleteEventListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), groupModifiedEventListener);
+        MockMvcUtils.removeEventListener(getWebApplicationContext(), userModifiedEventListener);
     }
 
     private ScimUser createUser(String token, String subdomain) throws Exception {
@@ -1916,8 +1915,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String zone1 = generator.generate().toLowerCase();
         String zone2 = generator.generate().toLowerCase();
 
-        IdentityZoneCreationResult result1 = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(zone1, getMockMvc(), getWebApplicationContext(), null);
-        IdentityZoneCreationResult result2 = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(zone2, getMockMvc(), getWebApplicationContext(), null);
+        IdentityZoneCreationResult result1 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone1, getMockMvc(), getWebApplicationContext(), null);
+        IdentityZoneCreationResult result2 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone2, getMockMvc(), getWebApplicationContext(), null);
 
         MvcResult result = getMockMvc().perform(
             get("/identity-zones")
@@ -1970,7 +1969,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String subdomain = generator.generate().toLowerCase();
         BaseClientDetails adminClient = new BaseClientDetails("admin", null, null, "client_credentials", "scim.read,scim.write");
         adminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult creationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), adminClient);
+        IdentityZoneCreationResult creationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), adminClient);
         IdentityZone identityZone = creationResult.getIdentityZone();
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
@@ -2019,7 +2018,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateAndListUsersInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
@@ -2049,7 +2048,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimUser user = createUser(scimWriteToken, null);
 
         String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
@@ -2098,7 +2097,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isCreated());
         }
 
-        String userAccessToken = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read");
+        String userAccessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read");
 
         MvcResult result = getMockMvc().perform(
             get("/identity-zones/" + identityZone.getId())
@@ -2115,7 +2114,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
 
 
-        String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
+        String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
 
         result = getMockMvc().perform(
             get("/identity-zones/" + identityZone.getId())

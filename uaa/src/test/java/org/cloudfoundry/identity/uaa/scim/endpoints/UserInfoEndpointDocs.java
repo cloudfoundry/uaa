@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -37,7 +37,7 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
+        MockMvcUtils.createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
 
         userName = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");
@@ -45,7 +45,7 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
         user.setPassword("secr3T");
         ScimUser.PhoneNumber phoneNumber = new ScimUser.PhoneNumber("+15558880000");
         user.setPhoneNumbers(Collections.singletonList(phoneNumber));
-        user = utils().createUser(getMockMvc(), adminToken, user);
+        user = MockMvcUtils.createUser(getMockMvc(), adminToken, user);
     }
 
     @Test

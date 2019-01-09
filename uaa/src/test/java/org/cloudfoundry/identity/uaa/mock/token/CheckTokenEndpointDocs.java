@@ -19,7 +19,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.springframework.restdocs.snippet.Snippet;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -43,7 +43,7 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
     public void checkToken() throws Exception {
         String identityClientAuthorizationWithUaaResource = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
 
-        String identityAccessToken = utils().getUserOAuthAccessToken(
+        String identityAccessToken = MockMvcUtils.getUserOAuthAccessToken(
             getMockMvc(),
             "app",
             "appclientsecret",

@@ -335,7 +335,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     public void setUp() throws Exception {
         userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
 
-        scimReadToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(
+        scimReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
             getMockMvc(),
             "admin",
             "adminsecret",
@@ -343,7 +343,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             null,
             true
         );
-        scimWriteToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(
+        scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
             getMockMvc(),
             "admin",
             "adminsecret",
@@ -353,7 +353,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         );
 
         user = createScimUserObject();
-        user = MockMvcUtils.utils().createUser(getMockMvc(), scimWriteToken, user);
+        user = MockMvcUtils.createUser(getMockMvc(), scimWriteToken, user);
         ApprovalStore approvalStore = getWebApplicationContext().getBean(ApprovalStore.class);
         approvalStore.addApproval(
             new Approval()
@@ -698,7 +698,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         request.setOldPassword("secret");
         request.setPassword("newsecret");
 
-        String myToken = MockMvcUtils.utils().getUserOAuthAccessToken(getMockMvc(), "app", "appclientsecret", user.getUserName(), "secret", null, null, true);
+        String myToken = MockMvcUtils.getUserOAuthAccessToken(getMockMvc(), "app", "appclientsecret", user.getUserName(), "secret", null, null, true);
 
         getMockMvc().perform(
             RestDocumentationRequestBuilders.put("/Users/{userId}/password", user.getId())
