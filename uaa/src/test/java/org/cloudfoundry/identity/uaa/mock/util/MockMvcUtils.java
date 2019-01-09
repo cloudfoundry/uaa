@@ -66,6 +66,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Assert;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -1326,20 +1327,11 @@ public final class MockMvcUtils {
         return listener;
     }
 
-    public static void removeEventListener(ConfigurableApplicationContext applicationContext, ApplicationListener listener) {
+    public static void removeEventListener(ListableBeanFactory applicationContext, ApplicationListener listener) {
         Map<String, ApplicationEventMulticaster> multicasters = applicationContext.getBeansOfType(ApplicationEventMulticaster.class);
         for (Map.Entry<String, ApplicationEventMulticaster> entry : multicasters.entrySet()) {
             entry.getValue().removeApplicationListener(listener);
         }
-    }
-
-    public static boolean isMySQL(Environment environment) {
-        for (String s : environment.getActiveProfiles()) {
-            if (s.contains("mysql")) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static class MockSecurityContext implements SecurityContext {

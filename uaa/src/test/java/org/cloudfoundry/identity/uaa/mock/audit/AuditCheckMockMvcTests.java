@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
@@ -32,7 +33,6 @@ import org.cloudfoundry.identity.uaa.authentication.event.*;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
@@ -43,17 +43,19 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
-import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
@@ -63,9 +65,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -76,9 +86,10 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getEventOfType;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpHeaders.*;
@@ -86,7 +97,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class AuditCheckMockMvcTests extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class AuditCheckMockMvcTests {
 
     private ClientServicesExtension clientRegistrationService;
     private UaaTestAccounts testAccounts;
@@ -105,9 +122,16 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     private AuditListener auditListener;
     private UaaAuditService mockAuditService;
 
-    @Before
-    public void setUp() throws Exception {
-        clientRegistrationService = getWebApplicationContext().getBean(ClientServicesExtension.class);
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+    @Autowired
+    private ConfigurableApplicationContext configurableApplicationContext;
+    private MockMvc mockMvc;
+    private TestClient testClient;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        clientRegistrationService = webApplicationContext.getBean(ClientServicesExtension.class);
         originalLoginClient = clientRegistrationService.loadClientByClientId("login");
         testAccounts = UaaTestAccounts.standard(null);
         mockAuditService = mock(UaaAuditService.class);
@@ -117,10 +141,17 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         }.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
-        getWebApplicationContext().addApplicationListener(listener);
-        getWebApplicationContext().addApplicationListener(authSuccessListener);
-        getWebApplicationContext().addApplicationListener(testListener);
-        getWebApplicationContext().addApplicationListener(auditListener);
+
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain) // TODO do we need this line?
+                .build();
+        testClient = new TestClient(mockMvc);
+
+        configurableApplicationContext.addApplicationListener(listener);
+        configurableApplicationContext.addApplicationListener(authSuccessListener);
+        configurableApplicationContext.addApplicationListener(testListener);
+        configurableApplicationContext.addApplicationListener(auditListener);
 
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
@@ -135,28 +166,28 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         authSuccessListener2 = authSuccessListener;
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
-        getWebApplicationContext().addApplicationListener(listener);
-        getWebApplicationContext().addApplicationListener(authSuccessListener);
+        configurableApplicationContext.addApplicationListener(listener);
+        configurableApplicationContext.addApplicationListener(authSuccessListener);
 
-        this.mgr = getWebApplicationContext().getBean("uaaUserDatabaseAuthenticationManager", AuthzAuthenticationManager.class);
+        this.mgr = webApplicationContext.getBean("uaaUserDatabaseAuthenticationManager", AuthzAuthenticationManager.class);
         this.mgr.setAllowUnverifiedUsers(false);
         dbTrueString = LimitSqlAdapterFactory.getLimitSqlAdapter().getClass().equals(SQLServerLimitSqlAdapter.class) ? "1" : "true";
     }
 
-    @After
-    public void resetLoginClient() {
+    @AfterEach
+    void resetLoginClient() {
         clientRegistrationService.updateClientDetails(originalLoginClient);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), testListener);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), authSuccessListener);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), listener2);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), authSuccessListener2);
-        MockMvcUtils.removeEventListener(getWebApplicationContext(), auditListener);
+        MockMvcUtils.removeEventListener(webApplicationContext, testListener);
+        MockMvcUtils.removeEventListener(webApplicationContext, listener);
+        MockMvcUtils.removeEventListener(webApplicationContext, authSuccessListener);
+        MockMvcUtils.removeEventListener(webApplicationContext, listener2);
+        MockMvcUtils.removeEventListener(webApplicationContext, authSuccessListener2);
+        MockMvcUtils.removeEventListener(webApplicationContext, auditListener);
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void client_modification_logs_authorities_and_scopes() throws Exception {
+    void client_modification_logs_authorities_and_scopes() throws Exception {
         String clientId = generator.generate();
         String clientSecret = generator.generate();
         String resource = "uaa,cloud_controller";
@@ -166,7 +197,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails(clientId, resource, scopes, grantTypes, authorities);
         client.setClientSecret(clientSecret);
 
-        getMockMvc().perform(
+        mockMvc.perform(
                 post("/oauth/clients")
                         .header(AUTHORIZATION, "Bearer " + adminToken)
                         .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -179,7 +210,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         client.setScope(Arrays.asList("scope4", "scope5"));
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority("authority1"), new SimpleGrantedAuthority("authority2")));
 
-        getMockMvc().perform(
+        mockMvc.perform(
                 put("/oauth/clients/" + clientId)
                         .header(AUTHORIZATION, "Bearer " + adminToken)
                         .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -219,7 +250,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
 
     @Test
-    public void userLoginTest() throws Exception {
+    void userLoginTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
                 .with(cookieCsrf())
@@ -229,7 +260,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("password", testPassword);
 
         //success means a 302 to / (failure is 302 to /login?error...)
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
 
@@ -246,7 +277,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void userLoginAuthenticateEndpointTest() throws Exception {
+    void userLoginAuthenticateEndpointTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(APPLICATION_JSON_VALUE)
@@ -254,7 +285,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("username", testUser.getUserName())
                 .param("password", testPassword);
 
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("\"username\":\"" + testUser.getUserName())))
                 .andExpect(content().string(containsString("\"email\":\"" + testUser.getPrimaryEmail())));
@@ -273,7 +304,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
 
     @Test
-    public void invalidPasswordLoginUnsuccessfulTest() throws Exception {
+    void invalidPasswordLoginUnsuccessfulTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
                 .with(cookieCsrf())
@@ -282,7 +313,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("username", testUser.getUserName())
                 .param("password", "");
         //success means a 302 to / (failure is 302 to /login?error...)
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
@@ -301,7 +332,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void unverifiedLegacyUserAuthenticationWhenAllowedTest() throws Exception {
+    void unverifiedLegacyUserAuthenticationWhenAllowedTest() throws Exception {
         mgr.setAllowUnverifiedUsers(true);
 
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -310,7 +341,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 "uaa.admin,scim.write");
 
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
-        getWebApplicationContext().getBeansOfType(JdbcTemplate.class).values().stream().forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = " + dbTrueString + " where origin='uaa' and username = '" + molly.getUserName() + "'"));
+        webApplicationContext.getBeansOfType(JdbcTemplate.class).values().stream().forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = " + dbTrueString + " where origin='uaa' and username = '" + molly.getUserName() + "'"));
 
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
@@ -318,7 +349,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().isOk());
 
         ArgumentCaptor<UserAuthenticationSuccessEvent> captor = ArgumentCaptor.forClass(UserAuthenticationSuccessEvent.class);
@@ -329,7 +360,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void unverifiedPostLegacyUserAuthenticationWhenAllowedTest() throws Exception {
+    void unverifiedPostLegacyUserAuthenticationWhenAllowedTest() throws Exception {
         mgr.setAllowUnverifiedUsers(true);
 
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -345,7 +376,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().isForbidden());
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -358,7 +389,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
+    void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -372,7 +403,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .session(session)
                 .param("username", molly.getUserName())
                 .param("password", "wobblE3");
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().isForbidden());
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -385,14 +416,14 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void invalidPasswordLoginAuthenticateEndpointTest() throws Exception {
+    void invalidPasswordLoginAuthenticateEndpointTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(APPLICATION_JSON_VALUE)
                 .session(session)
                 .param("username", testUser.getUserName())
                 .param("password", "");
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
@@ -411,7 +442,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void findAuditHistory() throws Exception {
+    void findAuditHistory() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -427,9 +458,9 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("username", jacob.getUserName())
                 .param("password", "notvalid");
         int attempts = 8;
-        UaaAuditService auditService = getWebApplicationContext().getBean(JdbcAuditService.class);
+        UaaAuditService auditService = webApplicationContext.getBean(JdbcAuditService.class);
         for (int i = 0; i < attempts; i++) {
-            getMockMvc().perform(loginPost)
+            mockMvc.perform(loginPost)
                     .andExpect(status().isUnauthorized())
                     .andExpect(content().string("{\"error\":\"authentication failed\"}"));
         }
@@ -443,7 +474,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void userNotFoundLoginUnsuccessfulTest() throws Exception {
+    void userNotFoundLoginUnsuccessfulTest() throws Exception {
         String username = "test1234";
 
         MockHttpSession session = new MockHttpSession();
@@ -454,7 +485,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("username", username)
                 .param("password", testPassword);
         //success means a 302 to / (failure is 302 to /login?error...)
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
@@ -469,7 +500,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void userChangePasswordTest() throws Exception {
+    void userChangePasswordTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
                 .with(cookieCsrf())
@@ -478,7 +509,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("username", testUser.getUserName())
                 .param("password", testPassword);
         //success means a 302 to / (failure is 302 to /login?error...)
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -506,7 +537,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                         "  \"oldPassword\": \"" + testPassword + "\"\n" +
                         "}");
 
-        getMockMvc().perform(changePasswordPut)
+        mockMvc.perform(changePasswordPut)
                 .andExpect(status().isOk());
 
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -519,7 +550,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void userChangeInvalidPasswordTest() throws Exception {
+    void userChangeInvalidPasswordTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder loginPost = post("/login.do")
                 .with(cookieCsrf())
@@ -529,7 +560,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("password", testPassword);
 
         //success means a 302 to / (failure is 302 to /login?error...)
-        getMockMvc().perform(loginPost)
+        mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
 
@@ -558,7 +589,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                         "  \"oldPassword\": \"invalid\"\n" +
                         "}");
 
-        getMockMvc().perform(changePasswordPut)
+        mockMvc.perform(changePasswordPut)
                 .andExpect(status().isUnauthorized());
 
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -572,8 +603,8 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void password_change_recorded_at_dao() {
-        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+    void password_change_recorded_at_dao() {
+        ScimUserProvisioning provisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "first", "last");
         user.setPrimaryEmail(user.getUserName());
         user = provisioning.createUser(user, "oldpassword", IdentityZoneHolder.get().getId());
@@ -592,7 +623,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + token)
                 .content(email);
-        MvcResult mvcResult = getMockMvc().perform(resetPasswordPost)
+        MvcResult mvcResult = mockMvc.perform(resetPasswordPost)
                 .andExpect(status().isCreated()).andReturn();
 
         return JsonUtils.readValue(mvcResult.getResponse().getContentAsString(),
@@ -601,7 +632,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void changePassword_ReturnsSuccess_WithValidExpiringCode() throws Exception {
+    void changePassword_ReturnsSuccess_WithValidExpiringCode() throws Exception {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         String expiringCode = requestExpiringCode(testUser.getUserName(), loginToken);
 
@@ -615,7 +646,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + loginToken)
                 .content(JsonUtils.writeValueAsBytes(pwch));
 
-        getMockMvc().perform(changePasswordPost)
+        mockMvc.perform(changePasswordPost)
                 .andExpect(status().isOk());
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -627,7 +658,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void clientAuthenticationSuccess() throws Exception {
+    void clientAuthenticationSuccess() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64(("login:loginsecret").getBytes()));
@@ -635,7 +666,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("scope", "oauth.login");
-        getMockMvc().perform(oauthTokenPost).andExpect(status().isOk());
+        mockMvc.perform(oauthTokenPost).andExpect(status().isOk());
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationSuccessEvent event = (ClientAuthenticationSuccessEvent) captor.getAllValues().get(0);
         assertEquals("login", event.getClientId());
@@ -644,7 +675,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void clientAuthenticationFailure() throws Exception {
+    void clientAuthenticationFailure() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64(("login:loginsecretwrong").getBytes()));
@@ -652,7 +683,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("scope", "oauth.login");
-        getMockMvc().perform(oauthTokenPost).andExpect(status().isUnauthorized());
+        mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationFailureEvent event = (ClientAuthenticationFailureEvent) captor.getValue();
         assertEquals("login", event.getClientId());
@@ -661,7 +692,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void clientAuthenticationFailureClientNotFound() throws Exception {
+    void clientAuthenticationFailureClientNotFound() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64(("login2:loginsecret").getBytes()));
@@ -670,7 +701,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .param("grant_type", "client_credentials")
                 .param("client_id", "login")
                 .param("scope", "oauth.login");
-        getMockMvc().perform(oauthTokenPost).andExpect(status().isUnauthorized());
+        mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
         verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
         PrincipalAuthenticationFailureEvent event0 = (PrincipalAuthenticationFailureEvent) captor.getAllValues().get(0);
         assertEquals("login2", event0.getAuditEvent().getPrincipalId());
@@ -679,7 +710,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testUserApprovalAdded() throws Exception {
+    void testUserApprovalAdded() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testUser.getUserName(), testPassword, "oauth.approvals");
@@ -700,7 +731,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         testListener.clearEvents();
 
-        getMockMvc().perform(approvalsPut)
+        mockMvc.perform(approvalsPut)
                 .andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
@@ -711,7 +742,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testUserCreatedEvent() throws Exception {
+    void testUserCreatedEvent() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -734,7 +765,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         testListener.clearEvents();
 
-        getMockMvc().perform(userPost)
+        mockMvc.perform(userPost)
                 .andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
@@ -747,7 +778,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testUserCreatedEventDuringLoginServerAuthorize() throws Exception {
+    void testUserCreatedEventDuringLoginServerAuthorize() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080/uaa"));
         String username = "jacob" + new RandomValueStringGenerator().generate();
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -774,7 +805,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         testListener.clearEvents();
 
-        getMockMvc().perform(userPost)
+        mockMvc.perform(userPost)
                 .andExpect(status().isOk());
 
         assertEquals(3, testListener.getEventCount());
@@ -788,7 +819,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
 
     @Test
-    public void testUserModifiedAndDeleteEvent() throws Exception {
+    void testUserModifiedAndDeleteEvent() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -810,7 +841,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + adminToken)
                 .content(JsonUtils.writeValueAsBytes(user));
 
-        ResultActions result = getMockMvc().perform(userPost)
+        ResultActions result = mockMvc.perform(userPost)
                 .andExpect(status().isCreated());
 
         user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
@@ -825,7 +856,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("If-Match", user.getVersion())
                 .content(JsonUtils.writeValueAsBytes(user));
 
-        getMockMvc().perform(userPut).andExpect(status().isOk());
+        mockMvc.perform(userPut).andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
 
@@ -844,7 +875,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + adminToken)
                 .header("If-Match", user.getVersion() + 1);
 
-        getMockMvc().perform(userDelete).andExpect(status().isOk());
+        mockMvc.perform(userDelete).andExpect(status().isOk());
 
         assertEquals(2, testListener.getEventCount());
 
@@ -856,7 +887,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testUserVerifiedEvent() throws Exception {
+    void testUserVerifiedEvent() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -877,7 +908,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + adminToken)
                 .content(JsonUtils.writeValueAsBytes(user));
 
-        ResultActions result = getMockMvc().perform(userPost)
+        ResultActions result = mockMvc.perform(userPost)
                 .andExpect(status().isCreated());
         user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
@@ -889,7 +920,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + adminToken)
                 .header("If-Match", user.getVersion());
 
-        getMockMvc().perform(verifyGet).andExpect(status().isOk());
+        mockMvc.perform(verifyGet).andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
 
@@ -901,7 +932,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void passwordResetRequestEvent() throws Exception {
+    void passwordResetRequestEvent() throws Exception {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
 
         testListener.clearEvents();
@@ -913,7 +944,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + loginToken)
                 .content(testUser.getUserName());
 
-        getMockMvc().perform(changePasswordPost)
+        mockMvc.perform(changePasswordPost)
                 .andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
@@ -925,7 +956,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testGroupEvents() throws Exception {
+    void testGroupEvents() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -959,7 +990,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .header("Authorization", "Bearer " + adminToken)
                 .content(JsonUtils.writeValueAsBytes(group));
 
-        ResultActions result = getMockMvc().perform(groupPost).andExpect(status().isCreated());
+        ResultActions result = mockMvc.perform(groupPost).andExpect(status().isCreated());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -987,7 +1018,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
-        result = getMockMvc().perform(groupPut).andExpect(status().isOk());
+        result = mockMvc.perform(groupPut).andExpect(status().isOk());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -1010,7 +1041,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
-        result = getMockMvc().perform(groupDelete).andExpect(status().isOk());
+        result = mockMvc.perform(groupDelete).andExpect(status().isOk());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -1058,7 +1089,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
         testListener.clearEvents();
 
-        ResultActions result = getMockMvc().perform(userPost).andExpect(status().isCreated());
+        ResultActions result = mockMvc.perform(userPost).andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
 
