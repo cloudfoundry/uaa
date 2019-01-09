@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +52,9 @@ import java.util.Iterator;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -106,7 +106,7 @@ class AccountsControllerMockMvcTests {
         webApplicationContext.getBean("emailService", EmailService.class).setMailSender(mailSender);
 
         userEmail = "user" + new RandomValueStringGenerator().generate() + "@example.com";
-        Assert.assertNotNull(webApplicationContext.getBean("messageService"));
+        assertNotNull(webApplicationContext.getBean("messageService"));
 
         mockMvcTestClient = new MockMvcTestClient(mockMvc);
 
@@ -121,7 +121,7 @@ class AccountsControllerMockMvcTests {
         MockPropertySource mockPropertySource = new MockPropertySource();
         mockPropertySource.setProperty(name, value);
         env.getPropertySources().addLast(mockPropertySource);
-        Assert.assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
+        assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
     }
 
     @AfterEach
