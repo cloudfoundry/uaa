@@ -81,6 +81,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -140,7 +141,10 @@ import static java.util.Collections.EMPTY_LIST;
 public class LdapMockMvcTests  {
 
 
+    public static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     private static int ldapPortRotation = 0;
+    private static String defaultTrustStore;
+
     private String host;
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
@@ -155,6 +159,24 @@ public class LdapMockMvcTests  {
     }
 
 
+    @BeforeClass
+    public static void trustOurCustomCA() {
+        ClassLoader classLoader = LdapCertificateMockMvcTests.class.getClassLoader();
+        File file = new File(classLoader.getResource("certs/truststore-containing-the-ldap-ca.jks").getFile());
+
+        defaultTrustStore = System.getProperty(JAVAX_NET_SSL_TRUST_STORE);
+        System.setProperty(JAVAX_NET_SSL_TRUST_STORE, file.getAbsolutePath());
+
+    }
+
+    @AfterClass
+    public static void revertOurCustomCA() {
+        if (defaultTrustStore != null) {
+            System.setProperty(JAVAX_NET_SSL_TRUST_STORE, defaultTrustStore);
+        } else {
+            System.clearProperty(JAVAX_NET_SSL_TRUST_STORE);
+        }
+    }
 
     @Parameters(name = "{index}: auth[{0}]; group[{1}]; url[{2}]; tls[{3}]")
     public static List<Object[]> data() {
