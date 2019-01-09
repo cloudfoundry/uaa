@@ -33,7 +33,6 @@ import org.cloudfoundry.identity.uaa.authentication.event.*;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -47,7 +46,6 @@ import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,9 +59,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
@@ -107,19 +103,15 @@ class AuditCheckMockMvcTests {
 
     private ClientServicesExtension clientRegistrationService;
     private UaaTestAccounts testAccounts;
-    private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener2;
-    private ApplicationListener<AbstractUaaEvent> listener2;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
     private ApplicationListener<AbstractUaaEvent> listener;
     private ScimUser testUser;
-    private String testPassword = "secr3T";
-    private ClientDetails originalLoginClient;
+    private final String testPassword = "secr3T";
     private AuthzAuthenticationManager mgr;
     private String dbTrueString;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private String adminToken;
-    private AuditListener auditListener;
     private UaaAuditService mockAuditService;
 
     @Autowired
@@ -131,27 +123,18 @@ class AuditCheckMockMvcTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        clientRegistrationService = webApplicationContext.getBean(ClientServicesExtension.class);
-        originalLoginClient = clientRegistrationService.loadClientByClientId("login");
-        testAccounts = UaaTestAccounts.standard(null);
-        mockAuditService = mock(UaaAuditService.class);
-        auditListener = new AuditListener(mockAuditService);
-        testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
-        listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {
-        }.getClass());
-        authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
-        }.getClass());
-
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain) // TODO do we need this line?
+                .addFilter(springSecurityFilterChain)
                 .build();
         testClient = new TestClient(mockMvc);
 
-        configurableApplicationContext.addApplicationListener(listener);
-        configurableApplicationContext.addApplicationListener(authSuccessListener);
+        clientRegistrationService = webApplicationContext.getBean(ClientServicesExtension.class);
+        testAccounts = UaaTestAccounts.standard(null);
+        mockAuditService = mock(UaaAuditService.class);
+        testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         configurableApplicationContext.addApplicationListener(testListener);
-        configurableApplicationContext.addApplicationListener(auditListener);
+        configurableApplicationContext.addApplicationListener(new AuditListener(mockAuditService));
 
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
@@ -160,10 +143,8 @@ class AuditCheckMockMvcTests {
         testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword, true);
 
         testListener.clearEvents();
-        listener2 = listener;
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {
         }.getClass());
-        authSuccessListener2 = authSuccessListener;
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
         configurableApplicationContext.addApplicationListener(listener);
@@ -172,18 +153,6 @@ class AuditCheckMockMvcTests {
         this.mgr = webApplicationContext.getBean("uaaUserDatabaseAuthenticationManager", AuthzAuthenticationManager.class);
         this.mgr.setAllowUnverifiedUsers(false);
         dbTrueString = LimitSqlAdapterFactory.getLimitSqlAdapter().getClass().equals(SQLServerLimitSqlAdapter.class) ? "1" : "true";
-    }
-
-    @AfterEach
-    void resetLoginClient() {
-        clientRegistrationService.updateClientDetails(originalLoginClient);
-        MockMvcUtils.removeEventListener(webApplicationContext, testListener);
-        MockMvcUtils.removeEventListener(webApplicationContext, listener);
-        MockMvcUtils.removeEventListener(webApplicationContext, authSuccessListener);
-        MockMvcUtils.removeEventListener(webApplicationContext, listener2);
-        MockMvcUtils.removeEventListener(webApplicationContext, authSuccessListener2);
-        MockMvcUtils.removeEventListener(webApplicationContext, auditListener);
-        SecurityContextHolder.clearContext();
     }
 
     @Test
