@@ -21,10 +21,12 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpSession;
@@ -76,7 +78,6 @@ class AccountsControllerMockMvcTests {
     private final String USER_PASSWORD = "secr3T";
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
-    private JavaMailSender originalSender;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Autowired
@@ -97,8 +98,6 @@ class AccountsControllerMockMvcTests {
                 .build();
 
         testClient = new TestClient(mockMvc);
-
-        originalSender = webApplicationContext.getBean("emailService", EmailService.class).getMailSender();
 
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("localhost");
@@ -122,17 +121,6 @@ class AccountsControllerMockMvcTests {
         mockPropertySource.setProperty(name, value);
         env.getPropertySources().addLast(mockPropertySource);
         assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
-    }
-
-    @AfterEach
-    void restoreMailSender() {
-        setProperty("assetBaseUrl", "/resources/oss");
-        webApplicationContext.getBean("emailService", EmailService.class).setMailSender(originalSender);
-    }
-
-    @AfterEach
-    void resetGenerator() {
-        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
     @AfterAll
