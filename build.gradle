@@ -89,7 +89,7 @@ subprojects {
     targetCompatibility = 1.8
     test {
         useJUnitPlatform()
-        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener"]
+        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         afterSuite { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
