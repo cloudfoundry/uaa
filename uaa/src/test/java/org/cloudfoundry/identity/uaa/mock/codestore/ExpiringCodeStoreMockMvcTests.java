@@ -175,7 +175,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testRetrieveCodeThatIsExpired() throws Exception {
-        Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
+        Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -201,7 +201,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCodeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
-        Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
+        Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -218,7 +218,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
         expireAllCodes();
 
-        ts = new Timestamp(System.currentTimeMillis() + 1000);
+        ts = new Timestamp(Long.MAX_VALUE);
         code = new ExpiringCode(null, ts, "{}", null);
         requestBody = JsonUtils.writeValueAsString(code);
         post = post("/Codes")
@@ -237,7 +237,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCodeThatIsExpirationIntervalWorks() throws Exception {
-        Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
+        Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
