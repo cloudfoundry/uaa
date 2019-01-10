@@ -13,20 +13,17 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockContextTest {
 
@@ -35,7 +32,7 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
     @Before
     public void setup() throws Exception {
         BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
-        client.setAutoApproveScopes(Arrays.asList("openid"));
+        client.setAutoApproveScopes(Collections.singletonList("openid"));
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.write uaa.admin");
         MockMvcUtils.createClient(getMockMvc(), adminToken, client);
     }
@@ -48,7 +45,7 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
     @Test
     public void testSilentAuthHonorsAntRedirect_whenNotAuthenticated() throws Exception {
         MvcResult result = getMockMvc().perform(
-          get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
         ).andReturn();
 
         assertThat(result.getResponse().getRedirectedUrl(), startsWith("http://example.com/with/path.html#error=login_required"));
@@ -73,13 +70,13 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
         session.invalidate();
 
         getMockMvc().perform(
-          get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
-            .session(session)
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+                        .session(session)
         ).andExpect(redirectedUrlPattern("http://example.com/**/*"));
     }
 
     @Test
-    public void testSilentAuthentication_whenScopesNotAutoapproved() throws Exception {
+    public void testSilentAuthentication_whenScopesNotAutoApproved() throws Exception {
         MockMvcUtils.deleteClient(getMockMvc(), adminToken, "ant", "");
         BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         MockMvcUtils.createClient(getMockMvc(), adminToken, client);
@@ -88,10 +85,10 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
         login(session);
 
         getMockMvc().perform(
-          get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
-            .session(session)
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+                        .session(session)
         )
-          .andExpect(redirectedUrl("http://example.com/with/path.html#error=interaction_required"));
+                .andExpect(redirectedUrl("http://example.com/with/path.html#error=interaction_required"));
     }
 
     @Test
@@ -114,11 +111,11 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
             login(session);
 
             MvcResult result = getMockMvc().perform(
-              get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
-                .session(session)
+                    get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+                            .session(session)
             )
-              .andExpect(status().isFound())
-              .andReturn();
+                    .andExpect(status().isFound())
+                    .andReturn();
 
             String redirectUrl = result.getResponse().getRedirectedUrl();
             Assert.assertThat(redirectUrl, containsString("session_state=sessionhash.saltvalue"));
@@ -148,11 +145,11 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
             login(session);
 
             getMockMvc().perform(
-              get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
-                .session(session)
+                    get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
+                            .session(session)
             )
-              .andExpect(status().is3xxRedirection())
-              .andExpect(redirectedUrl("http://example.com/with/path.html#error=internal_server_error"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("http://example.com/with/path.html#error=internal_server_error"));
         } finally {
             uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(backupCalculator);
         }
@@ -164,10 +161,10 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
         login(session);
 
         getMockMvc().perform(
-          get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=no good uri")
-            .session(session)
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=no good uri")
+                        .session(session)
         )
-          .andExpect(status().is4xxClientError());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
@@ -176,19 +173,19 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
         login(session);
 
         MvcResult result = getMockMvc().perform(
-          get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&redirect_uri=http://example.com/with/path.html")
-            .session(session)
+                get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&redirect_uri=http://example.com/with/path.html")
+                        .session(session)
         )
-          .andReturn();
+                .andReturn();
         Assert.assertThat(result.getResponse().getRedirectedUrl(), not(containsString("session_state")));
     }
 
     @Test
     public void silentAuthentication_implicit_returnsSessionStateWhenLoginIsRequired() throws Exception {
         MvcResult result = getMockMvc().perform(
-          get("/oauth/authorize?response_type=id_token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
+                get("/oauth/authorize?response_type=id_token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
         )
-          .andReturn();
+                .andReturn();
         Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("error=login_required"));
         Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
     }
@@ -196,23 +193,23 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
     @Test
     public void silentAuthentication_withBadClientId() throws Exception {
         getMockMvc().perform(
-          get("/oauth/authorize?response_type=id_token&scope=openid&client_id=bogus&prompt=none&redirect_uri=http://example.com/**")
+                get("/oauth/authorize?response_type=id_token&scope=openid&client_id=bogus&prompt=none&redirect_uri=http://example.com/**")
         ).andExpect(status().isBadRequest());
     }
 
     @Test
     public void silentAuthentication_withoutClientId() throws Exception {
         getMockMvc().perform(
-          get("/oauth/authorize?response_type=id_token&scope=openid&prompt=none&redirect_uri=http://example.com/**")
+                get("/oauth/authorize?response_type=id_token&scope=openid&prompt=none&redirect_uri=http://example.com/**")
         ).andExpect(status().isBadRequest());
     }
 
     @Test
     public void silentAuthentication_notImplicit_returnsSessionStateWhenLoginIsRequired() throws Exception {
         MvcResult result = getMockMvc().perform(
-          get("/oauth/authorize?response_type=code&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
+                get("/oauth/authorize?response_type=code&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
         )
-          .andReturn();
+                .andReturn();
         Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("login_required"));
         Assert.assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
     }
@@ -220,11 +217,11 @@ public class AuthorizationPromptNoneEntryPointMockMvcTests extends InjectedMockC
 
     private void login(MockHttpSession session) throws Exception {
         getMockMvc().perform(
-          post("/login.do")
-            .with(cookieCsrf())
-            .param("username", "marissa")
-            .param("password", "koala")
-            .session(session)
+                post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", "marissa")
+                        .param("password", "koala")
+                        .session(session)
         ).andExpect(redirectedUrl("/"));
     }
 }
