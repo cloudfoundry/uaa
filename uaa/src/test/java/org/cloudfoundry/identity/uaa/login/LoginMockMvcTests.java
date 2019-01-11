@@ -133,6 +133,7 @@ public class LoginMockMvcTests {
     public void setUpContext() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .alwaysDo(print())
                 .addFilter(springSecurityFilterChain)
                 .build();
 
