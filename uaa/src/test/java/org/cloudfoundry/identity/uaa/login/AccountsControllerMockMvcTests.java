@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.message.EmailService;
+import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -21,12 +22,10 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpSession;
@@ -74,7 +73,6 @@ import static org.springframework.util.StringUtils.isEmpty;
 @ContextConfiguration(classes = TestSpringContext.class)
 class AccountsControllerMockMvcTests {
 
-    private static SimpleSmtpServer mailServer;
     private final String LOGIN_REDIRECT = "/login?success=verify_success";
     private final String USER_PASSWORD = "secr3T";
     private String userEmail;
@@ -85,11 +83,8 @@ class AccountsControllerMockMvcTests {
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
     private TestClient testClient;
-
-    @BeforeAll
-    static void startMailServer() {
-        mailServer = SimpleSmtpServer.start(2525);
-    }
+    @Autowired
+    FakeJavaMailSender fakeJavaMailSender;
 
     @BeforeEach
     void setUp() {
@@ -101,20 +96,10 @@ class AccountsControllerMockMvcTests {
 
         testClient = new TestClient(mockMvc);
 
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost("localhost");
-        mailSender.setPort(2525);
-        webApplicationContext.getBean("emailService", EmailService.class).setMailSender(mailSender);
-
         userEmail = "user" + new RandomValueStringGenerator().generate() + "@example.com";
         assertNotNull(webApplicationContext.getBean("messageService"));
 
         mockMvcTestClient = new MockMvcTestClient(mockMvc);
-
-        for (Iterator i = mailServer.getReceivedEmail(); i.hasNext(); ) {
-            i.next();
-            i.remove();
-        }
     }
 
     private void setProperty(String name, String value) {
@@ -125,11 +110,9 @@ class AccountsControllerMockMvcTests {
         assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
     }
 
-    @AfterAll
-    static void stopMailServer() {
-        if (mailServer != null) {
-            mailServer.stop();
-        }
+    @AfterEach
+    void clearEmails() {
+        fakeJavaMailSender.clearMessage();
     }
 
     @Test
@@ -328,10 +311,9 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        assertTrue(message.getBody().contains("Cloud Foundry"));
-        assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        assertTrue(message.getContentString().contains("Cloud Foundry"));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray("Cloud Foundry <admin@localhost>"));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))
@@ -379,13 +361,12 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        String link = mockMvcTestClient.extractLink(message.getBody());
-        assertTrue(message.getBody().contains(subdomain + "zone"));
-        assertTrue(message.getHeaderValue("From").contains(subdomain + "zone"));
-        assertFalse(message.getBody().contains("Cloud Foundry"));
-        assertFalse(message.getBody().contains("Pivotal"));
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        String link = mockMvcTestClient.extractLink(message.getContentString());
+        assertTrue(message.getContentString().contains(subdomain + "zone"));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(subdomain + "zone <admin@localhost>"));
+        assertFalse(message.getContentString().contains("Cloud Foundry"));
+        assertFalse(message.getContentString().contains("Pivotal"));
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
@@ -434,9 +415,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        String link = mockMvcTestClient.extractLink(message.getBody());
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        String link = mockMvcTestClient.extractLink(message.getContentString());
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
@@ -608,10 +588,9 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        assertTrue(message.getBody().contains("Cloud Foundry"));
-        assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        assertTrue(message.getContentString().contains("Cloud Foundry"));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray("Cloud Foundry <admin@localhost>"));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))
