@@ -17,9 +17,9 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
@@ -37,20 +37,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     private File existingStatusFile;
-    private File statusFile;
 
-    @Before
+    @BeforeEach
     @Override
     public void setUpContext() throws Exception {
         super.setUpContext();
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
     }
 
-
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
+        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 
     @Test
@@ -60,8 +58,8 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
                                                 "",
                                                 "client_credentials",
                                                 true);
-        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), client.getClientId(), SECRET, null, null, true);
-        getMockMvc().perform(
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, client.getClientId(), SECRET, null, null, true);
+        mockMvc.perform(
             post("/check_token")
                 .param("token", token)
                 .header(AUTHORIZATION,

@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.web.util.HtmlUtils;
 
@@ -14,14 +14,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
-    public static final String CLIENTID = "oauth_showcase_password_grant";
-    public static final String CLIENTSECRET = "secret";
+class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
+    private static final String CLIENTID = "oauth_showcase_password_grant";
+    private static final String CLIENTSECRET = "secret";
 
     @Test
-    public void methodNotAllowedReturnsError_PUT() throws Exception {
+    void methodNotAllowedReturnsError_PUT() throws Exception {
         String username = setUpUserForPasswordGrant();
-        getMockMvc().perform(
+        mockMvc.perform(
             put("/oauth/token")
                 .param("client_id", CLIENTID)
                 .param("client_secret", CLIENTSECRET)
@@ -38,9 +38,9 @@ public class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void methodNotAllowedReturnsError_DELETE() throws Exception {
+    void methodNotAllowedReturnsError_DELETE() throws Exception {
         String username = setUpUserForPasswordGrant();
-        getMockMvc().perform(
+        mockMvc.perform(
             delete("/oauth/token")
                 .param("client_id", CLIENTID)
                 .param("client_secret", CLIENTSECRET)

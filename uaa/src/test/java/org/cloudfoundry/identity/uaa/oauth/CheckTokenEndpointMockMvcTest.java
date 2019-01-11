@@ -23,9 +23,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -55,11 +55,11 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     private String basic;
     private boolean allowQueryString;
 
-    @Before
+    @BeforeEach
     public void get_token_to_check() throws Exception {
         String username = setUpUserForPasswordGrant();
 
-        String content = getMockMvc().perform(
+        String content = mockMvc.perform(
             post("/oauth/token")
                 .param("client_id", CLIENT_ID)
                 .param("client_secret", CLIENT_SECRET)
@@ -76,13 +76,13 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         token = (String) tokenMap.get("access_token");
         idToken = (String) tokenMap.get("id_token");
         basic = new String(Base64.encodeBase64((CLIENT_ID +":"+ CLIENT_SECRET).getBytes()));
-        allowQueryString = getWebApplicationContext().getBean(CheckTokenEndpoint.class).isAllowQueryString();
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(false);
+        allowQueryString = webApplicationContext.getBean(CheckTokenEndpoint.class).isAllowQueryString();
+        webApplicationContext.getBean(CheckTokenEndpoint.class).setAllowQueryString(false);
     }
 
-    @After
+    @AfterEach
     public void resetAllowQueryString() throws Exception {
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(allowQueryString);
+        webApplicationContext.getBean(CheckTokenEndpoint.class).setAllowQueryString(allowQueryString);
     }
 
 
@@ -109,7 +109,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void check_token_get_when_allowed() throws Exception {
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(true);
+        webApplicationContext.getBean(CheckTokenEndpoint.class).setAllowQueryString(true);
         get_check_token(status().isOk());
     }
 
@@ -122,7 +122,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void check_token_endpoint_post_query_string() throws Exception {
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/check_token?token={token}", token)
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -135,7 +135,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void check_token_endpoint_id_token() throws Exception {
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/check_token")
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -145,7 +145,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     public ResultActions check_token(MockHttpServletRequestBuilder builder, ResultMatcher matcher) throws Exception {
-        return getMockMvc().perform(
+        return mockMvc.perform(
             builder
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -156,7 +156,7 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     public ResultActions get_check_token(ResultMatcher matcher) throws Exception {
-        return getMockMvc().perform(
+        return mockMvc.perform(
             get("/check_token?token={token}", token)
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)

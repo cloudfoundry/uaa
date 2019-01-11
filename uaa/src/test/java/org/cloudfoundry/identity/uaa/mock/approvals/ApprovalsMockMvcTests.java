@@ -24,8 +24,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -58,19 +58,17 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     private ScimUser user1;
     private ClientDetails client1;
 
-
-    @Before
+    @BeforeEach
     public void createData() {
         user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaa().getId()));
         client1 = setUpClients(generator.generate(), null, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
     }
 
-
     @Test
     public void revoke() throws Exception {
         test_oauth_authorize_without_csrf();
         MockHttpSession session = getAuthenticatedSession(user1);
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/profile")
                 .with(cookieCsrf())
                 .param("delete", "true")
@@ -86,7 +84,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     public void revoke_invalid_client() throws Exception {
         test_oauth_authorize_without_csrf();
         MockHttpSession session = getAuthenticatedSession(user1);
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/profile")
                 .with(cookieCsrf())
                 .param("delete", "true")
@@ -102,7 +100,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         String state = generator.generate();
 
         MockHttpSession session = getAuthenticatedSession(user1);
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/oauth/authorize")
                 .session(session)
                 .param(RESPONSE_TYPE, "code")
@@ -115,7 +113,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
         //no token
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/authorize")
                 .session(session)
                 .param(USER_OAUTH_APPROVAL, "true")
@@ -124,7 +122,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(status().is4xxClientError());
 
         //invalid token
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/authorize")
                 .with(cookieCsrf().useInvalidToken())
                 .session(session)
@@ -137,7 +135,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
         //valid token
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/authorize")
                 .with(cookieCsrf())
                 .session(session)
@@ -151,7 +149,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         assertNull(session.getAttribute("authorizationRequest"));
         assertNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/oauth/authorize")
                 .session(session)
                 .param(RESPONSE_TYPE, "code")
@@ -165,7 +163,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         String state = generator.generate();
 
         MockHttpSession session = getAuthenticatedSession(user1);
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/oauth/authorize")
                 .session(session)
                 .param(RESPONSE_TYPE, "code")
@@ -177,7 +175,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         assertNotNull(session.getAttribute("authorizationRequest"));
         assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/authorize")
                 .with(cookieCsrf())
                 .session(session)
@@ -197,7 +195,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     public void test_get_approvals() throws Exception {
         test_oauth_authorize_without_csrf();
         MockHttpSession session = getAuthenticatedSession(user1);
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/profile")
                 .session(session)
         )
@@ -212,17 +210,17 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         MockHttpServletRequestBuilder post = post("/profile")
             .session(session)
             .param("checkScopes", client1.getClientId() + "-test.scope1", client1.getClientId() + "-test.scope2");
-        getMockMvc().perform(
+        mockMvc.perform(
             post
         )
             .andDo(print())
             .andExpect(status().isForbidden());
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post.with(cookieCsrf().useInvalidToken())
         ).andExpect(status().isForbidden());
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post.with(cookieCsrf())
         )
             .andExpect(status().isFound())

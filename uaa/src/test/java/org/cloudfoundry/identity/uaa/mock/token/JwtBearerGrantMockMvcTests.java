@@ -30,9 +30,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -62,16 +62,16 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     protected BaseClientDetails originClient;
     protected ScimUser originUser;
 
-    @Before
+    @BeforeEach
     public void setupJwtBearerTests() throws Exception {
         originClient = new BaseClientDetails(generator.generate(), "", "openid", "password", null);
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
-        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), originClient);
+        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient);
         originUser = createUser(originZone.getIdentityZone());
     }
 
-    @After
+    @AfterEach
     public void clearZoneHolder() {
         IdentityZoneHolder.clear();
     }
@@ -90,8 +90,8 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     public void non_default_zone_jwt_grant () throws Exception {
         String subdomain = generator.generate().toLowerCase();
         IdentityZone zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
-                                                                                getMockMvc(),
-                                                                                getWebApplicationContext(),
+                                                                                mockMvc,
+                                                                                webApplicationContext,
                                                                                 null,
                                                                                 false).getIdentityZone();
         createProvider(zone, getTokenVerificationKey(originZone.getIdentityZone()));
@@ -162,7 +162,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain()+".localhost");
         }
 
-        return getMockMvc().perform(jwtBearerGrant)
+        return mockMvc.perform(jwtBearerGrant)
             .andDo(print());
     }
 
@@ -188,7 +188,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             passwordGrant = passwordGrant.header("Host", zone.getSubdomain()+".localhost");
         }
 
-        String jsonToken = getMockMvc().perform(passwordGrant)
+        String jsonToken = mockMvc.perform(passwordGrant)
             .andDo(print())
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
@@ -203,7 +203,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         user.setPrimaryEmail(userName+"@test.org");
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, SECRET, IdentityZoneHolder.get().getId());
+            return webApplicationContext.getBean(ScimUserProvisioning.class).createUser(user, SECRET, IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -220,7 +220,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         details.setClientSecret(SECRET);
         IdentityZoneHolder.set(zone);
         try {
-            getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(details);
+            webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(details);
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -253,7 +253,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         identityProvider.setConfig(definition);
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider, zone.getId());
+            return webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider, zone.getId());
         } finally {
             IdentityZoneHolder.clear();
         }

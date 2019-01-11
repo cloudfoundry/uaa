@@ -11,11 +11,12 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -37,14 +38,14 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestApplicationEventListener<TokenRevocationEvent> tokenRevocationEventListener;
 
-    @Before
-    public void setup() throws Exception {
-        tokenRevocationEventListener = MockMvcUtils.addEventListener(getWebApplicationContext(), TokenRevocationEvent.class);
+    @BeforeEach
+    void setup() {
+        tokenRevocationEventListener = MockMvcUtils.addEventListener((GenericWebApplicationContext) webApplicationContext, TokenRevocationEvent.class);
         tokenRevocationEventListener.clearEvents();
     }
 
     @Test
-    public void revokeOwnJWToken() throws Exception {
+    void revokeOwnJWToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
         identityZoneProvisioning.update(defaultZone);
@@ -62,7 +63,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
             //this is the token we will revoke
             String clientToken =
                     getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
+                            mockMvc,
                             client.getClientId(),
                             SECRET,
                             null,
@@ -75,7 +76,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
             String jti = (String) claims.get("jti");
 
             assertEquals(0, tokenRevocationEventListener.getEventCount());
-            getMockMvc().perform(delete("/oauth/token/revoke/" + jti)
+            mockMvc.perform(delete("/oauth/token/revoke/" + jti)
                     .header("Authorization", "Bearer " + clientToken))
                     .andExpect(status().isOk());
 
@@ -96,7 +97,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void revokeOtherClientTokenByJti() throws Exception {
+    void revokeOtherClientTokenByJti() throws Exception {
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
@@ -121,7 +122,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         //this is the token we will revoke
         String revokeAccessToken =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         revokerClient.getClientId(),
                         SECRET,
                         "tokens.revoke",
@@ -131,7 +132,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
         String tokenToBeRevoked =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         resourceClientId,
                         SECRET,
                         null,
@@ -139,7 +140,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                         true
                 );
 
-        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
+        mockMvc.perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
                 .header("Authorization", "Bearer " + revokeAccessToken))
                 .andExpect(status().isOk());
 
@@ -153,16 +154,16 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void revokeOtherClientTokenByClientId_tokensDotRevoke() throws Exception {
+    void revokeOtherClientTokenByClientId_tokensDotRevoke() throws Exception {
         revokeOtherClientTokenByClientId("tokens.revoke");
     }
 
     @Test
-    public void revokeOtherClientTokenByClientId_uaaDotAdmin() throws Exception {
+    void revokeOtherClientTokenByClientId_uaaDotAdmin() throws Exception {
         revokeOtherClientTokenByClientId("uaa.admin");
     }
 
-    public void revokeOtherClientTokenByClientId(String scope) throws Exception {
+    void revokeOtherClientTokenByClientId(String scope) throws Exception {
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
@@ -187,7 +188,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         //this is the token we will revoke
         String revokeAccessToken =
             getClientCredentialsOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 revokerClient.getClientId(),
                 SECRET,
                 scope,
@@ -197,7 +198,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
         String tokenToBeRevoked =
             getClientCredentialsOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 resourceClientId,
                 SECRET,
                 null,
@@ -205,7 +206,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 true
             );
 
-        getMockMvc().perform(delete("/oauth/token/revoke/client/" + resourceClientId)
+        mockMvc.perform(delete("/oauth/token/revoke/client/" + resourceClientId)
                                  .header("Authorization", "Bearer " + revokeAccessToken))
             .andExpect(status().isOk());
 
@@ -219,7 +220,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void revokeOtherClientTokenForbidden() throws Exception {
+    void revokeOtherClientTokenForbidden() throws Exception {
         String resourceClientId = generator.generate();
         BaseClientDetails resourceClient = setUpClients(
                 resourceClientId,
@@ -241,7 +242,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         //this is the token we will revoke
         String revokeAccessToken =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         client.getClientId(),
                         SECRET,
                         null,
@@ -251,7 +252,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
         String tokenToBeRevoked =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         resourceClientId,
                         SECRET,
                         null,
@@ -259,18 +260,18 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                         true
                 );
 
-        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
+        mockMvc.perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
                 .header("Authorization", "Bearer " + revokeAccessToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    public void revokeOpaqueTokenWithOpaqueToken() throws Exception {
+    void revokeOpaqueTokenWithOpaqueToken() throws Exception {
         ScimUser scimUser = setUpUser("testUser" + generator.generate());
 
         String opaqueUserToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", scimUser.getUserName(), "secret", null);
 
-        getMockMvc().perform(delete("/oauth/token/revoke/" + opaqueUserToken)
+        mockMvc.perform(delete("/oauth/token/revoke/" + opaqueUserToken)
                 .header("Authorization", "Bearer " + opaqueUserToken))
                 .andExpect(status().isOk());
 
@@ -281,14 +282,14 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void test_Revoke_All_Client_Tokens() throws Exception {
+    void test_Revoke_All_Client_Tokens() throws Exception {
         BaseClientDetails client = getAClientWithClientsRead();
         BaseClientDetails otherClient = getAClientWithClientsRead();
 
         //this is the token we will revoke
         String readClientsToken =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         client.getClientId(),
                         client.getClientSecret(),
                         null,
@@ -298,7 +299,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         //this is the token from another client
         String otherReadClientsToken =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         otherClient.getClientId(),
                         otherClient.getClientSecret(),
                         null,
@@ -306,31 +307,31 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 );
 
         //ensure our token works
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/clients")
                         .header("Authorization", "Bearer "+readClientsToken)
         ).andExpect(status().isOk());
 
         //ensure we can't get to the endpoint without authentication
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/client/"+client.getClientId())
         ).andExpect(status().isUnauthorized());
 
         //ensure we can't get to the endpoint without correct scope
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/client/"+client.getClientId())
                         .header("Authorization", "Bearer "+otherReadClientsToken)
         ).andExpect(status().isForbidden());
 
         //ensure that we have the correct error for invalid client id
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/client/notfound"+ generator.generate())
                         .header("Authorization", "Bearer "+adminToken)
         ).andExpect(status().isNotFound());
 
         assertEquals(0, tokenRevocationEventListener.getEventCount());
         //we revoke the tokens for that client
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/client/"+client.getClientId())
                         .header("Authorization", "Bearer "+adminToken)
         ).andExpect(status().isOk());
@@ -344,7 +345,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
 
         //we should fail attempting to use the token
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/clients")
                         .header("Authorization", "Bearer "+readClientsToken)
         )
@@ -354,14 +355,14 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void test_Revoke_All_Tokens_For_User() throws Exception{
+    void test_Revoke_All_Tokens_For_User() throws Exception{
         BaseClientDetails client = getAClientWithClientsRead();
 
         ScimUser user = setUpUser(generator.generate().toLowerCase()+"@test.org");
         user.setPassword("secret");
 
         String userInfoToken = getUserOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 client.getClientId(),
                 client.getClientSecret(),
                 user.getUserName(),
@@ -370,13 +371,13 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         );
 
         //ensure our token works
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+userInfoToken)
         ).andExpect(status().isOk());
 
         //we revoke the tokens for nonexistent user
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/user/"+user.getId()+"notfound")
                         .header("Authorization", "Bearer "+adminToken)
         ).andExpect(status().isNotFound());
@@ -384,7 +385,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         assertEquals(0, tokenRevocationEventListener.getEventCount());
 
         //we revoke the tokens for that user
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/user/"+user.getId())
                         .header("Authorization", "Bearer "+adminToken)
         ).andExpect(status().isOk());
@@ -396,7 +397,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getData(), not(containsString("ClientID")));
         assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getOrigin(), containsString("admin"));
         //should fail with 401
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+userInfoToken)
         )
@@ -404,7 +405,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
     }
 
-    private void revokeUserClientCombinationTokenWithAuth(String token) throws Exception{
+    private void revokeUserClientCombinationTokenWithAuth() throws Exception{
         BaseClientDetails client = getAClientWithClientsRead();
         BaseClientDetails otherClient = getAClientWithClientsRead();
         IdentityZone zone = IdentityZoneHolder.get();
@@ -417,7 +418,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
         //All three tokens should be revocable
         String client1UserToken = getUserOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 client.getClientId(),
                 client.getClientSecret(),
                 user1.getUserName(),
@@ -428,7 +429,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         );
 
         String client2UserToken = getUserOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 otherClient.getClientId(),
                 otherClient.getClientSecret(),
                 user1.getUserName(),
@@ -439,7 +440,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         );
 
         String client1DifferentUserToken = getUserOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 client.getClientId(),
                 client.getClientSecret(),
                 user2.getUserName(),
@@ -449,24 +450,24 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 true
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client1UserToken)
         ).andExpect(status().isOk());
 
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client2UserToken)
         ).andExpect(status().isOk());
 
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client1DifferentUserToken)
         ).andExpect(status().isOk());
 
         assertEquals(0, tokenRevocationEventListener.getEventCount());
         //we revoke the tokens for that user
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/oauth/token/revoke/user/"+user1.getId() + "/client/" + client.getClientId())
                         .header("Authorization", "Bearer "+adminToken)
         ).andExpect(status().isOk());
@@ -479,7 +480,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getOrigin(), containsString("admin"));
 
         //should fail with 401
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client1UserToken)
         )
@@ -488,13 +489,13 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
 
         // ensure tokens issued for user to other clients still work
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client2UserToken)
         ).andExpect(status().isOk());
 
         // ensure tokens issued for client and other user still work
-        getMockMvc().perform(
+        mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer "+client1DifferentUserToken)
         ).andExpect(status().isOk());
@@ -502,12 +503,12 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     @Test
-    public void test_Revoke_Client_User_Combination_Token() throws Exception{
-        revokeUserClientCombinationTokenWithAuth(adminToken);
+    void test_Revoke_Client_User_Combination_Token() throws Exception{
+        revokeUserClientCombinationTokenWithAuth();
     }
 
     @Test
-    public void test_Revoke_Client_User_Combination_Token_With_Revoke_Scope() throws Exception {
+    void test_Revoke_Client_User_Combination_Token_With_Revoke_Scope() throws Exception {
         String revokerClientId = generator.generate();
         BaseClientDetails revokerClient =
                 setUpClients(revokerClientId,
@@ -519,7 +520,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         //this is the token we will revoke
         String revokeAccessToken =
                 getClientCredentialsOAuthAccessToken(
-                        getMockMvc(),
+                        mockMvc,
                         revokerClient.getClientId(),
                         SECRET,
                         "tokens.revoke",
@@ -527,11 +528,10 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                         false
                 );
 
-        revokeUserClientCombinationTokenWithAuth(revokeAccessToken);
+        revokeUserClientCombinationTokenWithAuth();
     }
 
-
-    protected BaseClientDetails getAClientWithClientsRead() throws Exception {
+    private BaseClientDetails getAClientWithClientsRead() {
         BaseClientDetails client = setUpClients(
                 generator.generate(),
                 "clients.read",

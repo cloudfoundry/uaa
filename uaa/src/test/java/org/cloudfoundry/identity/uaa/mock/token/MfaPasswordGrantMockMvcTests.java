@@ -10,12 +10,13 @@ import org.cloudfoundry.identity.uaa.mfa.StatelessMfaAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
@@ -35,31 +36,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
     private TestApplicationEventListener<AbstractUaaAuthenticationEvent> listener;
 
-    @Before
+    @BeforeEach
     public void setupForMfaPasswordGrant() throws Exception {
         super.setupForMfaPasswordGrant();
         listener = TestApplicationEventListener.forEventClass(AbstractUaaAuthenticationEvent.class);
-        getWebApplicationContext().addApplicationListener(listener);
+        ((GenericWebApplicationContext) webApplicationContext).addApplicationListener(listener);
     }
 
-    @After
-    public void clearListeners() throws Exception {
+    @AfterEach
+    void clearListeners() {
         if (listener!=null) {
-            removeEventListener(getWebApplicationContext(), listener);
+            removeEventListener((GenericWebApplicationContext) webApplicationContext, listener);
             listener.clearEvents();
         }
     }
 
     @Test
-    public void filter_only_triggers_on_password_grant() throws Exception {
-        StatelessMfaAuthenticationFilter filter = getWebApplicationContext().getBean(StatelessMfaAuthenticationFilter.class);
+    void filter_only_triggers_on_password_grant() {
+        StatelessMfaAuthenticationFilter filter = webApplicationContext.getBean(StatelessMfaAuthenticationFilter.class);
         assertThat(filter.getSupportedGrantTypes(), containsInAnyOrder("password"));
     }
 
     @Test
-    public void mfa_happy_path() throws Exception {
+    void mfa_happy_path() throws Exception {
         listener.clearEvents();
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param(OAuth2Utils.GRANT_TYPE, "password")
@@ -99,8 +100,8 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void invalid_code() throws Exception {
-        getMockMvc().perform(
+    void invalid_code() throws Exception {
+        mockMvc.perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param(OAuth2Utils.GRANT_TYPE, "password")
@@ -123,9 +124,9 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void not_registered() throws Exception {
+    void not_registered() throws Exception {
         deleteMfaRegistrations();
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param(OAuth2Utils.GRANT_TYPE, "password")

@@ -8,8 +8,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.web.util.HtmlUtils;
 
@@ -35,11 +35,11 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     private String token;
     private String basic;
 
-    @Before
+    @BeforeEach
     public void get_token_to_check() throws Exception {
         String username = setUpUserForPasswordGrant();
 
-        String content = getMockMvc().perform(
+        String content = mockMvc.perform(
             post("/oauth/token")
                 .param("client_id", CLIENTID)
                 .param("client_secret", CLIENTSECRET)
@@ -60,7 +60,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void introspectToken_withValidToken() throws Exception {
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/introspect")
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -76,7 +76,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void introspectToken_withInvalidToken() throws Exception {
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/introspect")
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -90,7 +90,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     public void check_token_delete() throws Exception {
-        getMockMvc().perform(
+        mockMvc.perform(
             delete("/introspect")
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)

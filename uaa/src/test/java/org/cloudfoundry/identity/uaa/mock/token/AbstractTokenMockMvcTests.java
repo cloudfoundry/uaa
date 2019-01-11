@@ -1,41 +1,17 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.Contextable;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -44,20 +20,31 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.UserConfig;
-
-import org.junit.After;
-import org.junit.Before;
+import org.cloudfoundry.identity.uaa.zone.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -65,24 +52,44 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
 
-public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public abstract class AbstractTokenMockMvcTests {
 
     public static final String SECRET = "secret";
     static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code,refresh_token";
     protected static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
+    @Autowired
+    @Qualifier("jdbcClientDetailsService")
     ClientServicesExtension clientDetailsService;
+    @Autowired
+    @Qualifier("scimUserProvisioning")
     protected JdbcScimUserProvisioning userProvisioning;
+    @Autowired
+    @Qualifier("scimGroupProvisioning")
     JdbcScimGroupProvisioning groupProvisioning;
+    @Autowired
     JdbcScimGroupMembershipManager groupMembershipManager;
+    @Autowired
     UaaTokenServices tokenServices;
-    Set<String> defaultAuthorities;
 
+    @Autowired
     IdentityZoneProvisioning identityZoneProvisioning;
+    @Autowired
     JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    @Autowired
     protected IdentityProviderProvisioning identityProviderProvisioning;
-    protected String adminToken;
+    @Autowired
+    @Qualifier("revocableTokenProvisioning")
     RevocableTokenProvisioning tokenProvisioning;
+
+    Set<String> defaultAuthorities;
+    protected String adminToken;
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     IdentityZone zone;
@@ -92,51 +99,57 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     private UserGoogleMfaCredentialsProvisioning authenticator;
     protected UserGoogleMfaCredentials credentials;
 
-    @Before
+    @Autowired
+    protected WebApplicationContext webApplicationContext;
+
+    protected MockMvc mockMvc;
+    protected TestClient testClient;
+
+    @BeforeEach
     public void setUpContext() throws Exception {
-        clientDetailsService = (ClientServicesExtension) getWebApplicationContext().getBean("jdbcClientDetailsService");
-        userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
-        groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
-        groupMembershipManager = (JdbcScimGroupMembershipManager) getWebApplicationContext().getBean("groupMembershipManager");
-        tokenServices = (UaaTokenServices) getWebApplicationContext().getBean("tokenServices");
-        defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
-        identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        jdbcScimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
+        defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
+
         IdentityZoneHolder.clear();
+
+        FilterChainProxy springSecurityFilterChain =
+                webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        testClient = new TestClient(mockMvc);
 
         adminToken =
             getClientCredentialsOAuthAccessToken(
-                getMockMvc(),
+                mockMvc,
                 "admin",
                 "adminsecret",
                 "uaa.admin",
                 null
             );
-        tokenProvisioning = (RevocableTokenProvisioning) getWebApplicationContext().getBean("revocableTokenProvisioning");
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         if (uaaZoneConfig!=null) {
             uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
-            MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
+            MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId(), uaaZoneConfig);
             deleteMfaRegistrations();
         }
     }
 
     void deleteMfaRegistrations() {
-        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM user_google_mfa_credentials");
+        webApplicationContext.getBean(JdbcTemplate.class).update("DELETE FROM user_google_mfa_credentials");
     }
 
     public void setupForMfaPasswordGrant() throws Exception {
-        userDb = getWebApplicationContext().getBean(UaaUserDatabase.class);
+        userDb = webApplicationContext.getBean(UaaUserDatabase.class);
         String userId = userDb.retrieveUserByName("marissa", OriginKeys.UAA).getId();
         setupForMfaPasswordGrant(userId);
     }
     protected void setupForMfaPasswordGrant(String userId) throws Exception {
-        userDb = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId());
+        userDb = webApplicationContext.getBean(UaaUserDatabase.class);
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId());
 
         cleanup();
 
@@ -145,12 +158,12 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
             "adminsecret",
             "uaa.admin"
         );
-        mfaProvider = createMfaProvider(getWebApplicationContext(), IdentityZone.getUaa());
+        mfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
 
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), IdentityZone.getUaa().getId(), uaaZoneConfig);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId(), uaaZoneConfig);
 
-        authenticator = getWebApplicationContext().getBean(UserGoogleMfaCredentialsProvisioning.class);
+        authenticator = webApplicationContext.getBean(UserGoogleMfaCredentialsProvisioning.class);
 
         credentials = authenticator.createUserCredentials(userId);
         credentials.setMfaProviderId(mfaProvider.getId());
@@ -161,7 +174,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        ScimUserProvisioning provisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        ScimUserProvisioning provisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         ScimUser scimUser = provisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
