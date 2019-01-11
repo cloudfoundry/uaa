@@ -101,6 +101,7 @@ class AccountsControllerMockMvcTests {
 
         userEmail = "user" + new RandomValueStringGenerator().generate() + "@example.com";
         assertNotNull(webApplicationContext.getBean("messageService"));
+        IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
 
         mockMvcTestClient = new MockMvcTestClient(mockMvc);
     }
