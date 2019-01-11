@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
@@ -22,11 +20,12 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
@@ -49,7 +48,6 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
 import java.util.Collections;
-import java.util.Iterator;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -84,7 +82,8 @@ class AccountsControllerMockMvcTests {
     private MockMvc mockMvc;
     private TestClient testClient;
     @Autowired
-    FakeJavaMailSender fakeJavaMailSender;
+    private FakeJavaMailSender fakeJavaMailSender;
+    private JavaMailSender originalEmailSender;
 
     @BeforeEach
     void setUp() {
@@ -95,6 +94,10 @@ class AccountsControllerMockMvcTests {
                 .build();
 
         testClient = new TestClient(mockMvc);
+
+        EmailService emailService = webApplicationContext.getBean("emailService", EmailService.class);
+        originalEmailSender = emailService.getMailSender();
+        emailService.setMailSender(fakeJavaMailSender);
 
         userEmail = "user" + new RandomValueStringGenerator().generate() + "@example.com";
         assertNotNull(webApplicationContext.getBean("messageService"));
@@ -112,6 +115,7 @@ class AccountsControllerMockMvcTests {
 
     @AfterEach
     void clearEmails() {
+        webApplicationContext.getBean("emailService", EmailService.class).setMailSender(originalEmailSender);
         fakeJavaMailSender.clearMessage();
     }
 
