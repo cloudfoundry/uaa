@@ -5,11 +5,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mock.Contextable;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -42,7 +41,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.*;
 
@@ -65,11 +63,10 @@ public abstract class AbstractTokenMockMvcTests {
     protected static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     @Autowired
+    protected WebApplicationContext webApplicationContext;
+    @Autowired
     @Qualifier("jdbcClientDetailsService")
     ClientServicesExtension clientDetailsService;
-    @Autowired
-    @Qualifier("scimUserProvisioning")
-    protected JdbcScimUserProvisioning userProvisioning;
     @Autowired
     @Qualifier("scimGroupProvisioning")
     JdbcScimGroupProvisioning groupProvisioning;
@@ -77,16 +74,15 @@ public abstract class AbstractTokenMockMvcTests {
     JdbcScimGroupMembershipManager groupMembershipManager;
     @Autowired
     UaaTokenServices tokenServices;
-
     @Autowired
     IdentityZoneProvisioning identityZoneProvisioning;
     @Autowired
-    JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    protected JdbcScimUserProvisioning jdbcScimUserProvisioning;
     @Autowired
     protected IdentityProviderProvisioning identityProviderProvisioning;
     @Autowired
     @Qualifier("revocableTokenProvisioning")
-    RevocableTokenProvisioning tokenProvisioning;
+    JdbcRevocableTokenProvisioning revocableTokenProvisioning;
 
     Set<String> defaultAuthorities;
     protected String adminToken;
@@ -98,9 +94,6 @@ public abstract class AbstractTokenMockMvcTests {
     private IdentityZoneConfiguration uaaZoneConfig;
     private UserGoogleMfaCredentialsProvisioning authenticator;
     protected UserGoogleMfaCredentials credentials;
-
-    @Autowired
-    protected WebApplicationContext webApplicationContext;
 
     protected MockMvc mockMvc;
     protected TestClient testClient;
@@ -263,7 +256,7 @@ public abstract class AbstractTokenMockMvcTests {
     }
 
     void deleteUser(ScimUser user, String zoneId) {
-        userProvisioning.delete(user.getId(), user.getVersion(), zoneId);
+        jdbcScimUserProvisioning.delete(user.getId(), user.getVersion(), zoneId);
     }
 
     protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
@@ -285,7 +278,7 @@ public abstract class AbstractTokenMockMvcTests {
             user.setOrigin(origin);
 
 
-            user = userProvisioning.createUser(user, SECRET, IdentityZoneHolder.get().getId());
+            user = jdbcScimUserProvisioning.createUser(user, SECRET, IdentityZoneHolder.get().getId());
 
             Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
             Set<ScimGroup> groups = new HashSet<>();
@@ -295,7 +288,7 @@ public abstract class AbstractTokenMockMvcTests {
                 addMember(user, g);
             }
 
-            return userProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+            return jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.set(original);
         }

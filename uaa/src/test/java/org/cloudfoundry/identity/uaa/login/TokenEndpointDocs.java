@@ -152,11 +152,11 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Autowired
     WebApplicationContext webApplicationContext;
+    @Autowired
+    FilterChainProxy springSecurityFilterChain;
 
     @Before
     public void setUpContext() {
-        FilterChainProxy springSecurityFilterChain =
-                this.webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .apply(documentationConfiguration(restDocumentation)
@@ -454,7 +454,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         provider.setOriginKey(origin);
 
         IdentityZoneHolder.set(zone.getIdentityZone());
-        this.webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(provider, zone.getIdentityZone().getId());
+        identityProviderProvisioning.create(provider, zone.getIdentityZone().getId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
@@ -553,8 +553,7 @@ public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     public void getTokenUsingPasscode() throws Exception {
-        ScimUserProvisioning userProvisioning = this.webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
 

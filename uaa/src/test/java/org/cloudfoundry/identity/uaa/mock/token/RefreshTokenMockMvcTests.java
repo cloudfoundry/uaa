@@ -19,7 +19,6 @@ import org.apache.directory.api.util.Base64;
 import org.apache.http.HttpStatus;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.*;
@@ -35,6 +34,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -106,24 +106,36 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     private String refreshToken;
     private Map<String, String> keys;
-    private JdbcTemplate template;
-    private JdbcRevocableTokenProvisioning revocableTokenProvisioning;
     private TimeService timeService;
+
+    @Autowired
+    private TokenValidityResolver refreshTokenValidityResolver;
+    @Autowired
+    private RefreshTokenCreator refreshTokenCreator;
+    @Autowired
+    private IdTokenCreator idTokenCreator;
+    @Autowired
+    private JdbcTemplate template;
 
     @BeforeEach
     void before() {
         timeService = mock(TimeServiceImpl.class);
         when(timeService.getCurrentDate()).thenCallRealMethod();
-        UaaTokenServices uaaTokenServices = webApplicationContext.getBean(UaaTokenServices.class);
-        TokenValidityResolver refreshTokenValidityResolver =  (TokenValidityResolver) webApplicationContext.getBean("refreshTokenValidityResolver");
+
         refreshTokenValidityResolver.setTimeService(timeService);
-        RefreshTokenCreator refreshTokenCreator = webApplicationContext.getBean(RefreshTokenCreator.class);
-        IdTokenCreator idTokenCreator = webApplicationContext.getBean(IdTokenCreator.class);
-        revocableTokenProvisioning = webApplicationContext.getBean(JdbcRevocableTokenProvisioning.class);
         revocableTokenProvisioning.setTimeService(timeService);
-        uaaTokenServices.setTimeService(timeService);
+        tokenServices.setTimeService(timeService);
         idTokenCreator.setTimeService(timeService);
         refreshTokenCreator.setTimeService(timeService);
+    }
+
+    @AfterEach
+    void reset() {
+        zone = zone == null ? IdentityZone.getUaa() : zone;
+        deleteClient(client.getClientId(), zone.getId());
+        deleteUser(user, zone.getId());
+
+        IdentityZoneHolder.clear();
     }
 
     private void createClientAndUserInRandomZone() throws Exception {
@@ -148,20 +160,10 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         user = setUpUser(username, "", OriginKeys.UAA, zone.getId());
 
         refreshToken = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone));
-        template = webApplicationContext.getBean(JdbcTemplate.class);
     }
 
     private String getZoneHostUrl(IdentityZone zone) {
         return zone.getSubdomain() + ".localhost";
-    }
-
-    @AfterEach
-    void reset() {
-        zone = zone == null ? IdentityZone.getUaa() : zone;
-        deleteClient(client.getClientId(), zone.getId());
-        deleteUser(user, zone.getId());
-
-        IdentityZoneHolder.clear();
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -36,6 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
     private TestApplicationEventListener<AbstractUaaAuthenticationEvent> listener;
 
+    @Autowired
+    private StatelessMfaAuthenticationFilter statelessMfaAuthenticationFilter;
+
     @BeforeEach
     public void setupForMfaPasswordGrant() throws Exception {
         super.setupForMfaPasswordGrant();
@@ -46,15 +50,14 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
     @AfterEach
     void clearListeners() {
         if (listener!=null) {
-            removeEventListener((GenericWebApplicationContext) webApplicationContext, listener);
+            removeEventListener(webApplicationContext, listener);
             listener.clearEvents();
         }
     }
 
     @Test
     void filter_only_triggers_on_password_grant() {
-        StatelessMfaAuthenticationFilter filter = webApplicationContext.getBean(StatelessMfaAuthenticationFilter.class);
-        assertThat(filter.getSupportedGrantTypes(), containsInAnyOrder("password"));
+        assertThat(statelessMfaAuthenticationFilter.getSupportedGrantTypes(), containsInAnyOrder("password"));
     }
 
     @Test

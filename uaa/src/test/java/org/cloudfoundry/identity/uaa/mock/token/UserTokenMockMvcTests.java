@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -51,7 +50,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
-
 
     @Test
     void test_user_managed_token() throws Exception {
@@ -93,7 +91,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals("test.scope", result.get("scope"));
         assertNull(result.get(ACCESS_TOKEN));
 
-        RevocableToken token = webApplicationContext.getBean(RevocableTokenProvisioning.class).retrieve(refreshToken, IdentityZoneHolder.get().getId());
+        RevocableToken token = revocableTokenProvisioning.retrieve(refreshToken, IdentityZoneHolder.get().getId());
         assertEquals(recipientId, token.getClientId());
 
         response = mockMvc.perform(

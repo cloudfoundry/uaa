@@ -382,7 +382,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        userProvisioning.updatePasswordChangeRequired(user.getId(), true, IdentityZoneHolder.get().getId());
+        jdbcScimUserProvisioning.updatePasswordChangeRequired(user.getId(), true, IdentityZoneHolder.get().getId());
 
         String response = mockMvc.perform(
                 post("/oauth/token")

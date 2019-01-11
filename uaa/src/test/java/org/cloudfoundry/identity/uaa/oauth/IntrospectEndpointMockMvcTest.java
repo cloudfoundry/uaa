@@ -28,15 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
+class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
-    public static final String CLIENTID = "oauth_showcase_password_grant";
-    public static final String CLIENTSECRET = "secret";
+    private static final String CLIENTID = "oauth_showcase_password_grant";
+    private static final String CLIENTSECRET = "secret";
     private String token;
     private String basic;
 
     @BeforeEach
-    public void get_token_to_check() throws Exception {
+    void get_token_to_check() throws Exception {
         String username = setUpUserForPasswordGrant();
 
         String content = mockMvc.perform(
@@ -59,7 +59,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void introspectToken_withValidToken() throws Exception {
+    void introspectToken_withValidToken() throws Exception {
         mockMvc.perform(
             post("/introspect")
                 .header("Authorization", "Basic " + basic)
@@ -75,7 +75,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
 
     @Test
-    public void introspectToken_withInvalidToken() throws Exception {
+    void introspectToken_withInvalidToken() throws Exception {
         mockMvc.perform(
             post("/introspect")
                 .header("Authorization", "Basic " + basic)
@@ -89,7 +89,7 @@ public class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void check_token_delete() throws Exception {
+    void check_token_delete() throws Exception {
         mockMvc.perform(
             delete("/introspect")
                 .header("Authorization", "Basic " + basic)

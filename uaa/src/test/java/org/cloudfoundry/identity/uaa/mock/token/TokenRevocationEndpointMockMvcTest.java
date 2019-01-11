@@ -87,7 +87,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
             assertThat(tokenRevocationEvent.getAuditEvent().getData(), containsString(client.getClientId()));
             assertThat(tokenRevocationEvent.getAuditEvent().getData(), not(containsString("UserID")));
             assertThat(tokenRevocationEvent.getAuditEvent().getOrigin(), containsString(client.getClientId()));
-            tokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
+            revocableTokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
             fail("Expected EmptyResultDataAccessException to be thrown for revoked token");
         } catch (EmptyResultDataAccessException e) {
         } finally {
@@ -146,7 +146,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
 
         try {
-            tokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
+            revocableTokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException e) {
             //expected
@@ -212,7 +212,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
 
         try {
-            tokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
+            revocableTokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException e) {
             //expected
@@ -276,7 +276,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 .andExpect(status().isOk());
 
         try {
-            tokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
+            revocableTokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
         }
     }
