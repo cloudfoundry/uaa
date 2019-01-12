@@ -118,6 +118,7 @@ class TestClientMockMvc {
 @interface DefaultTestContext {
 }
 
+// TODO: This class has a lot of helpers, why?
 @DefaultTestContext
 public class ClientAdminEndpointsMockMvcTests {
 
