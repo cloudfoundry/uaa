@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.mock.saml;
 
-public class IdentityProviderSamlKeyRotationMockMvcTests extends SamlKeyRotationMockMvcTests {
-    public IdentityProviderSamlKeyRotationMockMvcTests() {
+class IdentityProviderSamlKeyRotationMockMvcTests extends SamlKeyRotationMockMvcTests {
+    IdentityProviderSamlKeyRotationMockMvcTests() {
         super("/saml/idp/metadata");
     }
 }

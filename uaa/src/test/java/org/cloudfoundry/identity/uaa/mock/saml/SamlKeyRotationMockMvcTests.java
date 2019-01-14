@@ -13,19 +13,37 @@
  */
 package org.cloudfoundry.identity.uaa.mock.saml;
 
-
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 import org.w3c.dom.NodeList;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +60,43 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
+@Configuration
+class TestClientMockMvc {
+    @Bean
+    public MockMvc mockMvc(
+            WebApplicationContext webApplicationContext,
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") FilterChainProxy springSecurityFilterChain
+    ) {
+        return MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+    }
+
+    @Bean
+    public TestClient testClient(
+            MockMvc mockMvc
+    ) {
+        return new TestClient(mockMvc);
+    }
+}
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = {
+        TestSpringContext.class,
+        TestClientMockMvc.class
+})
+@interface DefaultTestContext {
+}
+
+// TODO: This class has a lot of helpers, why?
+@DefaultTestContext
+abstract class SamlKeyRotationMockMvcTests {
 
     SamlKeyRotationMockMvcTests(String url) {
         this.url = url;
@@ -54,12 +108,18 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
     private SamlKey samlKey1;
     private SamlKey samlKey2;
 
-    @Before
-    public void createZone() throws Exception {
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void createZone(
+            @Autowired TestClient testClient,
+            @Autowired MockMvc mockMvc
+    ) throws Exception {
         token = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
                 "zones.write");
+        this.mockMvc = mockMvc;
 
         String id = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZone identityZone = new IdentityZone();
@@ -81,12 +141,11 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
         identityZone.getConfig().setSamlConfig(samlConfig);
 
         updateZone(identityZone, true);
-
     }
 
     private void updateZone(IdentityZone identityZone, boolean create) throws Exception {
         if (create) {
-            String zoneJson = getMockMvc().perform(
+            String zoneJson = mockMvc.perform(
                     post("/identity-zones")
                             .header("Authorization", "Bearer " + token)
                             .contentType(APPLICATION_JSON)
@@ -96,7 +155,7 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
 
             zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
         } else {
-            String zoneJson = getMockMvc().perform(
+            String zoneJson = mockMvc.perform(
                     put("/identity-zones/" + zone.getId())
                             .header("Authorization", "Bearer " + token)
                             .contentType(APPLICATION_JSON)
@@ -109,7 +168,7 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
     }
 
     @Test
-    public void key_rotation() throws Exception {
+    void key_rotation() throws Exception {
         //default with three keys
         String metadata = getMetadata(url);
         List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
@@ -141,7 +200,7 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
     }
 
     @Test
-    public void check_metadata_signature_key() throws Exception {
+    void check_metadata_signature_key() throws Exception {
         String metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, legacyCertificate);
@@ -152,12 +211,10 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
         metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, certificate1);
-
-
     }
 
     private String getMetadata(String uri) throws Exception {
-        return getMockMvc().perform(
+        return mockMvc.perform(
                 get(uri)
                         .header("Host", zone.getSubdomain() + ".localhost")
                         .accept(APPLICATION_XML)
