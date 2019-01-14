@@ -31,20 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyCertificate;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyKey;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyPassphrase;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_XML;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
@@ -54,13 +44,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTest {
 
-
-    public SamlKeyRotationMockMvcTests(String url) {
+    SamlKeyRotationMockMvcTests(String url) {
         this.url = url;
     }
 
     private String url;
-    IdentityZone zone;
+    private IdentityZone zone;
     private String token;
     private SamlKey samlKey1;
     private SamlKey samlKey2;
@@ -68,9 +57,9 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
     @Before
     public void createZone() throws Exception {
         token = testClient.getClientCredentialsOAuthAccessToken(
-            "identity",
-            "identitysecret",
-            "zones.write");
+                "identity",
+                "identitysecret",
+                "zones.write");
 
         String id = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZone identityZone = new IdentityZone();
@@ -98,22 +87,22 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
     private void updateZone(IdentityZone identityZone, boolean create) throws Exception {
         if (create) {
             String zoneJson = getMockMvc().perform(
-                post("/identity-zones")
-                    .header("Authorization", "Bearer " + token)
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(identityZone)))
-                .andExpect(status().is(HttpStatus.CREATED.value()))
-                .andReturn().getResponse().getContentAsString();
+                    post("/identity-zones")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(identityZone)))
+                    .andExpect(status().is(HttpStatus.CREATED.value()))
+                    .andReturn().getResponse().getContentAsString();
 
             zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
-        } else  {
+        } else {
             String zoneJson = getMockMvc().perform(
-                put("/identity-zones/"+zone.getId())
-                    .header("Authorization", "Bearer " + token)
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(identityZone)))
-                .andExpect(status().is(HttpStatus.OK.value()))
-                .andReturn().getResponse().getContentAsString();
+                    put("/identity-zones/" + zone.getId())
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(identityZone)))
+                    .andExpect(status().is(HttpStatus.OK.value()))
+                    .andReturn().getResponse().getContentAsString();
 
             zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
         }
@@ -167,21 +156,21 @@ public abstract class SamlKeyRotationMockMvcTests extends InjectedMockContextTes
 
     }
 
-    public String getMetadata(String uri) throws Exception {
+    private String getMetadata(String uri) throws Exception {
         return getMockMvc().perform(
-            get(uri)
-                .header("Host", zone.getSubdomain()+".localhost")
-                .accept(APPLICATION_XML)
+                get(uri)
+                        .header("Host", zone.getSubdomain() + ".localhost")
+                        .accept(APPLICATION_XML)
         )
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
     }
 
-    public String clean(String cert) {
-        return cert.replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","").replace("\n","");
+    private String clean(String cert) {
+        return cert.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replace("\n", "");
     }
 
-    public void evaluateSignatureKey(String metadata, String expectedKey) throws Exception {
+    private void evaluateSignatureKey(String metadata, String expectedKey) throws Exception {
         String xpath = "//*[local-name() = 'Signature']//*[local-name() = 'X509Certificate']/text()";
         NodeList nodeList = SamlTestUtils.evaluateXPathExpression(SamlTestUtils.getMetadataDoc(metadata), xpath);
         assertNotNull(nodeList);
