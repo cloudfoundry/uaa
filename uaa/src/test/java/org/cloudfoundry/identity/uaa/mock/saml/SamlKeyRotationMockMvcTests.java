@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
@@ -23,8 +24,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,7 +50,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Collections.EMPTY_MAP;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -57,7 +58,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_XML;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Configuration
@@ -96,16 +96,10 @@ class TestClientMockMvc {
 
 // TODO: This class has a lot of helpers, why?
 @DefaultTestContext
-abstract class SamlKeyRotationMockMvcTests {
+class SamlKeyRotationMockMvcTests {
 
-    SamlKeyRotationMockMvcTests(String url) {
-        this.url = url;
-    }
-
-    private String url;
     private IdentityZone zone;
     private String token;
-    private SamlKey samlKey1;
     private SamlKey samlKey2;
 
     private MockMvc mockMvc;
@@ -134,41 +128,18 @@ abstract class SamlKeyRotationMockMvcTests {
         samlConfig.setCertificate(legacyCertificate);
         samlConfig.setPrivateKey(legacyKey);
         samlConfig.setPrivateKeyPassword(legacyPassphrase);
-        samlKey1 = new SamlKey(key1, passphrase1, certificate1);
+        SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
         samlConfig.addKey("key1", samlKey1);
         samlKey2 = new SamlKey(key2, passphrase2, certificate2);
         samlConfig.addKey("key2", samlKey2);
         identityZone.getConfig().setSamlConfig(samlConfig);
 
-        updateZone(identityZone, true);
+        createZone(identityZone);
     }
 
-    private void updateZone(IdentityZone identityZone, boolean create) throws Exception {
-        if (create) {
-            String zoneJson = mockMvc.perform(
-                    post("/identity-zones")
-                            .header("Authorization", "Bearer " + token)
-                            .contentType(APPLICATION_JSON)
-                            .content(JsonUtils.writeValueAsString(identityZone)))
-                    .andExpect(status().is(HttpStatus.CREATED.value()))
-                    .andReturn().getResponse().getContentAsString();
-
-            zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
-        } else {
-            String zoneJson = mockMvc.perform(
-                    put("/identity-zones/" + zone.getId())
-                            .header("Authorization", "Bearer " + token)
-                            .contentType(APPLICATION_JSON)
-                            .content(JsonUtils.writeValueAsString(identityZone)))
-                    .andExpect(status().is(HttpStatus.OK.value()))
-                    .andReturn().getResponse().getContentAsString();
-
-            zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
-        }
-    }
-
-    @Test
-    void key_rotation() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
+    void key_rotation(String url) throws Exception {
         //default with three keys
         String metadata = getMetadata(url);
         List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
@@ -179,7 +150,7 @@ abstract class SamlKeyRotationMockMvcTests {
 
         //activate key1
         zone.getConfig().getSamlConfig().setActiveKeyId("key1");
-        updateZone(zone, false);
+        zone = MockMvcUtils.updateZone(mockMvc, zone);
         metadata = getMetadata(url);
         signatureVerificationKeys = getCertificates(metadata, "signing");
         assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
@@ -188,9 +159,9 @@ abstract class SamlKeyRotationMockMvcTests {
         assertThat(encryptionKeys, containsInAnyOrder(clean(certificate1)));
 
         //remove all but key2
-        zone.getConfig().getSamlConfig().setKeys(EMPTY_MAP);
+        zone.getConfig().getSamlConfig().setKeys(new HashMap<>());
         zone.getConfig().getSamlConfig().addAndActivateKey("key2", samlKey2);
-        updateZone(zone, false);
+        zone = MockMvcUtils.updateZone(mockMvc, zone);
         metadata = getMetadata(url);
         signatureVerificationKeys = getCertificates(metadata, "signing");
         assertThat(signatureVerificationKeys, containsInAnyOrder(clean(certificate2)));
@@ -199,18 +170,31 @@ abstract class SamlKeyRotationMockMvcTests {
         assertThat(encryptionKeys, containsInAnyOrder(clean(certificate2)));
     }
 
-    @Test
-    void check_metadata_signature_key() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
+    void check_metadata_signature_key(String url) throws Exception {
         String metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, legacyCertificate);
 
         zone.getConfig().getSamlConfig().setActiveKeyId("key1");
-        updateZone(zone, false);
+        zone = MockMvcUtils.updateZone(mockMvc, zone);
 
         metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, certificate1);
+    }
+
+    private void createZone(IdentityZone identityZone) throws Exception {
+        String zoneJson = mockMvc.perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(identityZone)))
+                .andExpect(status().is(HttpStatus.CREATED.value()))
+                .andReturn().getResponse().getContentAsString();
+
+        zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
     }
 
     private String getMetadata(String uri) throws Exception {
@@ -224,7 +208,9 @@ abstract class SamlKeyRotationMockMvcTests {
     }
 
     private String clean(String cert) {
-        return cert.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replace("\n", "");
+        return cert.replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "")
+                .replace("\n", "");
     }
 
     private void evaluateSignatureKey(String metadata, String expectedKey) throws Exception {
