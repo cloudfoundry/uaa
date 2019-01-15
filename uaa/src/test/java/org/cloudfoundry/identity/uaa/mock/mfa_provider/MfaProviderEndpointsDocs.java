@@ -31,6 +31,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -98,6 +99,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
 
     private FieldDescriptor[] getGoogleMfaProviderFields() {
         return (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+                fieldWithPath("config").optional(null).type(OBJECT).description("Human-readable provider description. Object with optional providerDescription and issue properties."),
                 fieldWithPath("config.providerDescription").optional(null).type(STRING).description("Human-readable provider description. Only for backend description purposes."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("Human-readable tag for display purposes on MFA devices. Defaults to name of identity zone.")
         });
