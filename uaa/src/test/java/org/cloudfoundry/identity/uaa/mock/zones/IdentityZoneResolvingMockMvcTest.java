@@ -30,13 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class IdentityZoneResolvingMockMvcTest extends InjectedMockContextTest {
 
     private Set<String> originalHostnames;
+
     @Before
-    public void storeSettings() throws Exception {
+    public void storeSettings() {
         originalHostnames = getWebApplicationContext().getBean(IdentityZoneResolvingFilter.class).getDefaultZoneHostnames();
     }
 
     @After
-    public void restoreSettings() throws Exception {
+    public void restoreSettings() {
         getWebApplicationContext().getBean(IdentityZoneResolvingFilter.class).restoreDefaultHostnames(originalHostnames);
     }
 
@@ -44,10 +45,10 @@ public class IdentityZoneResolvingMockMvcTest extends InjectedMockContextTest {
     public void testSwitchingZones() throws Exception {
         // Authenticate with new Client in new Zone
         getMockMvc().perform(
-            get("/login")
-                .header("Host", "testsomeother.ip.com")
+                get("/login")
+                        .header("Host", "testsomeother.ip.com")
         )
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -56,23 +57,22 @@ public class IdentityZoneResolvingMockMvcTest extends InjectedMockContextTest {
         getWebApplicationContext().getBean(IdentityZoneResolvingFilter.class).setDefaultInternalHostnames(hosts);
         // Authenticate with new Client in new Zone
         getMockMvc().perform(
-            get("/login")
-                .header("Host", "testsomeother.ip.com")
+                get("/login")
+                        .header("Host", "testsomeother.ip.com")
         )
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         getMockMvc().perform(
-            get("/login")
-                .header("Host", "localhost")
+                get("/login")
+                        .header("Host", "localhost")
         )
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
 
         getMockMvc().perform(
-            get("/login")
-                .header("Host", "testsomeother2.ip.com")
+                get("/login")
+                        .header("Host", "testsomeother2.ip.com")
         )
-            .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound());
     }
-
 
 
 }
