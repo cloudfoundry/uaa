@@ -38,6 +38,10 @@ public class ScimUserSelfUpdateAllowed {
             return false;
         }
 
+        if (!scimUserFromDb.getEmails().containsAll(scimUserFromRequest.getEmails())) {
+            return false;
+        }
+
         if (!scimUserFromDb.getUserName().equals(scimUserFromRequest.getUserName())) {
             return false;
         }

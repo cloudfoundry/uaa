@@ -8,21 +8,17 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.IOException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ScimUserSelfUpdateAllowedTest {
     private ScimUserSelfUpdateAllowed scimUserSelfUpdateAllowed;
@@ -71,11 +67,8 @@ class ScimUserSelfUpdateAllowedTest {
 
     @Nested
     class WithInternalUserStoreEnabled {
-        @ParameterizedTest
-        @ValueSource(strings = {"PUT", "PATCH"})
-        public void isAllowedToUpdateScimUser_WithSameValue(String method) throws IOException {
-            httpRequest.setMethod(method);
-
+        @Test
+        void isAllowedToUpdateScimUser_WithSameValue() throws IOException {
             assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
         }
 
@@ -87,11 +80,8 @@ class ScimUserSelfUpdateAllowedTest {
                 when(mockScimUserProvisioning.retrieve(scimUserID, identityZone.getId())).thenThrow(ScimResourceNotFoundException.class);
             }
 
-            @ParameterizedTest
-            @ValueSource(strings = {"PUT", "PATCH"})
-            void isAllowed(String method) throws IOException {
-                httpRequest.setMethod(method);
-
+            @Test
+            void isAllowed() throws IOException {
                 assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
             }
         }
@@ -106,11 +96,8 @@ class ScimUserSelfUpdateAllowedTest {
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isAllowedToUpdateGivenAndFamilyName(String method) throws IOException {
-                    httpRequest.setMethod(method);
-
+                @Test
+                void isAllowedToUpdateGivenAndFamilyName() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
                 }
             }
@@ -120,18 +107,29 @@ class ScimUserSelfUpdateAllowedTest {
         class WhenAttemptingToUpdateAFieldThatIsNotAllowedToBeUpdated {
 
             @Nested
-            class WhenUpdatingTheEmailField {
+            class WhenUpdatingThePrimaryEmailField {
                 @BeforeEach
                 void setup() {
                     scimUserFromRequest.setEmails(null);
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isNotAllowedToUpdateField(String method) throws IOException {
-                    httpRequest.setMethod(method);
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                }
+            }
 
+            @Nested
+            class WhenUpdatingTheEmailField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.addEmail("abc");
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
                 }
             }
@@ -144,11 +142,8 @@ class ScimUserSelfUpdateAllowedTest {
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isNotAllowedToUpdateField(String method) throws IOException {
-                    httpRequest.setMethod(method);
-
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
                 }
             }
@@ -161,11 +156,8 @@ class ScimUserSelfUpdateAllowedTest {
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isNotAllowedToUpdateField(String method) throws IOException {
-                    httpRequest.setMethod(method);
-
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
                 }
             }
@@ -178,11 +170,8 @@ class ScimUserSelfUpdateAllowedTest {
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isNotAllowedToUpdateField(String method) throws IOException {
-                    httpRequest.setMethod(method);
-
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
                 }
             }
@@ -195,11 +184,8 @@ class ScimUserSelfUpdateAllowedTest {
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 
-                @ParameterizedTest
-                @ValueSource(strings = {"PUT", "PATCH"})
-                void isNotAllowedToUpdateField(String method) throws IOException {
-                    httpRequest.setMethod(method);
-
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
                     assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
                 }
             }
