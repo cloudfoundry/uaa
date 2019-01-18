@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -47,6 +48,7 @@ import java.util.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.LEGACY_KEY_ID;
 import static org.junit.Assert.assertNull;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -81,7 +83,6 @@ public abstract class AbstractTokenMockMvcTests {
     @Autowired
     protected IdentityProviderProvisioning identityProviderProvisioning;
     @Autowired
-    @Qualifier("revocableTokenProvisioning")
     JdbcRevocableTokenProvisioning revocableTokenProvisioning;
 
     Set<String> defaultAuthorities;
@@ -182,6 +183,7 @@ public abstract class AbstractTokenMockMvcTests {
         IdentityZone zone = new IdentityZone();
         zone.getConfig().getUserConfig().setDefaultGroups(defaultUserGroups);
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
+        zone.getConfig().setSamlConfig(IdentityZone.getUaa().getConfig().getSamlConfig());
         zone.setId(UUID.randomUUID().toString());
         zone.setName(subdomain);
         zone.setSubdomain(subdomain);
