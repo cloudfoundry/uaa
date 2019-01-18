@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -30,10 +31,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
@@ -57,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
+@Transactional
 public class AuthorizeEndpointDocs {
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client").attributes(key("constraints").value("Required"), key("type").value(STRING));
     private final ParameterDescriptor scopesParameter = parameterWithName(SCOPE).description("requested scopes, space-delimited").attributes(key("constraints").value("Optional"), key("type").value(STRING));
@@ -126,6 +128,8 @@ public class AuthorizeEndpointDocs {
 
     @Test
     public void apiCodeRequest() throws Exception {
+        resetMarissaPassword(userProvisioning);
+
         String cfAccessToken = MockMvcUtils.getUserOAuthAccessToken(
                 mockMvc,
                 "cf",
@@ -331,5 +335,15 @@ public class AuthorizeEndpointDocs {
         String location = mvcResult.getResponse().getHeader("Location");
         Assert.assertThat(location, containsString("id_token="));
         Assert.assertThat(location, containsString("code="));
+    }
+
+    private static void resetMarissaPassword(ScimUserProvisioning scimUserProvisioning) {
+        ScimUser marissa = scimUserProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId()).get(0);
+
+        scimUserProvisioning.changePassword(
+                marissa.getId(),
+                null,
+                UaaTestAccounts.DEFAULT_PASSWORD,
+                IdentityZoneHolder.get().getId());
     }
 }
