@@ -67,11 +67,17 @@ class ScimUserSelfUpdateAllowedTest {
 
     @Nested
     class WithInternalUserStoreEnabled {
-        @Test
-        void isAllowedToUpdateScimUser_WithSameValue() throws IOException {
-            assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
+        private boolean disableInternalUserManagement;
+
+        @BeforeEach
+        void enableeInternalUserManagement() {
+            disableInternalUserManagement = false;
         }
 
+        @Test
+        void isAllowedToUpdateScimUser_WithSameValue() throws IOException {
+            assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+        }
 
         @Nested
         class WhenScimUserDoesNotExist {
@@ -81,8 +87,8 @@ class ScimUserSelfUpdateAllowedTest {
             }
 
             @Test
-            void isAllowed() throws IOException {
-                assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
+            void isAllowedToUpdate() throws IOException {
+                assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
             }
         }
 
@@ -97,8 +103,8 @@ class ScimUserSelfUpdateAllowedTest {
                 }
 
                 @Test
-                void isAllowedToUpdateGivenAndFamilyName() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(true));
+                void isAllowedToUpdate() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
                 }
             }
         }
@@ -116,7 +122,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -130,7 +136,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -144,7 +150,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -158,7 +164,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -172,7 +178,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -186,11 +192,141 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
                 }
             }
         }
 
     }
 
+    @Nested
+    class WithInternalUserStoreDisabled {
+        private boolean disableInternalUserManagement;
+
+        @BeforeEach
+        void disableInternalUserManagement() {
+            disableInternalUserManagement = true;
+        }
+
+        @Test
+        void isAllowedToUpdateScimUser_WithSameValue() throws IOException {
+            assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+        }
+
+        @Nested
+        class WhenScimUserDoesNotExist {
+            @BeforeEach
+            void setupNoUserInDB() {
+                when(mockScimUserProvisioning.retrieve(scimUserID, identityZone.getId())).thenThrow(ScimResourceNotFoundException.class);
+            }
+
+            @Test
+            void isAllowedToUpdate() throws IOException {
+                assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+            }
+        }
+
+        @Nested
+        class WhenAttemptingToUpdateAFieldThatIsNotAllowedToBeUpdated {
+
+            @Nested
+            class WhenUpdatingThePrimaryEmailField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setEmails(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheEmailField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.addEmail("abc");
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheUsernameField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setUserName(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheVerifiedField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setVerified(true);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheActiveField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setActive(true);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheOriginField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setOrigin("updatedOrigin");
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenChangingName {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setName(new ScimUser.Name("updatedGivenName", "updatedFamilyName"));
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isAllowedToUpdate() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+        }
+
+    }
 }

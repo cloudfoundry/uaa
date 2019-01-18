@@ -20,7 +20,7 @@ public class ScimUserSelfUpdateAllowed {
         this.scimUserProvisioning = scimUserProvisioning;
     }
 
-    public boolean isAllowed(HttpServletRequest request) throws IOException {
+    public boolean isAllowed(HttpServletRequest request, boolean disableInternalUserManagement) throws IOException {
         String requestBody = IOUtils.toString(request.getReader());
         ScimUser scimUserFromRequest = JsonUtils.readValue(requestBody, ScimUser.class);
 
@@ -58,6 +58,12 @@ public class ScimUserSelfUpdateAllowed {
             return false;
         }
 
+        if (disableInternalUserManagement) {
+            if (!scimUserFromDb.getName().equals(scimUserFromRequest.getName())) {
+                return false;
+            }
+
+        }
 
         return true;
     }
