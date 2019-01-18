@@ -45,8 +45,12 @@ class ScimUserSelfUpdateAllowedTest {
         scimUserFromRequest.setVerified(false);
         scimUserFromRequest.setActive(false);
         scimUserFromRequest.setOrigin("originalOrigin");
+        scimUserFromRequest.setSalt("salt");
+        scimUserFromRequest.setExternalId("external id");
+        scimUserFromRequest.setNickName("nickname");
+        scimUserFromRequest.setDisplayName("display name");
+        scimUserFromRequest.addPhoneNumber("display name");
         httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
-
 
         scimUserFromDB = new ScimUser();
         scimUserFromDB.setId(scimUserID);
@@ -56,7 +60,12 @@ class ScimUserSelfUpdateAllowedTest {
         scimUserFromDB.setName(scimUserNameFromDB);
         scimUserFromDB.setVerified(false);
         scimUserFromDB.setActive(false);
+        scimUserFromDB.setSalt("salt");
         scimUserFromDB.setOrigin("originalOrigin");
+        scimUserFromDB.setExternalId("external id");
+        scimUserFromDB.setNickName("nickname");
+        scimUserFromDB.setDisplayName("display name");
+        scimUserFromDB.addPhoneNumber("display name");
 
         identityZone = MultitenancyFixture.identityZone(RandomStringUtils.randomAlphabetic(5), RandomStringUtils.randomAlphabetic(5));
         IdentityZoneHolder.set(identityZone);
@@ -70,7 +79,7 @@ class ScimUserSelfUpdateAllowedTest {
         private boolean disableInternalUserManagement;
 
         @BeforeEach
-        void enableeInternalUserManagement() {
+        void enableInternalUserManagement() {
             disableInternalUserManagement = false;
         }
 
@@ -111,7 +120,6 @@ class ScimUserSelfUpdateAllowedTest {
 
         @Nested
         class WhenAttemptingToUpdateAFieldThatIsNotAllowedToBeUpdated {
-
             @Nested
             class WhenUpdatingThePrimaryEmailField {
                 @BeforeEach
@@ -155,6 +163,77 @@ class ScimUserSelfUpdateAllowedTest {
             }
 
             @Nested
+            class WhenUpdatingTheNameField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setName(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingThePhoneNumbersField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.addPhoneNumber("another phone number");
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheDisplayNameField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setDisplayName(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+
+            @Nested
+            class WhenUpdatingTheExternalIdField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setExternalId(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
+            class WhenUpdatingTheSaltField {
+                @BeforeEach
+                void setup() {
+                    scimUserFromRequest.setSalt(null);
+                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
+                }
+
+                @Test
+                void isNotAllowedToUpdateField() throws IOException {
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                }
+            }
+
+            @Nested
             class WhenUpdatingTheVerifiedField {
                 @BeforeEach
                 void setup() {
@@ -173,20 +252,6 @@ class ScimUserSelfUpdateAllowedTest {
                 @BeforeEach
                 void setup() {
                     scimUserFromRequest.setActive(true);
-                    httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
-                }
-
-                @Test
-                void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
-                }
-            }
-
-            @Nested
-            class WhenUpdatingTheOriginField {
-                @BeforeEach
-                void setup() {
-                    scimUserFromRequest.setOrigin("updatedOrigin");
                     httpRequest.setContent(JsonUtils.writeValueAsBytes(scimUserFromRequest));
                 }
 

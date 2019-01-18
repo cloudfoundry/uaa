@@ -38,6 +38,22 @@ public class ScimUserSelfUpdateAllowed {
             return false;
         }
 
+        if (!scimUserFromDb.getSalt().equals(scimUserFromRequest.getSalt())) {
+            return false;
+        }
+
+        if (!scimUserFromDb.getExternalId().equals(scimUserFromRequest.getExternalId())) {
+            return false;
+        }
+
+        if (!scimUserFromDb.getDisplayName().equals(scimUserFromRequest.getDisplayName())) {
+            return false;
+        }
+
+        if (!scimUserFromDb.getPhoneNumbers().containsAll(scimUserFromRequest.getPhoneNumbers())) {
+            return false;
+        }
+
         if (!scimUserFromDb.getEmails().containsAll(scimUserFromRequest.getEmails())) {
             return false;
         }
@@ -59,9 +75,7 @@ public class ScimUserSelfUpdateAllowed {
         }
 
         if (disableInternalUserManagement) {
-            if (!scimUserFromDb.getName().equals(scimUserFromRequest.getName())) {
-                return false;
-            }
+            return scimUserFromDb.getName().equals(scimUserFromRequest.getName());
 
         }
 
