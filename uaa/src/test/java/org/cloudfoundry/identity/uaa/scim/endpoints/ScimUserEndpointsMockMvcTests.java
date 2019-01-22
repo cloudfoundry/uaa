@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.zone.*;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -132,7 +134,7 @@ class ScimUserEndpointsMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,uaa.admin";
-        clientDetails = MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo", "bar"), Collections.singletonList("client_credentials"), authorities);
+        clientDetails = MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid", "foo", "bar"), Arrays.asList("client_credentials", "password"), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.create");
         usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
@@ -564,14 +566,16 @@ class ScimUserEndpointsMockMvcTests {
     void testUserSelfAccess_Get_and_Post() throws Exception {
         ScimUser user = getScimUser();
         user.setPassword("secret");
-        user = createUser(user, scimReadWriteToken, IdentityZone.getUaa().getSubdomain());
 
-        String selfToken = testClient.getUserOAuthAccessToken("cf", "", user.getUserName(), "secret", "");
+        ScimUser savedUser = createUser(user, scimReadWriteToken, IdentityZone.getUaa().getSubdomain());
 
-        user.setName(new ScimUser.Name("Given1", "Family1"));
-        user = updateUser(selfToken, HttpStatus.OK.value(), user);
+        String selfToken = testClient.getUserOAuthAccessToken("cf", "", savedUser.getUserName(), "secret", "");
 
-        user = getAndReturnUser(HttpStatus.OK.value(), user, selfToken);
+        savedUser.setName(new ScimUser.Name("Given1", "Family1"));
+
+        ScimUser updatedUser = updateUser(selfToken, HttpStatus.OK.value(), savedUser);
+
+        getAndReturnUser(HttpStatus.OK.value(), updatedUser, selfToken);
     }
 
     @Test
@@ -792,6 +796,139 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testUpdateUser() throws Exception {
         updateUser(scimReadWriteToken, HttpStatus.OK.value());
+    }
+
+    @Test
+    void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+        String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+        String password = "pas5Word";
+        ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
+        scimUser.addEmail(email);
+        scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+
+        String accessToken = testClient.getUserOAuthAccessToken(
+                "cf",
+                "",
+                email,
+                password,
+                "openid");
+
+        String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
+        scimUser.setEmails(null);
+        scimUser.addEmail(newEmail);
+
+        MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
+                .header("Authorization", "Bearer " + accessToken)
+                .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsBytes(scimUser));
+
+        mockMvc.perform(put).andDo(print())
+                .andExpect(status().is(403))
+                .andExpect(jsonPath("$.error", is("insufficient_scope")))
+                .andExpect(jsonPath("$.error_description", is("Insufficient scope for this resource")));
+    }
+
+    @Test
+    void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+
+        String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+        String password = "pas5Word";
+        ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
+        scimUser.addEmail(email);
+        scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+
+        String accessToken = testClient.getUserOAuthAccessToken(
+                "cf",
+                "",
+                email,
+                password,
+                "openid");
+
+        String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
+        scimUser.addEmail(newEmail);
+
+        MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
+                .header("Authorization", "Bearer " + accessToken)
+                .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsBytes(scimUser));
+        mockMvc.perform(patch)
+                .andExpect(status().is(403));
+    }
+
+    @Nested
+    @ExtendWith(SpringExtension.class)
+    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+    @ActiveProfiles("default")
+    @WebAppConfiguration
+    @ContextConfiguration(classes = TestSpringContext.class)
+    @TestPropertySource(properties = {"disableInternalUserManagement=true"})
+    class WithInternalUserStoreDisabled {
+        @Test
+        void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+            String password = "pas5Word";
+            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
+            scimUser.addEmail(email);
+            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+
+            String accessToken = testClient.getUserOAuthAccessToken(
+                    "cf",
+                    "",
+                    email,
+                    password,
+                    "openid");
+
+            String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
+            scimUser.setEmails(null);
+            scimUser.addEmail(newEmail);
+
+            MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
+                    .header("Authorization", "Bearer " + accessToken)
+                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
+
+            mockMvc.perform(put).andDo(print())
+                    .andExpect(status().is(403))
+                    .andExpect(jsonPath("$.error", is("insufficient_scope")))
+                    .andExpect(jsonPath("$.error_description", is("Insufficient scope for this resource")));
+        }
+
+        @Test
+        void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+
+            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+            String password = "pas5Word";
+            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
+            scimUser.addEmail(email);
+            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+
+            String accessToken = testClient.getUserOAuthAccessToken(
+                    "cf",
+                    "",
+                    email,
+                    password,
+                    "openid");
+
+            String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
+            scimUser.addEmail(newEmail);
+
+            MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
+                    .header("Authorization", "Bearer " + accessToken)
+                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
+            mockMvc.perform(patch)
+                    .andExpect(status().is(403));
+        }
+
     }
 
     @Test

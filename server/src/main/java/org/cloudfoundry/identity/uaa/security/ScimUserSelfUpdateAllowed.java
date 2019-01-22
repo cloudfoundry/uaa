@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.security;
 
+import com.beust.jcommander.internal.Sets;
 import org.apache.commons.io.IOUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -7,9 +8,11 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Objects;
 
 public class ScimUserSelfUpdateAllowed {
 
@@ -34,52 +37,17 @@ public class ScimUserSelfUpdateAllowed {
             return true;
         }
 
-        if (!scimUserFromDb.getPrimaryEmail().equals(scimUserFromRequest.getPrimaryEmail())) {
-            return false;
-        }
+        boolean nothingElseChanged = scimUserFromDb.getPrimaryEmail().equals(scimUserFromRequest.getPrimaryEmail()) &&
+                Objects.equals(scimUserFromDb.getSalt(), scimUserFromRequest.getSalt()) &&
+                (Objects.equals(scimUserFromDb.getExternalId(), scimUserFromRequest.getExternalId()) || scimUserFromDb.getExternalId() == null && scimUserFromRequest.getExternalId().isEmpty()) &&
+                Objects.equals(scimUserFromDb.getDisplayName(), scimUserFromRequest.getDisplayName()) &&
+                Objects.equals(scimUserFromDb.getPhoneNumbers(), scimUserFromRequest.getPhoneNumbers()) &&
+                scimUserFromDb.getEmails().containsAll(scimUserFromRequest.getEmails()) &&
+                scimUserFromDb.getUserName().equals(scimUserFromRequest.getUserName()) &&
+                scimUserFromDb.isVerified() == scimUserFromRequest.isVerified() &&
+                scimUserFromDb.isActive() == (scimUserFromRequest.isActive()) &&
+                scimUserFromDb.getOrigin().equals(scimUserFromRequest.getOrigin());
 
-        if (!scimUserFromDb.getSalt().equals(scimUserFromRequest.getSalt())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getExternalId().equals(scimUserFromRequest.getExternalId())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getDisplayName().equals(scimUserFromRequest.getDisplayName())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getPhoneNumbers().containsAll(scimUserFromRequest.getPhoneNumbers())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getEmails().containsAll(scimUserFromRequest.getEmails())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getUserName().equals(scimUserFromRequest.getUserName())) {
-            return false;
-        }
-
-        if (scimUserFromDb.isVerified() != scimUserFromRequest.isVerified()) {
-            return false;
-        }
-
-        if (scimUserFromDb.isActive() != (scimUserFromRequest.isActive())) {
-            return false;
-        }
-
-        if (!scimUserFromDb.getOrigin().equals(scimUserFromRequest.getOrigin())) {
-            return false;
-        }
-
-        if (disableInternalUserManagement) {
-            return scimUserFromDb.getName().equals(scimUserFromRequest.getName());
-
-        }
-
-        return true;
+        return nothingElseChanged && !disableInternalUserManagement && !Objects.equals(scimUserFromDb.getName(), scimUserFromRequest.getName());
     }
-
 }

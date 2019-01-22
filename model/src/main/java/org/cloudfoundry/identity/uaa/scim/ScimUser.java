@@ -22,12 +22,7 @@ import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
 import org.springframework.util.Assert;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
@@ -53,7 +48,7 @@ public class ScimUser extends ScimCore<ScimUser> {
 
         public static enum Type {
             DIRECT, INDIRECT
-        };
+        }
 
         Type type;
 
@@ -182,27 +177,27 @@ public class ScimUser extends ScimCore<ScimUser> {
             this.givenName = givenName;
         }
 
-        public String getMiddleName() {
+        String getMiddleName() {
             return middleName;
         }
 
-        public void setMiddleName(String middleName) {
+        void setMiddleName(String middleName) {
             this.middleName = middleName;
         }
 
-        public String getHonorificPrefix() {
+        String getHonorificPrefix() {
             return honorificPrefix;
         }
 
-        public void setHonorificPrefix(String honorificPrefix) {
+        void setHonorificPrefix(String honorificPrefix) {
             this.honorificPrefix = honorificPrefix;
         }
 
-        public String getHonorificSuffix() {
+        String getHonorificSuffix() {
             return honorificSuffix;
         }
 
-        public void setHonorificSuffix(String honorificSuffix) {
+        void setHonorificSuffix(String honorificSuffix) {
             this.honorificSuffix = honorificSuffix;
         }
 
@@ -294,6 +289,19 @@ public class ScimUser extends ScimCore<ScimUser> {
             this.type = type;
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PhoneNumber that = (PhoneNumber) o;
+            return Objects.equals(value, that.value) &&
+                    Objects.equals(type, that.type);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value, type);
+        }
     }
 
     private String userName;
@@ -314,7 +322,7 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private String profileUrl;
 
-    private String title;;
+    private String title;
 
     private String userType;
 
@@ -399,7 +407,7 @@ public class ScimUser extends ScimCore<ScimUser> {
     }
 
     public void setGroups(Collection<Group> groups) {
-        this.groups = new LinkedHashSet<Group>(groups);
+        this.groups = new LinkedHashSet<>(groups);
     }
 
     public List<PhoneNumber> getPhoneNumbers() {
@@ -408,8 +416,7 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
         if (phoneNumbers!=null && phoneNumbers.size()>0) {
-            ArrayList<PhoneNumber> list = new ArrayList<PhoneNumber>();
-            list.addAll(phoneNumbers);
+            ArrayList<PhoneNumber> list = new ArrayList<>(phoneNumbers);
             for (int i=(list.size()-1); i>=0; i--) {
                 PhoneNumber pn = list.get(i);
                 if (pn==null || (!hasText(pn.getValue()))) {
@@ -429,7 +436,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.displayName = displayName;
     }
 
-    public String getNickName() {
+    String getNickName() {
         return nickName;
     }
 
@@ -437,7 +444,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.nickName = nickName;
     }
 
-    public String getProfileUrl() {
+    String getProfileUrl() {
         return profileUrl;
     }
 
@@ -461,7 +468,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.userType = userType;
     }
 
-    public String getPreferredLanguage() {
+    String getPreferredLanguage() {
         return preferredLanguage;
     }
 
@@ -477,7 +484,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.locale = locale;
     }
 
-    public String getTimezone() {
+    String getTimezone() {
         return timezone;
     }
 
@@ -552,18 +559,16 @@ public class ScimUser extends ScimCore<ScimUser> {
         return lastLogonTime;
     }
 
-    public ScimUser setLastLogonTime(Long lastLogonTime) {
+    public void setLastLogonTime(Long lastLogonTime) {
         this.lastLogonTime = lastLogonTime;
-        return this;
     }
 
     public Long getPreviousLogonTime() {
         return previousLogonTime;
     }
 
-    public ScimUser setPreviousLogonTime(Long previousLogonTime) {
+    public void setPreviousLogonTime(Long previousLogonTime) {
         this.previousLogonTime = previousLogonTime;
-        return this;
     }
 
     @JsonIgnore
@@ -674,8 +679,8 @@ public class ScimUser extends ScimCore<ScimUser> {
      * Creates a word list from the user data for use in password checking
      * implementations
      */
-    public List<String> wordList() {
-        List<String> words = new ArrayList<String>();
+    List<String> wordList() {
+        List<String> words = new ArrayList<>();
 
         if (userName != null) {
             words.add(userName);
@@ -768,7 +773,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         }
 
         //Merge simple Attributes, that are stored
-        ofNullable(patch.getUserName()).ifPresent(p -> setUserName(p));
+        ofNullable(patch.getUserName()).ifPresent(this::setUserName);
 
         setActive(patch.isActive());
         setVerified(patch.isVerified());
@@ -777,24 +782,24 @@ public class ScimUser extends ScimCore<ScimUser> {
         ScimUser.Name patchName = patch.getName();
         if (patchName != null) {
             ScimUser.Name currentName = ofNullable(getName()).orElse(new Name());
-            ofNullable(patchName.getFamilyName()).ifPresent(n -> currentName.setFamilyName(n));
-            ofNullable(patchName.getGivenName()).ifPresent(n -> currentName.setGivenName(n));
-            ofNullable(patchName.getMiddleName()).ifPresent(n -> currentName.setMiddleName(n));
-            ofNullable(patchName.getFormatted()).ifPresent(n -> currentName.setFormatted(n));
-            ofNullable(patchName.getHonorificPrefix()).ifPresent(n -> currentName.setHonorificPrefix(n));
-            ofNullable(patchName.getHonorificSuffix()).ifPresent(n -> currentName.setHonorificSuffix(n));
+            ofNullable(patchName.getFamilyName()).ifPresent(currentName::setFamilyName);
+            ofNullable(patchName.getGivenName()).ifPresent(currentName::setGivenName);
+            ofNullable(patchName.getMiddleName()).ifPresent(currentName::setMiddleName);
+            ofNullable(patchName.getFormatted()).ifPresent(currentName::setFormatted);
+            ofNullable(patchName.getHonorificPrefix()).ifPresent(currentName::setHonorificPrefix);
+            ofNullable(patchName.getHonorificSuffix()).ifPresent(currentName::setHonorificSuffix);
             setName(currentName);
         }
 
         ofNullable(patch.getDisplayName()).ifPresent(
-            s -> setDisplayName(s)
+                this::setDisplayName
         );
-        ofNullable(patch.getNickName()).ifPresent(s -> setNickName(s));
-        ofNullable(patch.getTimezone()).ifPresent(s -> setTimezone(s));
-        ofNullable(patch.getTitle()).ifPresent(s -> setTitle(s));
-        ofNullable(patch.getProfileUrl()).ifPresent(s -> setProfileUrl(s));
-        ofNullable(patch.getLocale()).ifPresent(s -> setLocale(s));
-        ofNullable(patch.getPreferredLanguage()).ifPresent(s -> setPreferredLanguage(s));
+        ofNullable(patch.getNickName()).ifPresent(this::setNickName);
+        ofNullable(patch.getTimezone()).ifPresent(this::setTimezone);
+        ofNullable(patch.getTitle()).ifPresent(this::setTitle);
+        ofNullable(patch.getProfileUrl()).ifPresent(this::setProfileUrl);
+        ofNullable(patch.getLocale()).ifPresent(this::setLocale);
+        ofNullable(patch.getPreferredLanguage()).ifPresent(this::setPreferredLanguage);
 
         //Only one email stored, use Primary or first.
         if (patch.getEmails() != null && patch.getEmails().size()>0) {

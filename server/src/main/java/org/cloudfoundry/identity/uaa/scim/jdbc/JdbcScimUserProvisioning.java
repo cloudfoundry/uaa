@@ -85,8 +85,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
 
-    public static final String UPDATE_PASSWD_LASTMODIFIED_SQL = "update users set passwd_lastmodified=? where id=? and identity_zone_id=?";
-
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
@@ -135,8 +133,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public ScimUser retrieve(String id, String zoneId) {
         try {
-            ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id, zoneId);
-            return u;
+            return jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
