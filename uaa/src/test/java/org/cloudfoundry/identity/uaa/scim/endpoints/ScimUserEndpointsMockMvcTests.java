@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -42,11 +44,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -73,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -826,37 +828,96 @@ class ScimUserEndpointsMockMvcTests {
 
         mockMvc.perform(put).andDo(print())
                 .andExpect(status().is(403))
-                .andExpect(jsonPath("$.error", is("insufficient_scope")))
-                .andExpect(jsonPath("$.error_description", is("Insufficient scope for this resource")));
+                .andExpect(jsonPath("$.error", is("invalid_self_edit")))
+                .andExpect(jsonPath("$.error_description", is(
+                        "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
+                        "and in that case they may only edit the givenName and familyName.")
+                ));
     }
 
-    @Test
-    void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+    static class PatchTestParams {
+        int expectedHttpStatusCode;
+        final ScimUser scimUserToStoreInDB;
+        final ScimUser scimUserToUseInRequest;
+        String expectedJsonPath;
+        String expectedValueAtJsonPath;
+        private String testDescription;
 
-        String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+        PatchTestParams(String testDescription, ScimUser scimUserToStoreInDB, ScimUser scimUserToUseInRequest, int expectedHttpStatusCode, String expectedJsonPath, String expectedValueAtJsonPath) {
+            this.scimUserToStoreInDB = scimUserToStoreInDB;
+            this.scimUserToUseInRequest = scimUserToUseInRequest;
+            this.expectedHttpStatusCode = expectedHttpStatusCode;
+            this.testDescription = testDescription;
+            this.expectedJsonPath = expectedJsonPath;
+            this.expectedValueAtJsonPath = expectedValueAtJsonPath;
+        }
+
+        @Override
+        public String toString() {
+            return testDescription;
+        }
+    }
+
+    private static ScimUser[] makeTwoIdenticalUsers() {
+        String email = "user@" + RandomStringUtils.randomAlphabetic(5) + ".com";
+        String givenName = "givenName";
+        String familyName = "familyName";
+
+        ScimUser scimUserToStoreInDB = new ScimUser(null, email, givenName, familyName);
+        scimUserToStoreInDB.addEmail(email);
+        ScimUser scimUserToUseInRequest = new ScimUser(null, email, givenName, familyName);
+
+        return new ScimUser[]{scimUserToStoreInDB, scimUserToUseInRequest};
+    }
+
+    private static Stream<PatchTestParams> selfEditPatchTestParams() {
+        ScimUser[] userWithEmailChanged = makeTwoIdenticalUsers();
+        userWithEmailChanged[1].addEmail("user@" + RandomStringUtils.randomAlphabetic(5) + ".com");
+
+        ScimUser[] userWithNameChanged = makeTwoIdenticalUsers();
+        userWithNameChanged[1].setName(new ScimUser.Name("newGivenName", "newFamilyName"));
+
+        ScimUser[] userWithPhoneNumberValueDeleted = makeTwoIdenticalUsers();
+        userWithPhoneNumberValueDeleted[0].addPhoneNumber("initial phone number");
+        ScimMeta meta = new ScimMeta();
+        meta.setAttributes(new String[]{"phonenumbers"});
+        userWithPhoneNumberValueDeleted[1].setMeta(meta);
+
+        return Stream.of(
+                new PatchTestParams("should fail when email is changed",
+                        userWithEmailChanged[0], userWithEmailChanged[1],
+                        403, "$.error", "invalid_self_edit"),
+                new PatchTestParams("should pass when familyName and givenName are changed",
+                        userWithNameChanged[0], userWithNameChanged[1],
+                        200, "$.name.givenName", "newGivenName"),
+                new PatchTestParams("should be unauthorized when the request tries to delete a field",
+                        userWithPhoneNumberValueDeleted[0], userWithPhoneNumberValueDeleted[1],
+                        403, "$.error", "invalid_self_edit")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpointsMockMvcTests#selfEditPatchTestParams")
+    void patch_selfUpdate_WithAccessToken_SeveralWays(PatchTestParams params) throws Exception {
         String password = "pas5Word";
-        ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
-        scimUser.addEmail(email);
-        scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+        ScimUser storedScimUser = usersRepository.createUser(params.scimUserToStoreInDB, password, IdentityZoneHolder.get().getId());
 
         String accessToken = testClient.getUserOAuthAccessToken(
                 "cf",
                 "",
-                email,
+                storedScimUser.getPrimaryEmail(),
                 password,
                 "openid");
 
-        String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
-        scimUser.addEmail(newEmail);
-
-        MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
+        MockHttpServletRequestBuilder patch = patch("/Users/" + storedScimUser.getId())
                 .header("Authorization", "Bearer " + accessToken)
-                .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                .header("If-Match", "\"" + storedScimUser.getVersion() + "\"")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsBytes(scimUser));
+                .content(JsonUtils.writeValueAsBytes(params.scimUserToUseInRequest));
         mockMvc.perform(patch)
-                .andExpect(status().is(403));
+                .andExpect(status().is(params.expectedHttpStatusCode))
+                .andExpect(jsonPath(params.expectedJsonPath).value(params.expectedValueAtJsonPath));
     }
 
     @Nested
@@ -896,13 +957,15 @@ class ScimUserEndpointsMockMvcTests {
 
             mockMvc.perform(put).andDo(print())
                     .andExpect(status().is(403))
-                    .andExpect(jsonPath("$.error", is("insufficient_scope")))
-                    .andExpect(jsonPath("$.error_description", is("Insufficient scope for this resource")));
+                    .andExpect(jsonPath("$.error", is("invalid_self_edit")))
+                    .andExpect(jsonPath("$.error_description", is(
+                            "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
+                            "and in that case they may only edit the givenName and familyName.")
+                    ));
         }
 
         @Test
         void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-
             String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");

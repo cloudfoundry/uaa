@@ -94,7 +94,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void shouldNotBeAllowed() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -107,7 +107,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void shouldNotBeAllowed() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -120,7 +120,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void shouldNotBeAllowed() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -133,7 +133,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void shouldNotBeAllowed() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
         }
@@ -147,7 +147,7 @@ class ScimUserSelfUpdateAllowedTest {
 
             @Test
             void isAllowedToUpdate() throws IOException {
-                assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+                assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(true));
             }
         }
 
@@ -163,7 +163,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isAllowedToUpdate() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(true));
                 }
             }
 
@@ -176,7 +176,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void shouldBeAllowed() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(true));
                 }
             }
         }
@@ -193,7 +193,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -207,7 +207,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -221,7 +221,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -235,7 +235,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -249,7 +249,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -263,7 +263,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -277,7 +277,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -291,7 +291,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -305,7 +305,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
         }
@@ -330,7 +330,7 @@ class ScimUserSelfUpdateAllowedTest {
 
             @Test
             void isAllowedToUpdate() throws IOException {
-                assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(true));
+                assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(true));
             }
         }
 
@@ -347,7 +347,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -361,7 +361,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -375,7 +375,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -389,7 +389,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -403,7 +403,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -417,7 +417,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isNotAllowedToUpdateField() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
 
@@ -431,7 +431,7 @@ class ScimUserSelfUpdateAllowedTest {
 
                 @Test
                 void isAllowedToUpdate() throws IOException {
-                    assertThat(scimUserSelfUpdateAllowed.isAllowed(httpRequest, disableInternalUserManagement), is(false));
+                    assertThat(scimUserSelfUpdateAllowed.isAllowed(scimUserID, scimUserFromRequest, disableInternalUserManagement), is(false));
                 }
             }
         }

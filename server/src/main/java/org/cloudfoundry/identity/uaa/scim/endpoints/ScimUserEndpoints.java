@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -34,6 +35,8 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
+import org.cloudfoundry.identity.uaa.security.ScimUserSelfUpdateAllowed;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -58,30 +61,14 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -144,6 +131,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private ApplicationEventPublisher publisher;
 
     private int userMaxCount;
+
+    private IsSelfCheck isSelfCheck;
 
     public void checkIsEditAllowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
@@ -255,6 +244,17 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                                HttpServletRequest request,
                     HttpServletResponse httpServletResponse) {
+
+        boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
+        boolean userManagementDisabled = isUserManagementDisabled(request);
+
+        if (isSelfEdit) {
+            boolean selfUpdateAllowed = new ScimUserSelfUpdateAllowed(scimUserProvisioning).isAllowed(userId, user, userManagementDisabled);
+            if (!selfUpdateAllowed) {
+                throw new InvalidSelfEditException();
+            }
+        }
+
         checkIsEditAllowed(user.getOrigin(), request);
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
@@ -515,11 +515,18 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleException(UaaException e) {
+        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
+    }
+
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
         if (t instanceof InternalUserManagementDisabledException) {
             throw (InternalUserManagementDisabledException)t;
         }
+
         logger.error("Unhandled exception in SCIM user endpoints.",t);
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException) {
@@ -618,5 +625,27 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         this.userMaxCount = userMaxCount;
+    }
+
+    public IsSelfCheck getIsSelfCheck() {
+        return isSelfCheck;
+    }
+
+    public void setIsSelfCheck(IsSelfCheck isSelfCheck) {
+        this.isSelfCheck = isSelfCheck;
+    }
+
+    private boolean isUserManagementDisabled(HttpServletRequest request) {
+        return (boolean) request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
+    }
+
+    private class InvalidSelfEditException extends UaaException {
+        InvalidSelfEditException() {
+            super("invalid_self_edit",
+                    "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
+                            "and in that case they may only edit the givenName and familyName.",
+                    403
+            );
+        }
     }
 }

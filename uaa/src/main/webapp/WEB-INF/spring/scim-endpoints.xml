@@ -138,6 +138,7 @@
     </util:map>
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
+        <property name="isSelfCheck" ref="self" />
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
         <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
@@ -232,8 +233,8 @@
         <intercept-url pattern="/Users/*/mfa" access="#oauth2.hasAnyScope('uaa.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="GET" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1) and @selfUpdateAllowed.isAllowed(request, #{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}))" method="PUT" /> <!-- add self logic -->
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1) and @selfUpdateAllowed.isAllowed(request, #{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}))" method="PATCH" />
+        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PUT" /> <!-- add self logic -->
+        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PATCH" />
         <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="denyAll" />
         <expression-handler ref="oauthWebExpressionHandler" />
