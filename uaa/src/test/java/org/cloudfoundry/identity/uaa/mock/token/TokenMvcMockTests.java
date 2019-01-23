@@ -1303,36 +1303,46 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    void test_Oauth_Authorize_API_Endpoint() throws Exception {
+    void test_OAuth_Authorize_API_Endpoint() throws Exception {
+        String subdomain = "testzone" + generator.generate().toLowerCase();
+        IdentityZone testZone = setupIdentityZone(subdomain, new ArrayList<>(defaultAuthorities));
+        IdentityZoneHolder.set(testZone);
+
+        setupIdentityProvider();
+
         String clientId = "testclient" + generator.generate();
         String scopes = "openid,uaa.user,scim.me";
-        setUpClients(clientId, "", scopes, "authorization_code,refresh_token", true);
+        setUpClients(clientId, "", scopes, "authorization_code,password,refresh_token", true);
+
         String username = "testuser" + generator.generate();
         String userScopes = "";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        String cfAccessToken = getUserOAuthAccessToken(
+        String uaaUserAccessToken = getUserOAuthAccessToken(
                 mockMvc,
-                "cf",
-                "",
+                clientId,
+                SECRET,
                 username,
                 SECRET,
-                ""
+                "",
+                testZone
         );
 
         String state = generator.generate();
 
         MockHttpServletRequestBuilder oauthAuthorizeGet = get("/oauth/authorize")
-                .header("Authorization", "Bearer " + cfAccessToken)
+                .header("Authorization", "Bearer " + uaaUserAccessToken)
+                .header("Host", subdomain + ".localhost")
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId);
-
         MvcResult result = mockMvc.perform(oauthAuthorizeGet).andExpect(status().is3xxRedirection()).andReturn();
+
         String location = result.getResponse().getHeader("Location");
         assertNotNull("Location must be present", location);
         assertThat("Location must have a code parameter.", location, containsString("code="));
+
         URL url = new URL(location);
         Map query = splitQuery(url);
         assertNotNull(query.get("code"));
@@ -1341,12 +1351,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = mockMvc.perform(post("/oauth/token")
                 .with(httpBasic(clientId, SECRET))
+                .header("Host", subdomain + ".localhost")
                 .accept(APPLICATION_JSON)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("code", code))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
+
+        // zone context needs to be set again because MVC calls mutate it
+        IdentityZoneHolder.set(testZone);
 
         assertNotNull("Token body must not be null.", body);
         assertThat(body, stringContainsInOrder(Arrays.asList(ACCESS_TOKEN, REFRESH_TOKEN)));
@@ -2444,12 +2458,19 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void test_Token_Expiry_Time() throws Exception {
+        String subdomain = "testzone" + generator.generate();
+        IdentityZone testZone = setupIdentityZone(subdomain, new ArrayList<>(defaultAuthorities));
+        IdentityZoneHolder.set(testZone);
+        setupIdentityProvider();
+
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, null, null, 60 * 60 * 24 * 3650);
+
         String userId = "testuser" + generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
         Set<String> allUserScopes = new HashSet<>();
         allUserScopes.addAll(defaultAuthorities);
         allUserScopes.addAll(StringUtils.commaDelimitedListToSet(userScopes));
@@ -2457,8 +2478,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String token = validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "",
-                allUserScopes.toArray(new String[0])
+                new ArrayList<>(allUserScopes)
         );
 
         if (token.length() <= 36) {
@@ -2506,12 +2528,19 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void testWildcardPasswordGrant() throws Exception {
+        String subdomain = "testzone" + generator.generate();
+        IdentityZone testZone = setupIdentityZone(subdomain, new ArrayList<>(defaultAuthorities));
+        IdentityZoneHolder.set(testZone);
+        setupIdentityProvider();
+
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
         String userId = "testuser" + generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
         Set<String> allUserScopes = new HashSet<>();
         allUserScopes.addAll(defaultAuthorities);
         allUserScopes.addAll(StringUtils.commaDelimitedListToSet(userScopes));
@@ -2519,42 +2548,44 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "",
-                allUserScopes.toArray(new String[0])
+                new ArrayList<>(allUserScopes)
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "space.*.developer",
-                "space.1.developer",
-                "space.2.developer"
+                Arrays.asList("space.1.developer", "space.2.developer")
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "space.2.developer",
-                "space.2.developer"
+                Arrays.asList("space.2.developer")
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "org.123*.admin",
-                "org.12345.admin"
+                Arrays.asList("org.12345.admin")
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "org.123*.admin,space.1.developer",
-                "org.12345.admin",
-                "space.1.developer"
+                Arrays.asList("org.12345.admin", "space.1.developer")
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "org.123*.admin,space.*.developer",
-                "org.12345.admin",
-                "space.1.developer",
-                "space.2.developer"
+                Arrays.asList("org.12345.admin", "space.1.developer", "space.2.developer")
         );
         Set<String> set1 = new HashSet<>(defaultAuthorities);
         set1.addAll(Arrays.asList("org.12345.admin",
@@ -2571,19 +2602,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "org.123*.admin,space.*.developer,*.*",
-                set1.toArray(new String[0])
+                new ArrayList<>(set1)
         );
         validatePasswordGrantToken(
                 clientId,
                 userId,
+                subdomain,
                 "org.123*.admin,space.*.developer,scope.*",
-                "org.12345.admin",
-                "space.1.developer",
-                "space.2.developer",
-                "scope.one",
-                "scope.two",
-                "scope.three"
+                Arrays.asList("org.12345.admin", "space.1.developer", "space.2.developer", "scope.one", "scope.two", "scope.three")
         );
 
 
@@ -3543,27 +3571,36 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void testGetTokenScopesNotInAuthentication() throws Exception {
+        String subdomain = "testzone" + generator.generate().toLowerCase();
+        IdentityZone testZone = setupIdentityZone(subdomain, new ArrayList<>(defaultAuthorities));
+        IdentityZoneHolder.set(testZone);
+
+        setupIdentityProvider();
+
+        String clientId = "testclient" + generator.generate();
+        String scopes = "zones.*.admin,openid,cloud_controller.read,cloud_controller.write";
+        setUpClients(clientId, "", scopes, "authorization_code,password,refresh_token", true, "http://localhost/test");
 
         ScimUser user = setUpUser(generator.generate() + "@test.org");
 
-        String zoneadmingroup = "zones." + generator.generate() + ".admin";
-        ScimGroup group = new ScimGroup(null, zoneadmingroup, IdentityZone.getUaa().getId());
+        String zoneAdminGroup = "zones." + generator.generate() + ".admin";
+        ScimGroup group = new ScimGroup(null, zoneAdminGroup, IdentityZone.getUaa().getId());
         group = groupProvisioning.create(group, IdentityZoneHolder.get().getId());
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
         MockHttpSession session = getAuthenticatedSession(user);
 
-
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .header("Host", subdomain + ".localhost")
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
 
         MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
@@ -3572,23 +3609,24 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String code = builder.build().getQueryParams().get("code").get(0);
 
         authRequest = post("/oauth/token")
-                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
+                .with(httpBasic(clientId, SECRET))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .header("Host", subdomain + ".localhost")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
-                .param(OAuth2Utils.CLIENT_ID, "identity")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
-        result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
+        result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
 
-        OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);
+        IdentityZoneHolder.set(testZone);
+        OAuth2Authentication authContext = tokenServices.loadAuthentication(oauthToken.accessToken);
 
-        assertEquals(4, a1.getOAuth2Request().getScope().size());
+        assertEquals(4, authContext.getOAuth2Request().getScope().size());
         assertThat(
-                a1.getOAuth2Request().getScope(),
-                containsInAnyOrder(zoneadmingroup, "openid", "cloud_controller.read", "cloud_controller.write")
+                authContext.getOAuth2Request().getScope(),
+                containsInAnyOrder(zoneAdminGroup, "openid", "cloud_controller.read", "cloud_controller.write")
         );
-
     }
 
     @Test
@@ -3946,15 +3984,27 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertThat(url, containsString(TEST_REDIRECT_URI + "/subpath"));
     }
 
-    private String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
-        String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
-        OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
-        assertEquals(expectedScopes.length, a1.getOAuth2Request().getScope().size());
-        assertThat(
-                a1.getOAuth2Request().getScope(),
-                containsInAnyOrder(expectedScopes)
-        );
-        return t1;
+    private String validatePasswordGrantToken(String clientId, String username, String requestedScopes, List<String> expectedScopes) throws Exception {
+        return validatePasswordGrantToken(clientId, username, null, requestedScopes, expectedScopes);
+    }
+
+    private String validatePasswordGrantToken(String clientId, String username, String zoneSubdomain, String requestedScopes, List<String> expectedScopes) throws Exception {
+        String pwdToken;
+        if (zoneSubdomain == null) {
+            pwdToken = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
+        } else {
+            pwdToken = testClient.getUserOAuthAccessTokenForZone(clientId, SECRET, username, SECRET, requestedScopes, zoneSubdomain);
+            IdentityZoneHolder.set(identityZoneProvisioning.retrieveBySubdomain(zoneSubdomain));
+        }
+
+        OAuth2Authentication authContext = tokenServices.loadAuthentication(pwdToken);
+
+        Set<String> grantedScopes = authContext.getOAuth2Request().getScope();
+        assertEquals(expectedScopes.size(), grantedScopes.size());
+        assertEquals(grantedScopes, new HashSet<>(expectedScopes));
+        IdentityZoneHolder.clear();
+
+        return pwdToken;
     }
 
     private MockHttpSession getAuthenticatedSession(ScimUser user) {
