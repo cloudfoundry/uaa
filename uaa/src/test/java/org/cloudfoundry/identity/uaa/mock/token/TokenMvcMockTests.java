@@ -124,6 +124,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     void setup() {
         webApplicationContext.getEnvironment();
         allowQueryString = webApplicationContext.getBean(UaaTokenEndpoint.class).isAllowQueryString();
+        IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
     }
 
     @AfterEach
