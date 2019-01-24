@@ -3594,11 +3594,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .with(httpBasic(clientId, SECRET))
-                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .header("Host", subdomain + ".localhost")
                 .session(session)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -3615,7 +3612,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Host", subdomain + ".localhost")
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
         result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);

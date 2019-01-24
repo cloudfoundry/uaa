@@ -138,7 +138,7 @@ war {
   rootSpec.exclude("**/spring-security-oauth-*.jar")
 }
 
-
+  
 
 publishing {
   publications {
