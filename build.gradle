@@ -98,6 +98,11 @@ subprojects {
         afterTest { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
         }
+
+        testLogging {
+            events 'skipped', 'failed', 'passed'
+            exceptionFormat 'full'
+        }
     }
 
     task integrationTest(type: Test) {
