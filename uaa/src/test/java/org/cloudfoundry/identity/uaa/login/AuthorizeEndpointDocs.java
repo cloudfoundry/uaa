@@ -7,14 +7,13 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
@@ -56,6 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
@@ -78,28 +78,20 @@ public class AuthorizeEndpointDocs {
     @Autowired
     private FilterChainProxy springSecurityFilterChain;
 
-    private ManualRestDocumentation restDocumentation = new ManualRestDocumentation("build/generated-snippets");
-
     @BeforeEach
-    public void setUp(TestInfo testInfo) throws Exception {
+    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
-        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getTestMethod().get().getName());
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(restDocumentation)
+                .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)
                         .and()
                         .snippets()
                         .withTemplateFormat(markdown()))
                 .build();
-    }
-
-    @AfterEach
-    public void teardownRestDocumentationContext() {
-        restDocumentation.afterTest();
     }
 
     @Test

@@ -2,12 +2,11 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.restdocs.ManualRestDocumentation;
@@ -39,6 +38,7 @@ import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
@@ -51,24 +51,17 @@ class CheckTokenEndpointDocs {
     private FilterChainProxy springSecurityFilterChain;
 
     private MockMvc mockMvc;
-    private ManualRestDocumentation restDocumentation = new ManualRestDocumentation("build/generated-snippets");
 
     @BeforeEach
-    public void setUp(TestInfo testInfo) throws Exception {
-        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getTestMethod().get().getName());
+    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(restDocumentation)
+                .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)
                         .and()
                         .snippets()
                         .withTemplateFormat(markdown()))
                 .build();
-    }
-
-    @AfterEach
-    public void teardownRestDocumentationContext() {
-        restDocumentation.afterTest();
     }
 
     @Test

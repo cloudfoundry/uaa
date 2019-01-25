@@ -16,13 +16,12 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
@@ -45,31 +44,22 @@ import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ExtendWith(JUnitRestDocumentationExtension.class)
 class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
     @Autowired
     FilterChainProxy springSecurityFilterChain;
 
-    private ManualRestDocumentation restDocumentation = new ManualRestDocumentation();
-
     @BeforeEach
-    void setUpContext(TestInfo testInfo) {
-        restDocumentation.beforeTest(testInfo.getTestClass().get(),
-                testInfo.getTestMethod().get().getName());
-
+    void setUpContext(ManualRestDocumentation manualRestDocumentation) {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(restDocumentation)
+                .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)
                         .and()
                         .snippets()
                         .withTemplateFormat(markdown()))
                 .build();
         testClient = new TestClient(mockMvc);
-    }
-
-    @AfterEach
-    void teardownRestDocumentationContext() {
-        restDocumentation.afterTest();
     }
 
     @Test
