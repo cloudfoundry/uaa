@@ -102,8 +102,15 @@ task customizeSlate(type: Copy) {
   into 'build/slate'
 }
 task docsTestRestDocs(type: Test) {
+  useJUnitPlatform()
+
   include '**/DefaultDocsTestSuite.class'
+  include '**/AuthorizeEndpointDocs.class'
+  include '**/CheckTokenEndpointDocs.class'
+  include '**/TokenEndpointDocs.class'
+  include '**/JwtBearerGrantDocs.class'
 }
+
 task(bundleInstall, type: Exec) {
   dependsOn 'customizeSlate'
   workingDir file('build/slate')

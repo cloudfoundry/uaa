@@ -54,7 +54,7 @@ class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
     @BeforeEach
     void setUpContext(TestInfo testInfo) {
         restDocumentation.beforeTest(testInfo.getTestClass().get(),
-                testInfo.getDisplayName());
+                testInfo.getTestMethod().get().getName());
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)

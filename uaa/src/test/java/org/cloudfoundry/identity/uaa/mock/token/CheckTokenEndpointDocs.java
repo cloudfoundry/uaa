@@ -55,7 +55,7 @@ class CheckTokenEndpointDocs {
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {
-        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getDisplayName());
+        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getTestMethod().get().getName());
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .apply(documentationConfiguration(restDocumentation)

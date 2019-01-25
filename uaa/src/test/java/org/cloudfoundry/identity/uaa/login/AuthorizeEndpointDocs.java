@@ -86,7 +86,7 @@ public class AuthorizeEndpointDocs {
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
-        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getDisplayName());
+        restDocumentation.beforeTest(testInfo.getTestClass().get(), testInfo.getTestMethod().get().getName());
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .apply(documentationConfiguration(restDocumentation)
