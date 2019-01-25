@@ -1,25 +1,33 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
-import org.cloudfoundry.identity.uaa.zone.Consent;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,29 +37,31 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
+import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class IdentityZoneEndpointDocs {
+    @Autowired
+    WebApplicationContext webApplicationContext;
+
+    MockMvc mockMvc;
+    TestClient testClient;
 
     private static final String ID_DESC = "Unique ID of the identity zone";
     private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
@@ -165,10 +175,19 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
 
-    @Before
-    public void setUp() throws Exception {
-        Map<String, SystemDeletable> deleteMe = getWebApplicationContext().getBeansOfType(SystemDeletable.class);
-        getWebApplicationContext().getBean(JdbcIdentityZoneProvisioning.class)
+    @BeforeEach
+    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .apply(documentationConfiguration(manualRestDocumentation)
+                        .uris().withPort(80).and()
+                        .snippets()
+                        .withTemplateFormat(markdown()))
+                .build();
+        testClient = new TestClient(mockMvc);
+        Map<String, SystemDeletable> deleteMe = webApplicationContext.getBeansOfType(SystemDeletable.class);
+        webApplicationContext.getBean(JdbcIdentityZoneProvisioning.class)
             .retrieveAll()
             .stream()
             .filter(zone -> !IdentityZone.getUaa().getId().equals(zone.getId()))
@@ -309,7 +328,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("last_modified").ignored()
         };
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)
@@ -336,7 +355,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "identitysecret",
             "zones.read");
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientReadToken))
             .andExpect(status().is(HttpStatus.OK.value()))
@@ -471,7 +490,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].last_modified").ignored()
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientReadToken))
             .andExpect(status().is(HttpStatus.OK.value()))
@@ -614,7 +633,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("last_modified").ignored()
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             put("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)
@@ -646,7 +665,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "identitysecret",
             "zones.write");
 
-        getMockMvc().perform(
+        mockMvc.perform(
             delete("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON))
@@ -693,7 +712,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.setConfig(brandingConfig);
 
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)

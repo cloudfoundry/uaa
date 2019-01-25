@@ -112,6 +112,7 @@ task docsTestRestDocs(type: Test) {
   include '**/ClientAdminEndpointsDocs.class'
   include '**/ClientMetadataAdminEndpointsDocs.class'
   include '**/IdentityProviderEndpointsDocs.class'
+  include '**/IdentityZoneEndpointDocs.class'
 }
 
 task(bundleInstall, type: Exec) {
