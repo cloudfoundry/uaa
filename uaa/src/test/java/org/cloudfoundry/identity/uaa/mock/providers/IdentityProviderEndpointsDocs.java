@@ -14,38 +14,26 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
-import org.cloudfoundry.identity.uaa.test.SnippetUtils;
+import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
@@ -53,7 +41,15 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URL;
 import java.util.Arrays;
@@ -61,20 +57,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
@@ -82,28 +70,33 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class IdentityProviderEndpointsDocs {
+    @Autowired
+    WebApplicationContext webApplicationContext;
+
+    MockMvc mockMvc;
+    TestClient testClient;
+
     private static final String NAME_DESC = "Human-readable name for this provider";
     private static final String VERSION_DESC = "Version of the identity provider data. Clients can use this to protect against conflicting updates";
     private static final String ACTIVE_DESC = "Defaults to true.";
@@ -179,13 +172,13 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     private static ApacheDsSSLContainer apacheDS;
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         apacheDS.stop();
         Thread.sleep(1500);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void startApacheDS() throws Exception {
         apacheDS = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
     }
@@ -379,19 +372,28 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         EXTERNAL_GROUPS_WHITELIST
     });
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .apply(documentationConfiguration(manualRestDocumentation)
+                        .uris().withPort(80).and()
+                        .snippets()
+                        .withTemplateFormat(markdown()))
+                .build();
+        testClient = new TestClient(mockMvc);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
             "");
 
-        identityProviderProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
+        identityProviderProvisioning = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class);
     }
 
-    @After
+    @AfterEach
     public void clearUaaConfig() throws Exception {
-        getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE identity_provider SET config=null WHERE origin_key='uaa'");
+        webApplicationContext.getBean(JdbcTemplate.class).update("UPDATE identity_provider SET config=null WHERE origin_key='uaa'");
     }
 
     @Test
@@ -431,7 +433,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.zoneId").type(STRING).description("This will be set to the ID of the zone where the provider is being created")
         }));
 
-        ResultActions resultActionsMetadata = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActionsMetadata = mockMvc.perform(post("/identity-providers")
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -460,7 +462,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setOriginKey(identityProvider.getOriginKey() + "MetadataUrl");
 
-        ResultActions resultActionsUrl = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActionsUrl = mockMvc.perform(post("/identity-providers")
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -527,7 +529,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
         }));
 
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActions = mockMvc.perform(post("/identity-providers")
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -606,7 +608,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             LAST_MODIFIED,
         }));
 
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActions = mockMvc.perform(post("/identity-providers")
                                                                .param("rawConfig", "true")
                                                                .header("Authorization", "Bearer " + adminToken)
                                                                .contentType(APPLICATION_JSON)
@@ -728,8 +730,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
         IdentityZoneCreationResult zone =
             MockMvcUtils.createOtherIdentityZoneAndReturnResult(new RandomValueStringGenerator(8).generate().toLowerCase(),
-                                                                getMockMvc(),
-                                                                getWebApplicationContext(),
+                                                                mockMvc,
+                                                                webApplicationContext,
                                                                 admin);
 
 
@@ -744,7 +746,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             LAST_MODIFIED
         }));
 
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+        ResultActions resultActions = mockMvc.perform(post("/identity-providers")
             .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getIdentityZone().getSubdomain())
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + zone.getZoneAdminToken())
@@ -765,7 +767,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                                      responseFields
         ));
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/login.do")
                 .header("Host", zone.getIdentityZone().getSubdomain()+".localhost")
                 .with(cookieCsrf())
@@ -797,7 +799,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("[].last_modified").description(LAST_MODIFIED_DESC)
         );
 
-        getMockMvc().perform(get("/identity-providers")
+        mockMvc.perform(get("/identity-providers")
             .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
@@ -815,14 +817,14 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @Test
     public void getIdentityProvider() throws Exception {
-        IdentityProvider identityProvider = JsonUtils.readValue(getMockMvc().perform(post("/identity-providers")
+        IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(getSamlProvider("saml-for-get"))))
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString(), IdentityProvider.class);
 
-        getMockMvc().perform(get("/identity-providers/{id}", identityProvider.getId())
+        mockMvc.perform(get("/identity-providers/{id}", identityProvider.getId())
             .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
@@ -881,7 +883,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             LAST_MODIFIED,
         }));
 
-        getMockMvc().perform(put("/identity-providers/{id}", identityProvider.getId())
+        mockMvc.perform(put("/identity-providers/{id}", identityProvider.getId())
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -917,7 +919,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet requestFields = requestFields(idempotentFields);
         Snippet responseFields = responseFields(idempotentFields);
 
-        getMockMvc().perform(patch("/identity-providers/{id}/status", identityProvider.getId())
+        mockMvc.perform(patch("/identity-providers/{id}/status", identityProvider.getId())
                     .header("Authorization", "Bearer " + adminToken)
                     .contentType(APPLICATION_JSON)
                     .content(serializeExcludingProperties(identityProviderStatus)))
@@ -942,7 +944,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @Test
     public void deleteIdentityProvider() throws Exception {
-        IdentityProvider identityProvider = JsonUtils.readValue(getMockMvc().perform(post("/identity-providers")
+        IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(getSamlProvider("saml-for-delete"))))
@@ -967,7 +969,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     }
 
     private ResultActions deleteIdentityProviderHelper(String id) throws Exception {
-        return getMockMvc().perform(delete("/identity-providers/{id}", id)
+        return mockMvc.perform(delete("/identity-providers/{id}", id)
             .param("rawConfig", "false")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
