@@ -42,8 +42,8 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
@@ -90,7 +90,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one and if the change mode is set to `"+DELETE+"`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
@@ -131,7 +131,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     public void listClients() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
-        ResultActions resultActions = getMockMvc().perform(get("/oauth/clients")
+        ResultActions resultActions = mockMvc.perform(get("/oauth/clients")
             .header("Authorization", "Bearer " + clientAdminToken)
             .param("filter", String.format("client_id eq \"%s\"", createdClientDetails.getClientId()))
             .param("sortBy", "client_id")
@@ -176,7 +176,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     public void retrieveClient() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
-        ResultActions resultActions = getMockMvc().perform(get("/oauth/clients/{client_id}", createdClientDetails.getClientId())
+        ResultActions resultActions = mockMvc.perform(get("/oauth/clients/{client_id}", createdClientDetails.getClientId())
                 .header("Authorization", "Bearer " + clientAdminToken)
                 .accept(APPLICATION_JSON)
         );
@@ -210,7 +210,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         updatedClientDetails.setAuthorizedGrantTypes(createdClientDetails.getAuthorizedGrantTypes());
         updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 
-        ResultActions resultActions = getMockMvc().perform(put("/oauth/clients/{client_id}", createdClientDetails.getClientId())
+        ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
@@ -244,7 +244,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     public void changeClientSecret() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
-        ResultActions resultActions = getMockMvc().perform(put("/oauth/clients/{client_id}/secret", createdClientDetails.getClientId())
+        ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/secret", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
@@ -272,7 +272,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     public void deleteClient() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
-        ResultActions resultActions = getMockMvc().perform(delete("/oauth/clients/{client_id}", createdClientDetails.getClientId())
+        ResultActions resultActions = mockMvc.perform(delete("/oauth/clients/{client_id}", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
             .accept(APPLICATION_JSON));
 
@@ -301,7 +301,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         BaseClientDetails createdClientDetails1 = createBasicClientWithAdditionalInformation(scopes);
         BaseClientDetails createdClientDetails2 = createBasicClientWithAdditionalInformation(scopes);
 
-        ResultActions createResultActions = getMockMvc().perform(post("/oauth/clients/tx")
+        ResultActions createResultActions = mockMvc.perform(post("/oauth/clients/tx")
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(Arrays.asList(createdClientDetails1, createdClientDetails2)))
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -343,7 +343,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         createdClientDetails1.setRegisteredRedirectUri(Collections.singleton("http://updated.redirect.uri/"));
         createdClientDetails2.getAuthorities().add(new SimpleGrantedAuthority("new.authority"));
 
-        ResultActions updateResultActions = getMockMvc().perform(put("/oauth/clients/tx")
+        ResultActions updateResultActions = mockMvc.perform(put("/oauth/clients/tx")
             .contentType(APPLICATION_JSON)
             .content("[" + serializeExcludingProperties(createdClientDetails1, "client_secret", "lastModified") + "," + serializeExcludingProperties(createdClientDetails2, "client_secret", "lastModified") + "]")
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -375,7 +375,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         );
 
         String content = JsonUtils.writeValueAsString(new Object[]{client1SecretChange, client2SecretChange});
-        ResultActions secretResultActions = getMockMvc().perform(post("/oauth/clients/tx/secret")
+        ResultActions secretResultActions = mockMvc.perform(post("/oauth/clients/tx/secret")
             .contentType(APPLICATION_JSON)
             .content(content)
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -417,7 +417,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
         ClientDetailsModification modify3 = new ClientDetailsModification(createdClientDetails3);
         modify3.setAction(ClientDetailsModification.ADD);
 
-        ResultActions modifyResultActions = getMockMvc().perform(post("/oauth/clients/tx/modify")
+        ResultActions modifyResultActions = mockMvc.perform(post("/oauth/clients/tx/modify")
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(new Object[]{modify1, modify2, modify3}))
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -439,7 +439,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
 
         //DELETE
 
-        ResultActions deleteResultActions = getMockMvc().perform(post("/oauth/clients/tx/delete")
+        ResultActions deleteResultActions = mockMvc.perform(post("/oauth/clients/tx/delete")
             .contentType(APPLICATION_JSON)
             .content("[{\"client_id\":\"" + createdClientDetails1.getClientId() + "\"},{\"client_id\":\"" + createdClientDetails3.getClientId() + "\"}]")
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -465,7 +465,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     private ResultActions createClientHelper() throws Exception {
-        return getMockMvc().perform(post("/oauth/clients")
+        return mockMvc.perform(post("/oauth/clients")
             .header("Authorization", "Bearer " + clientAdminToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)

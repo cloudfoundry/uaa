@@ -9,8 +9,8 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -60,10 +60,10 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
     fieldWithPath("createdBy").description(RESOURCE_OWNER_GUID).type(JsonFieldType.STRING).optional()
   );
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     testAccounts = UaaTestAccounts.standard(null);
-    clients = getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class);
+    clients = webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class);
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(
       testAccounts.getAdminClientId(),
       testAccounts.getAdminClientSecret(),
@@ -73,8 +73,8 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
 
     HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-    ScimUserEndpoints scimUserEndpoints = getWebApplicationContext().getBean(ScimUserEndpoints.class);
-    ScimGroupEndpoints scimGroupEndpoints = getWebApplicationContext().getBean(ScimGroupEndpoints.class);
+    ScimUserEndpoints scimUserEndpoints = webApplicationContext.getBean(ScimUserEndpoints.class);
+    ScimGroupEndpoints scimGroupEndpoints = webApplicationContext.getBean(ScimGroupEndpoints.class);
 
     SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq \"marissa\"", "userName", "asc", 0, 1);
     String marissaId = (String)marissa.getResources().iterator().next().get("id");
@@ -113,7 +113,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
       headerWithName("Authorization").description("Bearer token")
     );
 
-    getMockMvc().perform(get).andExpect(status().isOk())
+    mockMvc.perform(get).andExpect(status().isOk())
     .andDo(document("{ClassName}/{methodName}",
       preprocessResponse(prettyPrint()),
       pathParameters,
@@ -164,7 +164,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
       fieldWithPath("[].createdBy").description(RESOURCE_OWNER_GUID)
     );
 
-    getMockMvc().perform(get("/oauth/clients/meta")
+    mockMvc.perform(get("/oauth/clients/meta")
       .header("Authorization", "Bearer " + marissaToken)
       .accept(APPLICATION_JSON)).andExpect(status().isOk())
       .andDo(document("{ClassName}/{methodName}",
@@ -221,7 +221,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(newClient));
-        getMockMvc().perform(createClient);
+        mockMvc.perform(createClient);
     }
 
     private ResultActions performUpdate(ClientMetadata updatedClientMetadata) throws Exception {
@@ -231,6 +231,6 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
       .accept(APPLICATION_JSON)
       .contentType(APPLICATION_JSON)
       .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-    return getMockMvc().perform(updateClientPut);
+    return mockMvc.perform(updateClientPut);
   }
 }

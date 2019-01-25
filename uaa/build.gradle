@@ -109,6 +109,8 @@ task docsTestRestDocs(type: Test) {
   include '**/CheckTokenEndpointDocs.class'
   include '**/TokenEndpointDocs.class'
   include '**/JwtBearerGrantDocs.class'
+  include '**/ClientAdminEndpointsDocs.class'
+  include '**/ClientMetadataAdminEndpointsDocs.class'
 }
 
 task(bundleInstall, type: Exec) {
