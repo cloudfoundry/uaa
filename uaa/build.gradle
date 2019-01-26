@@ -118,6 +118,7 @@ task docsTestRestDocs(type: Test) {
   include '**/LoginInfoEndpointDocs.class'
   include '**/LogoutInfoEndpointDocs.class'
   include '**/MfaProviderEndpointsDocs.class'
+  include '**/OpenIdConnectEndpointsDocs.class'
 }
 
 task(bundleInstall, type: Exec) {
