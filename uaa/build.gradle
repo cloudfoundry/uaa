@@ -116,6 +116,7 @@ task docsTestRestDocs(type: Test) {
   include '**/IntrospectTokenEndpointDocs.class'
   include '**/InvitationsEndpointDocs.class'
   include '**/LoginInfoEndpointDocs.class'
+  include '**/LogoutInfoEndpointDocs.class'
 }
 
 task(bundleInstall, type: Exec) {
