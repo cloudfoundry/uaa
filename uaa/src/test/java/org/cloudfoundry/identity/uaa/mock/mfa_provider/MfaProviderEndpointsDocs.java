@@ -1,45 +1,71 @@
 package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import static org.cloudfoundry.identity.uaa.mfa.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+public class MfaProviderEndpointsDocs {
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+    private MockMvc mockMvc;
+    private TestClient testClient;
     private static final String NAME_DESC = "Human-readable name for this provider. Must be alphanumeric.";
     private static final String ID_DESC = "Unique identifier for this provider. This is a GUID generated by UAA.";
     private static final String CREATED_DESC = "UAA sets the creation date.";
@@ -61,14 +87,23 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
     private String adminToken;
     private JdbcMfaProviderProvisioning mfaProviderProvisioning;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .apply(documentationConfiguration(manualRestDocumentation)
+                        .uris().withPort(80).and()
+                        .snippets()
+                        .withTemplateFormat(markdown()))
+                .build();
+        testClient = new TestClient(mockMvc);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 "admin",
                 "adminsecret",
                 "");
 
-        mfaProviderProvisioning = getWebApplicationContext().getBean(JdbcMfaProviderProvisioning.class);
+        mfaProviderProvisioning = webApplicationContext.getBean(JdbcMfaProviderProvisioning.class);
     }
 
     @Test
@@ -79,7 +114,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet requestFields = requestFields(idempotentFields);
 
         Snippet responseFields = responseFields(getMfaProviderResponseFields(idempotentFields));
-        getMockMvc().perform(RestDocumentationRequestBuilders.post("/mfa-providers", mfaProvider.getId())
+        mockMvc.perform(RestDocumentationRequestBuilders.post("/mfa-providers", mfaProvider.getId())
                 .accept(APPLICATION_JSON)
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
@@ -128,7 +163,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
 
         Snippet responseFields = responseFields(getMfaProviderResponseFields(getGoogleMfaProviderFields()));
 
-        ResultActions getMFaResultAction = getMockMvc().perform(
+        ResultActions getMFaResultAction = mockMvc.perform(
                 RestDocumentationRequestBuilders.get("/mfa-providers/{id}", mfaProvider.getId())
                         .header("Authorization", "Bearer " + adminToken)
                         .accept(APPLICATION_JSON));
@@ -153,7 +188,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet responseFields = responseFields((FieldDescriptor[])
                 subFields("[]", getMfaProviderResponseFields(getGoogleMfaProviderFields())));
 
-        ResultActions listMfaProviderAction = getMockMvc().perform(RestDocumentationRequestBuilders.get("/mfa-providers")
+        ResultActions listMfaProviderAction = mockMvc.perform(RestDocumentationRequestBuilders.get("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON));
 
@@ -174,7 +209,7 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
 
         Snippet responseFields = responseFields(getMfaProviderResponseFields(getGoogleMfaProviderFields()));
 
-        ResultActions getMFaResultAction = getMockMvc().perform(
+        ResultActions getMFaResultAction = mockMvc.perform(
                 RestDocumentationRequestBuilders.delete("/mfa-providers/{id}", mfaProvider.getId())
                         .header("Authorization", "Bearer " + adminToken)
                         .accept(APPLICATION_JSON));
@@ -192,13 +227,13 @@ public class MfaProviderEndpointsDocs extends InjectedMockContextTest {
     }
 
     private MfaProvider createMfaProviderHelper(MfaProvider<GoogleMfaProviderConfig> mfaProvider) throws Exception{
-        MockHttpServletResponse createResponse = getMockMvc().perform(
+        MockHttpServletResponse createResponse = mockMvc.perform(
                 post("/mfa-providers")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(mfaProvider))
                         .accept(APPLICATION_JSON)).andReturn().getResponse();
-        Assert.assertEquals(HttpStatus.CREATED.value(), createResponse.getStatus());
+        assertThat(HttpStatus.CREATED.value(), is(createResponse.getStatus()));
         MfaProvider createdMfaProvider = JsonUtils.readValue(createResponse.getContentAsString(), MfaProvider.class);
         return createdMfaProvider;
     }

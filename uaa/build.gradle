@@ -117,6 +117,7 @@ task docsTestRestDocs(type: Test) {
   include '**/InvitationsEndpointDocs.class'
   include '**/LoginInfoEndpointDocs.class'
   include '**/LogoutInfoEndpointDocs.class'
+  include '**/MfaProviderEndpointsDocs.class'
 }
 
 task(bundleInstall, type: Exec) {
