@@ -977,14 +977,8 @@ class ScimUserEndpointsMockMvcTests {
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
                     .content(JsonUtils.writeValueAsBytes(scimUser));
-
             mockMvc.perform(put).andDo(print())
-                    .andExpect(status().is(403))
-                    .andExpect(jsonPath("$.error", is("invalid_self_edit")))
-                    .andExpect(jsonPath("$.error_description", is(
-                            "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
-                            "and in that case they may only edit the givenName and familyName.")
-                    ));
+                    .andExpect(status().is(403));
         }
 
         @Test

@@ -209,8 +209,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                HttpServletRequest request,
                     HttpServletResponse httpServletResponse) {
 
-        throwWhenInvalidSelfEdit(user, userId, request);
         throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
+        throwWhenInvalidSelfEdit(user, userId, request);
 
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
