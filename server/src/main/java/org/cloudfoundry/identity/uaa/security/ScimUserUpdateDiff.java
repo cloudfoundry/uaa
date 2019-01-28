@@ -26,7 +26,8 @@ public class ScimUserUpdateDiff {
             return true;
         }
 
-        return scimUserFromDb.getPrimaryEmail().equals(scimUserFromRequest.getPrimaryEmail()) &&
+        return isInternalUser(scimUserFromDb) &&
+                scimUserFromDb.getPrimaryEmail().equals(scimUserFromRequest.getPrimaryEmail()) &&
                 Objects.equals(scimUserFromDb.getSalt(), scimUserFromRequest.getSalt()) &&
                 Objects.equals(scimUserFromDb.getDisplayName(), scimUserFromRequest.getDisplayName()) &&
                 externalIdsEquivalent(scimUserFromRequest, scimUserFromDb) &&
@@ -51,5 +52,9 @@ public class ScimUserUpdateDiff {
     private boolean externalIdsEquivalent(ScimUser scimUserFromRequest, ScimUser scimUserFromDb) {
         return Objects.equals(scimUserFromDb.getExternalId(), scimUserFromRequest.getExternalId()) ||
                 scimUserFromDb.getExternalId() == null && scimUserFromRequest.getExternalId().isEmpty();
+    }
+
+    private boolean isInternalUser(ScimUser scimUserFromDb) {
+        return scimUserFromDb.getOrigin().equals(OriginKeys.UAA);
     }
 }

@@ -117,10 +117,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Dave Syer
- * @author Luke Taylor
- */
 public class ScimUserEndpointsTests {
 
     public static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";

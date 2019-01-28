@@ -37,7 +37,7 @@ class ScimUserUpdateDiffTest {
         user.setName(scimUserName);
         user.setVerified(false);
         user.setActive(false);
-        user.setOrigin("originalOrigin");
+        user.setOrigin(OriginKeys.UAA);
         user.setSalt("salt");
         user.setExternalId("external id");
         user.setNickName("nickname");
@@ -174,6 +174,20 @@ class ScimUserUpdateDiffTest {
             @Test
             void isAllowedToUpdate() {
                 assertUpdateIsAllowed();
+            }
+
+            @Nested
+            class WhenUserIsExternal {
+                @BeforeEach
+                void setup() {
+                    scimUserFromDB.setOrigin("external");
+                    scimUserFromRequest.setOrigin("external");
+                }
+
+                @Test
+                void isNotAllowedToUpdate() {
+                    assertUpdateIsNotAllowed();
+                }
             }
         }
 
