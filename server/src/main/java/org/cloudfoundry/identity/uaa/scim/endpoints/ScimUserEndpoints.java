@@ -36,7 +36,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
-import org.cloudfoundry.identity.uaa.security.ScimUserSelfUpdateAllowed;
+import org.cloudfoundry.identity.uaa.security.ScimUserUpdateDiff;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -56,7 +56,6 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -134,41 +133,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private IsSelfCheck isSelfCheck;
 
-    public void checkIsEditAllowed(String origin, HttpServletRequest request) {
-        Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
-        if (attr!=null && attr instanceof Boolean) {
-            boolean isUserManagementDisabled = (boolean)attr;
-            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
-                throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
-            }
-        }
-    }
-
-    /**
-     * Set the message body converters to use.
-     * <p>
-     * These converters are used to convert from and to HTTP requests and
-     * responses.
-     */
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
-    }
-
-    /**
-     * Map from exception type to Http status.
-     *
-     * @param statuses the statuses to set
-     */
-    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
-        this.statuses = statuses;
-    }
-
-    private static String generatePassword() {
-        byte[] bytes = new byte[16];
-        passwordGenerator.nextBytes(bytes);
-        return new String(Hex.encode(bytes));
-    }
-
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
     public int getTotalUsers() {
         return scimUserResourceMonitor.getTotalCount();
@@ -206,7 +170,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             user.setOrigin(OriginKeys.UAA);
         }
 
-        checkIsEditAllowed(user.getOrigin(), request);
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
         ScimUtils.validate(user);
         if (!isUaaUser(user)) {
             //set a default password, "" for non UAA users.
@@ -245,22 +209,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                HttpServletRequest request,
                     HttpServletResponse httpServletResponse) {
 
-        boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
-        boolean userManagementDisabled = isUserManagementDisabled(request);
+        throwWhenInvalidSelfEdit(user, userId, request);
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
 
-        if (isSelfEdit) {
-            boolean selfUpdateAllowed = new ScimUserSelfUpdateAllowed(scimUserProvisioning).isAllowed(userId, user, userManagementDisabled);
-            if (!selfUpdateAllowed) {
-                throw new InvalidSelfEditException();
-            }
-        }
-
-        checkIsEditAllowed(user.getOrigin(), request);
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
         int version = getVersion(userId, etag);
         user.setVersion(version);
+
         try {
             ScimUser updated = scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
             scimUpdates.incrementAndGet();
@@ -307,7 +264,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
-        checkIsEditAllowed(user.getOrigin(), request);
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
         membershipManager.removeMembersByMemberId(userId, user.getOrigin(), IdentityZoneHolder.get().getId());
         scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
@@ -627,16 +584,54 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.userMaxCount = userMaxCount;
     }
 
+    private void throwWhenUserManagementIsDisallowed(String origin, HttpServletRequest request) {
+        Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
+        if (attr!=null && attr instanceof Boolean) {
+            boolean isUserManagementDisabled = (boolean)attr;
+            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
+                throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
+            }
+        }
+    }
+
+    /**
+     * Set the message body converters to use.
+     * <p>
+     * These converters are used to convert from and to HTTP requests and
+     * responses.
+     */
+    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+        this.messageConverters = messageConverters;
+    }
+
+    /**
+     * Map from exception type to Http status.
+     *
+     * @param statuses the statuses to set
+     */
+    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
+        this.statuses = statuses;
+    }
+
+    private void throwWhenInvalidSelfEdit(@RequestBody ScimUser user, @PathVariable String userId, HttpServletRequest request) {
+        boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
+        if (!isSelfEdit) {
+            return;
+        }
+
+        ScimUserUpdateDiff diffEngine = new ScimUserUpdateDiff(scimUserProvisioning);
+        boolean selfUpdateAllowed = diffEngine.isAnythingOtherThanNameDifferent(userId, user);
+        if (!selfUpdateAllowed) {
+            throw new InvalidSelfEditException();
+        }
+    }
+
     public IsSelfCheck getIsSelfCheck() {
         return isSelfCheck;
     }
 
     public void setIsSelfCheck(IsSelfCheck isSelfCheck) {
         this.isSelfCheck = isSelfCheck;
-    }
-
-    private boolean isUserManagementDisabled(HttpServletRequest request) {
-        return (boolean) request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
     }
 
     private class InvalidSelfEditException extends UaaException {

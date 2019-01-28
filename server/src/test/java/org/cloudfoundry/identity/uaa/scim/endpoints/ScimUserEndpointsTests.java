@@ -47,6 +47,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -226,6 +227,8 @@ public class ScimUserEndpointsTests {
 
         am = new JdbcApprovalStore(jdbcTemplate);
         endpoints.setApprovalStore(am);
+
+        endpoints.setIsSelfCheck(new IsSelfCheck(null));
     }
 
     @AfterClass

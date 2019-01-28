@@ -872,7 +872,7 @@ class ScimUserEndpointsMockMvcTests {
 
     private static Stream<PatchTestParams> selfEditPatchTestParams() {
         ScimUser[] userWithEmailChanged = makeTwoIdenticalUsers();
-        userWithEmailChanged[1].addEmail("user@" + RandomStringUtils.randomAlphabetic(5) + ".com");
+        userWithEmailChanged[1].setPrimaryEmail("otheruser@" + RandomStringUtils.randomAlphabetic(5) + ".com");
 
         ScimUser[] userWithNameChanged = makeTwoIdenticalUsers();
         userWithNameChanged[1].setName(new ScimUser.Name("newGivenName", "newFamilyName"));
@@ -884,7 +884,7 @@ class ScimUserEndpointsMockMvcTests {
         userWithPhoneNumberValueDeleted[1].setMeta(meta);
 
         return Stream.of(
-                new PatchTestParams("should fail when email is changed",
+                new PatchTestParams("should fail when primary email is changed",
                         userWithEmailChanged[0], userWithEmailChanged[1],
                         403, "$.error", "invalid_self_edit"),
                 new PatchTestParams("should pass when familyName and givenName are changed",
@@ -916,6 +916,7 @@ class ScimUserEndpointsMockMvcTests {
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsBytes(params.scimUserToUseInRequest));
         mockMvc.perform(patch)
+                .andDo(print())
                 .andExpect(status().is(params.expectedHttpStatusCode))
                 .andExpect(jsonPath(params.expectedJsonPath).value(params.expectedValueAtJsonPath));
     }

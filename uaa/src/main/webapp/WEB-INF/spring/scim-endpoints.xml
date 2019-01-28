@@ -220,10 +220,6 @@
         <constructor-arg name="tokenProvisioning" ref="revocableTokenProvisioning"/>
     </bean>
 
-    <bean name="selfUpdateAllowed" class="org.cloudfoundry.identity.uaa.security.ScimUserSelfUpdateAllowed">
-        <constructor-arg ref="scimUserProvisioning"/>
-    </bean>
-
     <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" use-expressions="true">
