@@ -1,41 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
-import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
-import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.UPDATE;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
-import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
-import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
-import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
-import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -53,7 +17,28 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
-public class ClientAdminEndpointsDocs extends AdminClientCreator {
+import java.util.*;
+
+import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.*;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class ClientAdminEndpointDocs extends AdminClientCreator {
     private String clientAdminToken;
 
     private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
@@ -91,7 +76,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     };
 
     @BeforeEach
-    public void setup() throws Exception {
+    void setup() throws Exception {
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -99,7 +84,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void createClient() throws Exception {
+    void createClient() throws Exception {
         Snippet requestFields = requestFields(
             (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
                 new FieldDescriptor[]{clientSecretField}
@@ -128,7 +113,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void listClients() throws Exception {
+    void listClients() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(get("/oauth/clients")
@@ -173,7 +158,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void retrieveClient() throws Exception {
+    void retrieveClient() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(get("/oauth/clients/{client_id}", createdClientDetails.getClientId())
@@ -201,7 +186,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void updateClient() throws Exception {
+    void updateClient() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
         BaseClientDetails updatedClientDetails = new BaseClientDetails();
         updatedClientDetails.setClientId(createdClientDetails.getClientId());
@@ -241,7 +226,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void changeClientSecret() throws Exception {
+    void changeClientSecret() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/secret", createdClientDetails.getClientId())
@@ -269,7 +254,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void deleteClient() throws Exception {
+    void deleteClient() throws Exception {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(delete("/oauth/clients/{client_id}", createdClientDetails.getClientId())
@@ -294,7 +279,7 @@ public class ClientAdminEndpointsDocs extends AdminClientCreator {
     }
 
     @Test
-    public void clientTx() throws Exception {
+    void clientTx() throws Exception {
         // CREATE
 
         List<String> scopes = Arrays.asList("clients.read", "clients.write");

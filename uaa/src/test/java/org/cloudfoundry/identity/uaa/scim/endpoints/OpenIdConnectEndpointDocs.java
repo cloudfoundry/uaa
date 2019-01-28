@@ -1,32 +1,24 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,26 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
-public class OpenIdConnectEndpointsDocs {
-
-    @Autowired
-    private WebApplicationContext webApplicationContext;
-    private MockMvc mockMvc;
-
-    @BeforeEach
-    private void setUp(ManualRestDocumentation manualRestDocumentation) {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .apply(documentationConfiguration(manualRestDocumentation)
-                    .uris().withPort(80).and()
-                    .snippets()
-                    .withTemplateFormat(markdown()))
-            .build();
-    }
+class OpenIdConnectEndpointDocs extends EndpointDocs {
 
     @Test
-    public void getWellKnownOpenidConf() throws Exception {
+    void getWellKnownOpenidConf() throws Exception {
 
         Snippet responseFields = responseFields(
             fieldWithPath("issuer").description("URL using the https scheme with no query or fragment component that the OP asserts as its Issuer Identifier."),

@@ -13,15 +13,24 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.restdocs.headers.HeaderDocumentation;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.util.Collections;
 
@@ -37,8 +46,14 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenKeyEndpointDocs extends InjectedMockContextTest {
-
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class TokenKeyEndpointDocs extends EndpointDocs {
 
     private static final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
@@ -67,24 +82,24 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
         "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
         "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
         "-----END RSA PRIVATE KEY-----";
-    public static final String ETAG_HEADER_DESCRIPTION = "The ETag version of the resource - used to decide if the client's version of the resource is already up to date. The UAA will set the ETag value to the epoch time in milliseconds of the last zone configuration change.";
-    public static final String IF_NONE_MATCH_DESCRIPTION = "Optional. See [Ref: RFC 2616](https://tools.ietf.org/html/rfc2616#section-14.26) ";
-    public static final RequestHeadersSnippet SYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
+    private static final String ETAG_HEADER_DESCRIPTION = "The ETag version of the resource - used to decide if the client's version of the resource is already up to date. The UAA will set the ETag value to the epoch time in milliseconds of the last zone configuration change.";
+    private static final String IF_NONE_MATCH_DESCRIPTION = "Optional. See [Ref: RFC 2616](https://tools.ietf.org/html/rfc2616#section-14.26) ";
+    private static final RequestHeadersSnippet SYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
         headerWithName("Authorization").description("No authorization is required for requesting public keys."),
         headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
     );
-    public static final RequestHeadersSnippet ASYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
+    private static final RequestHeadersSnippet ASYMM_TOKEN_KEY_REQUEST_HEADERS = requestHeaders(
         headerWithName("If-None-Match").description(IF_NONE_MATCH_DESCRIPTION).optional()
     );
-    public static final Snippet TOKEN_KEY_RESPONSE_HEADERS = HeaderDocumentation.responseHeaders(headerWithName("ETag").description(ETAG_HEADER_DESCRIPTION));
+    private static final Snippet TOKEN_KEY_RESPONSE_HEADERS = HeaderDocumentation.responseHeaders(headerWithName("ETag").description(ETAG_HEADER_DESCRIPTION));
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() {
         setUp(signKey);
     }
 
-    public void setUp(String signKey) throws Exception {
-        IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+    void setUp(String signKey) {
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone uaa = provisioning.retrieve("uaa");
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
@@ -93,8 +108,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void getTokenAsymmetricAuthenticated() throws Exception {
-
+    void getTokenAsymmetricAuthenticated() throws Exception {
         Snippet responseFields = responseFields(
             fieldWithPath("kid").type(STRING).description("Key ID of key to be used for verification of the token."),
             fieldWithPath("alg").type(STRING).description("Encryption algorithm"),
@@ -105,7 +119,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("e").type(STRING).description("RSA key public exponent")
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/token_key")
                 .accept(APPLICATION_JSON)
                 .header("If-None-Match", "1501570800000"))
@@ -122,7 +136,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void getTokenSymmetricAuthenticated() throws Exception {
+    void getTokenSymmetricAuthenticated() throws Exception {
         setUp("key");
         try {
             String basicDigestHeaderValue = "Basic "
@@ -136,7 +150,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
                 fieldWithPath("use").type(STRING).description("Public key use parameter - identifies intended use of the public key. (defaults to \"sig\")")
             );
 
-            getMockMvc().perform(
+            mockMvc.perform(
                 get("/token_key")
                     .accept(APPLICATION_JSON)
                     .header("Authorization", basicDigestHeaderValue)
@@ -152,7 +166,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void checkTokenKeysValues() throws Exception {
+    void checkTokenKeysValues() throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
 
@@ -166,7 +180,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("keys.[].e").type(STRING).description("RSA key public exponent").optional()
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/token_keys")
                 .accept(APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue)

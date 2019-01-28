@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
+class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
 
   private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
   private MultitenantJdbcClientDetailsService clients;
@@ -61,7 +61,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
   );
 
   @BeforeEach
-  public void setUp() throws Exception {
+  void setUp() throws Exception {
     testAccounts = UaaTestAccounts.standard(null);
     clients = webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class);
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(
@@ -95,7 +95,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
   }
 
   @Test
-  public void getClientMetadata() throws Exception {
+  void getClientMetadata() throws Exception {
     String clientId = generator.generate();
     createClient(clientId);
     updateClientMetadata(clientId);
@@ -123,7 +123,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
   }
 
   @Test
-  public void getAllClientMetadata() throws Exception {
+  void getAllClientMetadata() throws Exception {
     String clientId1 = generator.generate();
     createClient(clientId1);
     updateClientMetadata(clientId1);
@@ -175,7 +175,7 @@ public class ClientMetadataAdminEndpointsDocs extends AdminClientCreator {
   }
 
   @Test
-  public void updateClientMetadata() throws Exception {
+  void updateClientMetadata() throws Exception {
     String clientId = generator.generate();
     createClient(clientId);
 

@@ -14,19 +14,28 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -37,25 +46,14 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
@@ -64,7 +62,14 @@ import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class ScimGroupEndpointDocs extends EndpointDocs {
 
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private final FieldDescriptor displayNameRequestField = fieldWithPath("displayName").required().description("An identifier, unique within the identity zone");
@@ -81,7 +86,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
-    FieldDescriptor[] responseFieldDescriptors = {
+    private FieldDescriptor[] responseFieldDescriptors = {
         fieldWithPath("id").description("The globally unique group ID"),
         fieldWithPath("displayName").description("The identifier specified upon creation of the group, unique within the identity zone"),
         fieldWithPath("description").description("Human readable description of the group, displayed e.g. when approving scopes"),
@@ -116,17 +121,17 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             metaAttributesRequestField
         );
 
-    @Before
-    public void setUp() throws Exception {
-        scimReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+    @BeforeEach
+    void setUp() throws Exception {
+        scimReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret",
             "scim.read", null, true);
 
-        scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+        scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret",
             "scim.write", null, true);
     }
 
     @Test
-    public void createRetrieveUpdateListScimGroup() throws Exception {
+    void createRetrieveUpdateListScimGroup() throws Exception {
         // Create
 
         ScimGroup scimGroup = new ScimGroup();
@@ -163,7 +168,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .contentType(APPLICATION_JSON)
             .content(serializeWithoutMeta(scimGroup));
 
-        ResultActions updateResult = getMockMvc().perform(put).andExpect(status().isOk())
+        ResultActions updateResult = mockMvc.perform(put).andExpect(status().isOk())
             .andDo(document("{ClassName}/updateScimGroup",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
@@ -186,19 +191,19 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 .contentType(APPLICATION_JSON)
                 .content(serializeWithoutMeta(scimGroup));
 
-            ResultActions patchResult = getMockMvc().perform(patch).andExpect(status().isOk())
+        mockMvc.perform(patch).andExpect(status().isOk())
                 .andDo(document("{ClassName}/patchScimGroup",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(
-                        parameterWithName("groupId").description("Globally unique identifier of the group to update")
-                    ),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
-                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
-                    ),
-                    scimGroupPatchRequestFields,
-                    responseFields));
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("groupId").description("Globally unique identifier of the group to update")
+                        ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
+                                headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                        ),
+                        scimGroupPatchRequestFields,
+                        responseFields));
 
         // Retrieve
 
@@ -207,7 +212,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         MockHttpServletRequestBuilder get = get("/Groups/{groupId}", scimGroup.getId())
             .header("Authorization", "Bearer " + scimReadToken);
 
-        ResultActions retrieveResult = getMockMvc().perform(get).andExpect(status().isOk())
+        ResultActions retrieveResult = mockMvc.perform(get).andExpect(status().isOk())
             .andDo(document("{ClassName}/retrieveScimGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
@@ -250,7 +255,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         ));
         Snippet listGroupResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
 
-        getMockMvc().perform(getList).andExpect(status().isOk())
+        mockMvc.perform(getList).andExpect(status().isOk())
             .andDo(document("{ClassName}/listScimGroups",
                 preprocessResponse(prettyPrint()),
                 requestParameters,
@@ -273,7 +278,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         MockHttpServletRequestBuilder getMember = get("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
             .header("Authorization", "Bearer " + scimReadToken);
 
-        getMockMvc().perform(getMember).andExpect(status().isOk())
+        mockMvc.perform(getMember).andExpect(status().isOk())
             .andDo(document("{ClassName}/getMemberOfGroup",
                 preprocessResponse(prettyPrint()),
             pathParameters(
@@ -295,7 +300,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         MockHttpServletRequestBuilder removeMember = delete("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
                 .header("Authorization", "Bearer " + scimWriteToken);
 
-        getMockMvc().perform(removeMember).andExpect(status().isOk())
+        mockMvc.perform(removeMember).andExpect(status().isOk())
             .andDo(document("{ClassName}/removeMemberFromGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
@@ -323,7 +328,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(groupMember));
 
-        getMockMvc().perform(addMember).andExpect(status().isCreated())
+        mockMvc.perform(addMember).andExpect(status().isCreated())
             .andDo(document("{ClassName}/addMemberToGroup",
             preprocessResponse(prettyPrint()),
                 pathParameters(
@@ -348,7 +353,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 .param("returnEntities", "true")
                 .header("Authorization", "Bearer " + scimReadToken);
 
-        getMockMvc().perform(listMembers).andExpect(status().isOk())
+        mockMvc.perform(listMembers).andExpect(status().isOk())
             .andDo(print())
             .andDo(document("{ClassName}/listMembersOfGroup",
                 preprocessResponse(prettyPrint()),
@@ -382,7 +387,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         MockHttpServletRequestBuilder delete = delete("/Groups/{groupId}", scimGroup.getId())
                 .header("Authorization", "Bearer " + scimWriteToken);
 
-        getMockMvc().perform(delete).andExpect(status().isOk())
+        mockMvc.perform(delete).andExpect(status().isOk())
             .andDo(document("{ClassName}/deleteScimGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
@@ -414,7 +419,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .contentType(APPLICATION_JSON)
             .content(serializeWithoutMeta(scimGroup));
 
-        return getMockMvc().perform(post).andExpect(status().isCreated());
+        return mockMvc.perform(post).andExpect(status().isCreated());
     }
 
     private ScimUser newScimUser() throws Exception {
@@ -422,9 +427,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         ScimUser member = new ScimUser(null, userName, "cool-name", "cool-familyName");
         member.setPassword("password");
         member.setPrimaryEmail("cool@chill.com");
-        member = MockMvcUtils.createUser(getMockMvc(), scimWriteToken, member);
+        member = MockMvcUtils.createUser(mockMvc, scimWriteToken, member);
         return member;
     }
-
-
 }

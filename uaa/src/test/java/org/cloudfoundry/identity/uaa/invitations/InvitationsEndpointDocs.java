@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
@@ -22,18 +23,12 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 
@@ -41,7 +36,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
@@ -49,7 +43,6 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,11 +54,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
-public class InvitationsEndpointDocs {
+class InvitationsEndpointDocs extends EndpointDocs {
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
-    private MockMvc mockMvc;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String domain;
     private String clientId;
@@ -74,15 +64,7 @@ public class InvitationsEndpointDocs {
     private String token;
 
     @BeforeEach
-    public void setup(ManualRestDocumentation manualRestDocumentation) throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(manualRestDocumentation)
-                        .uris().withPort(80).and()
-                        .snippets()
-                        .withTemplateFormat(markdown()))
-                .build();
+    void setup() throws Exception {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         domain = generator.generate().toLowerCase()+".com";
         clientId = generator.generate().toLowerCase();
@@ -93,7 +75,7 @@ public class InvitationsEndpointDocs {
     }
 
     @Test
-    public void inviteUsers() throws Exception {
+    void inviteUsers() throws Exception {
         String[] emails = new String[] {"user1@"+domain, "user2@"+domain};
         String redirectUri = "example.com";
 
@@ -137,5 +119,4 @@ public class InvitationsEndpointDocs {
                         requestFields,
                         responseFields));
     }
-
 }

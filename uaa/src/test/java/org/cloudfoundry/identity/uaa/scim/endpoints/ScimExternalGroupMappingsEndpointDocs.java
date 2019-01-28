@@ -12,19 +12,27 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.DecodePathInfoPostProcessor;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -37,12 +45,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -51,7 +55,14 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
     private final String GROUP_ID_DESC = "The globally unique group ID";
     private final String ORIGIN_DESC = "Unique alias of the identity provider";
     private final String SCHEMAS_DESC = "`[\"urn:scim:schemas:core:1.0\"]`";
@@ -80,20 +91,20 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     private String scimReadToken;
     private String scimWriteToken;
 
-    @Before
-    public void setUp() throws Exception {
-        scimReadToken = getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+    @BeforeEach
+    void setUp() throws Exception {
+        scimReadToken = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret",
                 "scim.read", null, true);
 
-        scimWriteToken = getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret",
+        scimWriteToken = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret",
                 "scim.write", null, true);
     }
 
     @Test
-    public void createExternalGroupMapping() throws Exception {
+    void createExternalGroupMapping() throws Exception {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Creating External Group Mapping");
-        group = createGroup(getMockMvc(), scimWriteToken, group);
+        group = createGroup(mockMvc, scimWriteToken, group);
 
         Snippet requestHeader = requestHeaders(
                 AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
@@ -114,10 +125,10 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     }
 
     @Test
-    public void deleteExternalGroupMapping() throws Exception  {
+    void deleteExternalGroupMapping() throws Exception  {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Deleting External Group Mapping");
-        group = createGroup(getMockMvc(), scimWriteToken, group);
+        group = createGroup(mockMvc, scimWriteToken, group);
 
         ScimGroupExternalMember scimGroupExternalMember = JsonUtils.readValue(createExternalGroupMappingHelper(group)
                 .andReturn().getResponse().getContentAsString(), ScimGroupExternalMember.class);
@@ -142,7 +153,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 .header("Authorization", "Bearer " + scimWriteToken)
                 .with(new DecodePathInfoPostProcessor());
 
-        getMockMvc().perform(delete)
+        mockMvc.perform(delete)
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                         pathParameters, requestHeaders, responseFields)
@@ -150,10 +161,10 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     }
 
     @Test
-    public void deleteExternalGroupMappingUsingName() throws Exception  {
+    void deleteExternalGroupMappingUsingName() throws Exception  {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Deleting External Group Mapping By Name");
-        group = createGroup(getMockMvc(), scimWriteToken, group);
+        group = createGroup(mockMvc, scimWriteToken, group);
 
         ScimGroupExternalMember scimGroupExternalMember = JsonUtils.readValue(createExternalGroupMappingHelper(group)
                 .andReturn().getResponse().getContentAsString(), ScimGroupExternalMember.class);
@@ -178,7 +189,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 .header("Authorization", "Bearer " + scimWriteToken)
                 .with(new DecodePathInfoPostProcessor());
 
-        getMockMvc().perform(delete)
+        mockMvc.perform(delete)
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                         pathParameters, requestHeaders, responseFields));
@@ -186,10 +197,10 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     }
 
     @Test
-    public void listExternalGroupMapping() throws Exception {
+    void listExternalGroupMapping() throws Exception {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Retrieving External Group Mappings");
-        group = createGroup(getMockMvc(), scimWriteToken, group);
+        group = createGroup(mockMvc, scimWriteToken, group);
 
         createExternalGroupMappingHelper(group);
 
@@ -227,7 +238,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
             .param("externalGroup", "")
             .param("filter", "");
 
-        getMockMvc().perform(get)
+        mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                          requestParameters, requestHeaders, responseFields));
@@ -244,7 +255,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
                 .header("Authorization", "Bearer " + scimWriteToken)
                 .content(JsonUtils.writeValueAsString(externalMember));
 
-        return getMockMvc().perform(post)
+        return mockMvc.perform(post)
                 .andExpect(status().isCreated());
     }
 }

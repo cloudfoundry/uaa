@@ -12,30 +12,37 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.request.RequestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUserInZone;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.updateIdentityZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -44,21 +51,10 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
@@ -66,7 +62,14 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class UaaSamlIDPDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class UaaSamlIDPEndpointDocs extends EndpointDocs {
 
     private String adminToken;
 
@@ -125,8 +128,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     private String spEntityID;
     private Map<String, Object> staticAttributes = new HashMap<>();
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
         String name = generator.generate();
         spEntityID = name + ".cloudfoundry-saml-login";
@@ -147,8 +150,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void createServiceProvider() throws Exception {
-        String json = getMockMvc().perform(post("/saml/service-providers")
+    void createServiceProvider() throws Exception {
+        String json = mockMvc.perform(post("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
                                  .content(writeValueAsString(requestBody))
@@ -171,22 +174,22 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         assertEquals(staticAttributes, provider.getConfig().getStaticCustomAttributes());
     }
 
-    public IdentityZone createZone() throws Exception {
+    IdentityZone createZone() throws Exception {
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
-        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        return MockMvcUtils.updateIdentityZone(zone, getWebApplicationContext());
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        return MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
     }
 
     @Test
-    public void document_idp_initiated_flow() throws Exception {
+    void document_idp_initiated_flow() throws Exception {
         IdentityZone zone = createZone();
-        updateIdentityZone(zone, getWebApplicationContext());
+        updateIdentityZone(zone, webApplicationContext);
         ScimUser marissa = new ScimUser(null, "marissa", "", "");
         marissa.setPassword("secret");
         marissa.setPrimaryEmail("marissa@test.org");
-        marissa = createUserInZone(getMockMvc(), adminToken, marissa, "", zone.getId());
+        marissa = createUserInZone(mockMvc, adminToken, marissa, "", zone.getId());
 
-        getMockMvc().perform(post("/saml/service-providers")
+        mockMvc.perform(post("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
                                  .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
                                  .contentType(APPLICATION_JSON)
@@ -204,11 +207,11 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
 
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/saml/idp/initiate")
                 .param("sp", spEntityID)
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
-                .with(securityContext(getUaaSecurityContext(marissa.getUserName(), getWebApplicationContext(), zone)))
+                .with(securityContext(getUaaSecurityContext(marissa.getUserName(), webApplicationContext, zone)))
         )
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("<input type=\"hidden\" name=\"SAMLResponse\" value=\"")))
@@ -218,8 +221,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void updateServiceProvider() throws Exception {
-        MockHttpServletResponse response = getMockMvc().perform(post("/saml/service-providers")
+    void updateServiceProvider() throws Exception {
+        MockHttpServletResponse response = mockMvc.perform(post("/saml/service-providers")
                                                                     .header("Authorization", "Bearer " + adminToken)
                                                                     .contentType(APPLICATION_JSON)
                                                                     .content(writeValueAsString(requestBody))
@@ -227,7 +230,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
         staticAttributes.put("portal-id","346-asd-3412");
-        String json = getMockMvc().perform(put("/saml/service-providers/{id}", samlServiceProvider.getId())
+        String json = mockMvc.perform(put("/saml/service-providers/{id}", samlServiceProvider.getId())
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
                                  .content(writeValueAsString(requestBody))
@@ -252,15 +255,15 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void getServiceProvider() throws Exception {
-        MockHttpServletResponse response = getMockMvc().perform(post("/saml/service-providers")
+    void getServiceProvider() throws Exception {
+        MockHttpServletResponse response = mockMvc.perform(post("/saml/service-providers")
                                                                     .header("Authorization", "Bearer " + adminToken)
                                                                     .contentType(APPLICATION_JSON)
                                                                     .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
-        getMockMvc().perform(get("/saml/service-providers/{id}", samlServiceProvider.getId())
+        mockMvc.perform(get("/saml/service-providers/{id}", samlServiceProvider.getId())
                                  .header("Authorization", "Bearer " + adminToken)
         ).andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",
@@ -275,7 +278,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void getAllServiceProviders() throws Exception {
+    void getAllServiceProviders() throws Exception {
         Snippet responseFields = responseFields(
             fieldWithPath("[].id").type(STRING).description("Unique identifier for this provider - GUID generated by the UAA."),
             fieldWithPath("[].name").type(STRING).description("Human readable name for the SAML SP."),
@@ -291,13 +294,13 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
 
         );
 
-        getMockMvc().perform(post("/saml/service-providers")
+        mockMvc.perform(post("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
                                  .contentType(APPLICATION_JSON)
                                  .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
 
-        getMockMvc().perform(get("/saml/service-providers")
+        mockMvc.perform(get("/saml/service-providers")
                                  .header("Authorization", "Bearer " + adminToken)
         ).andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",
@@ -311,15 +314,15 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void deleteServiceProvider() throws Exception {
-        MockHttpServletResponse createdResponse = getMockMvc().perform(MockMvcRequestBuilders.post("/saml/service-providers")
+    void deleteServiceProvider() throws Exception {
+        MockHttpServletResponse createdResponse = mockMvc.perform(MockMvcRequestBuilders.post("/saml/service-providers")
                                                                            .header("Authorization", "Bearer " + adminToken)
                                                                            .contentType(APPLICATION_JSON)
                                                                            .content(writeValueAsString(requestBody))
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(createdResponse.getContentAsString(), SamlServiceProvider.class);
 
-        getMockMvc().perform(delete("/saml/service-providers/{id}", samlServiceProvider.getId())
+        mockMvc.perform(delete("/saml/service-providers/{id}", samlServiceProvider.getId())
                                  .header("Authorization", "Bearer " + adminToken)
                                  .accept(APPLICATION_JSON))
             .andExpect(status().isOk()).andDo(document("{ClassName}/{methodName}",

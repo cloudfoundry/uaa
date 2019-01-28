@@ -17,13 +17,17 @@ import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
+import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -31,9 +35,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
@@ -41,15 +43,11 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URL;
 import java.util.Arrays;
@@ -70,7 +68,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
@@ -78,7 +75,6 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,12 +86,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
-public class IdentityProviderEndpointsDocs {
-    @Autowired
-    WebApplicationContext webApplicationContext;
-
-    MockMvc mockMvc;
-    TestClient testClient;
+class IdentityProviderEndpointDocs extends EndpointDocs {
 
     private static final String NAME_DESC = "Human-readable name for this provider";
     private static final String VERSION_DESC = "Version of the identity provider data. Clients can use this to protect against conflicting updates";
@@ -144,7 +135,6 @@ public class IdentityProviderEndpointsDocs {
     private static final int LDAPS_PORT = 23636;
     private final String ldapServerUrl = "ldap://localhost:"+LDAP_PORT;
 
-
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
 
@@ -168,18 +158,18 @@ public class IdentityProviderEndpointsDocs {
         ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
+    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
 
     private static ApacheDsSSLContainer apacheDS;
 
     @AfterAll
-    public static void afterClass() throws Exception {
+    static void afterClass() throws Exception {
         apacheDS.stop();
         Thread.sleep(1500);
     }
 
     @BeforeAll
-    public static void startApacheDS() throws Exception {
+    static void startApacheDS() throws Exception {
         apacheDS = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
     }
 
@@ -373,16 +363,7 @@ public class IdentityProviderEndpointsDocs {
     });
 
     @BeforeEach
-    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(manualRestDocumentation)
-                        .uris().withPort(80).and()
-                        .snippets()
-                        .withTemplateFormat(markdown()))
-                .build();
-        testClient = new TestClient(mockMvc);
+    void setUp() throws Exception {
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -392,12 +373,12 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @AfterEach
-    public void clearUaaConfig() throws Exception {
+    void clearUaaConfig() {
         webApplicationContext.getBean(JdbcTemplate.class).update("UPDATE identity_provider SET config=null WHERE origin_key='uaa'");
     }
 
     @Test
-    public void createSAMLIdentityProvider() throws Exception {
+    void createSAMLIdentityProvider() throws Exception {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
@@ -484,7 +465,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void createOAuthIdentityProvider() throws Exception {
+    void createOAuthIdentityProvider() throws Exception {
         IdentityProvider identityProvider = new IdentityProvider();
         identityProvider.setType(OAUTH20);
         identityProvider.setName("UAA Provider");
@@ -551,7 +532,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void createOidcIdentityProvider() throws Exception {
+    void createOidcIdentityProvider() throws Exception {
         IdentityProvider identityProvider = new IdentityProvider();
         identityProvider.setType(OIDC10);
         identityProvider.setName("UAA Provider");
@@ -631,7 +612,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void create_Simple_Bind_LDAPIdentityProvider() throws Exception {
+    void create_Simple_Bind_LDAPIdentityProvider() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
         identityProvider.setType(LDAP);
 
@@ -652,7 +633,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider() throws Exception {
+    void create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
         identityProvider.setType(LDAP);
 
@@ -681,7 +662,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider() throws Exception {
+    void create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
         identityProvider.setType(LDAP);
 
@@ -712,9 +693,9 @@ public class IdentityProviderEndpointsDocs {
 
     }
 
-    public void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
-                                   FieldDescriptor[] fields,
-                                   String name) throws Exception {
+    void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
+                            FieldDescriptor[] fields,
+                            String name) throws Exception {
         Map<String, Object> attributeMappings = new HashedMap(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
         identityProvider.getConfig().setAttributeMappings(attributeMappings);
@@ -783,7 +764,7 @@ public class IdentityProviderEndpointsDocs {
 
 
     @Test
-    public void getAllIdentityProviders() throws Exception {
+    void getAllIdentityProviders() throws Exception {
         Snippet responseFields = responseFields(
             fieldWithPath("[].type").description("Type of the identity provider."),
             fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
@@ -816,7 +797,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void getIdentityProvider() throws Exception {
+    void getIdentityProvider() throws Exception {
         IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
@@ -846,7 +827,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void updateIdentityProvider() throws Exception {
+    void updateIdentityProvider() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
@@ -905,7 +886,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void patchIdentityProviderStatus() throws Exception {
+    void patchIdentityProviderStatus() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
         identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
@@ -943,7 +924,7 @@ public class IdentityProviderEndpointsDocs {
     }
 
     @Test
-    public void deleteIdentityProvider() throws Exception {
+    void deleteIdentityProvider() throws Exception {
         IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)

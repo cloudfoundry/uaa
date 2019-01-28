@@ -45,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(JUnitRestDocumentationExtension.class)
-class JwtBearerGrantDocs extends JwtBearerGrantMockMvcTests {
+class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
     @Autowired
     FilterChainProxy springSecurityFilterChain;
 

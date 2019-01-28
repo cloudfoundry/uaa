@@ -13,14 +13,23 @@
 package org.cloudfoundry.identity.uaa.mock.password;
 
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.headerWithName;
@@ -36,27 +45,33 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-public class PasswordEndpointsDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = TestSpringContext.class)
+class PasswordEndpointDocs extends EndpointDocs {
 
     private String loginToken;
     private String clientId;
     private ScimUser user;
 
-    @Before
-    public void setup_for_password_reset() throws Exception {
+    @BeforeEach
+    void setup_for_password_reset() throws Exception {
         clientId = "login";
-        loginToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), clientId, "loginsecret", "oauth.login");
-        String adminToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null);
+        loginToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, clientId, "loginsecret", "oauth.login");
+        String adminToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", null);
         String userName = "user-"+new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
         user = new ScimUser(null, userName, "given", "last");
         user.setPassword("password");
         user.setPrimaryEmail(user.getUserName());
-        user = MockMvcUtils.createUser(getMockMvc(), adminToken, user);
+        user = MockMvcUtils.createUser(mockMvc, adminToken, user);
     }
 
     @Test
-    public void document_password_reset() throws Exception {
-
+    void document_password_reset() throws Exception {
         Snippet responseFields = responseFields(
             fieldWithPath("code").type(STRING).description("The code to used to invoke the `/password_change` endpoint with or to initiate the `/reset_password` flow."),
             fieldWithPath("user_id").type(STRING).description("The UUID identifying the user.")
@@ -73,7 +88,6 @@ public class PasswordEndpointsDocs extends InjectedMockContextTest {
             headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional(null).description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.")
         );
 
-
         MockHttpServletRequestBuilder post = post("/password_resets")
             .header("Authorization", "Bearer " + loginToken)
             .contentType(APPLICATION_JSON)
@@ -82,9 +96,8 @@ public class PasswordEndpointsDocs extends InjectedMockContextTest {
             .content(user.getUserName())
             .accept(APPLICATION_JSON);
 
-        getMockMvc().perform(post)
+        mockMvc.perform(post)
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, requestParameters, responseFields));
 
     }
-
 }

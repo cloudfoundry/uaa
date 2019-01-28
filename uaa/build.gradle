@@ -103,22 +103,7 @@ task customizeSlate(type: Copy) {
 }
 task docsTestRestDocs(type: Test) {
   useJUnitPlatform()
-
-  include '**/DefaultDocsTestSuite.class'
-  include '**/AuthorizeEndpointDocs.class'
-  include '**/CheckTokenEndpointDocs.class'
-  include '**/TokenEndpointDocs.class'
-  include '**/JwtBearerGrantDocs.class'
-  include '**/ClientAdminEndpointsDocs.class'
-  include '**/ClientMetadataAdminEndpointsDocs.class'
-  include '**/IdentityProviderEndpointsDocs.class'
-  include '**/IdentityZoneEndpointDocs.class'
-  include '**/IntrospectTokenEndpointDocs.class'
-  include '**/InvitationsEndpointDocs.class'
-  include '**/LoginInfoEndpointDocs.class'
-  include '**/LogoutInfoEndpointDocs.class'
-  include '**/MfaProviderEndpointsDocs.class'
-  include '**/OpenIdConnectEndpointsDocs.class'
+  include '**/*Docs.class'
 }
 
 task(bundleInstall, type: Exec) {

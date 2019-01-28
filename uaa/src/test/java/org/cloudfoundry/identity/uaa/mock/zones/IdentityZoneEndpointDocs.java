@@ -2,32 +2,26 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +31,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
@@ -45,7 +38,6 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,12 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
-public class IdentityZoneEndpointDocs {
-    @Autowired
-    WebApplicationContext webApplicationContext;
-
-    MockMvc mockMvc;
-    TestClient testClient;
+class IdentityZoneEndpointDocs extends EndpointDocs {
 
     private static final String ID_DESC = "Unique ID of the identity zone";
     private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
@@ -162,8 +149,8 @@ public class IdentityZoneEndpointDocs {
         "Hn+GmxZA\n" +
         "-----END CERTIFICATE-----\n";
 
-    public static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
-    public static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
+    private static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
+    private static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
     private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
     private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
@@ -176,16 +163,7 @@ public class IdentityZoneEndpointDocs {
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
 
     @BeforeEach
-    public void setUp(ManualRestDocumentation manualRestDocumentation) throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .apply(documentationConfiguration(manualRestDocumentation)
-                        .uris().withPort(80).and()
-                        .snippets()
-                        .withTemplateFormat(markdown()))
-                .build();
-        testClient = new TestClient(mockMvc);
+    void setUp() {
         Map<String, SystemDeletable> deleteMe = webApplicationContext.getBeansOfType(SystemDeletable.class);
         webApplicationContext.getBean(JdbcIdentityZoneProvisioning.class)
             .retrieveAll()
@@ -197,7 +175,7 @@ public class IdentityZoneEndpointDocs {
     }
 
     @Test
-    public void createIdentityZone() throws Exception {
+    void createIdentityZone() throws Exception {
         String identityClientWriteToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
@@ -346,7 +324,7 @@ public class IdentityZoneEndpointDocs {
     }
 
     @Test
-    public void getIdentityZone() throws Exception {
+    void getIdentityZone() throws Exception {
         String id = "twiglet-get";
         createIdentityZoneHelper(id);
 
@@ -374,7 +352,7 @@ public class IdentityZoneEndpointDocs {
     }
 
     @Test
-    public void getAllIdentityZones() throws Exception {
+    void getAllIdentityZones() throws Exception {
         String id1 = "twiglet-get-1";
         String id2 = "twiglet-get-2";
 
@@ -507,7 +485,7 @@ public class IdentityZoneEndpointDocs {
     }
 
     @Test
-    public void updateIdentityZone() throws Exception {
+    void updateIdentityZone() throws Exception {
         String identityClientWriteToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
@@ -656,7 +634,7 @@ public class IdentityZoneEndpointDocs {
     }
 
     @Test
-    public void deleteIdentityZone() throws Exception {
+    void deleteIdentityZone() throws Exception {
         String id = "twiglet-delete";
         createIdentityZoneHelper(id);
 

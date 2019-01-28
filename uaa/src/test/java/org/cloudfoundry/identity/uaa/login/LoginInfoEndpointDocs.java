@@ -16,7 +16,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -27,50 +27,36 @@ import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.headerWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -83,26 +69,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = TestSpringContext.class)
-public class LoginInfoEndpointDocs {
-
-    @Autowired
-    WebApplicationContext webApplicationContext;
-    MockMvc mockMvc;
-
-    @BeforeEach
-    void setUp(ManualRestDocumentation manualRestDocumentation) {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .apply(documentationConfiguration(manualRestDocumentation)
-                    .uris().withPort(80).and()
-                    .snippets()
-                    .withTemplateFormat(markdown()))
-            .build();
-    }
+class LoginInfoEndpointDocs extends EndpointDocs {
 
     @Test
-    public void info_endpoint_for_json() throws Exception {
+    void info_endpoint_for_json() throws Exception {
         Snippet requestParameters = requestParameters(
                 parameterWithName("origin").optional(null).type(STRING).description("Use the configured prompts of the OpenID Connect Provider with the given origin key in the response. Fallback to zone values if no prompts are configured or origin is invalid.")
         );
@@ -145,7 +115,7 @@ public class LoginInfoEndpointDocs {
     }
 
     @Test
-    public void user_ui_login() throws Exception {
+    void user_ui_login() throws Exception {
         Snippet requestParameters = requestParameters(
             parameterWithName("username").required().type(STRING).description("The username of the user, sometimes the email address."),
             parameterWithName("password").required().type(STRING).description("The user's password"),
@@ -172,7 +142,7 @@ public class LoginInfoEndpointDocs {
     }
 
     @Test
-    public void invalid_request() throws Exception {
+    void invalid_request() throws Exception {
         mockMvc.perform(get("/invalid_request"))
             .andDo(
                 document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()))
@@ -181,7 +151,7 @@ public class LoginInfoEndpointDocs {
     }
 
     @Test
-    public void passcode_request() throws Exception {
+    void passcode_request() throws Exception {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
@@ -210,10 +180,10 @@ public class LoginInfoEndpointDocs {
     }
 
     @Test
-    public void generate_auto_login_code() throws Exception {
+    void generate_auto_login_code() throws Exception {
         generate_auto_login_code(true);
     }
-    public Map<String,Object> generate_auto_login_code(boolean x) throws Exception {
+    Map<String,Object> generate_auto_login_code(boolean x) throws Exception {
         Snippet requestFields = requestFields(
             fieldWithPath("username").required().type(STRING).description("The username for the autologin request"),
             fieldWithPath("password").required().type(STRING).description("The password for the autologin request")
@@ -250,7 +220,7 @@ public class LoginInfoEndpointDocs {
     }
 
     @Test
-    public void perform_auto_login() throws Exception {
+    void perform_auto_login() throws Exception {
         Map<String,Object> code = generate_auto_login_code(true);
         Snippet requestParameters = requestParameters(
             parameterWithName("code").required().type(STRING).description("The code generated from the POST /autologin"),
