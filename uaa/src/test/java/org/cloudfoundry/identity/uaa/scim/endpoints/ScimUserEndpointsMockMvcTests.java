@@ -931,6 +931,28 @@ class ScimUserEndpointsMockMvcTests {
     @TestPropertySource(properties = {"disableInternalUserManagement=true"})
     class WithInternalUserStoreDisabled {
         @Test
+        public void put_updateNothing_shouldFail() throws Exception {
+            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
+            String password = "pas5Word";
+            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
+            scimUser.addEmail(email);
+            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+
+            mockMvc.perform(put("/Users/" + scimUser.getId())
+                        .header("Authorization", "Bearer " + uaaAdminToken)
+                        .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(scimUser)))
+                    .andDo(print())
+                    .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                            new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled"))));
+        }
+
+        @Test
         void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
             String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
             String password = "pas5Word";
