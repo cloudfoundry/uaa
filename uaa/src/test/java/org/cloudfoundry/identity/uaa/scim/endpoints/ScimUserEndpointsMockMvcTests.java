@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,6 +8,7 @@ import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -44,7 +33,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,10 +48,8 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -79,6 +69,7 @@ import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -114,6 +105,10 @@ class ScimUserEndpointsMockMvcTests {
     private MfaProviderProvisioning mfaProviderProvisioning;
     private int usersMaxCount;
 
+    private IdentityProvider identityProvider;
+    private IdentityZone identityZone;
+    private ClientDetails clientInNewZone;
+
     @Autowired
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
@@ -123,6 +118,10 @@ class ScimUserEndpointsMockMvcTests {
     private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     @Autowired
     private JdbcMfaProviderProvisioning jdbcMfaProviderProvisioning;
+    @Autowired
+    private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
+    @Autowired
+    private JdbcQueryableClientDetailsService jdbcClientDetailsService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -148,6 +147,30 @@ class ScimUserEndpointsMockMvcTests {
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
 
         usersMaxCount = Integer.parseInt(webApplicationContext.getEnvironment().getProperty("userMaxCount"));
+
+        IdentityZone newZone = IdentityZone.getUaa();
+        newZone.setSubdomain(generator.generate());
+        newZone.setId(generator.generate());
+        identityZone = jdbcIdentityZoneProvisioning.create(newZone);
+
+        IdentityProvider<UaaIdentityProviderDefinition> newIdentityProvider = new IdentityProvider<>();
+        newIdentityProvider.setIdentityZoneId(identityZone.getId());
+        newIdentityProvider.setName(generator.generate());
+        UaaIdentityProviderDefinition uaaConfig = new UaaIdentityProviderDefinition();
+        newIdentityProvider.setConfig(uaaConfig);
+        newIdentityProvider.setType(OriginKeys.UAA);
+        newIdentityProvider.setOriginKey(OriginKeys.UAA);
+
+        identityProvider = jdbcIdentityProviderProvisioning.create(newIdentityProvider, newIdentityProvider.getIdentityZoneId());
+
+        BaseClientDetails newClient = new BaseClientDetails(generator.generate(),
+                "none",
+                "uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write",
+                "implicit,password,refresh_token",
+                "uaa.none",
+                "http://localhost:8080/**");
+        newClient.setClientSecret("");
+        clientInNewZone = jdbcClientDetailsService.create(newClient, newIdentityProvider.getIdentityZoneId());
     }
 
     @AfterEach
@@ -253,7 +276,7 @@ class ScimUserEndpointsMockMvcTests {
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
         post.with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"));
-        post.header(IdentityZoneSwitchingFilter.HEADER, IdentityZone.getUaa().getId());
+        post.header(HEADER, IdentityZone.getUaa().getId());
 
         mockMvc.perform(post).andExpect(status().isForbidden());
     }
@@ -832,7 +855,7 @@ class ScimUserEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.error", is("invalid_self_edit")))
                 .andExpect(jsonPath("$.error_description", is(
                         "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
-                        "and in that case they may only edit the givenName and familyName.")
+                                "and in that case they may only edit the givenName and familyName.")
                 ));
     }
 
@@ -923,30 +946,36 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Nested
-    @DirtiesContext // BANDAGE: setting disableInternalUserManagement=true mutates the spring context causing tests to fail with a 403
     @ExtendWith(SpringExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
-    @TestPropertySource(properties = {"disableInternalUserManagement=true"})
     class WithInternalUserStoreDisabled {
+        @BeforeEach
+        void disableInternalUserManagement() {
+            ((UaaIdentityProviderDefinition) identityProvider.getConfig()).setDisableInternalUserManagement(true);
+            jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
+        }
+
         @Test
-        public void put_updateNothing_shouldFail() throws Exception {
+        void put_updateNothing_shouldFail() throws Exception {
             String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
 
             mockMvc.perform(put("/Users/" + scimUser.getId())
-                        .header("Authorization", "Bearer " + uaaAdminToken)
-                        .header("If-Match", "\"" + scimUser.getVersion() + "\"")
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsBytes(scimUser)))
+                    .header(HEADER, identityProvider.getIdentityZoneId())
+                    .header("Authorization", "Bearer " + uaaAdminToken)
+                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsBytes(scimUser)))
                     .andDo(print())
+                    .andExpect(status().is(403))
                     .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
                             new JSONObject()
                                     .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
@@ -960,27 +989,34 @@ class ScimUserEndpointsMockMvcTests {
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
 
-            String accessToken = testClient.getUserOAuthAccessToken(
-                    "cf",
+            String accessToken = testClient.getUserOAuthAccessTokenForZone(
+                    clientInNewZone.getClientId(),
                     "",
                     email,
                     password,
-                    "openid");
+                    "openid",
+                    identityZone.getSubdomain());
 
             String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
             scimUser.setEmails(null);
             scimUser.addEmail(newEmail);
 
             MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
+                    .header("Host", identityZone.getSubdomain() + ".localhost")
                     .header("Authorization", "Bearer " + accessToken)
                     .header("If-Match", "\"" + scimUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
                     .content(JsonUtils.writeValueAsBytes(scimUser));
             mockMvc.perform(put).andDo(print())
-                    .andExpect(status().is(403));
+                    .andExpect(status().is(403))
+                    .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                            new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled"))));
         }
 
         @Test
@@ -989,26 +1025,33 @@ class ScimUserEndpointsMockMvcTests {
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
+            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
 
-            String accessToken = testClient.getUserOAuthAccessToken(
-                    "cf",
+            String accessToken = testClient.getUserOAuthAccessTokenForZone(
+                    clientInNewZone.getClientId(),
                     "",
                     email,
                     password,
-                    "openid");
+                    "openid",
+                    identityZone.getSubdomain());
 
             String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
             scimUser.addEmail(newEmail);
 
             MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
+                    .header("Host", identityZone.getSubdomain() + ".localhost")
                     .header("Authorization", "Bearer " + accessToken)
                     .header("If-Match", "\"" + scimUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
                     .content(JsonUtils.writeValueAsBytes(scimUser));
             mockMvc.perform(patch)
-                    .andExpect(status().is(403));
+                    .andExpect(status().is(403))
+                    .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                            new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled"))));
         }
 
     }
@@ -1036,7 +1079,7 @@ class ScimUserEndpointsMockMvcTests {
 
         mockMvc.perform(put("/Users/" + user.getId())
                 .header("Authorization", "Bearer " + uaaAdminToken)
-                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                .header(HEADER, identityZone.getId())
                 .header("If-Match", "\"" + user.getVersion() + "\"")
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsBytes(user)))
@@ -1094,7 +1137,7 @@ class ScimUserEndpointsMockMvcTests {
 
         mockMvc.perform((delete("/Users/" + user.getId()))
                 .header("Authorization", "Bearer " + uaaAdminToken)
-                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                .header(HEADER, identityZone.getId())
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsBytes(user)))
                 .andExpect(status().isOk())
@@ -1183,7 +1226,7 @@ class ScimUserEndpointsMockMvcTests {
 
         MockHttpServletRequestBuilder delete = delete("/Users/" + user.getId() + "/mfa")
                 .header("Authorization", "Bearer " + uaaAdminTokenFromOtherZone)
-                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                .header(HEADER, identityZone.getId())
                 .contentType(APPLICATION_JSON);
 
         mockMvc.perform(delete)
@@ -1357,7 +1400,7 @@ class ScimUserEndpointsMockMvcTests {
                 .content(requestBody);
         if (subdomain != null && !subdomain.equals(""))
             post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
-        if (switchZone != null) post.header(IdentityZoneSwitchingFilter.HEADER, switchZone);
+        if (switchZone != null) post.header(HEADER, switchZone);
 
         return mockMvc.perform(post);
     }
