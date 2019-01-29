@@ -56,6 +56,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
@@ -922,6 +923,7 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Nested
+    @DirtiesContext // BANDAGE: setting disableInternalUserManagement=true mutates the spring context causing tests to fail with a 403
     @ExtendWith(SpringExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
