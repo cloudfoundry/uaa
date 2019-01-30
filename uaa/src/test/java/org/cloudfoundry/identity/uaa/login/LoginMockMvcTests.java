@@ -221,7 +221,6 @@ public class LoginMockMvcTests {
     @AfterEach
     void tearDown() throws Exception {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), true);
-        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, getUaa().getId(), false);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), originalConfiguration);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -563,6 +562,7 @@ public class LoginMockMvcTests {
                 .andExpect(view().name("login"))
                 .andExpect(model().attributeExists("prompts"))
                 .andExpect(content().string(not(containsString("/create_account"))));
+        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, getUaa().getId(), false);
     }
 
     @Nested
