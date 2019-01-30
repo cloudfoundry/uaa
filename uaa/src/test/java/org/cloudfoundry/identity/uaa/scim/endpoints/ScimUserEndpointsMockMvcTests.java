@@ -920,27 +920,27 @@ class ScimUserEndpointsMockMvcTests {
     @ContextConfiguration(classes = TestSpringContext.class)
     class WithInternalUserStoreDisabled {
         private ZoneSeeder zoneSeeder;
+        private ScimUser seededUser;
 
         @BeforeEach
         void disableInternalUserManagement(ZoneSeeder zoneSeeder) {
-            this.zoneSeeder = zoneSeeder.withDisableInternalUserManagement(true).seed();
+            this.zoneSeeder = zoneSeeder
+                    .withDefaults()
+                    .withDisableInternalUserManagement(true)
+                    .withImplicitPasswordRefreshTokenClient()
+                    .seed();
+            seededUser = zoneSeeder.createUser();
         }
 
         @Test
         void put_updateNothing_shouldFail() throws Exception {
-            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
-            String password = "pas5Word";
-            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
-            scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
-
-            mockMvc.perform(put("/Users/" + scimUser.getId())
-                    .header(HEADER, zoneSeeder.getIdentityZone().getId())
+            mockMvc.perform(put("/Users/" + seededUser.getId())
+                    .headers(zoneSeeder.getZoneIdRequestHeader())
                     .header("Authorization", "Bearer " + uaaAdminToken)
-                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .header("If-Match", "\"" + seededUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsBytes(scimUser)))
+                    .content(JsonUtils.writeValueAsBytes(seededUser)))
                     .andDo(print())
                     .andExpect(status().is(403))
                     .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -952,31 +952,24 @@ class ScimUserEndpointsMockMvcTests {
 
         @Test
         void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
-            String password = "pas5Word";
-            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
-            scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
-
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    zoneSeeder.getClientDetails().getClientId(),
+                    zoneSeeder.getImplicitPasswordRefreshTokenClient().getClientId(),
                     "",
-                    email,
-                    password,
+                    seededUser.getUserName(),
+                    zoneSeeder.getPlainTextPassword(seededUser),
                     "openid",
-                    zoneSeeder.getIdentityZone().getSubdomain());
+                    zoneSeeder.getIdentityZoneSubdomain());
 
-            String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
-            scimUser.setEmails(null);
-            scimUser.addEmail(newEmail);
+            seededUser.setEmails(null);
+            seededUser.addEmail("resetEmail@mail.com");
 
-            MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
-                    .header("Host", zoneSeeder.getIdentityZone().getSubdomain() + ".localhost")
+            MockHttpServletRequestBuilder put = put("/Users/" + seededUser.getId())
+                    .headers(zoneSeeder.getZoneSubomainRequestHeader())
                     .header("Authorization", "Bearer " + accessToken)
-                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .header("If-Match", "\"" + seededUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsBytes(scimUser));
+                    .content(JsonUtils.writeValueAsBytes(seededUser));
             mockMvc.perform(put).andDo(print())
                     .andExpect(status().is(403))
                     .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -988,30 +981,23 @@ class ScimUserEndpointsMockMvcTests {
 
         @Test
         void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-            String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
-            String password = "pas5Word";
-            ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
-            scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
-
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    zoneSeeder.getClientDetails().getClientId(),
+                    zoneSeeder.getImplicitPasswordRefreshTokenClient().getClientId(),
                     "",
-                    email,
-                    password,
+                    seededUser.getUserName(),
+                    zoneSeeder.getPlainTextPassword(seededUser),
                     "openid",
-                    zoneSeeder.getIdentityZone().getSubdomain());
+                    zoneSeeder.getIdentityZoneSubdomain());
 
-            String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
-            scimUser.addEmail(newEmail);
+            seededUser.addEmail("addAnotherNew@email.com");
 
-            MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
-                    .header("Host", zoneSeeder.getIdentityZone().getSubdomain() + ".localhost")
+            MockHttpServletRequestBuilder patch = patch("/Users/" + seededUser.getId())
+                    .headers(zoneSeeder.getZoneSubomainRequestHeader())
                     .header("Authorization", "Bearer " + accessToken)
-                    .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                    .header("If-Match", "\"" + seededUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsBytes(scimUser));
+                    .content(JsonUtils.writeValueAsBytes(seededUser));
             mockMvc.perform(patch)
                     .andExpect(status().is(403))
                     .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
