@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.TestSpringContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -26,9 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
-import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
-import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -85,6 +82,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(ZoneSeederExtension.class)
 @ExtendWith(HoneycombJdbcInterceptorExtension.class)
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
@@ -105,10 +103,6 @@ class ScimUserEndpointsMockMvcTests {
     private MfaProviderProvisioning mfaProviderProvisioning;
     private int usersMaxCount;
 
-    private IdentityProvider identityProvider;
-    private IdentityZone identityZone;
-    private ClientDetails clientInNewZone;
-
     @Autowired
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
@@ -118,10 +112,6 @@ class ScimUserEndpointsMockMvcTests {
     private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     @Autowired
     private JdbcMfaProviderProvisioning jdbcMfaProviderProvisioning;
-    @Autowired
-    private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
-    @Autowired
-    private JdbcQueryableClientDetailsService jdbcClientDetailsService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -147,30 +137,6 @@ class ScimUserEndpointsMockMvcTests {
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
 
         usersMaxCount = Integer.parseInt(webApplicationContext.getEnvironment().getProperty("userMaxCount"));
-
-        IdentityZone newZone = IdentityZone.getUaa();
-        newZone.setSubdomain(generator.generate());
-        newZone.setId(generator.generate());
-        identityZone = jdbcIdentityZoneProvisioning.create(newZone);
-
-        IdentityProvider<UaaIdentityProviderDefinition> newIdentityProvider = new IdentityProvider<>();
-        newIdentityProvider.setIdentityZoneId(identityZone.getId());
-        newIdentityProvider.setName(generator.generate());
-        UaaIdentityProviderDefinition uaaConfig = new UaaIdentityProviderDefinition();
-        newIdentityProvider.setConfig(uaaConfig);
-        newIdentityProvider.setType(OriginKeys.UAA);
-        newIdentityProvider.setOriginKey(OriginKeys.UAA);
-
-        identityProvider = jdbcIdentityProviderProvisioning.create(newIdentityProvider, newIdentityProvider.getIdentityZoneId());
-
-        BaseClientDetails newClient = new BaseClientDetails(generator.generate(),
-                "none",
-                "uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write",
-                "implicit,password,refresh_token",
-                "uaa.none",
-                "http://localhost:8080/**");
-        newClient.setClientSecret("");
-        clientInNewZone = jdbcClientDetailsService.create(newClient, newIdentityProvider.getIdentityZoneId());
     }
 
     @AfterEach
@@ -953,10 +919,11 @@ class ScimUserEndpointsMockMvcTests {
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
     class WithInternalUserStoreDisabled {
+        private ZoneSeeder zoneSeeder;
+
         @BeforeEach
-        void disableInternalUserManagement() {
-            ((UaaIdentityProviderDefinition) identityProvider.getConfig()).setDisableInternalUserManagement(true);
-            jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
+        void disableInternalUserManagement(ZoneSeeder zoneSeeder) {
+            this.zoneSeeder = zoneSeeder.withDisableInternalUserManagement(true).seed();
         }
 
         @Test
@@ -965,10 +932,10 @@ class ScimUserEndpointsMockMvcTests {
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
+            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
 
             mockMvc.perform(put("/Users/" + scimUser.getId())
-                    .header(HEADER, identityProvider.getIdentityZoneId())
+                    .header(HEADER, zoneSeeder.getIdentityZone().getId())
                     .header("Authorization", "Bearer " + uaaAdminToken)
                     .header("If-Match", "\"" + scimUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
@@ -989,22 +956,22 @@ class ScimUserEndpointsMockMvcTests {
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
+            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
 
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    clientInNewZone.getClientId(),
+                    zoneSeeder.getClientDetails().getClientId(),
                     "",
                     email,
                     password,
                     "openid",
-                    identityZone.getSubdomain());
+                    zoneSeeder.getIdentityZone().getSubdomain());
 
             String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
             scimUser.setEmails(null);
             scimUser.addEmail(newEmail);
 
             MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
-                    .header("Host", identityZone.getSubdomain() + ".localhost")
+                    .header("Host", zoneSeeder.getIdentityZone().getSubdomain() + ".localhost")
                     .header("Authorization", "Bearer " + accessToken)
                     .header("If-Match", "\"" + scimUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
@@ -1025,21 +992,21 @@ class ScimUserEndpointsMockMvcTests {
             String password = "pas5Word";
             ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
             scimUser.addEmail(email);
-            scimUser = usersRepository.createUser(scimUser, password, identityProvider.getIdentityZoneId());
+            scimUser = usersRepository.createUser(scimUser, password, zoneSeeder.getIdentityZone().getId());
 
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    clientInNewZone.getClientId(),
+                    zoneSeeder.getClientDetails().getClientId(),
                     "",
                     email,
                     password,
                     "openid",
-                    identityZone.getSubdomain());
+                    zoneSeeder.getIdentityZone().getSubdomain());
 
             String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
             scimUser.addEmail(newEmail);
 
             MockHttpServletRequestBuilder patch = patch("/Users/" + scimUser.getId())
-                    .header("Host", identityZone.getSubdomain() + ".localhost")
+                    .header("Host", zoneSeeder.getIdentityZone().getSubdomain() + ".localhost")
                     .header("Authorization", "Bearer " + accessToken)
                     .header("If-Match", "\"" + scimUser.getVersion() + "\"")
                     .accept(APPLICATION_JSON)
