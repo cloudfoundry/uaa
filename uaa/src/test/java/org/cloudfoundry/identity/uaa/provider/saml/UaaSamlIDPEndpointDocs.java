@@ -23,6 +23,8 @@ import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -147,6 +149,7 @@ class UaaSamlIDPEndpointDocs extends EndpointDocs {
         staticAttributes.put("organization-emails", Arrays.asList("contact@demoorg.com", "info@demo.org"));
         requestBody.getConfig().setStaticCustomAttributes(staticAttributes);
         requestBody.getConfig().getAttributeMappings().put("email", "primary-email");
+        IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
     }
 
     @Test
