@@ -39,8 +39,13 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEA
  * Can be injected into your before or test method as a parameter (see {@link ZoneSeederExtension}).
  *
  * Use the with*() methods to configure, then call {@link #seed()} to create the data in the db.
- * After calling {@link #seed()}, use the get*() methods to query what was created,
+ * Add callbacks with the {@link #afterSeeding(AfterSeedCallback)} method if you need to do
+ * additional setup after the seed but before your test starts.
+ * After seeding has happened, use the get*() methods to query what was created,
  * and use the create*() methods to keep creating more objects in the zone.
+ *
+ * {@link #seed()} will automatically be called by {@link ZoneSeederExtension#beforeTestExecution(ExtensionContext)}
+ * which happens after all beforeEach methods, just before the test itself is executed.
  *
  * {@link #destroy()} will automatically be called by {@link ZoneSeederExtension#afterEach(ExtensionContext)}
  * to perform a cascading delete of the zone and its contents after each test.
@@ -58,6 +63,8 @@ public class ZoneSeeder {
     private final JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
     private final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
+    private boolean alreadySeeded = false;
+
     private boolean disableInternalUserManagement = false;
 
     private final List<ClientDetails> clientDetailsToCreate = new ArrayList<>();
@@ -71,6 +78,7 @@ public class ZoneSeeder {
     private final Map<String, ScimUser> users = new HashMap<>();
     private final Map<String, String> plainTextPasswordsForUsers = new HashMap<>();
     private final Map<String, String> plainTextClientSecretsForClients = new HashMap<>();
+    private List<AfterSeedCallback> afterSeedCallbacks = new ArrayList<>();
 
     public ZoneSeeder(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
@@ -113,10 +121,10 @@ public class ZoneSeeder {
         );
     }
 
-    public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants(String clientId, String scopes) {
+    public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants(String clientId, String commaSeparatedScopeNames) {
         BaseClientDetails newClient = new BaseClientDetails(clientId,
                 "none",
-                scopes,
+                commaSeparatedScopeNames,
                 "implicit,password,refresh_token",
                 "uaa.none",
                 "http://localhost:8080/**");
@@ -138,31 +146,53 @@ public class ZoneSeeder {
         return this;
     }
 
+    public ZoneSeeder withUser(String email) {
+        return withUserWhoBelongsToGroups(email, new ArrayList<>());
+    }
+
     public ZoneSeeder withUserWhoBelongsToGroups(String email, List<String> belongsToGroupNames) {
         usersInGroupsToCreate.put(email, belongsToGroupNames);
         return this;
     }
 
+    public interface AfterSeedCallback {
+        void afterSeed(ZoneSeeder zoneSeeder);
+    }
+
+    public ZoneSeeder afterSeeding(AfterSeedCallback callback) {
+        afterSeedCallbacks.add(callback);
+        return this;
+    }
+
     public ZoneSeeder seed() {
+        if (alreadySeeded) {
+            return this;
+        }
+        alreadySeeded = true;
+
         String zoneId = generator.generate();
 
+        // Make the zone
         IdentityZone identityZoneToCreate = IdentityZone.getUaa();
         identityZoneToCreate.setSubdomain(generator.generate());
         identityZoneToCreate.setId(zoneId);
         this.identityZone = jdbcIdentityZoneProvisioning.create(identityZoneToCreate);
 
+        // Make the IDP
         identityProviderToCreate.setIdentityZoneId(zoneId);
         uaaIdentityProviderDefinitionToCreate.setDisableInternalUserManagement(disableInternalUserManagement);
         identityProvider = jdbcIdentityProviderProvisioning.create(identityProviderToCreate, zoneId);
         identityProviderToCreate = null;
         uaaIdentityProviderDefinitionToCreate = null;
 
+        // Make the clients
         for (ClientDetails clientDetails : clientDetailsToCreate) {
             plainTextClientSecretsForClients.put(clientDetails.getClientId(), clientDetails.getClientSecret());
             this.clientDetails.put(clientDetails.getClientId(), jdbcClientDetailsService.create(clientDetails, zoneId));
         }
         clientDetailsToCreate.clear();
 
+        // Make the users
         for (String email : usersInGroupsToCreate.keySet()) {
             ScimUser createdUser = provisionScimUser(newScimUser(email));
             List<String> groupNames = usersInGroupsToCreate.get(email);
@@ -173,6 +203,10 @@ public class ZoneSeeder {
             users.put(refreshedUser.getId(), refreshedUser);
         }
         usersInGroupsToCreate.clear();
+
+        for (AfterSeedCallback callback : afterSeedCallbacks) {
+            callback.afterSeed(this);
+        }
 
         return this;
     }

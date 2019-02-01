@@ -306,7 +306,7 @@ public class ScimUserEndpointsTests {
         validateUserGroups(created, "uaa.user");
 
         created.setGroups(asList(new ScimUser.Group(null, "test1")));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse(), null);
         validateUserGroups(updated, "uaa.user");
     }
 
@@ -376,7 +376,7 @@ public class ScimUserEndpointsTests {
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
             .setStatus(Approval.ApprovalStatus.APPROVED)));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse(), null);
         assertEquals(2, updated.getApprovals().size());
     }
 
@@ -931,7 +931,7 @@ public class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        endpoints.updateUser(joel, joel.getId(), "*", new MockHttpServletRequest(), httpServletResponse);
+        endpoints.updateUser(joel, joel.getId(), "*", new MockHttpServletRequest(), httpServletResponse, null);
         assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
     }
 
@@ -956,7 +956,7 @@ public class ScimUserEndpointsTests {
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT, true);
-        endpoints.updateUser(user, user.getId(), "*", request, httpServletResponse);
+        endpoints.updateUser(user, user.getId(), "*", request, httpServletResponse, null);
     }
 
     @Test
@@ -1053,7 +1053,7 @@ public class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(user.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(user.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null);
         assertEquals(user.getUserName(), patchedUser.getUserName());
         assertEquals(user.getName().getGivenName(), patchedUser.getName().getGivenName());
         assertEquals(user.getName().getFamilyName(), patchedUser.getName().getFamilyName());
@@ -1077,7 +1077,7 @@ public class ScimUserEndpointsTests {
         email.setValue("example@example.org");
         email.setPrimary(true);
         createdUser.setEmails(asList(email));
-        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null);
         assertEquals(createdUser.getId(), patchedUser.getId());
         assertEquals(user.getUserName(), patchedUser.getUserName());
         assertEquals(null, patchedUser.getName().getFamilyName());
@@ -1092,7 +1092,7 @@ public class ScimUserEndpointsTests {
     public void testPatchUnknownUserFails() {
         ScimUser user = new ScimUser(null, "uname", "gname", "fname");
         user.addEmail("test@example.org");
-        endpoints.patchUser(user, UUID.randomUUID().toString(), "0", new MockHttpServletRequest(), new MockHttpServletResponse());
+        endpoints.patchUser(user, UUID.randomUUID().toString(), "0", new MockHttpServletRequest(), new MockHttpServletResponse(), null);
     }
 
     @Test
@@ -1102,7 +1102,7 @@ public class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         user = new ScimUser();
-        ScimUser patchedUser = endpoints.patchUser(user, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser patchedUser = endpoints.patchUser(user, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null);
         assertEquals(createdUser.getUserName(), patchedUser.getUserName());
         assertEquals(createdUser.getName().getGivenName(), patchedUser.getName().getGivenName());
         assertEquals(createdUser.getName().getFamilyName(), patchedUser.getName().getFamilyName());
@@ -1118,7 +1118,7 @@ public class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         createdUser.getMeta().setAttributes(new String[]{"attributeName"});
-        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null);
     }
 
     @Test(expected = ScimResourceConflictException.class)
@@ -1127,7 +1127,7 @@ public class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("test@example.org");
         ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()+1), new MockHttpServletRequest(), new MockHttpServletResponse());
+        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()+1), new MockHttpServletRequest(), new MockHttpServletResponse(), null);
     }
 
     @Test

@@ -57,6 +57,7 @@ import org.springframework.jmx.support.MetricType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -207,10 +208,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
                                @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                                HttpServletRequest request,
-                    HttpServletResponse httpServletResponse) {
+                               HttpServletResponse httpServletResponse,
+                               OAuth2Authentication authentication) {
 
         throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
-        throwWhenInvalidSelfEdit(user, userId, request);
+        throwWhenInvalidSelfEdit(user, userId, request, authentication);
 
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
@@ -234,7 +236,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public ScimUser patchUser(@RequestBody ScimUser patch, @PathVariable String userId,
                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                               HttpServletRequest request,
-                              HttpServletResponse response) {
+                              HttpServletResponse response,
+                              OAuth2Authentication authentication) {
 
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
@@ -250,7 +253,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 existing.setEmails(new ArrayList<>());
                 existing.setPrimaryEmail(primary);
             }
-            return updateUser(existing, userId, etag, request, response);
+            return updateUser(existing, userId, etag, request, response, authentication);
         } catch (IllegalArgumentException x) {
             throw new InvalidScimResourceException(x.getMessage());
         }
@@ -612,9 +615,13 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.statuses = statuses;
     }
 
-    private void throwWhenInvalidSelfEdit(@RequestBody ScimUser user, @PathVariable String userId, HttpServletRequest request) {
+    private void throwWhenInvalidSelfEdit(@RequestBody ScimUser user, @PathVariable String userId, HttpServletRequest request, Authentication authentication) {
         boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
         if (!isSelfEdit) {
+            return;
+        }
+
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"uaa.admin", "scim.write"})) {
             return;
         }
 
