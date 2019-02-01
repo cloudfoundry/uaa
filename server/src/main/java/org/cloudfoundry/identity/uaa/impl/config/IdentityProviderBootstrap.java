@@ -13,13 +13,8 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -35,9 +30,6 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,6 +39,13 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -140,7 +139,7 @@ public class IdentityProviderBootstrap
          */
         boolean override = ldapConfig == null || ldapConfig.get("override") == null ? true : (boolean) ldapConfig.get("override");
         if (!override) {
-            IdentityProvider existing = getProviderByOrigin(LDAP, IdentityZone.getUaa().getId());
+            IdentityProvider existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaa().getId());
             override = existing == null || existing.getConfig() == null;
         }
         IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
@@ -227,7 +226,7 @@ public class IdentityProviderBootstrap
                 //dont process origins slated for deletion
                 continue;
             }
-            IdentityProvider existing = getProviderByOrigin(provider.getOriginKey(), zoneId);
+            IdentityProvider existing = getProviderByOriginIgnoreActiveFlag(provider.getOriginKey(), zoneId);
             provider.setIdentityZoneId(zoneId);
             if (existing==null) {
                 provisioning.create(provider, zoneId);
@@ -242,9 +241,9 @@ public class IdentityProviderBootstrap
         updateDefaultZoneUaaIDP();
     }
 
-    public IdentityProvider getProviderByOrigin(String origin, String zoneId) {
+    public IdentityProvider getProviderByOriginIgnoreActiveFlag(String origin, String zoneId) {
         try {
-            return provisioning.retrieveByOrigin(origin, zoneId);
+            return provisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
         }catch (EmptyResultDataAccessException x){
         }
         return null;
@@ -254,29 +253,28 @@ public class IdentityProviderBootstrap
     private void deleteIdentityProviders(String zoneId) {
         for (String origin : getOriginsToDelete()) {
             if (!UAA.equals(origin) && !LDAP.equals(origin)) {
-                try {
-                    logger.debug("Attempting to deactivating identity provider:"+origin);
-                    IdentityProvider provider = provisioning.retrieveByOrigin(origin, zoneId);
-                    //delete provider
+                logger.debug("Attempting to deactivating identity provider:"+origin);
+                IdentityProvider provider = getProviderByOriginIgnoreActiveFlag(origin, zoneId);
+                //delete provider
+                if (provider != null) {
                     EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION);
-                    if (this.publisher!=null) {
+                    if (this.publisher != null) {
                         publisher.publishEvent(event);
-                        logger.debug("Identity provider deactivated:"+origin);
+                        logger.debug("Identity provider deactivated:" + origin);
                     } else {
                         logger.warn(
-                            String.format("Unable to delete identity provider with origin '%s', no application publisher",
-                                          origin)
+                                String.format("Unable to delete identity provider with origin '%s', no application publisher",
+                                        origin)
                         );
                     }
-
-                } catch (EmptyResultDataAccessException x) {}
+                }
             }
         }
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
         String zoneId = IdentityZone.getUaa().getId();
-        IdentityProvider internalIDP = provisioning.retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
