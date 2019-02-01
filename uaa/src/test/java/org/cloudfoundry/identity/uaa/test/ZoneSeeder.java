@@ -9,9 +9,15 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.context.ApplicationContext;
@@ -40,25 +46,31 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEA
  * to perform a cascading delete of the zone and its contents after each test.
  */
 public class ZoneSeeder {
-    private static final String WITH_IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID = "with_implict_password_refresh_token";
+    private static final String IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID = "implict_password_refresh_token";
+    private static final String ADMIN_CLIENT_CREDENTIALS_CLIENT_ID = "admin_client_credentials";
 
     private final ApplicationContext applicationContext;
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
     private final JdbcQueryableClientDetailsService jdbcClientDetailsService;
     private final RandomValueStringGenerator generator;
-    private final ScimUserProvisioning scimUserProvisioning;
+    private final ScimUserProvisioning jdbcScimUserProvisioning;
+    private final JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
+    private final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
     private boolean disableInternalUserManagement = false;
 
     private final List<ClientDetails> clientDetailsToCreate = new ArrayList<>();
+    private final HashMap<String, List<String>> usersInGroupsToCreate = new HashMap<>();
     private IdentityProvider identityProviderToCreate;
     private UaaIdentityProviderDefinition uaaIdentityProviderDefinitionToCreate;
 
     private IdentityZone identityZone;
     private IdentityProvider identityProvider;
     private final Map<String, ClientDetails> clientDetails = new HashMap<>();
+    private final Map<String, ScimUser> users = new HashMap<>();
     private final Map<String, String> plainTextPasswordsForUsers = new HashMap<>();
+    private final Map<String, String> plainTextClientSecretsForClients = new HashMap<>();
 
     public ZoneSeeder(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
@@ -66,7 +78,9 @@ public class ZoneSeeder {
         jdbcIdentityZoneProvisioning = applicationContext.getBean(JdbcIdentityZoneProvisioning.class);
         jdbcIdentityProviderProvisioning = applicationContext.getBean(JdbcIdentityProviderProvisioning.class);
         jdbcClientDetailsService = applicationContext.getBean(JdbcQueryableClientDetailsService.class);
-        scimUserProvisioning = applicationContext.getBean(ScimUserProvisioning.class);
+        jdbcScimUserProvisioning = applicationContext.getBean(JdbcScimUserProvisioning.class);
+        jdbcScimGroupProvisioning = applicationContext.getBean(JdbcScimGroupProvisioning.class);
+        jdbcScimGroupMembershipManager = applicationContext.getBean(JdbcScimGroupMembershipManager.class);
 
         generator = new RandomValueStringGenerator();
     }
@@ -91,16 +105,41 @@ public class ZoneSeeder {
         return this;
     }
 
-    public ZoneSeeder withImplicitPasswordRefreshTokenClient() {
-        BaseClientDetails newClient = new BaseClientDetails(WITH_IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID,
+    public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants() {
+        return withClientWithImplicitPasswordRefreshTokenGrants(
+                IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID,
+                "uaa.user,cloud_controller.read,cloud_controller.write,openid," +
+                        "password.write,scim.userids,cloud_controller.admin,scim.read,scim.write"
+        );
+    }
+
+    public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants(String clientId, String scopes) {
+        BaseClientDetails newClient = new BaseClientDetails(clientId,
                 "none",
-                "uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write",
+                scopes,
                 "implicit,password,refresh_token",
                 "uaa.none",
                 "http://localhost:8080/**");
-        newClient.setClientSecret("");
+        newClient.setClientSecret(generator.generate());
         clientDetailsToCreate.add(newClient);
 
+        return this;
+    }
+
+    public ZoneSeeder withAdminClientWithClientCredentialsGrant() {
+        BaseClientDetails newClient = new BaseClientDetails(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID,
+                "none",
+                "uaa.none",
+                "client_credentials",
+                "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin");
+        newClient.setClientSecret("adminsecret");
+        clientDetailsToCreate.add(newClient);
+
+        return this;
+    }
+
+    public ZoneSeeder withUserWhoBelongsToGroups(String email, List<String> belongsToGroupNames) {
+        usersInGroupsToCreate.put(email, belongsToGroupNames);
         return this;
     }
 
@@ -119,9 +158,21 @@ public class ZoneSeeder {
         uaaIdentityProviderDefinitionToCreate = null;
 
         for (ClientDetails clientDetails : clientDetailsToCreate) {
+            plainTextClientSecretsForClients.put(clientDetails.getClientId(), clientDetails.getClientSecret());
             this.clientDetails.put(clientDetails.getClientId(), jdbcClientDetailsService.create(clientDetails, zoneId));
         }
         clientDetailsToCreate.clear();
+
+        for (String email : usersInGroupsToCreate.keySet()) {
+            ScimUser createdUser = provisionScimUser(newScimUser(email));
+            List<String> groupNames = usersInGroupsToCreate.get(email);
+            for (String groupName : groupNames) {
+                provisionGroupMembership(createdUser, groupName);
+            }
+            ScimUser refreshedUser = jdbcScimUserProvisioning.retrieve(createdUser.getId(), getIdentityZoneId());
+            users.put(refreshedUser.getId(), refreshedUser);
+        }
+        usersInGroupsToCreate.clear();
 
         return this;
     }
@@ -137,15 +188,29 @@ public class ZoneSeeder {
     }
 
     public ScimUser createUser() {
-        ScimUser scimUser = newRandomScimUser();
-        String password = scimUser.getPassword();
-        ScimUser createdUser = scimUserProvisioning.createUser(scimUser, password, getIdentityZoneId());
-        plainTextPasswordsForUsers.put(createdUser.getId(), password);
-        return createdUser;
+        String email = generator.generate().toLowerCase() + "@" + generator.generate().toLowerCase() + ".com";
+        return provisionScimUser(newScimUser(email));
+    }
+
+    public ScimUser getUserByEmail(String email) {
+        return users.entrySet().stream()
+                .filter(entry -> entry.getValue().getPrimaryEmail().equals(email))
+                .findFirst().get().getValue();
+    }
+
+    public ClientDetails getClientById(String clientId) {
+        return clientDetails.entrySet().stream()
+                .filter(entry -> entry.getKey().equals(clientId))
+                .findFirst()
+                .get().getValue();
     }
 
     public String getPlainTextPassword(ScimUser user) {
         return plainTextPasswordsForUsers.get(user.getId());
+    }
+
+    public String getPlainTextClientSecret(ClientDetails clientDetails) {
+        return plainTextClientSecretsForClients.get(clientDetails.getClientId());
     }
 
     public String getIdentityZoneId() {
@@ -176,12 +241,36 @@ public class ZoneSeeder {
         return identityProvider;
     }
 
-    public ClientDetails getImplicitPasswordRefreshTokenClient() {
-        return clientDetails.get(WITH_IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID);
+    public ClientDetails getClientWithImplicitPasswordRefreshTokenGrants() {
+        return clientDetails.get(IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID);
     }
 
-    private ScimUser newRandomScimUser() {
-        String email = generator.generate().toLowerCase() + "@" + generator.generate().toLowerCase() + ".com";
+    public ClientDetails getAdminClientWithClientCredentialsGrant() {
+        return clientDetails.get(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID);
+    }
+
+    private void provisionGroupMembership(ScimUser scimUser, String groupName) {
+        ScimGroup group = jdbcScimGroupProvisioning.getByName(groupName, getIdentityZoneId());
+
+        String originalZoneId = IdentityZoneHolder.get().getId();
+        IdentityZoneHolder.get().setId(getIdentityZoneId()); // jdbcScimGroupMembershipManager#addMember needs this to be set :(
+
+        jdbcScimGroupMembershipManager.addMember(
+                group.getId(), new ScimGroupMember(scimUser.getId()), getIdentityZoneId()
+        );
+
+        IdentityZoneHolder.get().setId(originalZoneId);
+    }
+
+    private ScimUser provisionScimUser(ScimUser scimUser) {
+        String password = scimUser.getPassword();
+        ScimUser createdUser = jdbcScimUserProvisioning.createUser(scimUser, password, getIdentityZoneId());
+        plainTextPasswordsForUsers.put(createdUser.getId(), password);
+        users.put(createdUser.getId(), createdUser);
+        return createdUser;
+    }
+
+    private ScimUser newScimUser(String email) {
         ScimUser scimUser = new ScimUser(null, email, generator.generate(), generator.generate());
         scimUser.addEmail(email);
         scimUser.setPassword(generator.generate());

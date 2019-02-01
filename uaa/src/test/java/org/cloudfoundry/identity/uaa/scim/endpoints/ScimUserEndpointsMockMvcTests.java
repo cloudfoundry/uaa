@@ -927,7 +927,7 @@ class ScimUserEndpointsMockMvcTests {
             this.zoneSeeder = zoneSeeder
                     .withDefaults()
                     .withDisableInternalUserManagement(true)
-                    .withImplicitPasswordRefreshTokenClient()
+                    .withClientWithImplicitPasswordRefreshTokenGrants()
                     .seed();
             seededUser = zoneSeeder.createUser();
         }
@@ -953,8 +953,8 @@ class ScimUserEndpointsMockMvcTests {
         @Test
         void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    zoneSeeder.getImplicitPasswordRefreshTokenClient().getClientId(),
-                    "",
+                    zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
+                    zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
                     seededUser.getUserName(),
                     zoneSeeder.getPlainTextPassword(seededUser),
                     "openid",
@@ -982,8 +982,8 @@ class ScimUserEndpointsMockMvcTests {
         @Test
         void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
             String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    zoneSeeder.getImplicitPasswordRefreshTokenClient().getClientId(),
-                    "",
+                    zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
+                    zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
                     seededUser.getUserName(),
                     zoneSeeder.getPlainTextPassword(seededUser),
                     "openid",
