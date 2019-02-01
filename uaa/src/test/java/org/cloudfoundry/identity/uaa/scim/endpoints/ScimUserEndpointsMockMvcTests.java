@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.cloudfoundry.identity.uaa.TestSpringContext;
@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -36,8 +35,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -63,7 +60,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -826,92 +822,6 @@ class ScimUserEndpointsMockMvcTests {
                 ));
     }
 
-    static class PatchTestParams {
-        int expectedHttpStatusCode;
-        final ScimUser scimUserToStoreInDB;
-        final ScimUser scimUserToUseInRequest;
-        String expectedJsonPath;
-        String expectedValueAtJsonPath;
-        private String testDescription;
-
-        PatchTestParams(String testDescription, ScimUser scimUserToStoreInDB, ScimUser scimUserToUseInRequest, int expectedHttpStatusCode, String expectedJsonPath, String expectedValueAtJsonPath) {
-            this.scimUserToStoreInDB = scimUserToStoreInDB;
-            this.scimUserToUseInRequest = scimUserToUseInRequest;
-            this.expectedHttpStatusCode = expectedHttpStatusCode;
-            this.testDescription = testDescription;
-            this.expectedJsonPath = expectedJsonPath;
-            this.expectedValueAtJsonPath = expectedValueAtJsonPath;
-        }
-
-        @Override
-        public String toString() {
-            return testDescription;
-        }
-    }
-
-    private static ScimUser[] makeTwoIdenticalUsers() {
-        String email = "user@" + RandomStringUtils.randomAlphabetic(5) + ".com";
-        String givenName = "givenName";
-        String familyName = "familyName";
-
-        ScimUser scimUserToStoreInDB = new ScimUser(null, email, givenName, familyName);
-        scimUserToStoreInDB.addEmail(email);
-        ScimUser scimUserToUseInRequest = new ScimUser(null, email, givenName, familyName);
-
-        return new ScimUser[]{scimUserToStoreInDB, scimUserToUseInRequest};
-    }
-
-    private static Stream<PatchTestParams> selfEditPatchTestParams() {
-        ScimUser[] userWithEmailChanged = makeTwoIdenticalUsers();
-        userWithEmailChanged[1].setPrimaryEmail("otheruser@" + RandomStringUtils.randomAlphabetic(5) + ".com");
-
-        ScimUser[] userWithNameChanged = makeTwoIdenticalUsers();
-        userWithNameChanged[1].setName(new ScimUser.Name("newGivenName", "newFamilyName"));
-
-        ScimUser[] userWithPhoneNumberValueDeleted = makeTwoIdenticalUsers();
-        userWithPhoneNumberValueDeleted[0].addPhoneNumber("initial phone number");
-        ScimMeta meta = new ScimMeta();
-        meta.setAttributes(new String[]{"phonenumbers"});
-        userWithPhoneNumberValueDeleted[1].setMeta(meta);
-
-        return Stream.of(
-                new PatchTestParams("should fail when primary email is changed",
-                        userWithEmailChanged[0], userWithEmailChanged[1],
-                        403, "$.error", "invalid_self_edit"),
-                new PatchTestParams("should pass when familyName and givenName are changed",
-                        userWithNameChanged[0], userWithNameChanged[1],
-                        200, "$.name.givenName", "newGivenName"),
-                new PatchTestParams("should be unauthorized when the request tries to delete a field",
-                        userWithPhoneNumberValueDeleted[0], userWithPhoneNumberValueDeleted[1],
-                        403, "$.error", "invalid_self_edit")
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpointsMockMvcTests#selfEditPatchTestParams")
-    void patch_selfUpdate_WithAccessToken_SeveralWays(PatchTestParams params) throws Exception {
-        String password = "pas5Word";
-        ScimUser storedScimUser = usersRepository.createUser(params.scimUserToStoreInDB, password, IdentityZoneHolder.get().getId());
-
-        String accessToken = testClient.getUserOAuthAccessToken(
-                "cf",
-                "",
-                storedScimUser.getPrimaryEmail(),
-                password,
-                "openid");
-
-        MockHttpServletRequestBuilder patch = patch("/Users/" + storedScimUser.getId())
-                .header("Authorization", "Bearer " + accessToken)
-                .header("If-Match", "\"" + storedScimUser.getVersion() + "\"")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsBytes(params.scimUserToUseInRequest));
-        mockMvc.perform(patch)
-                .andDo(print())
-                .andExpect(status().is(params.expectedHttpStatusCode))
-                .andExpect(jsonPath(params.expectedJsonPath).value(params.expectedValueAtJsonPath));
-    }
-
     @Nested
     @ExtendWith(SpringExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
@@ -919,67 +829,12 @@ class ScimUserEndpointsMockMvcTests {
     @ActiveProfiles("default")
     @WebAppConfiguration
     @ContextConfiguration(classes = TestSpringContext.class)
-    class SelfEditing {
+    class WhenSelfEditing {
         private ZoneSeeder zoneSeeder;
-        private ScimUser adminUser;
-        private ClientDetails adminClient;
 
         @BeforeEach
         void setup(ZoneSeeder zoneSeeder) {
-            this.zoneSeeder = zoneSeeder;
-            zoneSeeder.withDefaults()
-                    .withDisableInternalUserManagement(false)
-                    .withClientWithImplicitPasswordRefreshTokenGrants("admin_client", "uaa.admin,scim.write")
-                    .withUserWhoBelongsToGroups("admin@test.org", Lists.newArrayList("uaa.admin", "scim.write"))
-                    .afterSeeding(zs -> {
-                        adminUser = zs.getUserByEmail("admin@test.org");
-                        adminClient = zs.getClientById("admin_client");
-                    });
-        }
-
-        @Test
-        void put_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
-            performSelfEdit("scim.write", put("/Users/" + adminUser.getId()));
-        }
-
-        @Test
-        void put_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
-            performSelfEdit("uaa.admin", put("/Users/" + adminUser.getId()));
-        }
-
-        @Test
-        void patch_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
-            performSelfEdit("scim.write", patch("/Users/" + adminUser.getId()));
-        }
-
-        @Test
-        void patch_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
-            performSelfEdit("uaa.admin", patch("/Users/" + adminUser.getId()));
-        }
-
-        private void performSelfEdit(String scopesForRequest, MockHttpServletRequestBuilder requestBuilder) throws Exception {
-            String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                    adminClient.getClientId(),
-                    zoneSeeder.getPlainTextClientSecret(adminClient),
-                    adminUser.getUserName(),
-                    zoneSeeder.getPlainTextPassword(adminUser),
-                    scopesForRequest,
-                    zoneSeeder.getIdentityZoneSubdomain()
-            );
-
-            String newAdminUsername = "newAdminUsername";
-            adminUser.setUserName(newAdminUsername);
-
-            mockMvc.perform(requestBuilder
-                    .headers(zoneSeeder.getZoneSubomainRequestHeader())
-                    .header("Authorization", "Bearer " + accessToken)
-                    .header("If-Match", "\"" + adminUser.getVersion() + "\"")
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsBytes(adminUser)))
-                    .andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.userName").value(newAdminUsername));
+            this.zoneSeeder = zoneSeeder.withDefaults().withDisableInternalUserManagement(false);
         }
 
         @Nested
@@ -989,68 +844,122 @@ class ScimUserEndpointsMockMvcTests {
         @ActiveProfiles("default")
         @WebAppConfiguration
         @ContextConfiguration(classes = TestSpringContext.class)
-        class WithInternalUserStoreDisabled {
-            private ScimUser regularUser;
+        class WhenAnAdminSelfEdits {
+            private ScimUser adminUser;
+            private ClientDetails adminClient;
 
             @BeforeEach
-            void setup() {
-                zoneSeeder.withDisableInternalUserManagement(true)
-                        .withClientWithImplicitPasswordRefreshTokenGrants()
-                        .withUser("regularUser@test.org")
+            void beforeEach() {
+                zoneSeeder.withClientWithImplicitPasswordRefreshTokenGrants("admin_client", "uaa.admin,scim.write")
+                        .withUserWhoBelongsToGroups("admin@test.org", Lists.newArrayList("uaa.admin", "scim.write"))
                         .afterSeeding(zs -> {
-                            regularUser = zs.getUserByEmail("regularUser@test.org");
+                            adminUser = zs.getUserByEmail("admin@test.org");
+                            adminClient = zs.getClientById("admin_client");
                         });
             }
 
             @Test
-            void put_updateNothing_shouldFail() throws Exception {
-                mockMvc.perform(put("/Users/" + regularUser.getId())
-                        .headers(zoneSeeder.getZoneIdRequestHeader())
-                        .header("Authorization", "Bearer " + uaaAdminToken)
-                        .header("If-Match", "\"" + regularUser.getVersion() + "\"")
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsBytes(regularUser)))
-                        .andDo(print())
-                        .andExpect(status().is(403))
-                        .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("error", "internal_user_management_disabled"))));
+            void put_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
+                performSelfEdit("scim.write", put("/Users/" + adminUser.getId()));
             }
 
             @Test
-            void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+            void put_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
+                performSelfEdit("uaa.admin", put("/Users/" + adminUser.getId()));
+            }
+
+            @Test
+            void patch_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
+                performSelfEdit("scim.write", patch("/Users/" + adminUser.getId()));
+            }
+
+            @Test
+            void patch_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
+                performSelfEdit("uaa.admin", patch("/Users/" + adminUser.getId()));
+            }
+
+            private void performSelfEdit(String scopesToBeIncludedInToken, MockHttpServletRequestBuilder requestBuilder) throws Exception {
                 String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                        zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
-                        zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
-                        regularUser.getUserName(),
-                        zoneSeeder.getPlainTextPassword(regularUser),
-                        "openid",
-                        zoneSeeder.getIdentityZoneSubdomain());
+                        adminClient.getClientId(),
+                        zoneSeeder.getPlainTextClientSecret(adminClient),
+                        adminUser.getUserName(),
+                        zoneSeeder.getPlainTextPassword(adminUser),
+                        scopesToBeIncludedInToken,
+                        zoneSeeder.getIdentityZoneSubdomain()
+                );
 
-                regularUser.setEmails(null);
-                regularUser.addEmail("resetEmail@mail.com");
+                String newAdminUsername = "newAdminUsername";
+                adminUser.setUserName(newAdminUsername);
 
-                MockHttpServletRequestBuilder put = put("/Users/" + regularUser.getId())
+                mockMvc.perform(requestBuilder
                         .headers(zoneSeeder.getZoneSubomainRequestHeader())
                         .header("Authorization", "Bearer " + accessToken)
-                        .header("If-Match", "\"" + regularUser.getVersion() + "\"")
+                        .header("If-Match", "\"" + adminUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsBytes(regularUser));
-                mockMvc.perform(put).andDo(print())
-                        .andExpect(status().is(403))
-                        .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("error", "internal_user_management_disabled"))));
+                        .content(JsonUtils.writeValueAsBytes(adminUser)))
+                        .andDo(print())
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.userName").value(newAdminUsername));
+            }
+        }
+
+        @Nested
+        @ExtendWith(SpringExtension.class)
+        @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+        @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+        @ActiveProfiles("default")
+        @WebAppConfiguration
+        @ContextConfiguration(classes = TestSpringContext.class)
+        class WhenARegularUserSelfEdits {
+            private ScimUser regularUser;
+
+            @BeforeEach
+            void beforeEach() {
+                ScimUser user = zoneSeeder.newRandomScimUser();
+                user.addPhoneNumber("initial phone number");
+                user.setName(new ScimUser.Name("initial given name", "initial family name"));
+                user.setPrimaryEmail("initialEmail@test.org");
+
+                zoneSeeder.withClientWithImplicitPasswordRefreshTokenGrants()
+                        .withUser(user)
+                        .afterSeeding(zs -> {
+                            regularUser = zs.getUserByEmail("initialEmail@test.org");
+                        });
             }
 
             @Test
-            void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+            void patch_selfUpdate_WithAccessToken_WhenTryingToDeleteAField_shouldResultIn403() throws Exception {
+                test_patch_selfUpdate_WithAccessToken(
+                        "{\"meta\": {\"attributes\": [\"phonenumbers\"]}}",
+                        403, "$.error", "invalid_self_edit"
+                );
+            }
+
+            @Test
+            void patch_selfUpdate_WithAccessToken_WhenFamilyNameAndGivenNameAreChanged_shouldResultIn200() throws Exception {
+                test_patch_selfUpdate_WithAccessToken(
+                        "{\"name\": {\"givenName\": \"newGivenName\", \"familyName\": \"newFamilyName\"}}",
+                        200, "$.name.givenName", "newGivenName");
+            }
+
+            @Test
+            void patch_selfUpdate_WithAccessToken_WhenPrimaryEmailIsChanged_shouldResultIn403() throws Exception {
+                String newEmail = "otheruser@" + RandomStringUtils.randomAlphabetic(5) + ".com";
+
+                test_patch_selfUpdate_WithAccessToken(
+                        "{\"emails\": " +
+                                "  [" +
+                                "    {\n" +
+                                "        \"value\" : \"" + newEmail + "\",\n" +
+                                "        \"primary\" : true\n" +
+                                "    } " +
+                                "  ]" +
+                                "}",
+                        403, "$.error", "invalid_self_edit");
+            }
+
+            void test_patch_selfUpdate_WithAccessToken(String patchRequestBody, int expectedHttpStatusCode, String expectedJsonPath, String expectedValueAtJsonPath) throws Exception {
                 String accessToken = testClient.getUserOAuthAccessTokenForZone(
                         zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
                         zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
@@ -1058,8 +967,6 @@ class ScimUserEndpointsMockMvcTests {
                         zoneSeeder.getPlainTextPassword(regularUser),
                         "openid",
                         zoneSeeder.getIdentityZoneSubdomain());
-
-                regularUser.addEmail("addAnotherNew@email.com");
 
                 MockHttpServletRequestBuilder patch = patch("/Users/" + regularUser.getId())
                         .headers(zoneSeeder.getZoneSubomainRequestHeader())
@@ -1067,14 +974,102 @@ class ScimUserEndpointsMockMvcTests {
                         .header("If-Match", "\"" + regularUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsBytes(regularUser));
+                        .content(patchRequestBody.getBytes());
+
                 mockMvc.perform(patch)
-                        .andExpect(status().is(403))
-                        .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                        .put("error", "internal_user_management_disabled"))));
+                        .andDo(print())
+                        .andExpect(status().is(expectedHttpStatusCode))
+                        .andExpect(jsonPath(expectedJsonPath).value(expectedValueAtJsonPath));
+            }
+
+            @Nested
+            @ExtendWith(SpringExtension.class)
+            @ExtendWith(HoneycombJdbcInterceptorExtension.class)
+            @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+            @ActiveProfiles("default")
+            @WebAppConfiguration
+            @ContextConfiguration(classes = TestSpringContext.class)
+            class WithInternalUserStoreDisabled {
+
+                @BeforeEach
+                void beforeEach() {
+                    zoneSeeder.withDisableInternalUserManagement(true);
+                }
+
+                @Test
+                void put_updateNothing_shouldFail() throws Exception {
+                    mockMvc.perform(put("/Users/" + regularUser.getId())
+                            .headers(zoneSeeder.getZoneIdRequestHeader())
+                            .header("Authorization", "Bearer " + uaaAdminToken)
+                            .header("If-Match", "\"" + regularUser.getVersion() + "\"")
+                            .accept(APPLICATION_JSON)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsBytes(regularUser)))
+                            .andDo(print())
+                            .andExpect(status().is(403))
+                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                                    new JSONObject()
+                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("error", "internal_user_management_disabled"))));
+                }
+
+                @Test
+                void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+                    String accessToken = testClient.getUserOAuthAccessTokenForZone(
+                            zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
+                            zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
+                            regularUser.getUserName(),
+                            zoneSeeder.getPlainTextPassword(regularUser),
+                            "openid",
+                            zoneSeeder.getIdentityZoneSubdomain());
+
+                    regularUser.setEmails(null);
+                    regularUser.addEmail("resetEmail@mail.com");
+
+                    MockHttpServletRequestBuilder put = put("/Users/" + regularUser.getId())
+                            .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                            .header("Authorization", "Bearer " + accessToken)
+                            .header("If-Match", "\"" + regularUser.getVersion() + "\"")
+                            .accept(APPLICATION_JSON)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsBytes(regularUser));
+                    mockMvc.perform(put).andDo(print())
+                            .andExpect(status().is(403))
+                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                                    new JSONObject()
+                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("error", "internal_user_management_disabled"))));
+                }
+
+                @Test
+                void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+                    String accessToken = testClient.getUserOAuthAccessTokenForZone(
+                            zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
+                            zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
+                            regularUser.getUserName(),
+                            zoneSeeder.getPlainTextPassword(regularUser),
+                            "openid",
+                            zoneSeeder.getIdentityZoneSubdomain());
+
+                    regularUser.addEmail("addAnotherNew@email.com");
+
+                    MockHttpServletRequestBuilder patch = patch("/Users/" + regularUser.getId())
+                            .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                            .header("Authorization", "Bearer " + accessToken)
+                            .header("If-Match", "\"" + regularUser.getVersion() + "\"")
+                            .accept(APPLICATION_JSON)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsBytes(regularUser));
+                    mockMvc.perform(patch)
+                            .andExpect(status().is(403))
+                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
+                                    new JSONObject()
+                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                            .put("error", "internal_user_management_disabled"))));
+                }
             }
         }
     }

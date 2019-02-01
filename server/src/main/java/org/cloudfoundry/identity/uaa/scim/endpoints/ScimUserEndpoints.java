@@ -615,7 +615,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.statuses = statuses;
     }
 
-    private void throwWhenInvalidSelfEdit(@RequestBody ScimUser user, @PathVariable String userId, HttpServletRequest request, Authentication authentication) {
+    private void throwWhenInvalidSelfEdit(ScimUser user, String userId, HttpServletRequest request, Authentication authentication) {
         boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
         if (!isSelfEdit) {
             return;

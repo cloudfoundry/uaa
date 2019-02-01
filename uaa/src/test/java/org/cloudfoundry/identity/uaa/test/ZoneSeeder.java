@@ -64,11 +64,12 @@ public class ZoneSeeder {
     private final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
     private boolean alreadySeeded = false;
+    private List<AfterSeedCallback> afterSeedCallbacks = new ArrayList<>();
 
     private boolean disableInternalUserManagement = false;
 
     private final List<ClientDetails> clientDetailsToCreate = new ArrayList<>();
-    private final HashMap<String, List<String>> usersInGroupsToCreate = new HashMap<>();
+    private final HashMap<ScimUser, List<String>> usersInGroupsToCreate = new HashMap<>();
     private IdentityProvider identityProviderToCreate;
     private UaaIdentityProviderDefinition uaaIdentityProviderDefinitionToCreate;
 
@@ -78,7 +79,6 @@ public class ZoneSeeder {
     private final Map<String, ScimUser> users = new HashMap<>();
     private final Map<String, String> plainTextPasswordsForUsers = new HashMap<>();
     private final Map<String, String> plainTextClientSecretsForClients = new HashMap<>();
-    private List<AfterSeedCallback> afterSeedCallbacks = new ArrayList<>();
 
     public ZoneSeeder(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
@@ -146,13 +146,33 @@ public class ZoneSeeder {
         return this;
     }
 
+    public ZoneSeeder withUser(ScimUser scimUser) {
+        return withUserWhoBelongsToGroups(scimUser, new ArrayList<>());
+    }
+
     public ZoneSeeder withUser(String email) {
-        return withUserWhoBelongsToGroups(email, new ArrayList<>());
+        return withUserWhoBelongsToGroups(newScimUser(email), new ArrayList<>());
     }
 
     public ZoneSeeder withUserWhoBelongsToGroups(String email, List<String> belongsToGroupNames) {
-        usersInGroupsToCreate.put(email, belongsToGroupNames);
+        return withUserWhoBelongsToGroups(newScimUser(email), belongsToGroupNames);
+    }
+
+    public ZoneSeeder withUserWhoBelongsToGroups(ScimUser scimUser, List<String> belongsToGroupNames) {
+        usersInGroupsToCreate.put(scimUser, belongsToGroupNames);
         return this;
+    }
+
+    public ScimUser newScimUser(String email) {
+        ScimUser scimUser = new ScimUser(null, email, generator.generate(), generator.generate());
+        scimUser.addEmail(email);
+        scimUser.setPassword(generator.generate());
+        return scimUser;
+    }
+
+    public ScimUser newRandomScimUser() {
+        String email = generator.generate() + "@" + generator.generate() + ".org";
+        return newScimUser(email);
     }
 
     public interface AfterSeedCallback {
@@ -193,9 +213,9 @@ public class ZoneSeeder {
         clientDetailsToCreate.clear();
 
         // Make the users
-        for (String email : usersInGroupsToCreate.keySet()) {
-            ScimUser createdUser = provisionScimUser(newScimUser(email));
-            List<String> groupNames = usersInGroupsToCreate.get(email);
+        for (ScimUser scimUser : usersInGroupsToCreate.keySet()) {
+            ScimUser createdUser = provisionScimUser(scimUser);
+            List<String> groupNames = usersInGroupsToCreate.get(scimUser);
             for (String groupName : groupNames) {
                 provisionGroupMembership(createdUser, groupName);
             }
@@ -302,12 +322,5 @@ public class ZoneSeeder {
         plainTextPasswordsForUsers.put(createdUser.getId(), password);
         users.put(createdUser.getId(), createdUser);
         return createdUser;
-    }
-
-    private ScimUser newScimUser(String email) {
-        ScimUser scimUser = new ScimUser(null, email, generator.generate(), generator.generate());
-        scimUser.addEmail(email);
-        scimUser.setPassword(generator.generate());
-        return scimUser;
     }
 }
