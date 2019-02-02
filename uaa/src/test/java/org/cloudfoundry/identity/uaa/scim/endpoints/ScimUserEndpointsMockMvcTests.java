@@ -787,41 +787,6 @@ class ScimUserEndpointsMockMvcTests {
         updateUser(scimReadWriteToken, HttpStatus.OK.value());
     }
 
-    @Test
-    void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-        String email = "otheruser@" + generator.generate().toLowerCase() + ".com";
-        String password = "pas5Word";
-        ScimUser scimUser = new ScimUser(null, email, "givenName", "familyName");
-        scimUser.addEmail(email);
-        scimUser = usersRepository.createUser(scimUser, password, IdentityZoneHolder.get().getId());
-
-        String accessToken = testClient.getUserOAuthAccessToken(
-                "cf",
-                "",
-                email,
-                password,
-                "openid");
-
-        String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
-        scimUser.setEmails(null);
-        scimUser.addEmail(newEmail);
-
-        MockHttpServletRequestBuilder put = put("/Users/" + scimUser.getId())
-                .header("Authorization", "Bearer " + accessToken)
-                .header("If-Match", "\"" + scimUser.getVersion() + "\"")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsBytes(scimUser));
-
-        mockMvc.perform(put).andDo(print())
-                .andExpect(status().is(403))
-                .andExpect(jsonPath("$.error", is("invalid_self_edit")))
-                .andExpect(jsonPath("$.error_description", is(
-                        "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
-                                "and in that case they may only edit the givenName and familyName.")
-                ));
-    }
-
     @Nested
     @ExtendWith(SpringExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
@@ -860,25 +825,25 @@ class ScimUserEndpointsMockMvcTests {
 
             @Test
             void put_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
-                performSelfEdit("scim.write", put("/Users/" + adminUser.getId()));
+                performSelfEdit_shouldSucceed("scim.write", put("/Users/" + adminUser.getId()));
             }
 
             @Test
             void put_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
-                performSelfEdit("uaa.admin", put("/Users/" + adminUser.getId()));
+                performSelfEdit_shouldSucceed("uaa.admin", put("/Users/" + adminUser.getId()));
             }
 
             @Test
             void patch_usingAnAccessTokenWithScimWriteScope_aUserCanSelfUpdateAnything() throws Exception {
-                performSelfEdit("scim.write", patch("/Users/" + adminUser.getId()));
+                performSelfEdit_shouldSucceed("scim.write", patch("/Users/" + adminUser.getId()));
             }
 
             @Test
             void patch_usingAnAccessTokenWithUaaAdminScope_aUserCanSelfUpdateAnything() throws Exception {
-                performSelfEdit("uaa.admin", patch("/Users/" + adminUser.getId()));
+                performSelfEdit_shouldSucceed("uaa.admin", patch("/Users/" + adminUser.getId()));
             }
 
-            private void performSelfEdit(String scopesToBeIncludedInToken, MockHttpServletRequestBuilder requestBuilder) throws Exception {
+            private void performSelfEdit_shouldSucceed(String scopesToBeIncludedInToken, MockHttpServletRequestBuilder requestBuilder) throws Exception {
                 String accessToken = testClient.getUserOAuthAccessTokenForZone(
                         adminClient.getClientId(),
                         zoneSeeder.getPlainTextClientSecret(adminClient),
@@ -929,6 +894,31 @@ class ScimUserEndpointsMockMvcTests {
             }
 
             @Test
+            void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
+                String accessToken = getAccessTokenForUser(regularUser);
+
+                String newEmail = "otheruser@" + generator.generate().toLowerCase() + ".com";
+                regularUser.setEmails(null);
+                regularUser.addEmail(newEmail);
+
+                MockHttpServletRequestBuilder put = put("/Users/" + regularUser.getId())
+                        .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header("If-Match", "\"" + regularUser.getVersion() + "\"")
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(regularUser));
+
+                mockMvc.perform(put).andDo(print())
+                        .andExpect(status().is(403))
+                        .andExpect(jsonPath("$.error", is("invalid_self_edit")))
+                        .andExpect(jsonPath("$.error_description", is(
+                                "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
+                                        "and in that case they may only edit the givenName and familyName.")
+                        ));
+            }
+
+            @Test
             void patch_selfUpdate_WithAccessToken_WhenTryingToDeleteAField_shouldResultIn403() throws Exception {
                 test_patch_selfUpdate_WithAccessToken(
                         "{\"meta\": {\"attributes\": [\"phonenumbers\"]}}",
@@ -960,13 +950,7 @@ class ScimUserEndpointsMockMvcTests {
             }
 
             void test_patch_selfUpdate_WithAccessToken(String patchRequestBody, int expectedHttpStatusCode, String expectedJsonPath, String expectedValueAtJsonPath) throws Exception {
-                String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                        zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
-                        zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
-                        regularUser.getUserName(),
-                        zoneSeeder.getPlainTextPassword(regularUser),
-                        "openid",
-                        zoneSeeder.getIdentityZoneSubdomain());
+                String accessToken = getAccessTokenForUser(regularUser);
 
                 MockHttpServletRequestBuilder patch = patch("/Users/" + regularUser.getId())
                         .headers(zoneSeeder.getZoneSubomainRequestHeader())
@@ -980,6 +964,16 @@ class ScimUserEndpointsMockMvcTests {
                         .andDo(print())
                         .andExpect(status().is(expectedHttpStatusCode))
                         .andExpect(jsonPath(expectedJsonPath).value(expectedValueAtJsonPath));
+            }
+
+            private String getAccessTokenForUser(ScimUser scimUser) throws Exception {
+                return testClient.getUserOAuthAccessTokenForZone(
+                        zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
+                        zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
+                        scimUser.getUserName(),
+                        zoneSeeder.getPlainTextPassword(scimUser),
+                        "openid",
+                        zoneSeeder.getIdentityZoneSubdomain());
             }
 
             @Nested
@@ -1016,13 +1010,7 @@ class ScimUserEndpointsMockMvcTests {
 
                 @Test
                 void put_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-                    String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                            zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
-                            zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
-                            regularUser.getUserName(),
-                            zoneSeeder.getPlainTextPassword(regularUser),
-                            "openid",
-                            zoneSeeder.getIdentityZoneSubdomain());
+                    String accessToken = getAccessTokenForUser(WhenARegularUserSelfEdits.this.regularUser);
 
                     regularUser.setEmails(null);
                     regularUser.addEmail("resetEmail@mail.com");
@@ -1045,13 +1033,7 @@ class ScimUserEndpointsMockMvcTests {
 
                 @Test
                 void patch_updateUserEmail_WithAccessToken_ShouldFail() throws Exception {
-                    String accessToken = testClient.getUserOAuthAccessTokenForZone(
-                            zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants().getClientId(),
-                            zoneSeeder.getPlainTextClientSecret(zoneSeeder.getClientWithImplicitPasswordRefreshTokenGrants()),
-                            regularUser.getUserName(),
-                            zoneSeeder.getPlainTextPassword(regularUser),
-                            "openid",
-                            zoneSeeder.getIdentityZoneSubdomain());
+                    String accessToken = getAccessTokenForUser(WhenARegularUserSelfEdits.this.regularUser);
 
                     regularUser.addEmail("addAnotherNew@email.com");
 
