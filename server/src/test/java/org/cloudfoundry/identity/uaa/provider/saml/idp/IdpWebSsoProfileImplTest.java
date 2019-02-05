@@ -45,15 +45,18 @@ import static org.mockito.Mockito.when;
 
 public class IdpWebSsoProfileImplTest {
 
-    private final SamlTestUtils samlTestUtils = new SamlTestUtils();
-    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
-    private JdbcScimUserProvisioning scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
+    private SamlTestUtils samlTestUtils;
+    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning;
+    private JdbcScimUserProvisioning scimUserProvisioning;
     private IdpWebSsoProfileImpl profile;
     private ScimUser user;
     private SamlServiceProvider samlServiceProvider;
 
     @Before
     public void setup() throws ConfigurationException {
+        samlTestUtils = new SamlTestUtils();
+        samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
+        scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
         samlTestUtils.initialize();
 
         profile = new IdpWebSsoProfileImpl();
