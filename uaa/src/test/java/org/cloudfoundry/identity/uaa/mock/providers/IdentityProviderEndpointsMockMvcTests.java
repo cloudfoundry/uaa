@@ -324,7 +324,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void invalid_ldap_origin_returns_UnprocessableEntity() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
         identityProvider.setOriginKey("other");
