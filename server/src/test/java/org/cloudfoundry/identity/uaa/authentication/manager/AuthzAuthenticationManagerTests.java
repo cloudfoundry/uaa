@@ -12,21 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -40,7 +33,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +47,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
@@ -150,7 +149,7 @@ public class AuthzAuthenticationManagerTests {
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6, 128, 1, 1, 1, 1, 6), null);
         provider.setConfig(idpDefinition);
 
-        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        when(providerProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(provider);
 
         Calendar oneYearAgoCal = Calendar.getInstance();
         oneYearAgoCal.add(Calendar.YEAR, -1);
@@ -307,7 +306,7 @@ public class AuthzAuthenticationManagerTests {
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
         UaaIdentityProviderDefinition idpDefinition = mock(UaaIdentityProviderDefinition.class);
         provider.setConfig(idpDefinition);
-        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        when(providerProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(provider);
         PasswordPolicy policy = new PasswordPolicy();
         policy.setPasswordNewerThan(new Date(System.currentTimeMillis() + 1000));
         when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
