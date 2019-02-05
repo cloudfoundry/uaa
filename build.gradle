@@ -88,6 +88,7 @@ subprojects {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
     test {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
