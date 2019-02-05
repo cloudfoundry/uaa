@@ -73,7 +73,7 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
 
         try {
             if (matches(request)) {
-                IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+                IdentityProvider idp = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
                 boolean isDisableInternalUserManagement = false;
                 UaaIdentityProviderDefinition config = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
                 if (config != null) {

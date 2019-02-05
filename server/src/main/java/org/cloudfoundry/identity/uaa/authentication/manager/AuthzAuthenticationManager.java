@@ -140,7 +140,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     protected int getPasswordExpiresInMonths() {
         int result = 0;
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (provider!=null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
             if (idpDefinition!=null) {
@@ -154,7 +154,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     protected Date getPasswordNewerThan() {
         Date result = null;
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if(provider != null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
             if(idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
