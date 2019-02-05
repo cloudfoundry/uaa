@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -34,7 +33,9 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.security.SecureRandom;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -43,18 +44,9 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
@@ -69,33 +61,63 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     private ScimGroup g1;
     private ScimGroup g2;
     private ScimGroup g3;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private String g1Id;
+    private String g2Id;
+    private String g3Id;
+    private RandomValueStringGenerator generator;
     private String zoneId;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
+    private String group1Description;
+    private String group2Description;
+    private String group3Description;
 
     @Before
     public void initJdbcScimGroupProvisioningTests() {
-        zoneId = IdentityZoneHolder.get().getId();
+
+        generator = new RandomValueStringGenerator();
+        SecureRandom random = new SecureRandom();
+        random.setSeed(System.nanoTime());
+        generator.setRandom(random);
+
+        zoneId = generator.generate();
+
+        IdentityZone zone = new IdentityZone();
+        zone.setId(zoneId);
+        IdentityZoneHolder.set(zone);
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(new ArrayList<>());
+
+        validateGroupCount(0);
+
+
         memberships = new JdbcScimGroupMembershipManager(jdbcTemplate);
         dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter)));
         memberships.setScimGroupProvisioning(dao);
         users = mock(ScimUserProvisioning.class);
         memberships.setScimUserProvisioning(users);
 
-        g1 = addGroup("g1", "uaa.user");
-        g2 = addGroup("g2", "uaa.admin");
-        g3 = addGroup("g3", "openid");
+        g1Id = "g1";
+        g2Id = "g2";
+        g3Id = "g3";
+
+        group1Description = "u" + generator.generate();
+        g1 = addGroup(g1Id, group1Description);
+        group2Description = "u" + generator.generate();
+        g2 = addGroup(g2Id, group2Description);
+        group3Description = "op" + generator.generate();
+        g3 = addGroup(g3Id, group3Description);
 
         validateGroupCount(3);
     }
 
     @After
-    public void cleanSpy() throws Exception {
+    public void cleanSpy() {
+        dao.deleteByIdentityZone(zoneId);
+        validateGroupCount(0);
+
         reset(dao);
     }
-
 
     private void validateGroupCount(int expected) {
         existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + zoneId + "'", Integer.class);
@@ -122,52 +144,52 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void create_or_get_tries_get_first() throws Exception {
+    public void create_or_get_tries_get_first() {
         reset(dao);
-        dao.createOrGet(new ScimGroup("openid"), IdentityZone.getUaa().getId());
-        verify(dao, times(1)).getByName("openid", IdentityZone.getUaa().getId());
+        dao.createOrGet(new ScimGroup(group3Description), zoneId);
+        verify(dao, times(1)).getByName(group3Description, zoneId);
         verify(dao, never()).createAndIgnoreDuplicate(anyString(), anyString());
     }
 
     @Test
-    public void create_or_get_tries_get_first_but_creates_it() throws Exception {
+    public void create_or_get_tries_get_first_but_creates_it() {
         reset(dao);
-        String name = new RandomValueStringGenerator().generate().toLowerCase();
-        dao.createOrGet(new ScimGroup(name), IdentityZone.getUaa().getId());
-        verify(dao, times(2)).getByName(name, IdentityZone.getUaa().getId());
-        verify(dao, times(1)).createAndIgnoreDuplicate(name, IdentityZone.getUaa().getId());
+        String name = generator.generate().toLowerCase() + System.nanoTime();
+        dao.createOrGet(new ScimGroup(name), zoneId);
+        verify(dao, times(2)).getByName(name, zoneId);
+        verify(dao, times(1)).createAndIgnoreDuplicate(name, zoneId);
     }
 
     @Test
-    public void get_by_name() throws Exception {
-        assertNotNull(dao.getByName("openid", IdentityZone.getUaa().getId()));
-        assertNotNull(dao.getByName("uaa.user", IdentityZone.getUaa().getId()));
-        assertNotNull(dao.getByName("uaa.admin", IdentityZone.getUaa().getId()));
+    public void get_by_name() {
+        assertNotNull(dao.getByName(group3Description, zoneId));
+        assertNotNull(dao.getByName(group1Description, zoneId));
+        assertNotNull(dao.getByName(group2Description, zoneId));
     }
 
     @Test
-    public void get_by_invalid_name() throws Exception {
+    public void get_by_invalid_name() {
         exception.expect(IncorrectResultSizeDataAccessException.class);
         exception.expectMessage("Invalid result size found for");
-        assertNotNull(dao.getByName("invalid-group-name", IdentityZone.getUaa().getId()));
+        assertNotNull(dao.getByName("invalid-group-name", zoneId));
     }
 
     @Test
-    public void get_by_empty_name() throws Exception {
+    public void get_by_empty_name() {
         exception.expect(IncorrectResultSizeDataAccessException.class);
         exception.expectMessage("group name must contain text");
-        assertNotNull(dao.getByName("", IdentityZone.getUaa().getId()));
+        assertNotNull(dao.getByName("", zoneId));
     }
 
     @Test
-    public void get_by_null_name() throws Exception {
+    public void get_by_null_name() {
         exception.expect(IncorrectResultSizeDataAccessException.class);
         exception.expectMessage("group name must contain text");
-        assertNotNull(dao.getByName("", IdentityZone.getUaa().getId()));
+        assertNotNull(dao.getByName("", zoneId));
     }
 
     @Test
-    public void canRetrieveGroups() throws Exception {
+    public void canRetrieveGroups() {
         List<ScimGroup> groups = dao.retrieveAll(zoneId);
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
@@ -176,21 +198,21 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRetrieveGroupsWithFilter() throws Exception {
-        assertEquals(1, dao.query("displayName eq \"uaa.user\"", zoneId).size());
+    public void canRetrieveGroupsWithFilter() {
+        assertEquals(1, dao.query("displayName eq " + "\"" + group1Description+ "\"" , zoneId).size());
         assertEquals(3, dao.query("displayName pr", zoneId).size());
-        assertEquals(1, dao.query("displayName eq \"openid\"", zoneId).size());
-        assertEquals(1, dao.query("DISPLAYNAMe eq \"uaa.admin\"", zoneId).size());
-        assertEquals(1, dao.query("displayName EQ \"openid\"", zoneId).size());
-        assertEquals(1, dao.query("displayName eq \"Openid\"", zoneId).size());
-        assertEquals(1, dao.query("displayName co \"user\"", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"" + group3Description + "\"", zoneId).size());
+        assertEquals(1, dao.query("DISPLAYNAMe eq " + "\"" + group2Description + "\"", zoneId).size());
+        assertEquals(1, dao.query("displayName EQ \"" + group3Description + "\"", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"" + group3Description.toUpperCase() + "\"", zoneId).size());
+        assertEquals(1, dao.query("displayName co \"" + group1Description.substring(1, group1Description.length() - 1) + "\"", zoneId).size());
         assertEquals(3, dao.query("id sw \"g\"", zoneId).size());
         assertEquals(3, dao.query("displayName gt \"oauth\"", zoneId).size());
         assertEquals(0, dao.query("displayName lt \"oauth\"", zoneId).size());
-        assertEquals(1, dao.query("displayName eq \"openid\" and meta.version eq 0", zoneId).size());
+        assertEquals(1, dao.query("displayName eq \"" + group3Description + "\" and meta.version eq 0", zoneId).size());
         assertEquals(3, dao.query("meta.created gt \"1970-01-01T00:00:00.000Z\"", zoneId).size());
         assertEquals(3, dao.query("displayName pr and id co \"g\"", zoneId).size());
-        assertEquals(2, dao.query("displayName eq \"openid\" or displayName co \".user\"", zoneId).size());
+        assertEquals(2, dao.query("displayName eq \"" + group3Description + "\" or displayName co \"" + group1Description.substring(1, group1Description.length() - 1) + "\"", zoneId).size());
         assertEquals(3, dao.query("displayName eq \"foo\" or id sw \"g\"", zoneId).size());
     }
 
@@ -221,9 +243,9 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRetrieveGroup() throws Exception {
-        ScimGroup group = dao.retrieve("g1", zoneId);
-        validateGroup(group, "uaa.user", zoneId);
+    public void canRetrieveGroup() {
+        ScimGroup group = dao.retrieve(g1Id, zoneId);
+        validateGroup(group, group1Description, zoneId);
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
@@ -232,10 +254,10 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canCreateGroup() throws Exception {
+    public void canCreateGroup() {
         internalCreateGroup(generator.generate().toLowerCase());
     }
-    public ScimGroup internalCreateGroup(String groupName) throws Exception {
+    public ScimGroup internalCreateGroup(String groupName) {
         ScimGroup g = new ScimGroup(null, groupName, zoneId);
         g.setDescription("description-create");
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
@@ -258,7 +280,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetByName() throws Exception {
+    public void canGetByName() {
         ScimGroup g = internalCreateGroup(generator.generate().toLowerCase());
         ScimGroup same = dao.getByName(g.getDisplayName(), zoneId);
         assertNotNull(same);
@@ -266,7 +288,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canCreateAndGetGroupWithQuotes() throws Exception {
+    public void canCreateAndGetGroupWithQuotes() {
         String nameWithQuotes = generator.generate() + "\"" + generator.generate() + "\"";
         ScimGroup g = internalCreateGroup(nameWithQuotes);
         assertNotNull(g);
@@ -277,29 +299,31 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void canUpdateGroup() throws Exception {
-        ScimGroup g = dao.retrieve("g1", zoneId);
-        assertEquals("uaa.user", g.getDisplayName());
+    public void canUpdateGroup() {
+        ScimGroup g = dao.retrieve(g1Id, zoneId);
+        assertEquals(group1Description, g.getDisplayName());
 
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
-        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember(g2Id, ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
         g.setDescription("description-update");
 
-        dao.update("g1", g, zoneId);
+        dao.update(g1Id, g, zoneId);
 
-        g = dao.retrieve("g1", zoneId);
+        g = dao.retrieve(g1Id, zoneId);
         validateGroup(g, "uaa.none", zoneId, "description-update");
     }
 
     @Test
-    public void canRemoveGroup() throws Exception {
+    public void canRemoveGroup() {
+        validateGroupCount(3);
         addUserToGroup(g1.getId(), "joe@example.com");
+        validateGroupCount(3);
         addUserToGroup(g1.getId(), "mary@example.com");
         ScimGroupMember bill = addUserToGroup(g2.getId(), "bill@example.com");
 
-        dao.delete("g1", 0, zoneId);
+        dao.delete(g1Id, 0, zoneId);
         validateGroupCount(2);
         List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select "+MEMBERSHIP_FIELDS+" from "+MEMBERSHIP_TABLE,
                                                                         new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
@@ -354,7 +378,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
         String userId = UUID.randomUUID().toString();
         ScimUser scimUser = new ScimUser(userId, username, username, username);
-        scimUser.setZoneId(OriginKeys.UAA);
+        scimUser.setZoneId(zoneId);
         when(users.retrieve(userId, zoneId)).thenReturn(scimUser);
         ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
         memberships.addMember(groupId, member, zoneId);
