@@ -50,7 +50,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
-
     private JdbcScimGroupProvisioning dao;
     private JdbcScimGroupMembershipManager memberships;
     private ScimUserProvisioning users;
@@ -75,7 +74,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Before
     public void initJdbcScimGroupProvisioningTests() {
-
         generator = new RandomValueStringGenerator();
         SecureRandom random = new SecureRandom();
         random.setSeed(System.nanoTime());
@@ -89,7 +87,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(new ArrayList<>());
 
         validateGroupCount(0);
-
 
         memberships = new JdbcScimGroupMembershipManager(jdbcTemplate);
         dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter)));
@@ -117,30 +114,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         validateGroupCount(0);
 
         reset(dao);
-    }
-
-    private void validateGroupCount(int expected) {
-        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + zoneId + "'", Integer.class);
-        assertEquals(expected, existingGroupCount);
-    }
-
-    private void validateGroup(ScimGroup group, String name, String zoneId) {
-        assertNotNull(group);
-        assertNotNull(group.getId());
-        assertNotNull(group.getDisplayName());
-        if (hasText(name)) {
-            assertEquals(name, group.getDisplayName());
-        }
-        if (hasText(zoneId)) {
-            assertEquals(zoneId, group.getZoneId());
-        }
-    }
-
-    private void validateGroup(ScimGroup group, String name, String zoneId, String description) {
-        validateGroup(group, name, zoneId);
-        if (hasText(description)) {
-            assertEquals(description, group.getDescription());
-        }
     }
 
     @Test
@@ -257,20 +230,9 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public void canCreateGroup() {
         internalCreateGroup(generator.generate().toLowerCase());
     }
-    public ScimGroup internalCreateGroup(String groupName) {
-        ScimGroup g = new ScimGroup(null, groupName, zoneId);
-        g.setDescription("description-create");
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
-        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
-        g.setMembers(Arrays.asList(m1, m2));
-        g = dao.create(g, zoneId);
-        validateGroupCount(4);
-        validateGroup(g, groupName, zoneId, "description-create");
-        return g;
-    }
 
     @Test
-    public void canCreateOrGetGroup() throws Exception {
+    public void canCreateOrGetGroup() {
         ScimGroup g = internalCreateGroup(generator.generate().toLowerCase());
         String id = g.getId();
         g.setId(null);
@@ -360,37 +322,6 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     }
 
-    private ScimGroup addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
-        //"id,displayName,created,lastModified,version,identity_zone_id"
-        jdbcTemplate.update(dao.ADD_GROUP_SQL,
-                            id,
-                            name,
-                            name + "-description",
-                            new Timestamp(System.currentTimeMillis()),
-                            new Timestamp(System.currentTimeMillis()),
-                            0,
-                            zoneId);
-
-        return dao.retrieve(id, zoneId);
-    }
-
-    private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
-        String userId = UUID.randomUUID().toString();
-        ScimUser scimUser = new ScimUser(userId, username, username, username);
-        scimUser.setZoneId(zoneId);
-        when(users.retrieve(userId, zoneId)).thenReturn(scimUser);
-        ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
-        memberships.addMember(groupId, member, zoneId);
-        return member;
-    }
-
-    private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
-        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId, zoneId));
-        memberships.addMember(parentGroupId, member, zoneId);
-        return member;
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack1Fails() {
         dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
@@ -419,5 +350,71 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public void sqlInjectionAttack5Fails() {
         dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
                       + " from groups where displayName='something''", zoneId);
+    }
+
+    private void validateGroupCount(int expected) {
+        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + zoneId + "'", Integer.class);
+        assertEquals(expected, existingGroupCount);
+    }
+
+    private void validateGroup(ScimGroup group, String name, String zoneId) {
+        assertNotNull(group);
+        assertNotNull(group.getId());
+        assertNotNull(group.getDisplayName());
+        if (hasText(name)) {
+            assertEquals(name, group.getDisplayName());
+        }
+        if (hasText(zoneId)) {
+            assertEquals(zoneId, group.getZoneId());
+        }
+    }
+
+    private void validateGroup(ScimGroup group, String name, String zoneId, String description) {
+        validateGroup(group, name, zoneId);
+        if (hasText(description)) {
+            assertEquals(description, group.getDescription());
+        }
+    }
+
+    private ScimGroup addGroup(String id, String name) {
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.update(dao.ADD_GROUP_SQL,
+                id,
+                name,
+                name + "-description",
+                new Timestamp(System.currentTimeMillis()),
+                new Timestamp(System.currentTimeMillis()),
+                0,
+                zoneId);
+
+        return dao.retrieve(id, zoneId);
+    }
+
+    private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
+        String userId = UUID.randomUUID().toString();
+        ScimUser scimUser = new ScimUser(userId, username, username, username);
+        scimUser.setZoneId(zoneId);
+        when(users.retrieve(userId, zoneId)).thenReturn(scimUser);
+        ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
+        memberships.addMember(groupId, member, zoneId);
+        return member;
+    }
+
+    private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
+        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId, zoneId));
+        memberships.addMember(parentGroupId, member, zoneId);
+        return member;
+    }
+
+    private ScimGroup internalCreateGroup(String groupName) {
+        ScimGroup g = new ScimGroup(null, groupName, zoneId);
+        g.setDescription("description-create");
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
+        g.setMembers(Arrays.asList(m1, m2));
+        g = dao.create(g, zoneId);
+        validateGroupCount(4);
+        validateGroup(g, groupName, zoneId, "description-create");
+        return g;
     }
 }
