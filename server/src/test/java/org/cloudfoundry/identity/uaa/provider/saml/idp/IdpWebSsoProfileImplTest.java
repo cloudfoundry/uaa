@@ -7,14 +7,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.common.SAMLException;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.NameIDType;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.Subject;
-import org.opensaml.saml2.core.SubjectConfirmation;
-import org.opensaml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
@@ -26,20 +19,12 @@ import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml.context.SAMLMessageContext;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -67,7 +52,7 @@ public class IdpWebSsoProfileImplTest {
         config.setAttributeMappings(new HashMap<>());
         samlServiceProvider.setConfig(config);
 
-        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(any(), any())).thenReturn(user);
         when(samlServiceProviderProvisioning.retrieveByEntityId(any(), any())).thenReturn(samlServiceProvider);
         profile.setScimUserProvisioning(scimUserProvisioning);
         profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
