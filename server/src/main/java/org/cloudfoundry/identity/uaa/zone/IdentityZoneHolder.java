@@ -15,12 +15,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.springframework.security.saml.key.KeyManager;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
-import static java.util.Optional.ofNullable;
-
 public class IdentityZoneHolder {
 
     private static IdentityZoneProvisioning provisioning;
@@ -85,7 +79,7 @@ public class IdentityZoneHolder {
         }
     }
 
-    public static class IdentityZoneWithKeyManager {
+    private static class IdentityZoneWithKeyManager {
         private IdentityZone zone;
         private KeyManager manager;
 
@@ -105,57 +99,6 @@ public class IdentityZoneHolder {
         public void setManager(KeyManager manager) {
             this.manager = manager;
         }
-    }
-
-    private static class MergedZoneBrandingInformation implements BrandingInformationSource {
-        @Override
-        public BrandingInformation.Banner getBanner() {
-            return resolve(BrandingInformationSource::getBanner);
-        }
-
-        @Override
-        public String getCompanyName() {
-            return resolve(BrandingInformationSource::getCompanyName);
-        }
-
-        @Override
-        public String getProductLogo() {
-            return tryGet(get(), BrandingInformationSource::getProductLogo).orElse(null);
-        }
-
-        @Override
-        public String getSquareLogo() {
-            return resolve(BrandingInformationSource::getSquareLogo);
-        }
-
-        @Override
-        public String getFooterLegalText() {
-            return resolve(BrandingInformationSource::getFooterLegalText);
-        }
-
-        @Override
-        public Map<String, String> getFooterLinks() {
-            return resolve(BrandingInformationSource::getFooterLinks);
-        }
-
-        private static <T> T resolve(Function<BrandingInformationSource, T> brandingProperty) {
-            return
-                    tryGet(get(), brandingProperty)
-                            .orElse(tryGet(getUaaZone(), brandingProperty)
-                                    .orElse(null));
-        }
-
-        private static <T> Optional<T> tryGet(IdentityZone zone, Function<BrandingInformationSource, T> brandingProperty) {
-            return ofNullable(zone.getConfig())
-                    .flatMap(c -> ofNullable(c.getBranding()))
-                    .flatMap(b -> ofNullable(brandingProperty.apply(b)));
-        }
-    }
-
-    private static final BrandingInformationSource brandingResolver = new MergedZoneBrandingInformation();
-
-    public static BrandingInformationSource resolveBranding() {
-        return brandingResolver;
     }
 
 }

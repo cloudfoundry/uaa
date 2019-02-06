@@ -28,56 +28,6 @@ import static org.junit.Assert.assertNull;
 
 public class IdentityZoneHolderTest {
 
-    private BrandingInformation zoneBranding;
-    private BrandingInformation defaultZoneBranding;
-    private IdentityZone fakeUaa;
-
-    @Before
-    public void setUp() {
-        defaultZoneBranding = new BrandingInformation();
-        final String productLogo = getResourceAsString("IdentityZoneHolderTest_ProductLogo");
-        defaultZoneBranding.setProductLogo(productLogo);
-
-        zoneBranding = new BrandingInformation();
-        zoneBranding.setProductLogo("zoneBrandingString===");
-
-        fakeUaa = IdentityZoneHolder.getUaaZone();
-        fakeUaa.getConfig().setBranding(defaultZoneBranding);
-
-        IdentityZoneProvisioning provisioning = Mockito.mock(IdentityZoneProvisioning.class);
-        IdentityZoneHolder.setProvisioning(provisioning);
-
-        Mockito.when(provisioning.retrieve(fakeUaa.getId())).thenReturn(fakeUaa);
-    }
-
-    @Test
-    public void getProductLogoForZone() {
-        IdentityZone testZone = new IdentityZone();
-        IdentityZoneHolder.set(testZone);
-        IdentityZoneHolder.get().getConfig().setBranding(zoneBranding);
-
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), zoneBranding.getProductLogo());
-    }
-
-    @Test
-    public void emptyProductLogoForZoneDoesNotReturnDefault() {
-        IdentityZone testZone = new IdentityZone();
-        IdentityZoneHolder.set(testZone);
-        IdentityZoneHolder.get().getConfig().setBranding(new BrandingInformation());
-
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertNull(brandingInformationSource.getProductLogo());
-    }
-
-    @Test
-    public void getProductLogoForDefaultZoneReturnsDefaultLogo() {
-        IdentityZoneHolder.set(fakeUaa);
-
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), defaultZoneBranding.getProductLogo());
-    }
-
     @Test
     public void deserialize() {
         final String sampleIdentityZone = getResourceAsString("sampleIdentityZone.json");

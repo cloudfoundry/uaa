@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -167,7 +168,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String buildSubjectText() {
-        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         boolean addBranding = StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa();
         if(addBranding) {
             return String.format("Activate your %s account", companyName);
@@ -180,7 +181,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
-        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         if (IdentityZoneHolder.isUaa()) {
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {

@@ -4,6 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -52,7 +53,7 @@ public class EmailService implements MessageService {
     private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
         String name = null;
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+            String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             name = IdentityZoneHolder.get().getName();

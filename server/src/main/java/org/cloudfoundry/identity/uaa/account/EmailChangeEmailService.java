@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
@@ -138,7 +139,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
     private String getSubjectText() {
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+            String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
         }
         else {
@@ -151,7 +152,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+            String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
             ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
         }
