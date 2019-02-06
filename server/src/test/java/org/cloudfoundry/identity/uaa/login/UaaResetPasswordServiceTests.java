@@ -77,6 +77,7 @@ public class UaaResetPasswordServiceTests {
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(null);
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);

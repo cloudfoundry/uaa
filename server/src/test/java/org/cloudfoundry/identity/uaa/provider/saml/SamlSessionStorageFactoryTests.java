@@ -28,7 +28,6 @@ import static org.junit.Assert.assertSame;
 
 public class SamlSessionStorageFactoryTests {
 
-
     private SamlSessionStorageFactory factory;
     private MockHttpServletRequest request;
 
@@ -36,6 +35,8 @@ public class SamlSessionStorageFactoryTests {
     public void setUp() throws Exception {
         request = new MockHttpServletRequest();
         factory = new SamlSessionStorageFactory();
+        IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(null);
     }
 
     @After

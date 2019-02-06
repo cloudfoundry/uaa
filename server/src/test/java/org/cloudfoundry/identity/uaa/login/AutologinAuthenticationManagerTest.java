@@ -60,6 +60,7 @@ public class AutologinAuthenticationManagerTest {
     @Before
     public void setUp() {
         IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(null);
         clientId = new RandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);

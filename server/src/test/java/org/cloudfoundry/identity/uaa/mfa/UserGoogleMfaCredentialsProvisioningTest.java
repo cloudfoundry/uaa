@@ -33,6 +33,7 @@ public class UserGoogleMfaCredentialsProvisioningTest {
 
     @Before
     public void setup() {
+        IdentityZoneHolder.setProvisioning(null);
         provisioner = new UserGoogleMfaCredentialsProvisioning();
         mfaProvider = new MfaProvider().setName("abc").setId("abc");
         otherMfaProvider = new MfaProvider().setName("abcd").setId("abcd");
