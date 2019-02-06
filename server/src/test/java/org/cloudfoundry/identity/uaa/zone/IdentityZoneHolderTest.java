@@ -30,7 +30,7 @@ public class IdentityZoneHolderTest {
 
     @Test
     public void deserialize() {
-        final String sampleIdentityZone = getResourceAsString("sampleIdentityZone.json");
+        final String sampleIdentityZone = getResourceAsString("SampleIdentityZone.json");
 
         JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
     }
