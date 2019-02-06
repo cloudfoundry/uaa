@@ -14,10 +14,14 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.apache.commons.io.IOUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -29,13 +33,10 @@ public class IdentityZoneHolderTest {
     private IdentityZone fakeUaa;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         defaultZoneBranding = new BrandingInformation();
-        defaultZoneBranding.setProductLogo("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVQ4EaVTO04DMRB9YdOTC+QcK46w" +
-                                               "FU3apclKuQMH4AYUkUxFmyY0PgLac3AB6ImM3kyePYkQDZZ27Zl58+aNP8A/x2J7ixI5Xr6wiHaMX8eIW/L3/tlStisUAZm8fx1acMxWTPFK0BBOR" +
-                                               "hL5ukP2ZQ9UsjHXIqZA4LuVrwjsPjxxenRfAtAh47QenCiQgFL5fb8NpTyjlAf/5KOfa/llk/pG1WvV2T3T0We1wLh8jNAmaSUwyTMMRGC6dxDXIl" +
-                                               "ExtUd7SZb0BKhXU3LIRrTfKKXNpsLU+R7VTWTFKJEpuzGbktNmuFiLjnEj4M52s4OnMVt/CedTYLWjx9Artc1269hG3MSohMps9LAjVCqrc9QWaJg" +
-                                               "SZCRWOp+GoX5J5u3lvan3nioIphIOnQr711BVXf0LAoGuieRnMt8A438SKEFEsuMDirEf/oirUgza/ucAAAAASUVORK5CYII=");
+        final String productLogo = getResourceAsString("IdentityZoneHolderTest_ProductLogo");
+        defaultZoneBranding.setProductLogo(productLogo);
 
         zoneBranding = new BrandingInformation();
         zoneBranding.setProductLogo("zoneBrandingString===");
@@ -78,138 +79,18 @@ public class IdentityZoneHolderTest {
     }
 
     @Test
-    public void deserialize() throws Exception {
-        String json = "{\n" +
-            "  \"id\": \"f7758816-ab47-48d9-9d24-25b10b92d4cc\",\n" +
-            "  \"subdomain\": \"demo\",\n" +
-            "  \"config\": {\n" +
-            "    \"clientSecretPolicy\": {\n" +
-            "      \"minLength\": -1,\n" +
-            "      \"maxLength\": -1,\n" +
-            "      \"requireUpperCaseCharacter\": -1,\n" +
-            "      \"requireLowerCaseCharacter\": -1,\n" +
-            "      \"requireDigit\": -1,\n" +
-            "      \"requireSpecialCharacter\": -1\n" +
-            "    },\n" +
-            "    \"tokenPolicy\": {\n" +
-            "      \"accessTokenValidity\": -1,\n" +
-            "      \"refreshTokenValidity\": -1,\n" +
-            "      \"jwtRevocable\": false,\n" +
-            "      \"refreshTokenUnique\": false,\n" +
-            "      \"refreshTokenFormat\": \"jwt\",\n" +
-            "      \"activeKeyId\": null\n" +
-            "    },\n" +
-            "    \"samlConfig\": {\n" +
-            "      \"assertionSigned\": true,\n" +
-            "      \"requestSigned\": true,\n" +
-            "      \"wantAssertionSigned\": true,\n" +
-            "      \"wantAuthnRequestSigned\": false,\n" +
-            "      \"assertionTimeToLiveSeconds\": 600,\n" +
-            "      \"keys\": {\n" +
-            "      },\n" +
-            "      \"disableInResponseToCheck\": true\n" +
-            "    },\n" +
-            "    \"corsPolicy\": {\n" +
-            "      \"xhrConfiguration\": {\n" +
-            "        \"allowedOrigins\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedOriginPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedUris\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedUriPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedHeaders\": [\n" +
-            "          \"Accept\",\n" +
-            "          \"Authorization\",\n" +
-            "          \"Content-Type\"\n" +
-            "        ],\n" +
-            "        \"allowedMethods\": [\n" +
-            "          \"GET\"\n" +
-            "        ],\n" +
-            "        \"allowedCredentials\": false,\n" +
-            "        \"maxAge\": 1728000\n" +
-            "      },\n" +
-            "      \"defaultConfiguration\": {\n" +
-            "        \"allowedOrigins\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedOriginPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedUris\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedUriPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedHeaders\": [\n" +
-            "          \"Accept\",\n" +
-            "          \"Authorization\",\n" +
-            "          \"Content-Type\"\n" +
-            "        ],\n" +
-            "        \"allowedMethods\": [\n" +
-            "          \"GET\"\n" +
-            "        ],\n" +
-            "        \"allowedCredentials\": false,\n" +
-            "        \"maxAge\": 1728000\n" +
-            "      }\n" +
-            "    },\n" +
-            "    \"links\": {\n" +
-            "      \"logout\": {\n" +
-            "        \"redirectUrl\": \"/login\",\n" +
-            "        \"redirectParameterName\": \"redirect\",\n" +
-            "        \"disableRedirectParameter\": false,\n" +
-            "        \"whitelist\": null\n" +
-            "      },\n" +
-            "      \"selfService\": {\n" +
-            "        \"selfServiceLinksEnabled\": true,\n" +
-            "        \"signup\": null,\n" +
-            "        \"passwd\": null\n" +
-            "      }\n" +
-            "    },\n" +
-            "    \"prompts\": [\n" +
-            "      {\n" +
-            "        \"name\": \"username\",\n" +
-            "        \"type\": \"text\",\n" +
-            "        \"text\": \"Email\"\n" +
-            "      },\n" +
-            "      {\n" +
-            "        \"name\": \"password\",\n" +
-            "        \"type\": \"password\",\n" +
-            "        \"text\": \"Password\"\n" +
-            "      },\n" +
-            "      {\n" +
-            "        \"name\": \"passcode\",\n" +
-            "        \"type\": \"password\",\n" +
-            "        \"text\": \"Temporary Authentication Code (Get on at /passcode)\"\n" +
-            "      }\n" +
-            "    ],\n" +
-            "    \"idpDiscoveryEnabled\": false,\n" +
-            "    \"accountChooserEnabled\": false,\n" +
-            "    \"userConfig\": {\n" +
-            "      \"defaultGroups\": [\n" +
-            "        \"openid\",\n" +
-            "        \"password.write\",\n" +
-            "        \"uaa.user\",\n" +
-            "        \"approvals.me\",\n" +
-            "        \"profile\",\n" +
-            "        \"roles\",\n" +
-            "        \"user_attributes\",\n" +
-            "        \"uaa.offline_token\"\n" +
-            "      ]\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"name\": \"Demo Login Page\",\n" +
-            "  \"version\": 1,\n" +
-            "  \"description\": \"{\\\"plan_display_name\\\":\\\"Demo\\\",\\\"plan_description\\\":\\\"Demo SSO Plan\\\"}\",\n" +
-            "  \"created\": 1503504273000,\n" +
-            "  \"last_modified\": 1504898224000\n" +
-            "}";
-        IdentityZone zone = JsonUtils.readValue(json, IdentityZone.class);
+    public void deserialize() {
+        final String sampleIdentityZone = getResourceAsString("sampleIdentityZone.json");
+
+        JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
+    }
+
+    private String getResourceAsString(String s) {
+        try {
+            return IOUtils.toString(getClass().getResourceAsStream(s), Charset.defaultCharset());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 }

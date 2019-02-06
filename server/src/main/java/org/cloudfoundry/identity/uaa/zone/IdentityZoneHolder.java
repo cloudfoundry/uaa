@@ -32,7 +32,7 @@ public class IdentityZoneHolder {
     private static final ThreadLocal<IdentityZoneWithKeyManager> THREADLOCAL = new InheritableThreadLocal<IdentityZoneWithKeyManager>() {
         @Override
         protected IdentityZoneWithKeyManager initialValue() {
-            if (provisioning==null) {
+            if (provisioning == null) {
                 return new IdentityZoneWithKeyManager(IdentityZone.getUaa(), null);
             }
             IdentityZone zone = getUaaZone();
@@ -46,9 +46,9 @@ public class IdentityZoneHolder {
 
     public static KeyManager getSamlSPKeyManager() {
         IdentityZoneWithKeyManager withKeyManager = THREADLOCAL.get();
-        if (withKeyManager.getManager()==null) {
+        if (withKeyManager.getManager() == null) {
             KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(withKeyManager.getZone().getConfig().getSamlConfig());
-            if (keyManager==null) {
+            if (keyManager == null) {
                 keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone().getConfig().getSamlConfig());
             }
             withKeyManager.setManager(keyManager);
@@ -57,7 +57,7 @@ public class IdentityZoneHolder {
     }
 
     public static IdentityZone getUaaZone() {
-        if (provisioning==null) {
+        if (provisioning == null) {
             return IdentityZone.getUaa();
         }
         return provisioning.retrieve(IdentityZone.getUaa().getId());
@@ -89,7 +89,7 @@ public class IdentityZoneHolder {
         private IdentityZone zone;
         private KeyManager manager;
 
-        public IdentityZoneWithKeyManager(IdentityZone zone, KeyManager manager) {
+        IdentityZoneWithKeyManager(IdentityZone zone, KeyManager manager) {
             this.zone = zone;
             this.manager = manager;
         }
@@ -140,19 +140,20 @@ public class IdentityZoneHolder {
 
         private static <T> T resolve(Function<BrandingInformationSource, T> brandingProperty) {
             return
-              tryGet(get(), brandingProperty)
-                .orElse(tryGet(getUaaZone(), brandingProperty)
-                  .orElse(null));
+                    tryGet(get(), brandingProperty)
+                            .orElse(tryGet(getUaaZone(), brandingProperty)
+                                    .orElse(null));
         }
 
         private static <T> Optional<T> tryGet(IdentityZone zone, Function<BrandingInformationSource, T> brandingProperty) {
             return ofNullable(zone.getConfig())
-              .flatMap(c -> ofNullable(c.getBranding()))
-                .flatMap(b -> ofNullable(brandingProperty.apply(b)));
+                    .flatMap(c -> ofNullable(c.getBranding()))
+                    .flatMap(b -> ofNullable(brandingProperty.apply(b)));
         }
     }
 
     private static final BrandingInformationSource brandingResolver = new MergedZoneBrandingInformation();
+
     public static BrandingInformationSource resolveBranding() {
         return brandingResolver;
     }
