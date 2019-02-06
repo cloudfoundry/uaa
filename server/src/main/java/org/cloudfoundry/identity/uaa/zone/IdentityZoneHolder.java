@@ -79,7 +79,7 @@ public class IdentityZoneHolder {
         }
     }
 
-    private static class IdentityZoneWithKeyManager {
+    public static class IdentityZoneWithKeyManager {
         private IdentityZone zone;
         private KeyManager manager;
 
