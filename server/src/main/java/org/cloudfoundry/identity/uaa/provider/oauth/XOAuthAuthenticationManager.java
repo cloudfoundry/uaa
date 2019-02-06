@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -193,7 +194,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         setOrigin(codeToken.getOrigin());
         if (provider == null) {
-            provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            try {
+                provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            } catch (EmptyResultDataAccessException e) {
+                logger.info("No provider found for given origin");
+                throw new InsufficientAuthenticationException("Could not resolve identity provider with given origin.");
+            }
         }
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
