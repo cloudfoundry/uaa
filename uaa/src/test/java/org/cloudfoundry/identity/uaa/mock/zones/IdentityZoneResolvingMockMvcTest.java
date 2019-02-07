@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
