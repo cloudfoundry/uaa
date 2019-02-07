@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,12 +48,12 @@ class IdentityZoneHolderTest {
     @Test
     void set() {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
-        getIdentityZoneWithKeyManagerThreadLocal().get().setManager(mock(KeyManager.class));
+        getKeyManagerThreadLocal().set(mock(KeyManager.class));
 
         IdentityZoneHolder.set(mockIdentityZone);
 
         assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
-        assertThat(getIdentityZoneWithKeyManagerThreadLocal().get().getManager(), is(nullValue()));
+        assertThat(getKeyManagerThreadLocal().get(), is(nullValue()));
     }
 
     @Test
@@ -182,9 +181,9 @@ class IdentityZoneHolderTest {
         }
     }
 
-    private static ThreadLocal<IdentityZoneHolder.IdentityZoneWithKeyManager> getIdentityZoneWithKeyManagerThreadLocal() {
-        return (ThreadLocal<IdentityZoneHolder.IdentityZoneWithKeyManager>)
-                ReflectionTestUtils.getField(IdentityZoneHolder.class, "THREADLOCAL");
+    private static ThreadLocal<KeyManager> getKeyManagerThreadLocal() {
+        return (ThreadLocal<KeyManager>)
+                ReflectionTestUtils.getField(IdentityZoneHolder.class, "KEY_MANAGER_THREAD_LOCAL");
     }
 
 }

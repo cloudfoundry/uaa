@@ -23,34 +23,37 @@ public class IdentityZoneHolder {
         IdentityZoneHolder.provisioning = provisioning;
     }
 
-    private static final ThreadLocal<IdentityZoneWithKeyManager> THREADLOCAL = new InheritableThreadLocal<IdentityZoneWithKeyManager>() {
-        @Override
-        protected IdentityZoneWithKeyManager initialValue() {
-            if (provisioning == null) {
-                return new IdentityZoneWithKeyManager(IdentityZone.getUaa(), null);
-            }
-            IdentityZone zone = getUaaZone();
-            return new IdentityZoneWithKeyManager(zone, null);
-        }
-    };
+    private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL = InheritableThreadLocal
+            .withInitial(() -> getUaaZone(provisioning));
 
     public static IdentityZone get() {
-        return THREADLOCAL.get().getZone();
+        return IDENTITY_ZONE_THREAD_LOCAL.get();
     }
 
+    private static final ThreadLocal<KeyManager> KEY_MANAGER_THREAD_LOCAL = InheritableThreadLocal.withInitial(() -> null);
+
     public static KeyManager getSamlSPKeyManager() {
-        IdentityZoneWithKeyManager withKeyManager = THREADLOCAL.get();
-        if (withKeyManager.getManager() == null) {
-            KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(withKeyManager.getZone().getConfig().getSamlConfig());
-            if (keyManager == null) {
-                keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone().getConfig().getSamlConfig());
-            }
-            withKeyManager.setManager(keyManager);
+        KeyManager keyManager = KEY_MANAGER_THREAD_LOCAL.get();
+        if (keyManager != null) {
+            return keyManager;
         }
-        return withKeyManager.getManager();
+
+        keyManager = SamlKeyManagerFactory.getKeyManager(IDENTITY_ZONE_THREAD_LOCAL.get().getConfig().getSamlConfig());
+        if (keyManager != null) {
+            KEY_MANAGER_THREAD_LOCAL.set(keyManager);
+            return keyManager;
+        }
+
+        keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone(provisioning).getConfig().getSamlConfig());
+        KEY_MANAGER_THREAD_LOCAL.set(keyManager);
+        return keyManager;
     }
 
     public static IdentityZone getUaaZone() {
+        return getUaaZone(provisioning);
+    }
+
+    private static IdentityZone getUaaZone(IdentityZoneProvisioning provisioning) {
         if (provisioning == null) {
             return IdentityZone.getUaa();
         }
@@ -58,15 +61,17 @@ public class IdentityZoneHolder {
     }
 
     public static void set(IdentityZone zone) {
-        THREADLOCAL.set(new IdentityZoneWithKeyManager(zone, null));
+        IDENTITY_ZONE_THREAD_LOCAL.set(zone);
+        KEY_MANAGER_THREAD_LOCAL.set(null);
     }
 
     public static void clear() {
-        THREADLOCAL.remove();
+        IDENTITY_ZONE_THREAD_LOCAL.remove();
+        KEY_MANAGER_THREAD_LOCAL.remove();
     }
 
     public static boolean isUaa() {
-        return THREADLOCAL.get().getZone().getId().equals(IdentityZone.getUaa().getId());
+        return IDENTITY_ZONE_THREAD_LOCAL.get().getId().equals(IdentityZone.getUaa().getId());
     }
 
     public static class Initializer {
@@ -78,27 +83,4 @@ public class IdentityZoneHolder {
             IdentityZoneHolder.setProvisioning(null);
         }
     }
-
-    public static class IdentityZoneWithKeyManager {
-        private IdentityZone zone;
-        private KeyManager manager;
-
-        IdentityZoneWithKeyManager(IdentityZone zone, KeyManager manager) {
-            this.zone = zone;
-            this.manager = manager;
-        }
-
-        public IdentityZone getZone() {
-            return zone;
-        }
-
-        public KeyManager getManager() {
-            return manager;
-        }
-
-        public void setManager(KeyManager manager) {
-            this.manager = manager;
-        }
-    }
-
 }
