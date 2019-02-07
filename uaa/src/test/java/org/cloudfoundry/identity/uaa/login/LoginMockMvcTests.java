@@ -1325,7 +1325,7 @@ public class LoginMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk());
 
-        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         try {
             IdentityZoneHolder.set(identityZone);
             uaaProvider.setActive(false);
@@ -1371,7 +1371,7 @@ public class LoginMockMvcTests {
         createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
 
         IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
         jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
@@ -1397,7 +1397,7 @@ public class LoginMockMvcTests {
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
 
         IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
         jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
@@ -1435,7 +1435,7 @@ public class LoginMockMvcTests {
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration");
 
         IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
         jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
@@ -1473,7 +1473,7 @@ public class LoginMockMvcTests {
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
 
         IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
         jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
@@ -1602,7 +1602,7 @@ public class LoginMockMvcTests {
         createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
 
         IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, identityZone.getId());
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
         uaaIdentityProvider.setActive(false);
         jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 

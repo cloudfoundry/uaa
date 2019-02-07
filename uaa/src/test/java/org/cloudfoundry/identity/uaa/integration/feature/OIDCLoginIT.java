@@ -175,6 +175,7 @@ public class OIDCLoginIT {
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
         identityProvider.setIdentityZoneId(zone.getId());
+        identityProvider.setActive(true);
         clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         updateProvider();
 
@@ -260,6 +261,29 @@ public class OIDCLoginIT {
         assertEquals(user.getGivenName(), user.getUserName());
     }
 
+    @Test
+    public void testLoginWithInactiveProviderDoesNotWork() throws Exception {
+        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/");
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertNotNull(beforeLogin);
+        assertNotNull(beforeLogin.getValue());
+        String linkLocation = webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href");
+
+        identityProvider.setActive(false);
+        updateProvider();
+
+        webDriver.get(linkLocation);
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
+
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
+        assertThat(webDriver.getPageSource(), containsString("Could not resolve identity provider with given origin."));
+        webDriver.get(zoneUrl + "/");
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome to"));
+    }
 
     @Test
     public void successfulLoginWithOIDCProviderWithExternalGroups() throws Exception {

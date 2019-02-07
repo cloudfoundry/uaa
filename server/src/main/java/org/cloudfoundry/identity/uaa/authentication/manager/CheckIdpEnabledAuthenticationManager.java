@@ -42,7 +42,7 @@ public class CheckIdpEnabledAuthenticationManager implements AuthenticationManag
     @Override
     public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
         try {
-            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(getOrigin(), IdentityZoneHolder.get().getId());
             if (!idp.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
             }
