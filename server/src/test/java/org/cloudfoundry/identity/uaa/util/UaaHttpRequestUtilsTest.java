@@ -70,8 +70,6 @@ public class UaaHttpRequestUtilsTest {
 
     HttpsServer httpsServer;
     HttpServer httpServer;
-    int sslPort;
-    int port;
     private String httpsUrl;
     private String httpUrl;
 
@@ -79,17 +77,15 @@ public class UaaHttpRequestUtilsTest {
     public void setup() throws Exception {
         clearSystemProxyConfig();
         File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
-        sslPort = 23438;
-        port = sslPort+1;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         httpResponseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(200, headers, "OK");
         httpsResponseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(200, headers, "OK");
 
-        httpsServer = NetworkTestUtils.startHttpsServer(sslPort, keystore, NetworkTestUtils.keyPass, httpsResponseHandler);
-        httpServer = NetworkTestUtils.startHttpServer(port, httpResponseHandler);
-        httpsUrl = "https://localhost:" + sslPort + "/";
-        httpUrl = "http://localhost:" + port + "/";
+        httpsServer = NetworkTestUtils.startHttpsServer(keystore, NetworkTestUtils.keyPass, httpsResponseHandler);
+        httpServer = NetworkTestUtils.startHttpServer(httpResponseHandler);
+        httpsUrl = "https://localhost:" + httpsServer.getAddress().getPort() + "/";
+        httpUrl = "http://localhost:" + httpServer.getAddress().getPort() + "/";
     }
 
     @After
@@ -98,37 +94,36 @@ public class UaaHttpRequestUtilsTest {
         httpServer.stop(0);
     }
 
-
     @Test
     public void testHttpProxy() throws Exception {
         String host = "localhost";
         System.setProperty(HTTP_HOST_PROPERTY, host);
-        System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("http://google.com:80/", port, host, true);
+        System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), host, true);
     }
 
     @Test
     public void testHttpsProxy() throws Exception {
         String host = "localhost";
         System.setProperty(HTTPS_HOST_PROPERTY, host);
-        System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("https://google.com:443/", port, host, false);
+        System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
+        testHttpProxy("https://google.com:443/", httpServer.getAddress().getPort(), host, false);
     }
 
     @Test
     public void testHttpIpProxy() throws Exception {
         String ip = "127.0.0.1";
         System.setProperty(HTTP_HOST_PROPERTY, ip);
-        System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("http://google.com:80/", port, ip, true);
+        System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), ip, true);
     }
 
     @Test
     public void testHttpsIpProxy() throws Exception {
         String ip = "127.0.0.1";
         System.setProperty(HTTPS_HOST_PROPERTY, ip);
-        System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(port));
-        testHttpProxy("https://google.com:443/", port, ip, false);
+        System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
+        testHttpProxy("https://google.com:443/", httpServer.getAddress().getPort(), ip, false);
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) throws Exception {
