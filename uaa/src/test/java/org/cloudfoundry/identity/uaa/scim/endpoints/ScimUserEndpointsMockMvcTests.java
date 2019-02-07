@@ -857,7 +857,7 @@ class ScimUserEndpointsMockMvcTests {
                 adminUser.setUserName(newAdminUsername);
 
                 mockMvc.perform(requestBuilder
-                        .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                        .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                         .header("Authorization", "Bearer " + accessToken)
                         .header("If-Match", "\"" + adminUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
@@ -902,7 +902,7 @@ class ScimUserEndpointsMockMvcTests {
                 regularUser.addEmail(newEmail);
 
                 MockHttpServletRequestBuilder put = put("/Users/" + regularUser.getId())
-                        .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                        .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                         .header("Authorization", "Bearer " + accessToken)
                         .header("If-Match", "\"" + regularUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
@@ -953,7 +953,7 @@ class ScimUserEndpointsMockMvcTests {
                 String accessToken = getAccessTokenForUser(regularUser);
 
                 MockHttpServletRequestBuilder patch = patch("/Users/" + regularUser.getId())
-                        .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                        .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                         .header("Authorization", "Bearer " + accessToken)
                         .header("If-Match", "\"" + regularUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
@@ -1016,7 +1016,7 @@ class ScimUserEndpointsMockMvcTests {
                     regularUser.addEmail("resetEmail@mail.com");
 
                     MockHttpServletRequestBuilder put = put("/Users/" + regularUser.getId())
-                            .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                            .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                             .header("Authorization", "Bearer " + accessToken)
                             .header("If-Match", "\"" + regularUser.getVersion() + "\"")
                             .accept(APPLICATION_JSON)
@@ -1038,7 +1038,7 @@ class ScimUserEndpointsMockMvcTests {
                     regularUser.addEmail("addAnotherNew@email.com");
 
                     MockHttpServletRequestBuilder patch = patch("/Users/" + regularUser.getId())
-                            .headers(zoneSeeder.getZoneSubomainRequestHeader())
+                            .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                             .header("Authorization", "Bearer " + accessToken)
                             .header("If-Match", "\"" + regularUser.getVersion() + "\"")
                             .accept(APPLICATION_JSON)

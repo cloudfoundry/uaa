@@ -80,7 +80,7 @@ public class ZoneSeeder {
     private final Map<String, String> plainTextPasswordsForUsers = new HashMap<>();
     private final Map<String, String> plainTextClientSecretsForClients = new HashMap<>();
 
-    public ZoneSeeder(ApplicationContext applicationContext) {
+    ZoneSeeder(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
 
         jdbcIdentityZoneProvisioning = applicationContext.getBean(JdbcIdentityZoneProvisioning.class);
@@ -97,7 +97,7 @@ public class ZoneSeeder {
         return withUaaIdentityProvider().withDisableInternalUserManagement(false);
     }
 
-    public ZoneSeeder withUaaIdentityProvider() {
+    private ZoneSeeder withUaaIdentityProvider() {
         identityProviderToCreate = new IdentityProvider<UaaIdentityProviderDefinition>();
         identityProviderToCreate.setName(generator.generate());
         uaaIdentityProviderDefinitionToCreate = new UaaIdentityProviderDefinition();
@@ -158,12 +158,12 @@ public class ZoneSeeder {
         return withUserWhoBelongsToGroups(newScimUser(email), belongsToGroupNames);
     }
 
-    public ZoneSeeder withUserWhoBelongsToGroups(ScimUser scimUser, List<String> belongsToGroupNames) {
+    private ZoneSeeder withUserWhoBelongsToGroups(ScimUser scimUser, List<String> belongsToGroupNames) {
         usersInGroupsToCreate.put(scimUser, belongsToGroupNames);
         return this;
     }
 
-    public ScimUser newScimUser(String email) {
+    private ScimUser newScimUser(String email) {
         ScimUser scimUser = new ScimUser(null, email, generator.generate(), generator.generate());
         scimUser.addEmail(email);
         scimUser.setPassword(generator.generate());
@@ -175,6 +175,10 @@ public class ZoneSeeder {
         return newScimUser(email);
     }
 
+    public String getAdminScope() {
+        return "zones." + this.getIdentityZoneId() + ".admin";
+    }
+
     public interface AfterSeedCallback {
         void afterSeed(ZoneSeeder zoneSeeder);
     }
@@ -184,7 +188,7 @@ public class ZoneSeeder {
         return this;
     }
 
-    public ZoneSeeder seed() {
+    ZoneSeeder seed() {
         if (alreadySeeded) {
             return this;
         }
@@ -231,7 +235,7 @@ public class ZoneSeeder {
         return this;
     }
 
-    public void destroy() {
+    void destroy() {
         UaaPrincipal justEnoughPrincipal = new UaaPrincipal(
                 "id", "name", "", identityProvider.getOriginKey(), "external id", identityZone.getId()
         );
@@ -275,7 +279,7 @@ public class ZoneSeeder {
         return identityZone.getSubdomain();
     }
 
-    public HttpHeaders getZoneSubomainRequestHeader() {
+    public HttpHeaders getZoneSubdomainRequestHeader() {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Host", getIdentityZoneSubdomain() + ".localhost");
         return httpHeaders;
