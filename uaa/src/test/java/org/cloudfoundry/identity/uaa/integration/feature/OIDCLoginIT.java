@@ -56,6 +56,7 @@ import org.springframework.web.client.RestTemplate;
 import java.net.Inet4Address;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -283,6 +284,16 @@ public class OIDCLoginIT {
         assertThat(webDriver.getPageSource(), containsString("Could not resolve identity provider with given origin."));
         webDriver.get(zoneUrl + "/");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome to"));
+    }
+
+    @Test
+    public void testLoginWithLoginHintUaa() throws Exception {
+        webDriver.get(zoneUrl + "/logout.do");
+        String loginHint = URLEncoder.encode("{\"origin\":\"puppy\"}", "utf-8");
+
+        webDriver.get(zoneUrl + "/login?login_hint=" + loginHint);
+
+        Assert.assertThat(webDriver.getCurrentUrl(), startsWith(baseUrl));
     }
 
     @Test

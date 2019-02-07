@@ -95,7 +95,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -360,7 +359,7 @@ public class LoginInfoEndpoint {
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
         idpForRedirect = evaluateLoginHint(model, session, samlIdentityProviders,
-            oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys);
+            oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, request);
 
         boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
         boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
@@ -534,18 +533,20 @@ public class LoginInfoEndpoint {
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
             Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
-            List<String> allowedIdentityProviderKeys
+            List<String> allowedIdentityProviderKeys,
+            HttpServletRequest request
     ) {
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
-        Optional<String> loginHintParam =
+        String loginHintParam =
             ofNullable(session)
                 .flatMap(s -> ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
                 .flatMap(sr -> ofNullable(sr.getParameterValues("login_hint")))
-                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst())
+                .orElse(request.getParameter("login_hint"));
 
-        if (loginHintParam.isPresent()) {
-            String loginHint = loginHintParam.get();
+        if (loginHintParam != null) {
+            String loginHint = loginHintParam;
             // parse login_hint in JSON format
             UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
             if (uaaLoginHint != null) {
