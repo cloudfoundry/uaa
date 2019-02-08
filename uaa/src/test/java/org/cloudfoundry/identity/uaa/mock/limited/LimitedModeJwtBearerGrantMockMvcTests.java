@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.File;
 
@@ -29,8 +31,10 @@ public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvc
     private File existingStatusFile;
 
     @BeforeEach
-    public void setUpLimitedModeContext() throws Exception {
-        super.setUpContext();
+    public void setUpLimitedModeContext(
+            @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
+    ) throws Exception {
+        super.setUpContext(defaultAuthorities);
         existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
         setLimitedModeStatusFile(webApplicationContext);
     }
