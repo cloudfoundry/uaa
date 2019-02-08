@@ -1,21 +1,9 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.util;
 
-
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
@@ -30,11 +18,16 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
 
-public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
+@DefaultTestContext
+class LocalUaaRestTemplateMockMvcTests {
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    LocalUaaRestTemplate localUaaRestTemplate;
 
     @Test
-    public void testLocalUaaRestTemplateAcquireToken() throws Exception {
-        LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
+    void testLocalUaaRestTemplateAcquireToken() {
+        LocalUaaRestTemplate restTemplate = localUaaRestTemplate;
         OAuth2AccessToken token = restTemplate.acquireAccessToken(new DefaultOAuth2ClientContext());
         assertTrue("Scopes should contain oauth.login", token.getScope().contains("oauth.login"));
         assertTrue("Scopes should contain notifications.write", token.getScope().contains("notifications.write"));
@@ -42,8 +35,8 @@ public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testUaaRestTemplateContainsBearerHeader() throws Exception {
-        LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
+    void testUaaRestTemplateContainsBearerHeader() throws Exception {
+        LocalUaaRestTemplate restTemplate = localUaaRestTemplate;
         OAuth2AccessToken token = restTemplate.acquireAccessToken(restTemplate.getOAuth2ClientContext());
         Method createRequest = OAuth2RestTemplate.class.getDeclaredMethod("createRequest",URI.class, HttpMethod.class);
         ReflectionUtils.makeAccessible(createRequest);
