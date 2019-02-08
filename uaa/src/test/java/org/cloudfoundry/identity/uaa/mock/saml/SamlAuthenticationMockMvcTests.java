@@ -77,14 +77,6 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     private SamlServiceProvider sp;
     private SamlServiceProviderProvisioning spProvisioning;
 
-    private String getSamlMetadata(String subdomain, String url) throws Exception {
-        return getMockMvc().perform(
-                get(url)
-                        .header("Host", subdomain + ".localhost")
-        )
-                .andReturn().getResponse().getContentAsString();
-    }
-
     @Before
     public void createSamlRelationship() throws Exception {
         BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
@@ -99,7 +91,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void send_authn_request_to_idp() throws Exception {
+    public void sendAuthnRequestToIdp() throws Exception {
         String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
         String idpEntityId = idpZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
         MvcResult mvcResult = getMockMvc().perform(
@@ -140,7 +132,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void validate_static_attributes() throws Exception {
+    public void validateStaticAttributes() throws Exception {
         sp.getConfig().getStaticCustomAttributes().put("portal_id", "portal");
         sp.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
         spProvisioning.update(sp, idpZone.getIdentityZone().getId());
@@ -154,7 +146,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void validate_custom_email_attribute() throws Exception {
+    public void validateCustomEmailAttribute() throws Exception {
         sp.getConfig().getAttributeMappings().put("email", "primary-email");
         spProvisioning.update(sp, idpZone.getIdentityZone().getId());
 
@@ -166,7 +158,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void sp_is_authenticated() throws Exception {
+    public void spIsAuthenticated() throws Exception {
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, false);
         performSPAuthentication(xml)
@@ -196,7 +188,15 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
                 .andReturn().getResponse().getContentAsString();
     }
 
-    public void createUser() {
+    private String getSamlMetadata(String subdomain, String url) throws Exception {
+        return getMockMvc().perform(
+                get(url)
+                        .header("Host", subdomain + ".localhost")
+        )
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    private void createUser() {
         JdbcScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
         ScimUser user = new ScimUser(null, "marissa", "first", "last");
         user.setPrimaryEmail("test@test.org");
@@ -272,6 +272,4 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
             return encoded;
         }
     }
-
-
 }
