@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.mock.saml;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -40,7 +39,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.context.WebApplicationContext;
 import org.xml.sax.InputSource;
@@ -68,12 +66,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 class SamlAuthenticationMockMvcTests {
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator() {
-        @Override
-        public String generate() {
-            return super.generate().toLowerCase();
-        }
-    };
+    private RandomValueStringGenerator generator;
 
     private IdentityZoneCreationResult spZone;
     private IdentityZoneCreationResult idpZone;
@@ -92,8 +85,10 @@ class SamlAuthenticationMockMvcTests {
     @BeforeEach
     void createSamlRelationship(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
+            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning,
+            @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning
     ) throws Exception {
+        generator = new RandomValueStringGenerator();
         BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
         spZone = createZone(adminClient);
@@ -101,7 +96,7 @@ class SamlAuthenticationMockMvcTests {
         spProvisioning = jdbcSamlServiceProviderProvisioning;
         createIdp(jdbcIdentityProviderProvisioning);
         createSp(spProvisioning);
-        createUser();
+        createUser(jdbcScimUserProvisioning, idpZone);
     }
 
     @Test
@@ -175,19 +170,16 @@ class SamlAuthenticationMockMvcTests {
     void spIsAuthenticated() throws Exception {
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, false);
-        performSPAuthentication(xml)
-                .andExpect(authenticated());
-    }
-
-    private ResultActions performSPAuthentication(String assertion) throws Exception {
-        String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
-        return mockMvc.perform(
+        String subdomain = spZone.getIdentityZone().getSubdomain();
+        String spEntityId = subdomain + ".cloudfoundry-saml-login";
+        mockMvc.perform(
                 post("/uaa/saml/SSO/alias/" + spEntityId)
                         .contextPath("/uaa")
-                        .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
+                        .header(HttpHeaders.HOST, subdomain + ".localhost:8080")
                         .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .param("SAMLResponse", assertion)
-        );
+                        .param("SAMLResponse", xml)
+        )
+                .andExpect(authenticated());
     }
 
     private String performIdpAuthentication() throws Exception {
@@ -210,11 +202,13 @@ class SamlAuthenticationMockMvcTests {
                 .andReturn().getResponse().getContentAsString();
     }
 
-    private void createUser() {
-        JdbcScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+    private static void createUser(
+            JdbcScimUserProvisioning jdbcScimUserProvisioning,
+            IdentityZoneCreationResult idpZone
+    ) {
         ScimUser user = new ScimUser(null, "marissa", "first", "last");
         user.setPrimaryEmail("test@test.org");
-        userProvisioning.createUser(user, "secret", idpZone.getIdentityZone().getId());
+        jdbcScimUserProvisioning.createUser(user, "secret", idpZone.getIdentityZone().getId());
     }
 
     private void createSp(SamlServiceProviderProvisioning spProvisioning) throws Exception {
@@ -259,22 +253,22 @@ class SamlAuthenticationMockMvcTests {
         );
     }
 
-    private String extractAssertion(String response, boolean decode) {
+    private static String extractAssertion(String response, boolean decode) {
         String searchFor = "name=\"SAMLResponse\" value=\"";
         return extractFormParameter(searchFor, response, decode);
     }
 
-    private String extractSamlRequest(String response) {
+    private static String extractSamlRequest(String response) {
         String searchFor = "name=\"SAMLRequest\" value=\"";
         return extractFormParameter(searchFor, response, false);
     }
 
-    private String extractRelayState(String response) {
+    private static String extractRelayState(String response) {
         String searchFor = "name=\"RelayState\" value=\"";
         return extractFormParameter(searchFor, response, false);
     }
 
-    private String extractFormParameter(String searchFor, String response, boolean decode) {
+    private static String extractFormParameter(String searchFor, String response, boolean decode) {
         int start = response.indexOf(searchFor) + searchFor.length();
         assertThat("Must find the SAML response in output\n" + response, start, greaterThan(searchFor.length()));
         int end = response.indexOf("\"/>", start);
