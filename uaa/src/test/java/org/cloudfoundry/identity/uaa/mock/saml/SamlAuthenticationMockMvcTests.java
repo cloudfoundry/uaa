@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.saml;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -29,16 +30,19 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefini
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.context.WebApplicationContext;
 import org.xml.sax.InputSource;
 
 import javax.xml.xpath.XPath;
@@ -61,7 +65,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
+@DefaultTestContext
+class SamlAuthenticationMockMvcTests {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator() {
         @Override
@@ -77,24 +82,33 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     private SamlServiceProvider sp;
     private SamlServiceProviderProvisioning spProvisioning;
 
-    @Before
-    public void createSamlRelationship() throws Exception {
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @BeforeEach
+    void createSamlRelationship(
+            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
+            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
+    ) throws Exception {
         BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
         spZone = createZone(adminClient);
         idpZone = createZone(adminClient);
-        IdentityProviderProvisioning idpProvisioning = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class);
-        spProvisioning = getWebApplicationContext().getBean(JdbcSamlServiceProviderProvisioning.class);
-        createIdp(idpProvisioning);
+        spProvisioning = jdbcSamlServiceProviderProvisioning;
+        createIdp(jdbcIdentityProviderProvisioning);
         createSp(spProvisioning);
         createUser();
     }
 
     @Test
-    public void sendAuthnRequestToIdp() throws Exception {
+    void sendAuthnRequestToIdp() throws Exception {
         String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
         String idpEntityId = idpZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
-        MvcResult mvcResult = getMockMvc().perform(
+        MvcResult mvcResult = mockMvc.perform(
                 get("/uaa/saml/discovery")
                         .contextPath("/uaa")
                         .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
@@ -106,7 +120,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andReturn();
 
-        mvcResult = getMockMvc().perform(
+        mvcResult = mockMvc.perform(
                 get(mvcResult.getResponse().getRedirectedUrl())
                         .contextPath("/uaa")
                         .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
@@ -120,7 +134,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
         String body = mvcResult.getResponse().getContentAsString();
         String relayState = extractRelayState(body);
         String samlRequest = extractSamlRequest(body);
-        getMockMvc().perform(
+        mockMvc.perform(
                 post("/uaa/saml/idp/SSO/alias/" + idpEntityId)
                         .contextPath("/uaa")
                         .header(HttpHeaders.HOST, idpZone.getIdentityZone().getSubdomain() + ".localhost:8080")
@@ -132,7 +146,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void validateStaticAttributes() throws Exception {
+    void validateStaticAttributes() throws Exception {
         sp.getConfig().getStaticCustomAttributes().put("portal_id", "portal");
         sp.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
         spProvisioning.update(sp, idpZone.getIdentityZone().getId());
@@ -146,7 +160,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void validateCustomEmailAttribute() throws Exception {
+    void validateCustomEmailAttribute() throws Exception {
         sp.getConfig().getAttributeMappings().put("email", "primary-email");
         spProvisioning.update(sp, idpZone.getIdentityZone().getId());
 
@@ -158,7 +172,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void spIsAuthenticated() throws Exception {
+    void spIsAuthenticated() throws Exception {
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, false);
         performSPAuthentication(xml)
@@ -167,7 +181,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
 
     private ResultActions performSPAuthentication(String assertion) throws Exception {
         String spEntityId = spZone.getIdentityZone().getSubdomain() + ".cloudfoundry-saml-login";
-        return getMockMvc().perform(
+        return mockMvc.perform(
                 post("/uaa/saml/SSO/alias/" + spEntityId)
                         .contextPath("/uaa")
                         .header(HttpHeaders.HOST, spZone.getIdentityZone().getSubdomain() + ".localhost:8080")
@@ -177,8 +191,8 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     private String performIdpAuthentication() throws Exception {
-        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", getWebApplicationContext(), idpZone.getIdentityZone()));
-        return getMockMvc().perform(
+        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone.getIdentityZone()));
+        return mockMvc.perform(
                 get("/saml/idp/initiate")
                         .header("Host", idpZone.getIdentityZone().getSubdomain() + ".localhost")
                         .param("sp", entityId)
@@ -189,7 +203,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     private String getSamlMetadata(String subdomain, String url) throws Exception {
-        return getMockMvc().perform(
+        return mockMvc.perform(
                 get(url)
                         .header("Host", subdomain + ".localhost")
         )
@@ -197,7 +211,7 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     }
 
     private void createUser() {
-        JdbcScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
+        JdbcScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
         ScimUser user = new ScimUser(null, "marissa", "first", "last");
         user.setPrimaryEmail("test@test.org");
         userProvisioning.createUser(user, "secret", idpZone.getIdentityZone().getId());
@@ -239,8 +253,8 @@ public class SamlAuthenticationMockMvcTests extends InjectedMockContextTest {
     private IdentityZoneCreationResult createZone(BaseClientDetails adminClient) throws Exception {
         return MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                 generator.generate(),
-                getMockMvc(),
-                getWebApplicationContext(),
+                mockMvc,
+                webApplicationContext,
                 adminClient
         );
     }
