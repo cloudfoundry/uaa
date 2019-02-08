@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.DecodePathInfoPostProcessor;
@@ -61,7 +61,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
     private final String GROUP_ID_DESC = "The globally unique group ID";
     private final String ORIGIN_DESC = "Unique alias of the identity provider";

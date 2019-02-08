@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.password;
 
 
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 class PasswordEndpointDocs extends EndpointDocs {
 
     private String loginToken;

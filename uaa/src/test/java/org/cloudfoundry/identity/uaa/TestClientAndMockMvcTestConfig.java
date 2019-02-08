@@ -9,7 +9,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 @Configuration
-public class TestClientMockMvc {
+public class TestClientAndMockMvcTestConfig {
     @Bean
     public MockMvc mockMvc(
             WebApplicationContext webApplicationContext,

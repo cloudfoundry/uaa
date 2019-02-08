@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -38,7 +37,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 
 import java.util.Date;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -54,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 class ForcePasswordChangeControllerMockMvcTest {
     private ScimUser user;
     private String token;
@@ -97,7 +95,7 @@ class ForcePasswordChangeControllerMockMvcTest {
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
-    @ContextConfiguration(classes = TestSpringContext.class)
+    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
     class HappyPath {
         @BeforeEach
         void setup() throws Exception {
@@ -163,7 +161,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
         @WebAppConfiguration
-        @ContextConfiguration(classes = TestSpringContext.class)
+        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
         class WithMFA {
             @BeforeEach
             void setup() {
@@ -215,7 +213,7 @@ class ForcePasswordChangeControllerMockMvcTest {
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
-    @ContextConfiguration(classes = TestSpringContext.class)
+    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
     class WithPasswordPolicy {
         IdentityProvider identityProvider;
         UaaIdentityProviderDefinition cleanIdpDefinition;

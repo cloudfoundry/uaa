@@ -5,7 +5,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -84,7 +84,7 @@ import static org.springframework.util.StringUtils.hasText;
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 class ScimUserEndpointsMockMvcTests {
     private static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private static final String USER_PASSWORD = "pas5Word";
@@ -793,7 +793,7 @@ class ScimUserEndpointsMockMvcTests {
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
     @WebAppConfiguration
-    @ContextConfiguration(classes = TestSpringContext.class)
+    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
     class WhenSelfEditing {
         private ZoneSeeder zoneSeeder;
 
@@ -808,7 +808,7 @@ class ScimUserEndpointsMockMvcTests {
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
         @WebAppConfiguration
-        @ContextConfiguration(classes = TestSpringContext.class)
+        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
         class WhenAnAdminSelfEdits {
             private ScimUser adminUser;
             private ClientDetails adminClient;
@@ -875,7 +875,7 @@ class ScimUserEndpointsMockMvcTests {
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
         @WebAppConfiguration
-        @ContextConfiguration(classes = TestSpringContext.class)
+        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
         class WhenARegularUserSelfEdits {
             private ScimUser regularUser;
 
@@ -982,7 +982,7 @@ class ScimUserEndpointsMockMvcTests {
             @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
             @ActiveProfiles("default")
             @WebAppConfiguration
-            @ContextConfiguration(classes = TestSpringContext.class)
+            @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
             class WithInternalUserStoreDisabled {
 
                 @BeforeEach

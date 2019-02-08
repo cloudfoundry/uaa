@@ -24,7 +24,7 @@ import java.util.Map;
         "file:./src/main/webapp/WEB-INF/spring-servlet.xml"
 })
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
-public class TestSpringContext {
+public class SpringServletAndHoneycombTestConfig {
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
         return new PropertySourcesPlaceholderConfigurer();
@@ -80,7 +80,7 @@ public class TestSpringContext {
     }
 
     @Bean
-    public HoneycombAuditEventTestListener honeycombAuditEventTestListenerIdentityProviderAuthenticationFailureEvent(ConfigurableApplicationContext configurableApplicationContext,EventFactory honeycombEventFactory) {
+    public HoneycombAuditEventTestListener honeycombAuditEventTestListenerIdentityProviderAuthenticationFailureEvent(ConfigurableApplicationContext configurableApplicationContext, EventFactory honeycombEventFactory) {
         HoneycombAuditEventTestListener<IdentityProviderAuthenticationFailureEvent> listener =
                 HoneycombAuditEventTestListener.forEventClass(IdentityProviderAuthenticationFailureEvent.class);
         listener.setHoneycombEventFactory(honeycombEventFactory);

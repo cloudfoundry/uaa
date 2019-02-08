@@ -21,8 +21,8 @@ import java.lang.annotation.Target;
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-        TestSpringContext.class,
-        TestClientMockMvc.class
+        SpringServletAndHoneycombTestConfig.class,
+        TestClientAndMockMvcTestConfig.class
 })
 public @interface DefaultTestContext {
 }
