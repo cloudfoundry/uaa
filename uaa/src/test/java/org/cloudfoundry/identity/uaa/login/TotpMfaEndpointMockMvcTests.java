@@ -39,6 +39,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -99,7 +100,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         listener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);
         getWebApplicationContext().addApplicationListener(listener);
 
-        user = createUser();
+        password = "sec3Tas";
+        user = createUser(password);
         session = new MockHttpSession();
     }
 
@@ -112,7 +114,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testRedirectToMfaAfterLogin() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
         MockHttpServletResponse response = getMockMvc().perform(get("/profile")
                 .session(session)).andReturn().getResponse();
@@ -121,7 +123,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testRedirectToLoginPageAfterClickingBackFromMfaRegistrationPage() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
         MockHttpServletResponse response = getMockMvc().perform(get("/logout.do")
                 .session(session)).andReturn().getResponse();
@@ -131,9 +133,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGoogleAuthenticatorLoginFlow() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
-        performGetMfaRegister()
+        performGetMfaRegister(getMockMvc(), session)
                 .andDo(print())
                 .andExpect(view().name("mfa/qr_code"));
 
@@ -154,7 +156,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(redirectedUrl("http://localhost/"));
 
         session = new MockHttpSession();
-        performLoginWithSession();
+        performLoginWithSession(getMockMvc(), session, user, password);
         MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -165,8 +167,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLockedOutAfterExceededMfaAttempts() throws Exception {
-        redirectToMFARegistration();
-        performGetMfaRegister()
+        redirectToMFARegistration(getMockMvc(), session, user, password);
+        performGetMfaRegister(getMockMvc(), session)
                 .andDo(print())
                 .andExpect(view().name("mfa/qr_code"));
 
@@ -221,7 +223,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
                 .andDo(print())
                 .andExpect(redirectedUrl("http://localhost/login"));
 
-        performLoginWithSession().andExpect(redirectedUrl("http://localhost" + oauthUrl));
+        performLoginWithSession(getMockMvc(), session, user, password).andExpect(redirectedUrl("http://localhost" + oauthUrl));
 
         getMockMvc().perform(get(oauthUrl)
                 .session(session)
@@ -230,7 +232,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
                 .andDo(print())
                 .andExpect(redirectedUrl("/login/mfa/register"));
 
-        performGetMfaRegister();
+        performGetMfaRegister(getMockMvc(), session);
 
         int code = MockMvcUtils.getMFACodeFromSession(session);
         MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
@@ -254,11 +256,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testOtpValidationFails() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
-        performGetMfaManualRegister().andExpect((view().name("mfa/manual_registration")));
+        performGetMfaManualRegister(getMockMvc(), session).andExpect((view().name("mfa/manual_registration")));
 
         int code = MockMvcUtils.getMFACodeFromSession(session);
 
@@ -278,7 +280,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/logout.do")).andReturn();
 
         session = new MockHttpSession();
-        performLoginWithSession();
+        performLoginWithSession(getMockMvc(), session, user, password);
 
         getMockMvc().perform(post("/login/mfa/verify.do")
                 .param("code", Integer.toString(code + 1))
@@ -310,9 +312,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testQRCodeRedirectIfCodeValidated() throws Exception {
 
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code"));
 
         int code = MockMvcUtils.getMFACodeFromSession(session);
 
@@ -324,17 +326,17 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/logout.do")).andReturn();
 
         session = new MockHttpSession();
-        performLoginWithSession();
+        performLoginWithSession(getMockMvc(), session, user, password);
 
-        performGetMfaRegister().andExpect(redirectedUrl("/login/mfa/verify"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(redirectedUrl("/login/mfa/verify"));
     }
 
     @Test
     public void testRegisterFlowWithMfaProviderSwitch() throws Exception {
 
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code"));
 
         int code = MockMvcUtils.getMFACodeFromSession(session);
 
@@ -366,9 +368,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
 
         session = new MockHttpSession();
-        performLoginWithSession();
+        performLoginWithSession(getMockMvc(), session, user, password);
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code"));
 
         code = MockMvcUtils.getMFACodeFromSession(session);
 
@@ -391,23 +393,23 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testQRCodeRedirectIfCodeNotValidated() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code"));
 
         UserGoogleMfaCredentials inActiveCreds = (UserGoogleMfaCredentials) session.getAttribute("uaaMfaCredentials");
         assertNotNull(inActiveCreds);
 
-        performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
+        performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code"));
     }
 
     @Test
     public void testManualRegistrationFlow() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
-        performGetMfaManualRegister().andExpect((view().name("mfa/manual_registration")));
+        performGetMfaManualRegister(getMockMvc(), session).andExpect((view().name("mfa/manual_registration")));
 
         int code = MockMvcUtils.getMFACodeFromSession(session);
 
@@ -427,7 +429,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/logout.do")).andReturn();
 
         session = new MockHttpSession();
-        performLoginWithSession();
+        performLoginWithSession(getMockMvc(), session, user, password);
         MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -438,29 +440,28 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testQRDoesNotChangeDuringOneSession() throws Exception {
-        redirectToMFARegistration();
+        redirectToMFARegistration(getMockMvc(), session, user, password);
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
-        MvcResult res = performGetMfaRegister().andExpect(view().name("mfa/qr_code")).andReturn();
+        MvcResult res = performGetMfaRegister(getMockMvc(), session).andExpect(view().name("mfa/qr_code")).andReturn();
         String qrUrl = (String) res.getModelAndView().getModel().get("qrurl");
 
-        performGetMfaRegister()
+        performGetMfaRegister(getMockMvc(), session)
                 .andExpect(view().name("mfa/qr_code"))
                 .andExpect(model().attribute("qrurl", qrUrl));
     }
 
-    private ScimUser createUser() {
+    private static ScimUser createUser(String password) {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
-        password = "sec3Tas";
         user.setPrimaryEmail(user.getUserName());
         user.setPassword(password);
         user = getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, user.getPassword(), IdentityZoneHolder.getUaaZone().getId());
         return user;
     }
 
-    private ResultActions performLoginWithSession() throws Exception {
-        return getMockMvc().perform(post("/login.do")
+    private static ResultActions performLoginWithSession(MockMvc mockMvc, MockHttpSession session, ScimUser user, String password) throws Exception {
+        return mockMvc.perform(post("/login.do")
                 .session(session)
                 .param("username", user.getUserName())
                 .param("password", password)
@@ -469,20 +470,20 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound());
     }
 
-    private ResultActions performGetMfaRegister() throws Exception {
-        return getMockMvc().perform(get("/login/mfa/register")
+    private static ResultActions performGetMfaRegister(MockMvc mockMvc, MockHttpSession session) throws Exception {
+        return mockMvc.perform(get("/login/mfa/register")
                 .session(session));
     }
 
-    private ResultActions performGetMfaManualRegister() throws Exception {
-        return getMockMvc().perform(get("/login/mfa/manual")
+    private static ResultActions performGetMfaManualRegister(MockMvc mockMvc, MockHttpSession session) throws Exception {
+        return mockMvc.perform(get("/login/mfa/manual")
                 .session(session)
         );
     }
 
-    private void redirectToMFARegistration() throws Exception {
-        String location = performLoginWithSession().andReturn().getResponse().getHeader("Location");
-        getMockMvc().perform(get(location)
+    private static void redirectToMFARegistration(MockMvc mockMvc, MockHttpSession session, ScimUser user, String password) throws Exception {
+        String location = performLoginWithSession(mockMvc, session, user, password).andReturn().getResponse().getHeader("Location");
+        mockMvc.perform(get(location)
                 .session(session))
                 .andExpect(redirectedUrl("/login/mfa/register"));
     }
