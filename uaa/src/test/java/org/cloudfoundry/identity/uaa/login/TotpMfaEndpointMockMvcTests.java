@@ -54,11 +54,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TotpMfaEndpointMockMvcTests {
 
     private String adminToken;
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
     private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;
     private IdentityZoneConfiguration uaaZoneConfig;
     private MfaProvider mfaProvider;
     private MfaProvider otherMfaProvider;
     private String password;
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private ScimUser scimUser;
     private MockHttpSession mockHttpSession;
@@ -78,15 +82,14 @@ class TotpMfaEndpointMockMvcTests {
     @BeforeEach
     void setup(
             @Autowired TestClient testClient,
-            @Autowired ConfigurableApplicationContext configurableApplicationContext
+            @Autowired ConfigurableApplicationContext configurableApplicationContext,
+            @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 "admin",
                 "adminsecret",
                 "clients.read clients.write clients.secret clients.admin uaa.admin"
         );
-        jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) webApplicationContext.getBean("jdbcUserGoogleMfaCredentialsProvisioning");
-        userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) webApplicationContext.getBean("userGoogleMfaCredentialsProvisioning");
 
         mfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
         otherMfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
@@ -100,7 +103,7 @@ class TotpMfaEndpointMockMvcTests {
         configurableApplicationContext.addApplicationListener(applicationListener);
 
         password = "sec3Tas";
-        scimUser = createUser(webApplicationContext, password);
+        scimUser = createUser(scimUserProvisioning, password);
         mockHttpSession = new MockHttpSession();
     }
 
@@ -341,7 +344,6 @@ class TotpMfaEndpointMockMvcTests {
 
         String location = MockMvcUtils.performMfaPostVerifyWithCode(code, mockMvc, mockHttpSession);
 
-
         location = mockMvc.perform(
                 get(location)
                         .session(mockHttpSession)
@@ -450,12 +452,12 @@ class TotpMfaEndpointMockMvcTests {
                 .andExpect(model().attribute("qrurl", qrUrl));
     }
 
-    private static ScimUser createUser(WebApplicationContext webApplicationContext, String password) {
+    private static ScimUser createUser(ScimUserProvisioning scimUserProvisioning, String password) {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
         user.setPrimaryEmail(user.getUserName());
         user.setPassword(password);
-        user = webApplicationContext.getBean(ScimUserProvisioning.class).createUser(user, user.getPassword(), IdentityZoneHolder.getUaaZone().getId());
+        user = scimUserProvisioning.createUser(user, user.getPassword(), IdentityZoneHolder.getUaaZone().getId());
         return user;
     }
 
