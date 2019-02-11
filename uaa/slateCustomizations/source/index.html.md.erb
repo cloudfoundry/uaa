@@ -1631,6 +1631,10 @@ uaac user add testuser --given_name About --family_name Schmidt --emails testuse
 
 ## Update
 
+<aside class="notice">
+  Users can only be updated when internal user management is enabled.
+</aside>
+
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-response.md")).result(binding) %>
@@ -1667,6 +1671,10 @@ uaac user update testuser --given_name About --family_name Schmidt --emails test
 ```
 
 ## Patch
+
+<aside class="notice">
+  Users can only be patched when internal user management is enabled.
+</aside>
 
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/http-request.md")).result(binding) %>
