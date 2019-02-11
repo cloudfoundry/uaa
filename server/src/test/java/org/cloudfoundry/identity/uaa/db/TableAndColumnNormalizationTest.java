@@ -40,17 +40,13 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
         );
     }
 
-    @Before
-    public void useUaaDbBecauseTheMigrationHardcodesUaaAsTheDatabaseName() {
-        DataSource tomcatDataSource = (DataSource) dataSource;
-        tomcatDataSource.setUrl(tomcatDataSource.getUrl().replaceFirst("uaa_\\d+", "uaa"));
-        tomcatDataSource.getPool().purge();
-        flyway.migrate();
-    }
-
     @Override
-    public void tearDown() {
-        flyway.clean();
+    public String[] getWebApplicationContextConfigFiles() {
+        return new String[]{
+                "classpath:spring/env.xml",
+                "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
+                "classpath:spring/data-source.xml"
+        };
     }
 
     @Test
@@ -85,7 +81,9 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);
+            boolean hadSomeResults = false;
             while (rs.next()) {
+                hadSomeResults = true;
                 String name = rs.getString("TABLE_NAME");
                 String col = rs.getString("COLUMN_NAME");
                 logger.info("Checking column [" + name + "." + col + "]");
@@ -94,6 +92,7 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                     assertTrue("Column[" + name + "." + col + "] is not lower case.", col.toLowerCase().equals(col));
                 }
             }
+            assertTrue("Getting columns from db metadata should have returned some results", hadSomeResults);
         } finally {
             try {
                 connection.close();

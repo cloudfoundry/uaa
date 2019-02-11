@@ -52,7 +52,7 @@ public class JdbcTestBase extends TestClassNullifier {
         this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);
-        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.setConfigLocations(getWebApplicationContextConfigFiles());
         webApplicationContext.refresh();
         flyway = webApplicationContext.getBean(Flyway.class);
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
@@ -61,6 +61,13 @@ public class JdbcTestBase extends TestClassNullifier {
         validationQuery = webApplicationContext.getBean("validationQuery", String.class);
         IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
+    }
+
+    public String[] getWebApplicationContextConfigFiles() {
+        return new String[]{
+                "classpath:spring/env.xml",
+                "classpath:spring/data-source.xml"
+        };
     }
 
     public void cleanData() {
