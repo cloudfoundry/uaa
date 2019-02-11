@@ -42,6 +42,8 @@ public class UserGoogleMfaCredentialsProvisioningTest {
         mfaProviderProvisioning = mock(MfaProviderProvisioning.class);
         provisioner.setMfaProviderProvisioning(mfaProviderProvisioning);
         when(mfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenReturn(mfaProvider);
+
+        IdentityZoneHolder.setProvisioning(null);
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
     }
 

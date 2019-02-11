@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.HomeController;
+import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
@@ -108,7 +109,6 @@ public class LoginMockMvcTests {
 
     private RandomValueStringGenerator generator;
 
-    private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
     private Links globalLinks;
     private IdentityZone identityZone;
@@ -132,7 +132,6 @@ public class LoginMockMvcTests {
         SecurityContextHolder.clearContext();
 
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        originalConfiguration = identityZoneProvisioning.retrieve(getUaa().getId()).getConfig();
         identityZoneConfiguration = identityZoneProvisioning.retrieve(getUaa().getId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
@@ -169,12 +168,16 @@ public class LoginMockMvcTests {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown(@Autowired IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws Exception {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), true);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), originalConfiguration);
+        resetUaaZoneConfigToDefault(identityZoneConfigurationBootstrap);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
+    }
+
+    private void resetUaaZoneConfigToDefault(IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws InvalidIdentityZoneDetailsException {
+        identityZoneConfigurationBootstrap.afterPropertiesSet();
     }
 
     @Test
@@ -506,13 +509,13 @@ public class LoginMockMvcTests {
 
     @Test
     void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
-        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, getUaa().getId(), true);
+        MockMvcUtils.setDisableInternalUserManagement(true, webApplicationContext);
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attributeExists("prompts"))
                 .andExpect(content().string(not(containsString("/create_account"))));
-        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setDisableInternalUserManagement(false, webApplicationContext);
     }
 
     @Nested

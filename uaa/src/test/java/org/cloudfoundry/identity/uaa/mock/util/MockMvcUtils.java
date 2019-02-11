@@ -425,13 +425,6 @@ public final class MockMvcUtils {
         provisioning.update(uaaIdp, zoneId);
     }
 
-    public static void setDisableInternalUserManagement(ApplicationContext context, String zoneId, boolean disabled) {
-        IdentityProviderProvisioning provisioning = context.getBean(JdbcIdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, zoneId);
-        uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
-        provisioning.update(uaaIdp, zoneId);
-    }
-
     public static void setSelfServiceLinksEnabled(ApplicationContext context, String zoneId, boolean enabled) {
         IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
         config.getLinks().getSelfService().setSelfServiceLinksEnabled(enabled);

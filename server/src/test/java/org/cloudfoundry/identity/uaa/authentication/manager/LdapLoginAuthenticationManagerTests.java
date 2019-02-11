@@ -59,10 +59,10 @@ import static org.mockito.Mockito.when;
 
 public class LdapLoginAuthenticationManagerTests {
 
-    public static final String DN = "cn=marissa,ou=Users,dc=test,dc=com";
-    public static final String LDAP_EMAIL = "test@ldap.org";
-    public static final String TEST_EMAIL = "email@email.org";
-    public static final String USERNAME = "username";
+    private static final String DN = "cn=marissa,ou=Users,dc=test,dc=com";
+    private static final String LDAP_EMAIL = "test@ldap.org";
+    private static final String TEST_EMAIL = "email@email.org";
+    private static final String USERNAME = "username";
     private static final String EMAIL_ATTRIBUTE = "email";
     private final String GIVEN_NAME_ATTRIBUTE = "firstname";
     private final String FAMILY_NAME_ATTRIBUTE = "surname";
@@ -76,6 +76,17 @@ public class LdapLoginAuthenticationManagerTests {
     final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
     final String UAA_MANAGER = "uaaManager";
     final String MANAGERS = "managers";
+
+    private LdapLoginAuthenticationManager am;
+    private ApplicationEventPublisher publisher;
+    private String origin = "test";
+    private Map<String, String[]> info = new HashMap<>();
+    private UaaUser dbUser;
+    private Authentication auth;
+    private ExtendedLdapUserImpl authUserDetail;
+    private IdentityProviderProvisioning provisioning;
+    private IdentityProvider provider;
+    private LdapIdentityProviderDefinition definition;
 
     private static LdapUserDetails mockLdapUserDetails() {
         userDetails = mock(LdapUserDetails.class);
@@ -100,19 +111,11 @@ public class LdapLoginAuthenticationManagerTests {
         when(userDetails.isEnabled()).thenReturn(true);
     }
 
-    LdapLoginAuthenticationManager am;
-    ApplicationEventPublisher publisher;
-    String origin = "test";
-    Map<String, String[]> info = new HashMap<>();
-    UaaUser dbUser = getUaaUser();
-    Authentication auth;
-    ExtendedLdapUserImpl authUserDetail;
-    IdentityProviderProvisioning provisioning;
-    IdentityProvider provider;
-    LdapIdentityProviderDefinition definition;
-
     @Before
     public void setUp() {
+        IdentityZoneHolder.setProvisioning(null);
+
+        dbUser = getUaaUser();
         provisioning = mock(IdentityProviderProvisioning.class);
         am = new LdapLoginAuthenticationManager(provisioning);
         publisher = mock(ApplicationEventPublisher.class);
