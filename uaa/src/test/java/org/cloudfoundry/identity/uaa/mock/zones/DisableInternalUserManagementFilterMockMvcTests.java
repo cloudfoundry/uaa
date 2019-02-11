@@ -56,12 +56,12 @@ class DisableInternalUserManagementFilterMockMvcTests {
                 .addFilter(springSecurityFilterChain)
                 .build();
 
-        MockMvcUtils.setDisableInternalUserManagement(true, webApplicationContext);
+        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
     }
 
     @AfterEach
     void resetInternalUserManagement() {
-        MockMvcUtils.setDisableInternalUserManagement(disableInternalUserManagement, webApplicationContext);
+        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, disableInternalUserManagement);
     }
 
     @Test

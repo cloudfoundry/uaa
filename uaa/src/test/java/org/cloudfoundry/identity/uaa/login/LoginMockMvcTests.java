@@ -509,13 +509,13 @@ public class LoginMockMvcTests {
 
     @Test
     void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
-        MockMvcUtils.setDisableInternalUserManagement(true, webApplicationContext);
+        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attributeExists("prompts"))
                 .andExpect(content().string(not(containsString("/create_account"))));
-        MockMvcUtils.setDisableInternalUserManagement(false, webApplicationContext);
+        MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
     }
 
     @Nested
