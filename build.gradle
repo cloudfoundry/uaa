@@ -104,6 +104,9 @@ subprojects {
         testLogging {
             events 'skipped', 'failed', 'passed'
             exceptionFormat 'full'
+
+            // Uncomment the following line to see all standard output from tests (there's a ton of it!)
+            //showStandardStreams = true
         }
     }
 
