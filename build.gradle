@@ -260,7 +260,7 @@ private EventFactory buildEventFactory() {
     def honeycombKey = System.getenv("HONEYCOMB_KEY")
     def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
 
-    if (honeycombKey == null || honeycombDataset == null) {
+    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
         return null
     }
 
