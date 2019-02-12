@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -58,23 +59,29 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
                 "}";
     }
 
-    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
-        return getMockMvc().perform(zoneSwitching ? request.header("X-Identity-Zone-Id", zone.getId()) : request);
-    }
-
     @Test
     public void deleteServiceProvider() throws Exception {
-        MockHttpServletResponse createdResponse = perform(post("/saml/service-providers")
+        MockHttpServletRequestBuilder post = post("/saml/service-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(requestBody)
+                .content(requestBody);
+        MockHttpServletResponse createdResponse = perform(
+                getMockMvc(),
+                zoneSwitching,
+                zone,
+                post
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(createdResponse.getContentAsString(), SamlServiceProvider.class);
 
         assertNotNull(samlServiceProvider);
-        MockHttpServletResponse deletedResponse = perform(delete("/saml/service-providers/{id}", samlServiceProvider.getId())
+        MockHttpServletRequestBuilder delete = delete("/saml/service-providers/{id}", samlServiceProvider.getId())
                 .header("Authorization", "Bearer " + spsWriteToken)
-                .accept(APPLICATION_JSON))
+                .accept(APPLICATION_JSON);
+        MockHttpServletResponse deletedResponse = perform(
+                getMockMvc(),
+                zoneSwitching,
+                zone,
+                delete)
                 .andExpect(status().isOk())
                 .andReturn().getResponse();
 
@@ -89,32 +96,44 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
         MockMvcUtils.createClient(this.getMockMvc(), adminToken, spsReadClientId, spsReadClientSecret, null, null, Arrays.asList("client_credentials", "password"), "sps.read");
         String spsReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), spsReadClientId, spsReadClientSecret, "sps.read", null);
 
-        MockHttpServletResponse createdResponse = perform(post("/saml/service-providers")
+        MockHttpServletRequestBuilder post = post("/saml/service-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(requestBody)
+                .content(requestBody);
+        MockHttpServletResponse createdResponse = perform(getMockMvc(),
+                zoneSwitching,
+                zone,
+                post
         ).andReturn().getResponse();
         SamlServiceProvider samlServiceProvider = JsonUtils.readValue(createdResponse.getContentAsString(), SamlServiceProvider.class);
 
         assertNotNull(samlServiceProvider);
-        perform(delete("/saml/service-providers/{id}", samlServiceProvider.getId())
+        MockHttpServletRequestBuilder delete = delete("/saml/service-providers/{id}", samlServiceProvider.getId())
                 .header("Authorization", "Bearer " + spsReadToken)
-                .accept(APPLICATION_JSON))
+                .accept(APPLICATION_JSON);
+        perform(getMockMvc(),
+                zoneSwitching,
+                zone,
+                delete)
                 .andExpect(status().isForbidden());
     }
 
     @Test
     public void deleteServiceProviderThatDoesNotExist() throws Exception {
-        perform(delete("/saml/service-providers/{id}", "nonExistentId")
+        MockHttpServletRequestBuilder delete = delete("/saml/service-providers/{id}", "nonExistentId")
                 .header("Authorization", "Bearer " + spsWriteToken)
-                .accept(APPLICATION_JSON))
+                .accept(APPLICATION_JSON);
+        perform(getMockMvc(),
+                zoneSwitching,
+                zone,
+                delete)
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("Provider not found."));
     }
 
     @Test
     public void createServiceProvider() throws Exception {
-        performCreateServiceProvider()
+        performCreateServiceProvider(getMockMvc(), adminToken, requestBody)
                 .andExpect(status().isCreated());
     }
 
@@ -135,10 +154,10 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
 
     @Test
     public void duplicateServiceProvider_isConflict() throws Exception {
-        performCreateServiceProvider()
+        performCreateServiceProvider(getMockMvc(), adminToken, requestBody)
                 .andExpect(status().isCreated());
 
-        performCreateServiceProvider()
+        performCreateServiceProvider(getMockMvc(), adminToken, requestBody)
                 .andExpect(status().isConflict());
     }
 
@@ -155,7 +174,7 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
                 "                                               \\\"phone_number\\\" : \\\"phone\\\" }" +
                 "               }\"" +
                 "}";
-        String response = performCreateServiceProvider()
+        String response = performCreateServiceProvider(getMockMvc(), adminToken, requestBody)
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
@@ -179,7 +198,7 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
                 "                                               \\\"phone_number\\\" : \\\"phone\\\" }" +
                 "               }\"" +
                 "}";
-        String response = performCreateServiceProvider()
+        String response = performCreateServiceProvider(getMockMvc(), adminToken, requestBody)
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
@@ -189,7 +208,7 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
         serviceProvider.getConfig().getAttributeMappings().put(GIVEN_NAME_ATTRIBUTE_NAME, "Ramanujan");
         requestBody = JsonUtils.writeValueAsString(serviceProvider);
 
-        response = performUpdateServiceProvider(serviceProvider.getId())
+        response = performUpdateServiceProvider(getMockMvc(), adminToken, requestBody, serviceProvider.getId())
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -200,15 +219,32 @@ public abstract class BaseSamlServiceProviderEndpointsMockMvcTests extends Injec
         assertEquals("phone", serviceProvider.getConfig().getAttributeMappings().get(PHONE_NUMBER_ATTRIBUTE_NAME));
     }
 
-    private ResultActions performCreateServiceProvider() throws Exception {
-        return getMockMvc().perform(post("/saml/service-providers")
+    private static ResultActions perform(
+            MockMvc mockMvc,
+            boolean zoneSwitching,
+            IdentityZone zone,
+            MockHttpServletRequestBuilder request
+    ) throws Exception {
+        return mockMvc.perform(zoneSwitching ? request.header("X-Identity-Zone-Id", zone.getId()) : request);
+    }
+
+    private static ResultActions performCreateServiceProvider(
+            MockMvc mockMvc,
+            String adminToken,
+            String requestBody
+    ) throws Exception {
+        return mockMvc.perform(post("/saml/service-providers")
                 .header("Authorization", "bearer" + adminToken)
                 .header("Content-Type", "application/json")
                 .content(requestBody));
     }
 
-    private ResultActions performUpdateServiceProvider(String id) throws Exception {
-        return getMockMvc().perform(put("/saml/service-providers/" + id)
+    private static ResultActions performUpdateServiceProvider(
+            MockMvc mockMvc,
+            String adminToken,
+            String requestBody,
+            String id) throws Exception {
+        return mockMvc.perform(put("/saml/service-providers/" + id)
                 .header("Authorization", "bearer" + adminToken)
                 .header("Content-Type", "application/json")
                 .content(requestBody));
