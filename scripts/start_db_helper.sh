@@ -16,7 +16,7 @@ function bootDB {
   db=$1
 
   if [ "$db" = "postgresql" ]; then
-    launchDB="(/docker-entrypoint.sh postgres -c 'max_connections=200' &> /var/log/postgres-boot.log) &"
+    launchDB="(/docker-entrypoint.sh postgres -c 'max_connections=250' &> /var/log/postgres-boot.log) &"
     testConnection="(! ps aux | grep docker-entrypoint | grep -v 'grep') && psql -h localhost -U postgres -c '\conninfo' &>/dev/null"
     initDB="psql -c 'drop database if exists uaa;' -U postgres; psql -c 'create database uaa;' -U postgres; psql -c 'drop user if exists root;' --dbname=uaa -U postgres; psql -c \"create user root with superuser password 'changeme';\" --dbname=uaa -U postgres; psql -c 'show max_connections;' --dbname=uaa -U postgres;"
 
@@ -29,7 +29,7 @@ function bootDB {
   elif [ "$db" = "mysql" ]  || [ "$db" = "mysql-5.6" ]; then
     launchDB="(MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld &> /var/log/mysql-boot.log) &"
     testConnection="echo '\s;' | mysql -uroot -pchangeme &>/dev/null"
-    initDB="mysql -uroot -pchangeme -e 'ALTER DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';"
+    initDB="mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250; ALTER DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';"
 
     function createDB() {
         DATABASE_NAME="uaa_${1}"
@@ -42,6 +42,7 @@ function bootDB {
     initDB="mysql -e \"CREATE USER 'root'@'127.0.0.1' IDENTIFIED BY 'changeme' ;\";
          mysql -e \"GRANT ALL ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION ;\";
          mysql -e 'FLUSH PRIVILEGES ;';
+         mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250;';
          mysql -uroot -pchangeme -e 'drop database if exists uaa;';
          mysql -uroot -pchangeme -e 'CREATE DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';
          mysql -uroot -pchangeme -e \"SET PASSWORD FOR 'root'@'localhost' = 'changeme';\";
