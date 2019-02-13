@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.test.TestUtils.withSubdomain;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -373,7 +374,7 @@ public class UaaUrlUtilsTest {
 
     @Test
     public void addSubdomainToUrl_givenUaaUrl() {
-        IdentityZoneHolder.set(new IdentityZone().setSubdomain("somezone"));
+        IdentityZoneHolder.set(withSubdomain("somezone"));
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone.localhost:8080", url);
     }
@@ -392,7 +393,7 @@ public class UaaUrlUtilsTest {
 
     @Test
     public void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
-        IdentityZoneHolder.set(new IdentityZone().setSubdomain(""));
+        IdentityZoneHolder.set(withSubdomain(""));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://localhost:8080", url2);
     }
@@ -405,7 +406,7 @@ public class UaaUrlUtilsTest {
 
     @Test
     public void addSudomain_handlesExtraSpaceInSubdomain_currentZone() {
-        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2 "));
+        IdentityZoneHolder.set(withSubdomain(" somezone2 "));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone2.localhost:8080", url2);
     }
@@ -418,7 +419,7 @@ public class UaaUrlUtilsTest {
 
     @Test
     public void addSubdomain_handlesUnexpectedDotInSubdomain_currentZone() {
-        IdentityZoneHolder.set(new IdentityZone().setSubdomain(" somezone2. "));
+        IdentityZoneHolder.set(withSubdomain(" somezone2. "));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone2.localhost:8080", url2);
     }

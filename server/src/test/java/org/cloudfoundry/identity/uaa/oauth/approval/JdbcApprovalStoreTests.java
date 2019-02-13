@@ -119,7 +119,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @After
     public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "authz_approvals");
+        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         IdentityZoneHolder.clear();
     }

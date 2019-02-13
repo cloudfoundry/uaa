@@ -17,12 +17,22 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 public class TestUtils {
+
+    public static IdentityZone withId(String id) {
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(id);
+        return identityZone;
+    }
+
+    public static IdentityZone withSubdomain(String subdomain) {
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setSubdomain(subdomain);
+        return identityZone;
+    }
 
     public static void restoreToDefaults(ApplicationContext applicationContext) {
         cleanAndMigrateDb(applicationContext);
@@ -93,10 +103,8 @@ public class TestUtils {
         }
     }
 
-    public static void deleteFrom(DataSource dataSource, String... tables) {
-        for (String table : tables) {
-            new JdbcTemplate(dataSource).update("delete from " + table);
-        }
+    public static void deleteFrom(JdbcTemplate jdbcTemplate, String table) {
+        jdbcTemplate.update("delete from " + table);
     }
 
     public static void assertNoSuchUser(JdbcTemplate template, String column, String value) {

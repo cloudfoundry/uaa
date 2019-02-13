@@ -292,7 +292,10 @@ public class TokenKeyEndpointMockMvcTests {
         String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         testZone = new IdentityZone();
-        testZone.setConfig(new IdentityZoneConfiguration()).setId(subdomain).setSubdomain(subdomain).setName(subdomain);
+        testZone.setConfig(new IdentityZoneConfiguration());
+        testZone.setId(subdomain);
+        testZone.setSubdomain(subdomain);
+        testZone.setName(subdomain);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
         testZone.getConfig().setTokenPolicy(tokenPolicy);

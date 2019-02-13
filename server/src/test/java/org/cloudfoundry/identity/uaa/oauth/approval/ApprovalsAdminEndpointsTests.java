@@ -125,8 +125,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
     @After
     public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "authz_approvals");
-        TestUtils.deleteFrom(dataSource, "users");
+        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
+        TestUtils.deleteFrom(jdbcTemplate, "users");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users", Integer.class), is(0));
     }

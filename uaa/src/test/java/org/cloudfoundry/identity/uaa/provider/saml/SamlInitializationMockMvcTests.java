@@ -72,11 +72,11 @@ public class SamlInitializationMockMvcTests extends InjectedMockContextTest {
     @Test
     public void sp_initialization_in_non_snarl_metadata_manager() throws Exception {
         String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
-        IdentityZone zone = new IdentityZone()
-            .setConfig(new IdentityZoneConfiguration())
-            .setSubdomain(subdomain)
-            .setId(subdomain)
-            .setName(subdomain);
+        IdentityZone zone = new IdentityZone();
+        zone.setConfig(new IdentityZoneConfiguration());
+        zone.setSubdomain(subdomain);
+        zone.setId(subdomain);
+        zone.setName(subdomain);
         zone = zoneProvisioning.create(zone);
         IdentityZoneHolder.set(zone);
         ExtendedMetadataDelegate localServiceProvider = spManager.getLocalServiceProvider();

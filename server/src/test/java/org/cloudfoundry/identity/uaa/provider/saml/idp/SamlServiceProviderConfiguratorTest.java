@@ -42,6 +42,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mock
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZoneWithoutSPSSOInMetadata;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderMetadatauriForZone;
+import static org.cloudfoundry.identity.uaa.test.TestUtils.withId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -118,18 +119,18 @@ public class SamlServiceProviderConfiguratorTest {
             String zoneId = UUID.randomUUID().toString();
             SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
             sp.setIdentityZoneId(zoneId);
-            IdentityZoneHolder.set(new IdentityZone().setId(zoneId));
+            IdentityZoneHolder.set(withId(zoneId));
             conf.validateSamlServiceProvider(sp);
             when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Arrays.asList(sp));
 
             String unwantedZoneId = UUID.randomUUID().toString();
             SamlServiceProvider unwantedSp = mockSamlServiceProviderForZone("uaa");
             unwantedSp.setIdentityZoneId(unwantedZoneId);
-            IdentityZoneHolder.set(new IdentityZone().setId(unwantedZoneId));
+            IdentityZoneHolder.set(withId(unwantedZoneId));
             conf.validateSamlServiceProvider(unwantedSp);
             when(providerProvisioning.retrieveActive(unwantedZoneId)).thenReturn(Arrays.asList(unwantedSp));
 
-            IdentityZone zone = new IdentityZone().setId(zoneId);
+            IdentityZone zone = withId(zoneId);
 
             List<SamlServiceProviderHolder> spList = conf.getSamlServiceProvidersForZone(zone);
             assertEquals(1, spList.size());

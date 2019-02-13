@@ -681,13 +681,13 @@ public class IntegrationTestUtils {
             return updatedZone;
         }
 
-        IdentityZone identityZone = new IdentityZone()
-          .setId(id)
-          .setSubdomain(subdomain)
-          .setName("The Twiglet Zone[" + id + "]")
-          .setDescription("Like the Twilight Zone but tastier[" + id + "].")
-          .setConfig(config)
-          .setActive(active);
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(id);
+        identityZone.setSubdomain(subdomain);
+        identityZone.setName("The Twiglet Zone[" + id + "]");
+        identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
+        identityZone.setConfig(config);
+        identityZone.setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();
     }

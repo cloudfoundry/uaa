@@ -881,7 +881,8 @@ public class LoginMockMvcTests {
     ) throws Exception {
         String zoneId = new RandomValueStringGenerator().generate();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
-        zone.setName(zoneId).setConfig(new IdentityZoneConfiguration());
+        zone.setName(zoneId);
+        zone.setConfig(new IdentityZoneConfiguration());
         zone.getConfig().getLinks().getLogout()
                 .setRedirectUrl("http://test.redirect.com")
                 .setDisableRedirectParameter(true)

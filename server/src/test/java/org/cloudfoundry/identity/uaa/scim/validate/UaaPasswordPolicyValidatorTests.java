@@ -123,7 +123,9 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidationDisabledWhenZoneIsNotDefault() {
-        IdentityZoneHolder.set(new IdentityZone().setId("foo"));
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId("foo");
+        IdentityZoneHolder.set(identityZone);
         validatePassword("Password123");
     }
 
