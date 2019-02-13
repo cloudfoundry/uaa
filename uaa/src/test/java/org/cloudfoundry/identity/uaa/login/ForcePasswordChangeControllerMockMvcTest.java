@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
@@ -48,6 +49,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(HoneycombJdbcInterceptorExtension.class)
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")
@@ -91,6 +93,7 @@ class ForcePasswordChangeControllerMockMvcTest {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
@@ -157,6 +160,7 @@ class ForcePasswordChangeControllerMockMvcTest {
 
         @Nested
         @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
         @ExtendWith(HoneycombJdbcInterceptorExtension.class)
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
@@ -209,6 +213,7 @@ class ForcePasswordChangeControllerMockMvcTest {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")

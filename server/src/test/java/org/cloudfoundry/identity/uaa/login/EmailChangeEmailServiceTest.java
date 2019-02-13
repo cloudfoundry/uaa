@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Assert;
@@ -61,6 +62,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailChangeEmailServiceTest {
     public static final String IDENTITY_ZONE_NAME = "IZ Inc";

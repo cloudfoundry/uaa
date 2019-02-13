@@ -18,6 +18,7 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;

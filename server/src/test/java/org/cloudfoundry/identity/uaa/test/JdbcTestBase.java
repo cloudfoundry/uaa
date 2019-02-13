@@ -70,17 +70,10 @@ public class JdbcTestBase extends TestClassNullifier {
         };
     }
 
-    public void cleanData() {
-        IdentityZoneHolder.clear();
-        TestUtils.cleanTestDatabaseData(jdbcTemplate);
-    }
-
     @After
-    public void tearDown() {
-        cleanData();
+    public void tearDown() throws Exception {
+        TestUtils.restoreToDefaults(webApplicationContext);
 
-        IdentityZoneHolder.clear();
-        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close(true);
         webApplicationContext.destroy();
     }

@@ -33,6 +33,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 
+/**
+ * @deprecated Please don't add to this class.
+ * We want to delete this, UaaJunitSuiteRunner, and DefaultConfigurationTestSuite.
+ */
+@Deprecated
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     private static volatile XmlWebApplicationContext webApplicationContext;

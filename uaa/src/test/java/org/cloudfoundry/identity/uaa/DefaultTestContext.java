@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa;
 
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(HoneycombJdbcInterceptorExtension.class)
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")

@@ -21,6 +21,11 @@ import static org.junit.Assume.assumeTrue;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 
+/**
+ * @deprecated Please don't make any new subclasses of this class.
+ * We want to delete this, UaaJunitSuiteRunner, and DefaultConfigurationTestSuite.
+ */
+@Deprecated
 public class InjectedMockContextTest implements Contextable {
     @Rule
     public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();

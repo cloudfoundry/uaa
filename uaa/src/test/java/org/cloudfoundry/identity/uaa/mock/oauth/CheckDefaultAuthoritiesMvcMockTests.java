@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
@@ -30,6 +31,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Set;
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(HoneycombJdbcInterceptorExtension.class)
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @ActiveProfiles("default")

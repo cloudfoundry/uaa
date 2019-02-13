@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -79,6 +80,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
 @ExtendWith(HoneycombJdbcInterceptorExtension.class)
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
@@ -789,6 +791,7 @@ class ScimUserEndpointsMockMvcTests {
 
     @Nested
     @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
     @ExtendWith(HoneycombJdbcInterceptorExtension.class)
     @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
     @ActiveProfiles("default")
@@ -804,6 +807,7 @@ class ScimUserEndpointsMockMvcTests {
 
         @Nested
         @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
         @ExtendWith(HoneycombJdbcInterceptorExtension.class)
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
@@ -871,6 +875,7 @@ class ScimUserEndpointsMockMvcTests {
 
         @Nested
         @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
         @ExtendWith(HoneycombJdbcInterceptorExtension.class)
         @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
         @ActiveProfiles("default")
@@ -978,6 +983,7 @@ class ScimUserEndpointsMockMvcTests {
 
             @Nested
             @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
             @ExtendWith(HoneycombJdbcInterceptorExtension.class)
             @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
             @ActiveProfiles("default")

@@ -111,6 +111,7 @@ public class PasswordGrantAuthenticationManagerTest {
         when(clientDetailsService.loadClientByClientId("clientid", "uaa")).thenReturn(clientDetails);
 
         instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, xoAuthAuthenticationManager, clientDetailsService, xoAuthProviderConfigurator);
+        IdentityZoneHolder.clear();
     }
 
     @After
