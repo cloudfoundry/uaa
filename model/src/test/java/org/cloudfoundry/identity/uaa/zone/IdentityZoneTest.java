@@ -41,6 +41,31 @@ class IdentityZoneTest {
 //        assertThat(actual.getConfig(), is(new IdentityZoneConfiguration()));
     }
 
+    private static class IsUaaArgumentsSource implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            IdentityZone notUaa = new IdentityZone();
+            notUaa.setId("something");
+
+            IdentityZone uaa = new IdentityZone();
+            uaa.setId("uaa");
+
+            return Stream.of(
+                    Arguments.of(IdentityZone.getUaa(), true),
+                    Arguments.of(uaa, true),
+                    Arguments.of(new IdentityZone(), false),
+                    Arguments.of(notUaa, false)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(IsUaaArgumentsSource.class)
+    void isUaa_usesOnlyId(IdentityZone identityZone, boolean isUaa) {
+        assertThat(identityZone.isUaa(), is(isUaa));
+    }
+
     @Test
     void getUaaZoneId() {
         assertThat(IdentityZone.getUaaZoneId(), is("uaa"));

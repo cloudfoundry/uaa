@@ -31,6 +31,10 @@ public class IdentityZone {
         return getUaa().getId();
     }
 
+    public boolean isUaa() {
+        return this.equals(getUaa());
+    }
+
     private String id;
 
     @NotNull
