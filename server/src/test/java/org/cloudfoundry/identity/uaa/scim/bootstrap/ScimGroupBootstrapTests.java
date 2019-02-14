@@ -58,19 +58,19 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         mDB.setScimGroupProvisioning(gDB);
         mDB.setScimUserProvisioning(uDB);
 
-        uDB.deleteByIdentityZone(IdentityZone.getUaa().getId());
-        gDB.deleteByIdentityZone(IdentityZone.getUaa().getId());
+        uDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());
+        gDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());
 
-        uDB.createUser(TestUtils.scimUserInstance("dev1"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("dev2"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("dev3"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("qa1"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("qa2"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test", IdentityZone.getUaa().getId());
-        uDB.createUser(TestUtils.scimUserInstance("hr1"), "test", IdentityZone.getUaa().getId());
+        uDB.createUser(TestUtils.scimUserInstance("dev1"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("dev2"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("dev3"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("qa1"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("qa2"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test", IdentityZone.getUaaZoneId());
+        uDB.createUser(TestUtils.scimUserInstance("hr1"), "test", IdentityZone.getUaaZoneId());
 
-        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaa().getId()).size());
-        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaa().getId()).size());
+        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
+        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
 
         bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
     }
@@ -79,7 +79,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
     public void canAddGroups() throws Exception {
         bootstrap.setGroups(StringUtils.commaDelimitedListToSet("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr").stream().collect(new MapCollector<>(s -> s, s -> null)));
         bootstrap.afterPropertiesSet();
-        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaa().getId()).size());
+        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
         assertNotNull(bootstrap.getGroup("org1.dev"));
         assertNotNull(bootstrap.getGroup("org1.qa"));
         assertNotNull(bootstrap.getGroup("org1.engg"));
@@ -117,7 +117,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
     public void testNullGroups() throws Exception {
         bootstrap.setGroups(null);
         bootstrap.afterPropertiesSet();
-        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaa().getId()).size());
+        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
     }
 
     @Test
@@ -132,12 +132,12 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
                         ));
         bootstrap.afterPropertiesSet();
 
-        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaa().getId()).size());
-        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaa().getId()).size());
+        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
+        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
         assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
         assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
         assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
-        assertEquals(5, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), false, IdentityZone.getUaa().getId()).size());
+        assertEquals(5, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), false, IdentityZone.getUaaZoneId()).size());
     }
 
     @Test
@@ -150,7 +150,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
 
         ScimGroup group;
         assertNotNull(group = bootstrap.getGroup("something"));
-        assertNotNull(group = gDB.retrieve(group.getId(), IdentityZone.getUaa().getId()));
+        assertNotNull(group = gDB.retrieve(group.getId(), IdentityZone.getUaaZoneId()));
         assertEquals("something", group.getDisplayName());
         assertEquals("Do something else", group.getDescription());
     }
@@ -174,7 +174,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
 
         bootstrap.afterPropertiesSet();
 
-        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaa().getId());
+        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaaZoneId());
 
         assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.cat".equals(group.getDisplayName()) && "Access the cat".equals(group.getDescription())));
         assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
@@ -210,7 +210,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
 
         bootstrap.afterPropertiesSet();
 
-        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaa().getId());
+        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaaZoneId());
 
         // print: only specified in the configured groups, so it should get its description from there
         assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "print".equals(group.getDisplayName()) && "Access the network printer".equals(group.getDescription())));

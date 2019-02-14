@@ -179,7 +179,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(LOGIN_SERVER, created.getOrigin());
         assertThat(jdbcTemplate.queryForObject(
                          "select count(*) from users where origin=? and identity_zone_id=?",
-                         new Object[] {LOGIN_SERVER,IdentityZone.getUaa().getId()},
+                         new Object[] {LOGIN_SERVER,IdentityZone.getUaaZoneId()},
                          Integer.class
                      ), is(1)
         );
@@ -189,9 +189,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         IdentityProvider loginServer =
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
-                .setIdentityZoneId(IdentityZone.getUaa().getId());
+                .setIdentityZoneId(IdentityZone.getUaaZoneId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, IdentityZone.getUaa().getId()}, Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, IdentityZone.getUaaZoneId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
     }
 
@@ -252,13 +252,13 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals("jo@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertEquals(UAA, created.getOrigin());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, IdentityZone.getUaa().getId()}, Integer.class), is(3));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, IdentityZone.getUaaZoneId()}, Integer.class), is(3));
         IdentityProvider loginServer =
             new IdentityProvider()
                 .setOriginKey(UAA)
-                .setIdentityZoneId(IdentityZone.getUaa().getId());
+                .setIdentityZoneId(IdentityZone.getUaaZoneId());
         db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, IdentityZone.getUaa().getId()}, Integer.class), is(3));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, IdentityZone.getUaaZoneId()}, Integer.class), is(3));
     }
 
     @Test
@@ -735,7 +735,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
 
         String origin = "test-origin";
-        createOtherIdentityProvider(origin, IdentityZone.getUaa().getId());
+        createOtherIdentityProvider(origin, IdentityZone.getUaaZoneId());
 
         ScimUser scimUser = new ScimUser(null, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();

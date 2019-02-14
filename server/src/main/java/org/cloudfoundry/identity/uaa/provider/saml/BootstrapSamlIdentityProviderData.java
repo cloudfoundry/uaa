@@ -78,7 +78,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setIdpEntityAlias(alias);
             def.setShowSamlLink(isLegacyShowSamlLink());
             def.setLinkText("Use your corporate credentials");
-            def.setZoneId(IdentityZone.getUaa().getId()); //legacy only has UAA zone
+            def.setZoneId(IdentityZone.getUaaZoneId()); //legacy only has UAA zone
             logger.debug("Legacy SAML provider configured with alias: "+alias);
             IdentityProviderWrapper wrapper = new IdentityProviderWrapper(parseSamlProvider(def));
             wrapper.setOverride(true);
@@ -162,7 +162,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setEmailDomain(emailDomain);
             def.setExternalGroupsWhitelist(externalGroupsWhitelist);
             def.setAttributeMappings(attributeMappings);
-            def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
+            def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaaZoneId());
             def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             def.setSkipSslValidation(skipSslValidation);
             def.setAuthnContext(authnContext);

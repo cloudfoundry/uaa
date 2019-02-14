@@ -94,9 +94,9 @@ class TotpMfaEndpointMockMvcTests {
         mfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
         otherMfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
 
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId());
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId());
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId(), uaaZoneConfig);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), uaaZoneConfig);
 
         //noinspection unchecked
         applicationListener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);

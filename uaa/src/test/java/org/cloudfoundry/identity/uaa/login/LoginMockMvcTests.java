@@ -132,7 +132,7 @@ public class LoginMockMvcTests {
         SecurityContextHolder.clearContext();
 
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        identityZoneConfiguration = identityZoneProvisioning.retrieve(getUaa().getId()).getConfig();
+        identityZoneConfiguration = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
@@ -169,7 +169,7 @@ public class LoginMockMvcTests {
 
     @AfterEach
     void tearDown(@Autowired IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), true);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
         resetUaaZoneConfigToDefault(identityZoneConfigurationBootstrap);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -428,7 +428,7 @@ public class LoginMockMvcTests {
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
         String username = "mixed-CASE-USER-" + generator.generate() + "@testdomain.com";
-        ScimUser user = createUser(scimUserProvisioning, username, getUaa().getId());
+        ScimUser user = createUser(scimUserProvisioning, username, IdentityZone.getUaaZoneId());
         assertEquals(username, user.getUserName());
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -455,7 +455,7 @@ public class LoginMockMvcTests {
     void test_previous_login_time_upon_authentication(
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
-        ScimUser user = createUser(scimUserProvisioning, generator, getUaa().getId());
+        ScimUser user = createUser(scimUserProvisioning, generator, IdentityZone.getUaaZoneId());
         MockHttpSession session = new MockHttpSession();
         long beforeAuthTime = System.currentTimeMillis();
         mockMvc.perform(post("/uaa/login.do")
@@ -487,8 +487,8 @@ public class LoginMockMvcTests {
     void testLogin_Post_When_DisableInternalUserManagement_Is_True(
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
-        ScimUser user = createUser(scimUserProvisioning, generator, getUaa().getId());
-        MockMvcUtils.setDisableInternalAuth(webApplicationContext, getUaa().getId(), true);
+        ScimUser user = createUser(scimUserProvisioning, generator, IdentityZone.getUaaZoneId());
+        MockMvcUtils.setDisableInternalAuth(webApplicationContext, IdentityZone.getUaaZoneId(), true);
         try {
             mockMvc.perform(post("/login.do")
                     .with(cookieCsrf())
@@ -496,7 +496,7 @@ public class LoginMockMvcTests {
                     .param("password", user.getPassword()))
                     .andExpect(redirectedUrl("/login?error=login_failure"));
         } finally {
-            MockMvcUtils.setDisableInternalAuth(webApplicationContext, getUaa().getId(), false);
+            MockMvcUtils.setDisableInternalAuth(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         }
         mockMvc.perform(post("/uaa/login.do")
                 .with(cookieCsrf())
@@ -567,7 +567,7 @@ public class LoginMockMvcTests {
         BrandingInformation branding = new BrandingInformation();
         branding.setFooterLegalText(customFooterText);
         identityZoneConfiguration.setBranding(branding);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         mockMvc.perform(get("/login"))
                 .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))))
@@ -580,7 +580,7 @@ public class LoginMockMvcTests {
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName(companyName);
         identityZoneConfiguration.setBranding(branding);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
         mockMvc.perform(get("/login"))
@@ -595,7 +595,7 @@ public class LoginMockMvcTests {
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName(companyName);
         identityZoneConfiguration.setBranding(branding);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         branding = new BrandingInformation();
         String zoneCompanyName = "Zone Company";
@@ -621,7 +621,7 @@ public class LoginMockMvcTests {
         BrandingInformation branding = new BrandingInformation();
         branding.setFooterLinks(footerLinks);
         identityZoneConfiguration.setBranding(branding);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         mockMvc.perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
     }
@@ -663,7 +663,7 @@ public class LoginMockMvcTests {
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
-        ScimUser user = createUser(scimUserProvisioning, generator, getUaa().getId());
+        ScimUser user = createUser(scimUserProvisioning, generator, IdentityZone.getUaaZoneId());
         mockMvc.perform(
                 post("/change_password.do")
                         .with(securityContext(MockMvcUtils.getUaaSecurityContext(user.getUserName(), webApplicationContext)))
@@ -703,101 +703,101 @@ public class LoginMockMvcTests {
 
     @Test
     void testLogOutEnableRedirectParameter() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(singletonList("https://www.google.com"));
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutAllowInternalRedirect() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "http://localhost/uaa/internal-location").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("http://localhost/uaa/internal-location"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(singletonList("https://www.google.com"));
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutNotWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(singletonList("https://www.yahoo.com"));
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutNullWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(singletonList("http*://www.google.com"));
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(EMPTY_LIST);
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
@@ -814,28 +814,28 @@ public class LoginMockMvcTests {
 
     @Test
     void testLogOutChangeUrlValue() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         assertFalse(original.isDisableRedirectParameter());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setRedirectUrl("https://www.google.com");
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             mockMvc.perform(get("/uaa/logout.do").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLogOutWithClientRedirect() throws Exception {
-        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
-        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, getUaa().getId());
+        Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
+        Links.Logout logout = MockMvcUtils.getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
         logout.setDisableRedirectParameter(false);
         logout.setWhitelist(EMPTY_LIST);
-        MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), logout);
+        MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
         try {
             String clientId = generator.generate();
             BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
@@ -871,7 +871,7 @@ public class LoginMockMvcTests {
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
         } finally {
-            MockMvcUtils.setLogout(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
@@ -1019,7 +1019,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testSignupsAndResetPasswordEnabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), true);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").exists())
@@ -1028,7 +1028,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -1040,7 +1040,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
         identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(false);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
                 .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
@@ -1051,7 +1051,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
         identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(true);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
                 .andExpect(xpath("//a[text()='Reset password']/@href").string("http://example.com/reset_passwd"));
@@ -1059,11 +1059,11 @@ public class LoginMockMvcTests {
 
     @Test
     void testLoginWithExplicitPrompts() throws Exception {
-        List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, getUaa().getId());
+        List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, IdentityZone.getUaaZoneId());
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
             Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            MockMvcUtils.setPrompts(webApplicationContext, getUaa().getId(), asList(first, second));
+            MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), asList(first, second));
 
             mockMvc.perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
@@ -1072,17 +1072,17 @@ public class LoginMockMvcTests {
                     .andExpect(model().attribute("prompts", hasKey("where")))
                     .andExpect(model().attribute("prompts", not(hasKey("password"))));
         } finally {
-            MockMvcUtils.setPrompts(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
     @Test
     void testLoginWithExplicitJsonPrompts() throws Exception {
-        List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, getUaa().getId());
+        List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, IdentityZone.getUaaZoneId());
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
             Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            MockMvcUtils.setPrompts(webApplicationContext, getUaa().getId(), asList(first, second));
+            MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), asList(first, second));
 
             mockMvc.perform(get("/login")
                     .accept(APPLICATION_JSON))
@@ -1092,7 +1092,7 @@ public class LoginMockMvcTests {
                     .andExpect(model().attribute("prompts", hasKey("where")))
                     .andExpect(model().attribute("prompts", not(hasKey("password"))));
         } finally {
-            MockMvcUtils.setPrompts(webApplicationContext, getUaa().getId(), original);
+            MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
@@ -1161,7 +1161,7 @@ public class LoginMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")));
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://www.example.com/signup");
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "http://www.example.com/signup")));
@@ -1169,7 +1169,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testLocalSignupDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -1177,7 +1177,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -2059,7 +2059,7 @@ public class LoginMockMvcTests {
     void login_LockoutPolicySucceeds_ForDefaultZone(
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
-        ScimUser userToLockout = createUser(scimUserProvisioning, generator, getUaa().getId());
+        ScimUser userToLockout = createUser(scimUserProvisioning, generator, IdentityZone.getUaaZoneId());
         attemptUnsuccessfulLogin(mockMvc, 5, userToLockout.getUserName(), "");
         mockMvc.perform(post("/uaa/login.do")
                 .contextPath("/uaa")
@@ -2275,7 +2275,7 @@ public class LoginMockMvcTests {
         config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(false)));
         IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
@@ -2492,7 +2492,7 @@ public class LoginMockMvcTests {
 
     @Test
     void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, getUaa().getId(), false);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
         mockMvc.perform(post("/login/idp_discovery")
                 .with(cookieCsrf())
@@ -2790,7 +2790,7 @@ public class LoginMockMvcTests {
         branding.setSquareLogo(favIcon);
         branding.setProductLogo(productLogo);
         identityZoneConfiguration.setBranding(branding);
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, getUaa().getId(), identityZoneConfiguration);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
     }
 
     private static final String defaultCopyrightTemplate = "Copyright " + "\u00a9" + " %s";

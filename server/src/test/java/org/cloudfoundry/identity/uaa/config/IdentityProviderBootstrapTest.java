@@ -660,7 +660,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     private void setDisableInternalUserManagement(String expectedValue) throws Exception {
         bootstrap.setDisableInternalUserManagement(Boolean.valueOf(expectedValue));
         bootstrap.afterPropertiesSet();
-        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         if (expectedValue == null) {
             expectedValue = "false";
@@ -673,7 +673,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         PasswordPolicy passwordPolicy = internalIDP.getConfig().getPasswordPolicy();
         assertEquals(123, passwordPolicy.getMinLength());
         assertEquals(4567, passwordPolicy.getMaxLength());
@@ -693,7 +693,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setDefaultLockoutPolicy(lockoutPolicy);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         lockoutPolicy = internalIDP.getConfig().getLockoutPolicy();
 
         assertEquals(123, lockoutPolicy.getLockoutPeriodSeconds());
@@ -706,20 +706,20 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         environment.setProperty("disableInternalAuth", "true");
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertFalse(internalIdp.isActive());
 
         environment.setProperty("disableInternalAuth", "false");
         bootstrap.afterPropertiesSet();
 
-        internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertTrue(internalIdp.isActive());
     }
 
     @Test
     public void defaultActiveFlagOnInternalIDP() throws Exception {
         bootstrap.afterPropertiesSet();
-        IdentityProvider internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider internalIdp =  provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertTrue(internalIdp.isActive());
     }
 }

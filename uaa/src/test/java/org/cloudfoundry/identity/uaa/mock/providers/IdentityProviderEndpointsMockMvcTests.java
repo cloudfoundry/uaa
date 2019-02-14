@@ -112,7 +112,7 @@ class IdentityProviderEndpointsMockMvcTests {
         IdentityProvider idp = createAndUpdateIdentityProvider(accessToken);
         String origin = idp.getOriginKey();
         IdentityProviderBootstrap bootstrap = webApplicationContext.getBean(IdentityProviderBootstrap.class);
-        assertNotNull(identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaa().getId()));
+        assertNotNull(identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaaZoneId()));
         try {
             bootstrap.setOriginsToDelete(Collections.singletonList(origin));
             bootstrap.onApplicationEvent(new ContextRefreshedEvent(webApplicationContext));
@@ -120,7 +120,7 @@ class IdentityProviderEndpointsMockMvcTests {
             bootstrap.setOriginsToDelete(null);
         }
         try {
-            identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaa().getId());
+            identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaaZoneId());
             fail("Identity provider should have been deleted");
         } catch (EmptyResultDataAccessException e) {
         }
@@ -135,7 +135,7 @@ class IdentityProviderEndpointsMockMvcTests {
     @Test
     void testCreateAndUpdateIdentityProviderWithMissingConfig() throws Exception {
         String accessToken = setUpAccessToken();
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testnoconfig", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testnoconfig", IdentityZone.getUaaZoneId());
         HashMap identityProviderFields = JsonUtils.convertValue(identityProvider, HashMap.class);
 
         identityProviderFields.remove("config");
@@ -164,7 +164,7 @@ class IdentityProviderEndpointsMockMvcTests {
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setActive(true);
         provider.setName(origin);
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(IdentityZone.getUaaZoneId());
         provider.setType(OriginKeys.SAML);
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition()
@@ -187,7 +187,7 @@ class IdentityProviderEndpointsMockMvcTests {
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
         assertEquals(externalGroupsWhitelist, samlCreated.getExternalGroupsWhitelist());
         assertEquals(attributeMappings, samlCreated.getAttributeMappings());
-        assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
+        assertEquals(IdentityZone.getUaaZoneId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
 
         //no access token
@@ -227,46 +227,46 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testCreateIdentityProviderWithInsufficientScopes() throws Exception {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaaZoneId());
         createIdentityProvider(null, identityProvider, lowPrivilegeToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
     }
 
     @Test
     void testUpdateIdentityProviderWithInsufficientScopes() throws Exception {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaaZoneId());
         updateIdentityProvider(null, identityProvider, lowPrivilegeToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
     }
 
     @Test
     void testUpdateUaaIdentityProviderDoesUpdateOfPasswordPolicy() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         long expireMonths = System.nanoTime() % 100L;
         PasswordPolicy newConfig = new PasswordPolicy(6, 20, 1, 1, 1, 0, (int) expireMonths);
         identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig, null));
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
-        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertEquals(newConfig, ((UaaIdentityProviderDefinition) modifiedIdentityProvider.getConfig()).getPasswordPolicy());
     }
 
     @Test
     void testUpdateUaaIdentityProviderDoesUpdateOfPasswordPolicyWithPasswordNewerThan() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         long expireMonths = System.nanoTime() % 100L;
         PasswordPolicy newConfig = new PasswordPolicy(6, 20, 1, 1, 1, 0, (int) expireMonths);
         newConfig.setPasswordNewerThan(new Date());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig, null));
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
-        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertEquals(newConfig, ((UaaIdentityProviderDefinition) modifiedIdentityProvider.getConfig()).getPasswordPolicy());
     }
 
     @Test
     void testMalformedPasswordPolicyReturnsUnprocessableEntity() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         PasswordPolicy policy = new PasswordPolicy().setMinLength(6);
         identityProvider.setConfig(new UaaIdentityProviderDefinition(policy, null));
         String accessToken = setUpAccessToken();
@@ -275,7 +275,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void invalid_ldap_origin_returns_UnprocessableEntity() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.LDAP, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.LDAP, IdentityZone.getUaaZoneId());
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
         identityProvider.setOriginKey("other");
@@ -284,7 +284,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testCreateAndUpdateIdentityProviderInOtherZone() throws Exception {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaaZoneId());
         IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "zones." + zone.getId() + ".idps.write");
 
@@ -353,7 +353,7 @@ class IdentityProviderEndpointsMockMvcTests {
         eventListener.clearEvents();
 
 
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, IdentityZone.getUaaZoneId());
         identityProvider.setType(OriginKeys.SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
@@ -361,7 +361,7 @@ class IdentityProviderEndpointsMockMvcTests {
                 .setIdpEntityAlias(identityProvider.getOriginKey())
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-                .setZoneId(IdentityZone.getUaa().getId());
+                .setZoneId(IdentityZone.getUaaZoneId());
         identityProvider.setConfig(providerDefinition);
 
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, userAccessToken, status().isCreated());
@@ -376,7 +376,7 @@ class IdentityProviderEndpointsMockMvcTests {
                 .setIdpEntityAlias(identityProvider.getOriginKey())
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-                .setZoneId(IdentityZone.getUaa().getId());
+                .setZoneId(IdentityZone.getUaaZoneId());
         identityProvider.setConfig(providerDefinition);
 
         createIdentityProvider(null, identityProvider, userAccessToken, status().isConflict());
@@ -384,7 +384,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testReadIdentityProviderInOtherZone_Using_Zones_Token() throws Exception {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaaZoneId());
         IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
 
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "zones." + zone.getId() + ".idps.write");
@@ -417,10 +417,10 @@ class IdentityProviderEndpointsMockMvcTests {
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write");
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
 
-        int numberOfIdps = identityProviderProvisioning.retrieveAll(false, IdentityZone.getUaa().getId()).size();
+        int numberOfIdps = identityProviderProvisioning.retrieveAll(false, IdentityZone.getUaaZoneId()).size();
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
-        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
         newIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
@@ -440,7 +440,7 @@ class IdentityProviderEndpointsMockMvcTests {
         ScimUser userInDefaultZone = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "zones." + identityZone.getId() + ".idps.read" + ", zones." + identityZone.getId() + ".idps.write");
         String zoneAdminToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", userInDefaultZone.getId(), userInDefaultZone.getUserName(), "secr3T", "zones." + identityZone.getId() + ".idps.read " + "zones." + identityZone.getId() + ".idps.write");
 
-        IdentityProvider otherZoneIdp = MockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, MultitenancyFixture.identityProvider(new RandomValueStringGenerator().generate(), IdentityZone.getUaa().getId()), status().isCreated());
+        IdentityProvider otherZoneIdp = MockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, MultitenancyFixture.identityProvider(new RandomValueStringGenerator().generate(), IdentityZone.getUaaZoneId()), status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
                 .header("Authorization", "Bearer" + zoneAdminToken)
@@ -462,7 +462,7 @@ class IdentityProviderEndpointsMockMvcTests {
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
-        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
         newIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/" + newIdp.getId())
@@ -482,7 +482,7 @@ class IdentityProviderEndpointsMockMvcTests {
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
-        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
         newIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/" + newIdp.getId())
@@ -563,7 +563,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testUpdatePasswordPolicyWithPasswordNewerThan() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
         identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
@@ -634,7 +634,7 @@ class IdentityProviderEndpointsMockMvcTests {
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write");
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
         String randomOriginKey = new RandomValueStringGenerator().generate();
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(randomOriginKey, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(randomOriginKey, IdentityZone.getUaaZoneId());
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());
 
         String retrieveActiveParam = retrieveActive ? "?active_only=true" : "";
@@ -642,7 +642,7 @@ class IdentityProviderEndpointsMockMvcTests {
                 .header("Authorization", "Bearer" + accessToken)
                 .contentType(APPLICATION_JSON);
 
-        int numberOfIdps = identityProviderProvisioning.retrieveAll(retrieveActive, IdentityZone.getUaa().getId()).size();
+        int numberOfIdps = identityProviderProvisioning.retrieveAll(retrieveActive, IdentityZone.getUaaZoneId()).size();
 
         MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
         List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {
@@ -666,7 +666,7 @@ class IdentityProviderEndpointsMockMvcTests {
     }
 
     private IdentityProvider createAndUpdateIdentityProvider(String accessToken) throws Exception {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaaZoneId());
         // create
         // check response
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());

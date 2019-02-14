@@ -160,7 +160,7 @@ public class TokenValidationTest {
         clientDetailsService = new InMemoryClientServicesExtentions();
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
-        clientDetailsService.setClientDetailsStore(IdentityZone.getUaa().getId(),
+        clientDetailsService.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 

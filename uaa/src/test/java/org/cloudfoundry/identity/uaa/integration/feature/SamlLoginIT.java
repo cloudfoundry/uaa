@@ -1045,7 +1045,7 @@ public class SamlLoginIT {
 
         String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
 
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
             .setZoneId(uaaZoneId)
             .setMetaDataLocation(idpMetadata)

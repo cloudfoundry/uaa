@@ -125,7 +125,7 @@ public class GeneralMfaProviderValidatorTest {
         MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
         res.setName(new RandomValueStringGenerator(5).generate())
                 .setConfig(createValidGoogleMfaConfig())
-                .setIdentityZoneId(IdentityZone.getUaa().getId())
+                .setIdentityZoneId(IdentityZone.getUaaZoneId())
                 .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         return res;
     }

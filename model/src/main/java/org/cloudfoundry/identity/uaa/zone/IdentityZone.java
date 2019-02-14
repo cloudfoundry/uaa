@@ -27,6 +27,10 @@ public class IdentityZone {
         return uaa;
     }
 
+    public static String getUaaZoneId() {
+        return getUaa().getId();
+    }
+
     private String id;
 
     @NotNull

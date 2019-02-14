@@ -127,14 +127,14 @@ public class XOAuthProviderConfiguratorTests {
 
     @Test
     public void retrieveAll() {
-        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaa().getId());
+        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
     }
 
     @Test
     public void retrieveActive() {
-        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaa().getId());
+        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
@@ -150,7 +150,7 @@ public class XOAuthProviderConfiguratorTests {
         }).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
 
         assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
         verify(configurator, times(1)).overlay(eq(config));
@@ -164,7 +164,7 @@ public class XOAuthProviderConfiguratorTests {
         exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
         reset(provisioning);
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oauthProvider, new IdentityProvider<>().setType(LDAP)));
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
         assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
         verify(configurator, times(0)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
@@ -184,7 +184,7 @@ public class XOAuthProviderConfiguratorTests {
         }).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaa().getId());
+        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
 
         assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
         verify(configurator, times(2)).overlay(eq(config));
@@ -196,11 +196,11 @@ public class XOAuthProviderConfiguratorTests {
         when(provisioning.retrieveByOrigin(eq(OIDC10),anyString())).thenReturn(oidcProvider);
         when(provisioning.retrieveByOrigin(eq(OAUTH20),anyString())).thenReturn(oauthProvider);
 
-        assertNotNull(configurator.retrieveByOrigin(OIDC10, IdentityZone.getUaa().getId()));
+        assertNotNull(configurator.retrieveByOrigin(OIDC10, IdentityZone.getUaaZoneId()));
         verify(configurator, times(1)).overlay(eq(config));
 
         reset(configurator);
-        assertNotNull(configurator.retrieveByOrigin(OAUTH20, IdentityZone.getUaa().getId()));
+        assertNotNull(configurator.retrieveByOrigin(OAUTH20, IdentityZone.getUaaZoneId()));
         verify(configurator, never()).overlay(any());
     }
 
@@ -299,7 +299,7 @@ public class XOAuthProviderConfiguratorTests {
         doThrow(new NullPointerException("")).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        List<IdentityProvider> providers = configurator.retrieveAll(true, IdentityZone.getUaa().getId());
+        List<IdentityProvider> providers = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
         assertEquals(1, providers.size());
         assertEquals(oauthProvider.getName(), providers.get(0).getName());
         verify(configurator, times(1)).overlay(eq(config));

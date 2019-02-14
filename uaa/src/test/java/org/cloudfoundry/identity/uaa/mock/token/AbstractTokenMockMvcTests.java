@@ -115,7 +115,7 @@ public abstract class AbstractTokenMockMvcTests {
     public void cleanup() {
         if (uaaZoneConfig != null) {
             uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
-            MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId(), uaaZoneConfig);
+            MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), uaaZoneConfig);
             deleteMfaRegistrations();
         }
     }
@@ -130,7 +130,7 @@ public abstract class AbstractTokenMockMvcTests {
     }
 
     protected void setupForMfaPasswordGrant(String userId) throws Exception {
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId());
+        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId());
 
         cleanup();
 
@@ -142,7 +142,7 @@ public abstract class AbstractTokenMockMvcTests {
         mfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
 
         uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaa().getId(), uaaZoneConfig);
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), uaaZoneConfig);
 
         credentials = userGoogleMfaCredentialsProvisioning.createUserCredentials(userId);
         credentials.setMfaProviderId(mfaProvider.getId());
@@ -152,7 +152,7 @@ public abstract class AbstractTokenMockMvcTests {
     protected String setUpUserForPasswordGrant() {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
-        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
         ScimUser scimUser = jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());

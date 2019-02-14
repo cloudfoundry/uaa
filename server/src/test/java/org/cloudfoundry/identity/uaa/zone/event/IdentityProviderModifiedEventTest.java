@@ -45,9 +45,9 @@ public class IdentityProviderModifiedEventTest {
         provider.setId("id");
         provider.setActive(true);
         provider.setName(origin);
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(IdentityZone.getUaaZoneId());
         provider.setType(OriginKeys.SAML);
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(IdentityZone.getUaaZoneId());
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition =
             new SamlIdentityProviderDefinition()

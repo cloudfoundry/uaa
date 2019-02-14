@@ -95,7 +95,7 @@ public class SessionResetFilterTests {
             OriginKeys.UAA,
             null,
             true,
-            IdentityZone.getUaa().getId(),
+            IdentityZone.getUaaZoneId(),
             "salt",
             yesterday
         );
@@ -113,7 +113,7 @@ public class SessionResetFilterTests {
             OriginKeys.UAA,
             null,
             true,
-            IdentityZone.getUaa().getId(),
+            IdentityZone.getUaaZoneId(),
             "salt",
             null
         );

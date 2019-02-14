@@ -440,7 +440,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(IdentityZone.getUaa().getId());
+            .setZoneId(IdentityZone.getUaaZoneId());
 
         identityProvider.setConfig(providerDefinition);
         identityProvider.setOriginKey(identityProvider.getOriginKey() + "MetadataUrl");
@@ -976,7 +976,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
 
     private IdentityProvider getSamlProvider(String originKey) {
-        IdentityProvider<SamlIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
+        IdentityProvider<SamlIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
         identityProvider.setType(SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
@@ -984,7 +984,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(IdentityZone.getUaa().getId());
+            .setZoneId(IdentityZone.getUaaZoneId());
         providerDefinition.setAttributeMappings(getAttributeMappingMap());
         identityProvider.setConfig(providerDefinition);
         return identityProvider;

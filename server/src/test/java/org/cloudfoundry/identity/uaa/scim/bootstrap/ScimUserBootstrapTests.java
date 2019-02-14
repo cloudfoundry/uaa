@@ -110,8 +110,8 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
 
     @Test
     public void can_delete_users_but_only_in_default_zone() throws Exception {
-        canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
-        canAddUsers(OriginKeys.LDAP, IdentityZone.getUaa().getId());
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        canAddUsers(OriginKeys.LDAP, IdentityZone.getUaaZoneId());
         canAddUsers(OriginKeys.UAA, otherZone.getId()); //this is just an update of the same two users, zoneId is ignored
         List<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(4, users.size());
@@ -119,7 +119,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
         doAnswer(invocation -> {
             EntityDeletedEvent event = invocation.getArgument(0);
-            db.deleteByUser(event.getObjectId(), IdentityZone.getUaa().getId());
+            db.deleteByUser(event.getObjectId(), IdentityZone.getUaaZoneId());
             return null;
         })
             .when(publisher).publishEvent(any(EntityDeletedEvent.class));
@@ -155,7 +155,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
 
     @Test
     public void canAddUsers() throws Exception {
-        canAddUsers(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         Collection<ScimUser> users = db.retrieveAll(IdentityZoneHolder.get().getId());
         assertEquals(2, users.size());
     }
@@ -361,19 +361,19 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaa().getId())
+        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaaZoneId())
             .stream()
             .filter(u -> username.equals(u.getUserName()))
             .findFirst()
             .get();
         String userId = existingUser.getId();
         existingUser.setVerified(false);
-        db.update(userId, existingUser, IdentityZone.getUaa().getId());
+        db.update(userId, existingUser, IdentityZone.getUaaZoneId());
         InvitedUserAuthenticatedEvent event = new InvitedUserAuthenticatedEvent(user);
 
         bootstrap.onApplicationEvent(event);
 
-        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaa().getId());
+        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaaZoneId());
 
         assertTrue(modifiedUser.isVerified());
     }
@@ -393,19 +393,19 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
 
-        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaa().getId())
+        ScimUser existingUser = db.retrieveAll(IdentityZone.getUaaZoneId())
           .stream()
           .filter(u -> username.equals(u.getUserName()))
           .findFirst()
           .get();
         String userId = existingUser.getId();
         existingUser.setVerified(true);
-        db.update(userId, existingUser, IdentityZone.getUaa().getId());
+        db.update(userId, existingUser, IdentityZone.getUaaZoneId());
         InvitedUserAuthenticatedEvent event = new InvitedUserAuthenticatedEvent(user);
 
         bootstrap.onApplicationEvent(event);
 
-        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaa().getId());
+        ScimUser modifiedUser = db.retrieve(userId, IdentityZone.getUaaZoneId());
 
         assertFalse(modifiedUser.isVerified());
     }

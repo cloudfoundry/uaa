@@ -11,7 +11,7 @@ public class DenyAccessToUaaAdvice {
     }
     
     public void checkIdentityZoneId(String identityZoneId) {
-        if (IdentityZone.getUaa().getId().equals(identityZoneId)) {
+        if (IdentityZone.getUaaZoneId().equals(identityZoneId)) {
             throw new AccessDeniedException("Access to UAA is not allowed.");
         }
     }

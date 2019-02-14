@@ -178,7 +178,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         user.addEmail(username);
         user.setPassword("secr3T");
         user.setVerified(true);
-        user.setZoneId(IdentityZone.getUaa().getId());
+        user.setZoneId(IdentityZone.getUaaZoneId());
         return user;
     }
 

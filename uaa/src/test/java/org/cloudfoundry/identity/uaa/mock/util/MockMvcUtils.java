@@ -566,7 +566,7 @@ public final class MockMvcUtils {
 
     public static void setDisableInternalUserManagement(ApplicationContext applicationContext, boolean disableInternalUserManagement) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(JdbcIdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
             config = new UaaIdentityProviderDefinition();
@@ -1048,7 +1048,7 @@ public final class MockMvcUtils {
         user.setPrimaryEmail(user.getUserName() + "@test.org");
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
-        ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaa().getId());
+        ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaaZoneId());
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc,

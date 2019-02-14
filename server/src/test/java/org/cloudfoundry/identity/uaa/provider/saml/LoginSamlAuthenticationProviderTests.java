@@ -236,9 +236,9 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
 
-        uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
-        uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null,UAA_SAML_ADMIN, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
-        uaaSamlTest = groupProvisioning.create(new ScimGroup(null,UAA_SAML_TEST, IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER, IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
+        uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null,UAA_SAML_ADMIN, IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
+        uaaSamlTest = groupProvisioning.create(new ScimGroup(null,UAA_SAML_TEST, IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
 
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
@@ -277,7 +277,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         authprovider.setExternalMembershipManager(externalManager);
 
         provider = new IdentityProvider();
-        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setIdentityZoneId(IdentityZone.getUaaZoneId());
         provider.setOriginKey(OriginKeys.SAML);
         provider.setName("saml-test");
         provider.setActive(true);

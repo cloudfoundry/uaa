@@ -61,7 +61,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
                                                                      requestorId,
@@ -119,7 +119,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
             mockMvc,
@@ -153,7 +153,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
                                                                      requestorId,

@@ -139,7 +139,7 @@ public class IdentityProviderBootstrap
          */
         boolean override = ldapConfig == null || ldapConfig.get("override") == null ? true : (boolean) ldapConfig.get("override");
         if (!override) {
-            IdentityProvider existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaa().getId());
+            IdentityProvider existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
             override = existing == null || existing.getConfig() == null;
         }
         IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
@@ -206,7 +206,7 @@ public class IdentityProviderBootstrap
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        deleteIdentityProviders(IdentityZone.getUaa().getId());
+        deleteIdentityProviders(IdentityZone.getUaaZoneId());
     }
 
     @Override
@@ -218,7 +218,7 @@ public class IdentityProviderBootstrap
         addOauthProviders();
         addKeystoneProvider();
 
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
 
         for (IdentityProviderWrapper wrapper: providers) {
             IdentityProvider provider = wrapper.getProvider();
@@ -273,8 +273,8 @@ public class IdentityProviderBootstrap
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
-        String zoneId = IdentityZone.getUaa().getId();
-        IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaa().getId());
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");

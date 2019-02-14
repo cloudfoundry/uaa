@@ -46,7 +46,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void revokeOwnJWToken() throws Exception {
-        IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
         identityZoneProvisioning.update(defaultZone);
 

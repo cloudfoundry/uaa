@@ -241,7 +241,7 @@ class ScimUserEndpointsMockMvcTests {
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
         post.with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"));
-        post.header(HEADER, IdentityZone.getUaa().getId());
+        post.header(HEADER, IdentityZone.getUaaZoneId());
 
         mockMvc.perform(post).andExpect(status().isForbidden());
     }

@@ -57,7 +57,7 @@ public class IdentityZoneHolder {
         if (provisioning == null) {
             return IdentityZone.getUaa();
         }
-        return provisioning.retrieve(IdentityZone.getUaa().getId());
+        return provisioning.retrieve(IdentityZone.getUaaZoneId());
     }
 
     public static void set(IdentityZone zone) {
@@ -71,7 +71,7 @@ public class IdentityZoneHolder {
     }
 
     public static boolean isUaa() {
-        return IDENTITY_ZONE_THREAD_LOCAL.get().getId().equals(IdentityZone.getUaa().getId());
+        return IDENTITY_ZONE_THREAD_LOCAL.get().getId().equals(IdentityZone.getUaaZoneId());
     }
 
     public static class Initializer {

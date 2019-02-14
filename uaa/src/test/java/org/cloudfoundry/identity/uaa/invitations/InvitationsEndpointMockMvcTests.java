@@ -94,7 +94,7 @@ class InvitationsEndpointMockMvcTests {
         clientDetails = MockMvcUtils.createClient(this.mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read", "scim.invite"), Arrays.asList("client_credentials", "password"), authorities);
         scimInviteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.read scim.invite", null);
         emailDomain = generator.generate().toLowerCase() + ".com";
-        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         if (uaaProvider.getConfig() == null) {
             uaaProvider.setConfig(new UaaIdentityProviderDefinition(null, null));
         }
@@ -104,7 +104,7 @@ class InvitationsEndpointMockMvcTests {
 
     @AfterEach
     void cleanUpDomainList() {
-        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         uaaProvider.getConfig().setEmailDomain(null);
         jdbcIdentityProviderProvisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
     }

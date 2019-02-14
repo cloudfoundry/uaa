@@ -170,7 +170,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         webApplicationContext.getBean(JdbcIdentityZoneProvisioning.class)
             .retrieveAll()
             .stream()
-            .filter(zone -> !IdentityZone.getUaa().getId().equals(zone.getId()))
+            .filter(zone -> !IdentityZone.getUaaZoneId().equals(zone.getId()))
             .forEach(zone -> {
                 deleteMe.values().stream().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
             });

@@ -171,8 +171,8 @@ class IdentityZoneEndpointsMockMvcTests {
 
         ScimUser uaaAdminUser = createUser(uaaAdminClientToken, null);
 
-        String groupId = scimGroupProvisioning.getByName("uaa.admin", IdentityZone.getUaa().getId()).getId();
-        scimGroupMembershipManager.addMember(groupId, new ScimGroupMember(uaaAdminUser.getId()), IdentityZone.getUaa().getId());
+        String groupId = scimGroupProvisioning.getByName("uaa.admin", IdentityZone.getUaaZoneId()).getId();
+        scimGroupMembershipManager.addMember(groupId, new ScimGroupMember(uaaAdminUser.getId()), IdentityZone.getUaaZoneId());
 
 
         uaaAdminUserToken = testClient.getUserOAuthAccessToken(
@@ -897,7 +897,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         IdentityProviderProvisioning idpp = (IdentityProviderProvisioning) webApplicationContext.getBean("identityProviderProvisioning");
         IdentityProvider idp1 = idpp.retrieveByOrigin(UAA, identityZone.getId());
-        IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         assertNotEquals(idp1, idp2);
 
         IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) webApplicationContext.getBean("identityZoneProvisioning");
@@ -1743,13 +1743,13 @@ class IdentityZoneEndpointsMockMvcTests {
 
         for (String url : Arrays.asList("", "/")) {
             mockMvc.perform(
-                    delete("/identity-zones/" + zone.getId() + "/clients/" + created.getClientId(), IdentityZone.getUaa().getId() + url)
+                    delete("/identity-zones/" + zone.getId() + "/clients/" + created.getClientId(), IdentityZone.getUaaZoneId() + url)
                             .header("Authorization", "Bearer " + identityClientZonesReadToken)
                             .accept(APPLICATION_JSON))
                     .andExpect(status().isForbidden());
         }
         mockMvc.perform(
-                delete("/identity-zones/" + zone.getId() + "/clients/" + created.getClientId(), IdentityZone.getUaa().getId())
+                delete("/identity-zones/" + zone.getId() + "/clients/" + created.getClientId(), IdentityZone.getUaaZoneId())
                         .header("Authorization", "Bearer " + identityClientToken)
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
@@ -1888,7 +1888,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone identityZone = creationResult.getIdentityZone();
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
-        checkAuditEventListener(1, AuditEventType.GroupCreatedEvent, groupModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.GroupCreatedEvent, groupModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
         checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, identityZone.getId(), "http://localhost:8080/uaa/oauth/token", creationResult.getZoneAdminUser().getId());
 
         String scimAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,scim.read", subdomain);
@@ -2253,7 +2253,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
-        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
 
         //validate that default groups got created
         ScimGroupProvisioning groupProvisioning = webApplicationContext.getBean(ScimGroupProvisioning.class);
@@ -2387,7 +2387,7 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     private <T extends AbstractUaaEvent> void checkZoneAuditEventInUaa(int eventCount, AuditEventType eventType) {
-        checkAuditEventListener(eventCount, eventType, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(eventCount, eventType, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
     private <T extends AbstractUaaEvent> void checkAuditEventListener(int eventCount, AuditEventType eventType, TestApplicationEventListener<T> eventListener, String identityZoneId, String issuer, String subject) {

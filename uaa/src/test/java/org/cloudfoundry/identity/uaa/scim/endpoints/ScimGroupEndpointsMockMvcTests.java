@@ -713,7 +713,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             );
         assertNotNull(newGroup);
         assertNotNull(newGroup.getId());
-        assertEquals(IdentityZone.getUaa().getId(), newGroup.getZoneId());
+        assertEquals(IdentityZone.getUaaZoneId(), newGroup.getZoneId());
         assertEquals(group.getDisplayName(), newGroup.getDisplayName());
         assertEquals(group.getDescription(), newGroup.getDescription());
 
@@ -738,7 +738,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
         assertNotNull(newGroup);
         assertNotNull(newGroup.getId());
-        assertEquals(IdentityZone.getUaa().getId(), newGroup.getZoneId());
+        assertEquals(IdentityZone.getUaaZoneId(), newGroup.getZoneId());
         assertEquals(group.getDisplayName(), newGroup.getDisplayName());
         assertEquals(group.getDescription(), newGroup.getDescription());
 

@@ -225,7 +225,7 @@ class ForcePasswordChangeControllerMockMvcTest {
 
         @BeforeEach
         void setup() {
-            identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+            identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
             cleanIdpDefinition = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
         }
 

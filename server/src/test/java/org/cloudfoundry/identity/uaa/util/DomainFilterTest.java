@@ -101,7 +101,7 @@ public class DomainFilterTest {
             .setMetadataTrustCheck(true)
             .setLinkText("")
             .setIconUrl("")
-            .setZoneId(IdentityZone.getUaa().getId());
+            .setZoneId(IdentityZone.getUaaZoneId());
         samlDef2 = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(idpMetaData)
             .setIdpEntityAlias("")
@@ -109,7 +109,7 @@ public class DomainFilterTest {
             .setMetadataTrustCheck(true)
             .setLinkText("")
             .setIconUrl("")
-            .setZoneId(IdentityZone.getUaa().getId());
+            .setZoneId(IdentityZone.getUaaZoneId());
         configureTestData();
     }
 

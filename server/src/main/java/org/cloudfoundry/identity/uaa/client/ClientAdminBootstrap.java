@@ -147,10 +147,10 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
         for (String clientId : autoApproveList) {
             try {
-                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaa().getId());
+                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: " + clientId);
-                clientRegistrationService.updateClientDetails(base, IdentityZone.getUaa().getId());
+                clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
             } catch (NoSuchClientException n) {
                 logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
@@ -220,13 +220,13 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
             client.setAdditionalInformation(info);
             try {
-                clientRegistrationService.addClientDetails(client, IdentityZone.getUaa().getId());
+                clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
             } catch (ClientAlreadyExistsException e) {
                 if (override == null || override) {
                     logger.debug("Overriding client details for " + clientId);
-                    clientRegistrationService.updateClientDetails(client, IdentityZone.getUaa().getId());
+                    clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
                     if ( didPasswordChange(clientId, client.getClientSecret())) {
-                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaa().getId());
+                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaaZoneId());
                     }
                 } else {
                     // ignore it

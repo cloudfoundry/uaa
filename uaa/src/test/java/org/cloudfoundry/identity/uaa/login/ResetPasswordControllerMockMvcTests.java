@@ -383,7 +383,7 @@ public class ResetPasswordControllerMockMvcTests {
     @Test
     public void resetPassword_ReturnsUnprocessableEntity_NewPasswordNotAccordingToPolicy() throws Exception {
 
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition currentDefinition = uaaProvider.getConfig();
         PasswordPolicy passwordPolicy = new PasswordPolicy();
         passwordPolicy.setMinLength(3);
@@ -406,7 +406,7 @@ public class ResetPasswordControllerMockMvcTests {
             .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
             .andExpect(forwardedUrl("/reset_password"));
 
-        uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         uaaProvider.setConfig(currentDefinition);
         webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
     }
