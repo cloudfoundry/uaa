@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -11,6 +12,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.stream.Stream;
 
+import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -118,5 +120,12 @@ class IdentityZoneTest {
     @ArgumentsSource(HashCodeArgumentsSource.class)
     void hashCode_usesOnlyId(IdentityZone zone, int expectedHashCode) {
         assertThat(zone.hashCode(), is(expectedHashCode));
+    }
+
+    @Test
+    void deserialize() {
+        final String sampleIdentityZone = getResourceAsString(getClass(), "SampleIdentityZone.json");
+
+        JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
     }
 }

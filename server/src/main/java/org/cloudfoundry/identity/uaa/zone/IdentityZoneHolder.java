@@ -23,7 +23,7 @@ public class IdentityZoneHolder {
         IdentityZoneHolder.provisioning = provisioning;
     }
 
-    private static final SamlKeyManagerFactory samlKeyManagerFactory = new SamlKeyManagerFactory();
+    private static SamlKeyManagerFactory samlKeyManagerFactory = new SamlKeyManagerFactory();
 
     private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL = InheritableThreadLocal
             .withInitial(() -> getUaaZone(provisioning));

@@ -1,13 +1,10 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-
+import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -20,7 +17,7 @@ class MergedZoneBrandingInformationTest {
     @BeforeEach
     void setUp() {
         defaultZoneBranding = new BrandingInformation();
-        final String productLogo = getResourceAsString("IdentityZoneHolderTest_ProductLogo");
+        final String productLogo = getResourceAsString(getClass(), "IdentityZoneHolderTest_ProductLogo");
         defaultZoneBranding.setProductLogo(productLogo);
 
         zoneBranding = new BrandingInformation();
@@ -61,14 +58,5 @@ class MergedZoneBrandingInformationTest {
 
         BrandingInformationSource brandingInformationSource = MergedZoneBrandingInformation.resolveBranding();
         assertEquals(brandingInformationSource.getProductLogo(), defaultZoneBranding.getProductLogo());
-    }
-
-    private String getResourceAsString(String s) {
-        try {
-            return IOUtils.toString(getClass().getResourceAsStream(s), Charset.defaultCharset());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
 }

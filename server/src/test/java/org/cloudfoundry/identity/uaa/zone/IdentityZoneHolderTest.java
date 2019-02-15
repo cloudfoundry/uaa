@@ -14,38 +14,31 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.security.Security;
-
-import static java.util.Collections.EMPTY_MAP;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class IdentityZoneHolderTest {
 
+    private SamlKeyManagerFactory mockSamlKeyManagerFactory;
+
     @BeforeEach
     void setUp() {
-        IdentityZoneHolder.clear();
+        mockSamlKeyManagerFactory = mock(SamlKeyManagerFactory.class);
+        setSamlKeyManagerFactory(mockSamlKeyManagerFactory);
     }
 
     @Test
@@ -69,6 +62,7 @@ class IdentityZoneHolderTest {
     }
 
     @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
     class WhenZoneIsUaa {
         @BeforeEach
         void setUp() {
@@ -79,17 +73,10 @@ class IdentityZoneHolderTest {
         void isUaa() {
             assertThat(IdentityZoneHolder.isUaa(), is(true));
         }
-
-        @Test
-        void getSamlSPKeyManager() {
-            KeyManager expected = new SamlKeyManagerFactory().getKeyManager(IdentityZoneHolder.getUaaZone().getConfig().getSamlConfig());
-            KeyManager actual = IdentityZoneHolder.getSamlSPKeyManager();
-
-            assertThat(actual, is(expected));
-        }
     }
 
     @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
     class WhenZoneIsNotUaa {
         private IdentityZone mockIdentityZone;
 
@@ -104,24 +91,6 @@ class IdentityZoneHolderTest {
         void isUaa() {
             assertThat(IdentityZoneHolder.isUaa(), is(false));
         }
-
-        @Test
-        void getSamlSPKeyManager() {
-            Security.addProvider(new BouncyCastleProvider());
-            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
-            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
-
-            SamlConfig samlConfig = new SamlConfig();
-            samlConfig.setKeys(EMPTY_MAP);
-            samlConfig.addAndActivateKey("activeKeyId", new SamlKey(key1, passphrase1, certificate1));
-            when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
-
-            KeyManager expected = new SamlKeyManagerFactory().getKeyManager(samlConfig);
-            KeyManager actual = IdentityZoneHolder.getSamlSPKeyManager();
-
-            assertThat(actual.getDefaultCredential().getPrivateKey().getEncoded(),
-                    is(expected.getDefaultCredential().getPrivateKey().getEncoded()));
-        }
     }
 
     @Nested
@@ -133,6 +102,7 @@ class IdentityZoneHolderTest {
 
         @Test
         void initializer() {
+            IdentityZoneHolder.clear();
             assertThat(IdentityZoneHolder.get(), is(IdentityZone.getUaa()));
         }
 
@@ -140,48 +110,144 @@ class IdentityZoneHolderTest {
         void getUaaZone() {
             assertThat(IdentityZoneHolder.getUaaZone(), is(IdentityZone.getUaa()));
         }
+
+        @Test
+        void getSamlSPKeyManager_WhenSecondCallWorks() {
+            IdentityZone mockIdentityZone = mock(IdentityZone.class);
+            IdentityZoneHolder.set(mockIdentityZone);
+
+            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+
+            SamlConfig mockSamlConfig = mock(SamlConfig.class);
+            when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+
+            KeyManager expectedKeyManager = mock(KeyManager.class);
+            when(mockSamlKeyManagerFactory.getKeyManager(any()))
+                    .thenReturn(null)
+                    .thenReturn(expectedKeyManager);
+
+            // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+            verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+            verify(mockSamlKeyManagerFactory, times(2)).getKeyManager(any());
+        }
     }
 
     @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
     class WithJdbcProvisioning {
         private IdentityZoneProvisioning mockIdentityZoneProvisioning;
-        private IdentityZone mockIdentityZone;
+        private IdentityZone mockIdentityZoneFromProvisioning;
 
         @BeforeEach
         void setUp() {
             mockIdentityZoneProvisioning = mock(IdentityZoneProvisioning.class);
-            mockIdentityZone = mock(IdentityZone.class);
-            when(mockIdentityZoneProvisioning.retrieve(anyString())).thenReturn(mockIdentityZone);
+            mockIdentityZoneFromProvisioning = mock(IdentityZone.class);
+            when(mockIdentityZoneProvisioning.retrieve(anyString())).thenReturn(mockIdentityZoneFromProvisioning);
             IdentityZoneHolder.setProvisioning(mockIdentityZoneProvisioning);
         }
 
         @Test
         void initializer() {
-            assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
+            IdentityZoneHolder.clear();
+            assertThat(IdentityZoneHolder.get(), is(mockIdentityZoneFromProvisioning));
             verify(mockIdentityZoneProvisioning).retrieve("uaa");
         }
 
         @Test
         void getUaaZone() {
-            assertThat(IdentityZoneHolder.getUaaZone(), is(mockIdentityZone));
+            assertThat(IdentityZoneHolder.getUaaZone(), is(mockIdentityZoneFromProvisioning));
             verify(mockIdentityZoneProvisioning).retrieve("uaa");
+        }
+
+        @Test
+        void getSamlSPKeyManager_WhenSecondCallWorks() {
+            IdentityZoneConfiguration mockIdentityZoneConfigurationFromProvisioning = mock(IdentityZoneConfiguration.class);
+            when(mockIdentityZoneFromProvisioning.getConfig()).thenReturn(mockIdentityZoneConfigurationFromProvisioning);
+
+            SamlConfig mockSamlConfigFromProvisioning = mock(SamlConfig.class);
+            when(mockIdentityZoneConfigurationFromProvisioning.getSamlConfig()).thenReturn(mockSamlConfigFromProvisioning);
+
+            IdentityZone mockIdentityZone = mock(IdentityZone.class);
+            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+            SamlConfig mockSamlConfig = mock(SamlConfig.class);
+            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+            when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+            when(mockSamlKeyManagerFactory.getKeyManager(mockSamlConfig))
+                    .thenReturn(null);
+            IdentityZoneHolder.set(mockIdentityZone);
+
+            KeyManager expectedKeyManager = mock(KeyManager.class);
+            when(mockSamlKeyManagerFactory.getKeyManager(mockSamlConfigFromProvisioning))
+                    .thenReturn(expectedKeyManager);
+
+            // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+            InOrder inOrder = inOrder(mockSamlKeyManagerFactory);
+
+            inOrder.verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+            inOrder.verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfigFromProvisioning);
+            verify(mockSamlKeyManagerFactory, times(2)).getKeyManager(any());
         }
     }
 
     @Test
-    void deserialize() {
-        final String sampleIdentityZone = getResourceAsString("SampleIdentityZone.json");
+    void getSamlSPKeyManager_WhenKeyManagerIsNotNull() {
+        KeyManager expectedKeyManager = mock(KeyManager.class);
+        getKeyManagerThreadLocal().set(expectedKeyManager);
 
-        JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
+        // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+        verify(mockSamlKeyManagerFactory, never()).getKeyManager(any());
     }
 
-    private String getResourceAsString(String fileName) {
-        try {
-            return IOUtils.toString(getClass().getResourceAsStream(fileName), Charset.defaultCharset());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+    @Test
+    void getSamlSPKeyManager_WhenFirstCallWorks() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+        when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+
+        SamlConfig mockSamlConfig = mock(SamlConfig.class);
+        when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+
+        KeyManager expectedKeyManager = mock(KeyManager.class);
+        when(mockSamlKeyManagerFactory.getKeyManager(any())).thenReturn(expectedKeyManager);
+
+        // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+        verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+        verify(mockSamlKeyManagerFactory, times(1)).getKeyManager(any());
+    }
+
+    private static void setSamlKeyManagerFactory(
+            SamlKeyManagerFactory samlKeyManagerFactory) {
+        ReflectionTestUtils.setField(
+                IdentityZoneHolder.class,
+                "samlKeyManagerFactory",
+                samlKeyManagerFactory);
     }
 
     private static ThreadLocal<KeyManager> getKeyManagerThreadLocal() {

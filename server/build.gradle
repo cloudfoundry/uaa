@@ -79,6 +79,8 @@ dependencies {
 
   compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
 
+  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
 
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
