@@ -82,7 +82,7 @@ class IdentityZoneHolderTest {
 
         @Test
         void getSamlSPKeyManager() {
-            KeyManager expected = SamlKeyManagerFactory.getKeyManager(IdentityZoneHolder.getUaaZone().getConfig().getSamlConfig());
+            KeyManager expected = new SamlKeyManagerFactory().getKeyManager(IdentityZoneHolder.getUaaZone().getConfig().getSamlConfig());
             KeyManager actual = IdentityZoneHolder.getSamlSPKeyManager();
 
             assertThat(actual, is(expected));
@@ -116,7 +116,7 @@ class IdentityZoneHolderTest {
             samlConfig.addAndActivateKey("activeKeyId", new SamlKey(key1, passphrase1, certificate1));
             when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
 
-            KeyManager expected = SamlKeyManagerFactory.getKeyManager(samlConfig);
+            KeyManager expected = new SamlKeyManagerFactory().getKeyManager(samlConfig);
             KeyManager actual = IdentityZoneHolder.getSamlSPKeyManager();
 
             assertThat(actual.getDefaultCredential().getPrivateKey().getEncoded(),

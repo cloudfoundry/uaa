@@ -69,7 +69,7 @@ public class SamlLoginServerKeyManagerTests {
         config.setPrivateKey(KEY);
         config.setPrivateKeyPassword(PASSWORD);
         config.setCertificate(CERTIFICATE);
-        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
         Credential credential = keyManager.getDefaultCredential();
         assertNotNull(credential.getPrivateKey());
         assertNotNull(credential.getPublicKey());
@@ -115,7 +115,7 @@ public class SamlLoginServerKeyManagerTests {
             config.setPrivateKey(key);
             config.setPrivateKeyPassword(password);
             config.setCertificate(certificate);
-            keyManager = SamlKeyManagerFactory.getKeyManager(config);
+            keyManager = new SamlKeyManagerFactory().getKeyManager(config);
             Assert.fail("Password invalid. Should not reach this line.");
         } catch (Exception x) {
             if (x.getClass().getName().equals("org.bouncycastle.openssl.EncryptionException")) {
@@ -174,7 +174,7 @@ public class SamlLoginServerKeyManagerTests {
         config.setPrivateKey(key);
         config.setPrivateKeyPassword(password);
         config.setCertificate(certificate);
-        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
         Credential credential = keyManager.getDefaultCredential();
         assertNotNull(credential.getPrivateKey());
         assertNotNull(credential.getPublicKey());
@@ -218,7 +218,7 @@ public class SamlLoginServerKeyManagerTests {
         config.setPrivateKey(key);
         config.setPrivateKeyPassword(password);
         config.setCertificate(certificate);
-        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
 
     }
 
@@ -260,7 +260,7 @@ public class SamlLoginServerKeyManagerTests {
             config.setPrivateKey(key);
             config.setPrivateKeyPassword(password);
             config.setCertificate(certificate);
-            keyManager = SamlKeyManagerFactory.getKeyManager(config);
+            keyManager = new SamlKeyManagerFactory().getKeyManager(config);
             Assert.fail("Key/Cert pair is invalid. Should not reach this line.");
         } catch (Exception x) {
             if (x.getClass().getName().equals("org.bouncycastle.openssl.PEMException")) {
@@ -326,7 +326,7 @@ public class SamlLoginServerKeyManagerTests {
         config.setPrivateKey(key);
         config.setPrivateKeyPassword(password);
         config.setCertificate(certificate);
-        keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
 
     }
 }

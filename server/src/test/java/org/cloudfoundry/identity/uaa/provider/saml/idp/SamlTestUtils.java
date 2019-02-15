@@ -344,7 +344,7 @@ public class SamlTestUtils {
         config.setPrivateKey(PROVIDER_PRIVATE_KEY);
         config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
         config.setCertificate(PROVIDER_CERTIFICATE);
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
     }
@@ -408,7 +408,7 @@ public class SamlTestUtils {
         assertion.getConditions().setNotOnOrAfter(until);
         SamlConfig config = new SamlConfig();
         config.addAndActivateKey("active-key", new SamlKey(privateKey, keyPassword, certificate));
-        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(config);
+        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
         SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         Signature signature = signatureBuilder.buildObject();
         final Credential defaultCredential = keyManager.getDefaultCredential();

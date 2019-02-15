@@ -23,6 +23,8 @@ public class IdentityZoneHolder {
         IdentityZoneHolder.provisioning = provisioning;
     }
 
+    private static final SamlKeyManagerFactory samlKeyManagerFactory = new SamlKeyManagerFactory();
+
     private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL = InheritableThreadLocal
             .withInitial(() -> getUaaZone(provisioning));
 
@@ -38,13 +40,13 @@ public class IdentityZoneHolder {
             return keyManager;
         }
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(IDENTITY_ZONE_THREAD_LOCAL.get().getConfig().getSamlConfig());
+        keyManager = samlKeyManagerFactory.getKeyManager(IDENTITY_ZONE_THREAD_LOCAL.get().getConfig().getSamlConfig());
         if (keyManager != null) {
             KEY_MANAGER_THREAD_LOCAL.set(keyManager);
             return keyManager;
         }
 
-        keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone(provisioning).getConfig().getSamlConfig());
+        keyManager = samlKeyManagerFactory.getKeyManager(getUaaZone(provisioning).getConfig().getSamlConfig());
         KEY_MANAGER_THREAD_LOCAL.set(keyManager);
         return keyManager;
     }

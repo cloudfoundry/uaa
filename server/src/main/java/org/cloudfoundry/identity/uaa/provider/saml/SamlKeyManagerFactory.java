@@ -33,14 +33,14 @@ public final class SamlKeyManagerFactory {
 
     protected final static Logger logger = LoggerFactory.getLogger(SamlKeyManagerFactory.class);
 
-    private SamlKeyManagerFactory() {
+    public SamlKeyManagerFactory() {
     }
 
-    public static KeyManager getKeyManager(SamlConfig config) {
+    public KeyManager getKeyManager(SamlConfig config) {
         return getKeyManager(config.getKeys(), config.getActiveKeyId());
     }
 
-    private static KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
+    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
         SamlKey activeKey = keys.get(activeKeyId);
 
         if (activeKey == null) {
