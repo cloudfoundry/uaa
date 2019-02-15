@@ -1,21 +1,4 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.authentication.manager;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
@@ -26,12 +9,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -43,21 +21,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Dave Syer
- *
  */
 public class LoginAuthenticationManagerTests {
 
     private LoginAuthenticationManager manager = new LoginAuthenticationManager();
 
     private UaaUserDatabase userDatabase = Mockito.mock(UaaUserDatabase.class);
-
-    private OAuth2Authentication oauth2Authentication;
 
     private TestApplicationEventPublisher<IdentityProviderAuthenticationSuccessEvent> publisher;
 
@@ -69,8 +46,8 @@ public class LoginAuthenticationManagerTests {
         publisher = TestApplicationEventPublisher.forEventClass(IdentityProviderAuthenticationSuccessEvent.class);
         manager.setApplicationEventPublisher(publisher);
         manager.setUserDatabase(userDatabase);
-        oauth2Authentication = new OAuth2Authentication(new AuthorizationRequest("client", Arrays.asList("read",
-                        "write")).createOAuth2Request(), null);
+        OAuth2Authentication oauth2Authentication = new OAuth2Authentication(new AuthorizationRequest("client", Arrays.asList("read",
+                "write")).createOAuth2Request(), null);
         SecurityContextImpl context = new SecurityContextImpl();
         context.setAuthentication(oauth2Authentication);
         SecurityContextHolder.setContext(context);
@@ -91,7 +68,7 @@ public class LoginAuthenticationManagerTests {
     public void testNotProcessingNotAuthenticated() {
         SecurityContextHolder.clearContext();
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo"));
+                .getAuthenticationRequest("foo"));
         assertNull(authentication);
     }
 
@@ -100,7 +77,7 @@ public class LoginAuthenticationManagerTests {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo"));
+                .getAuthenticationRequest("foo"));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
@@ -110,7 +87,7 @@ public class LoginAuthenticationManagerTests {
         UaaUser user = UaaUserTestFactory.getAdminUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo"));
+                .getAuthenticationRequest("foo"));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getAuthorities(), authentication.getAuthorities());
     }
@@ -126,7 +103,7 @@ public class LoginAuthenticationManagerTests {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo", true));
+                .getAuthenticationRequest("foo", true));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
@@ -135,9 +112,9 @@ public class LoginAuthenticationManagerTests {
     public void testHappyDayAutoAddButWithNewUser() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"))
-                        .thenReturn(user);
+                .thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo", true));
+                .getAuthenticationRequest("foo", true));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
@@ -147,7 +124,7 @@ public class LoginAuthenticationManagerTests {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                        .getAuthenticationRequest("foo", true));
+                .getAuthenticationRequest("foo", true));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
@@ -183,7 +160,7 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testSuccessfulAuthenticationPublishesEvent() throws Exception {
+    public void testSuccessfulAuthenticationPublishesEvent() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         AuthzAuthenticationRequest authenticationRequest = UaaAuthenticationTestFactory.getAuthenticationRequest("foo");
@@ -199,7 +176,7 @@ public class LoginAuthenticationManagerTests {
         String username = "newuser";
         String email = "noAtSign";
         AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username, true);
-        Map<String,String> info = new HashMap<>(req1.getInfo());
+        Map<String, String> info = new HashMap<>(req1.getInfo());
         info.put("email", email);
         UaaUser u1 = manager.getUser(req1, info);
         assertNotNull(u1);
