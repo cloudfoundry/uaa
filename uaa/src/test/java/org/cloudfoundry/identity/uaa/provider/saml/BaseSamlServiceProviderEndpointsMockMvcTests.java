@@ -147,7 +147,7 @@ abstract class BaseSamlServiceProviderEndpointsMockMvcTests {
     }
 
     @Test
-    void createServiceProvider_invalidEntityId() throws Exception {
+    void createServiceProviderInvalidEntityId() throws Exception {
         String name = generator.generate();
         String invalidRequestBody = "{\n" +
                 "  \"name\" : \"" + name + "\",\n" +
@@ -162,7 +162,7 @@ abstract class BaseSamlServiceProviderEndpointsMockMvcTests {
     }
 
     @Test
-    void duplicateServiceProvider_isConflict() throws Exception {
+    void duplicateServiceProviderIsConflict() throws Exception {
         performCreateServiceProvider(mockMvc, adminToken, requestBody)
                 .andExpect(status().isCreated());
 

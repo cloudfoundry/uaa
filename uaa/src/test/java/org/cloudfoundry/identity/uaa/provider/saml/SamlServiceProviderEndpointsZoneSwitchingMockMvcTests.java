@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-public class SamlServiceProviderEndpointsZoneSwitchingMockMvcTests extends BaseSamlServiceProviderEndpointsMockMvcTests {
-    public SamlServiceProviderEndpointsZoneSwitchingMockMvcTests() {
+class SamlServiceProviderEndpointsZoneSwitchingMockMvcTests extends BaseSamlServiceProviderEndpointsMockMvcTests {
+    SamlServiceProviderEndpointsZoneSwitchingMockMvcTests() {
         super(true);
     }
 }
