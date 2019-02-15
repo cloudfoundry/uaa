@@ -113,11 +113,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @BeforeAll
     static void initializeSamlUtils() {
-        try {
-            samlTestUtils.initializeSimple();
-        } catch (ConfigurationException e) {
-            e.printStackTrace();
-        }
+        samlTestUtils.initializeSimple();
     }
 
     @BeforeEach
