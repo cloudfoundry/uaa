@@ -5,12 +5,15 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,25 +29,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
-/**
- * @author Dave Syer
- */
-public class LoginAuthenticationManagerTests {
+@ExtendWith(PollutionPreventionExtension.class)
+class LoginAuthenticationManagerTests {
 
-    private LoginAuthenticationManager manager = new LoginAuthenticationManager();
-
-    private UaaUserDatabase userDatabase = Mockito.mock(UaaUserDatabase.class);
-
+    private LoginAuthenticationManager manager;
+    private UaaUserDatabase userDatabase;
     private TestApplicationEventPublisher<IdentityProviderAuthenticationSuccessEvent> publisher;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
-    public void init() {
+    @BeforeEach
+    void setUp() {
         publisher = TestApplicationEventPublisher.forEventClass(IdentityProviderAuthenticationSuccessEvent.class);
+        manager = new LoginAuthenticationManager();
         manager.setApplicationEventPublisher(publisher);
+        userDatabase = mock(UaaUserDatabase.class);
         manager.setUserDatabase(userDatabase);
         OAuth2Authentication oauth2Authentication = new OAuth2Authentication(new AuthorizationRequest("client", Arrays.asList("read",
                 "write")).createOAuth2Request(), null);
@@ -53,19 +53,19 @@ public class LoginAuthenticationManagerTests {
         SecurityContextHolder.setContext(context);
     }
 
-    @After
-    public void clean() {
+    @AfterEach
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testNotProcessingWrongType() {
+    void testNotProcessingWrongType() {
         Authentication authentication = manager.authenticate(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertNull(authentication);
     }
 
     @Test
-    public void testNotProcessingNotAuthenticated() {
+    void testNotProcessingNotAuthenticated() {
         SecurityContextHolder.clearContext();
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
                 .getAuthenticationRequest("foo"));
@@ -73,7 +73,7 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testHappyDayNoAutoAdd() {
+    void testHappyDayNoAutoAdd() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
@@ -83,7 +83,7 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testHappyDayWithAuthorities() {
+    void testHappyDayWithAuthorities() {
         UaaUser user = UaaUserTestFactory.getAdminUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
@@ -92,14 +92,14 @@ public class LoginAuthenticationManagerTests {
         assertEquals(user.getAuthorities(), authentication.getAuthorities());
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void testUserNotFoundNoAutoAdd() {
+    @Test
+    void testUserNotFoundNoAutoAdd() {
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
-        manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo"));
+        assertThrows(BadCredentialsException.class, () -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo")));
     }
 
     @Test
-    public void testHappyDayAutoAddButWithExistingUser() {
+    void testHappyDayAutoAddButWithExistingUser() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
@@ -109,7 +109,7 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testHappyDayAutoAddButWithNewUser() {
+    void testHappyDayAutoAddButWithNewUser() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"))
                 .thenReturn(user);
@@ -119,18 +119,14 @@ public class LoginAuthenticationManagerTests {
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void testUnsuccessfulAutoAddButWithNewUser() {
-        UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
+    @Test
+    void testUnsuccessfulAutoAddButWithNewUser() {
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
-        Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                .getAuthenticationRequest("foo", true));
-        assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
-        assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
+        assertThrows(BadCredentialsException.class, () -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo", true)));
     }
 
     @Test
-    public void testAuthenticateWithStrangeNameAndMissingEmail() {
+    void testAuthenticateWithStrangeNameAndMissingEmail() {
         String username1 = "a@";
         AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
         UaaUser u1 = manager.getUser(req1, req1.getInfo());
@@ -148,30 +144,27 @@ public class LoginAuthenticationManagerTests {
     }
 
     @Test
-    public void uaaOriginNotAllowedForExternalLogin() {
-        expectedException.expect(BadCredentialsException.class);
-        expectedException.expectMessage("uaa origin not allowed for external login server");
-
+    void uaaOriginNotAllowedForExternalLogin() {
         String username1 = "a@";
         AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
         Map<String, String> info = new HashMap<>(req1.getInfo());
         info.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        manager.getUser(req1, info);
+        assertThrows(BadCredentialsException.class, () -> manager.getUser(req1, info), "uaa origin not allowed for external login server");
     }
 
     @Test
-    public void testSuccessfulAuthenticationPublishesEvent() {
+    void testSuccessfulAuthenticationPublishesEvent() {
         UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenReturn(user);
         AuthzAuthenticationRequest authenticationRequest = UaaAuthenticationTestFactory.getAuthenticationRequest("foo");
         manager.authenticate(authenticationRequest);
 
-        Assert.assertEquals(1, publisher.getEventCount());
-        Assert.assertEquals("foo", publisher.getLatestEvent().getUser().getUsername());
+        assertEquals(1, publisher.getEventCount());
+        assertEquals("foo", publisher.getLatestEvent().getUser().getUsername());
     }
 
     @Test
-    public void testNoOutOfBoundsInCaseOfWrongEmailFormat() {
+    void testNoOutOfBoundsInCaseOfWrongEmailFormat() {
         // use an email without the '@' sign and provide no name and familyname to trigger the potential bug
         String username = "newuser";
         String email = "noAtSign";
