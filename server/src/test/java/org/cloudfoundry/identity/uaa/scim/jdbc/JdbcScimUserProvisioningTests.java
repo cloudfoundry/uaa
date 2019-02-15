@@ -545,16 +545,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(OriginKeys.LDAP, joe.getOrigin());
     }
 
-    /*
-     * @Test(expected = InvalidScimResourceException.class)
-     * public void updateWithCapitalLetterInUsernameIsError() throws Exception {
-     * ScimUser jo = new ScimUser(null, "joSephine", "Jo", "NewUser");
-     * jo.addEmail("jo@blah.com");
-     * jo.setVersion(1);
-     * ScimUser joe = db.update(JOE_ID, jo);
-     * assertEquals("joe", joe.getUserId());
-     * }
-     */
     @Test
     public void canChangePasswordWithoutOldPassword() throws Exception {
         db.changePassword(JOE_ID, null, "koala123$marissa", IdentityZoneHolder.get().getId());
