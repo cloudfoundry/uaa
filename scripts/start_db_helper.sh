@@ -5,7 +5,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Number of gradle workers times 4, which was somewhat arbitrary but is sufficient in practice.
 # We make extra dbs because a gradle worker ID can exceed the max number of workers.
-NUM_OF_DATABASES_TO_CREATE=4
+NUM_OF_DATABASES_TO_CREATE=8
 
 function createDB() {
     true
