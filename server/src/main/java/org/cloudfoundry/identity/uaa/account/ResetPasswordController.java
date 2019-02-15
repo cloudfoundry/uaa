@@ -147,7 +147,7 @@ public class ResetPasswordController {
     }
 
     private String getServiceName() {
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+        if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {

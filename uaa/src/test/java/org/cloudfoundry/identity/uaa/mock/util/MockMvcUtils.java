@@ -948,7 +948,7 @@ public final class MockMvcUtils {
           .accept(APPLICATION_JSON)
           .contentType(APPLICATION_JSON)
           .content(JsonUtils.writeValueAsString(clientDetails));
-        if (!zone.equals(IdentityZone.getUaa())) {
+        if (!zone.isUaa()) {
             createClientPost = createClientPost.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
         }
         return JsonUtils.readValue(
@@ -1010,7 +1010,7 @@ public final class MockMvcUtils {
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(clientDetails));
-        if (!zone.equals(IdentityZone.getUaa())) {
+        if (!zone.isUaa()) {
             updateClientPut = updateClientPut.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
         }
 
@@ -1027,7 +1027,7 @@ public final class MockMvcUtils {
             .header("Authorization", "Bearer " + accessToken)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON);
-        if (!zone.equals(IdentityZone.getUaa())) {
+        if (!zone.isUaa()) {
             readClientGet = readClientGet.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
         }
 

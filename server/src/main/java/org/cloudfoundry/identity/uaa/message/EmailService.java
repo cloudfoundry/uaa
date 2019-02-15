@@ -52,7 +52,7 @@ public class EmailService implements MessageService {
 
     private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
         String name = null;
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+        if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {

@@ -71,7 +71,7 @@ public class IdentityZoneHolder {
     }
 
     public static boolean isUaa() {
-        return IDENTITY_ZONE_THREAD_LOCAL.get().getId().equals(IdentityZone.getUaaZoneId());
+        return IDENTITY_ZONE_THREAD_LOCAL.get().isUaa();
     }
 
     public static class Initializer {

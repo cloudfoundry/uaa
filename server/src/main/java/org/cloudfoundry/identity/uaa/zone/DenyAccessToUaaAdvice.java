@@ -5,7 +5,7 @@ import org.springframework.security.access.AccessDeniedException;
 public class DenyAccessToUaaAdvice {
     
     public void checkIdentityZone(IdentityZone identityZone) {
-        if (IdentityZone.getUaa().equals(identityZone)) {
+        if (identityZone != null && identityZone.isUaa()) {
             throw new AccessDeniedException("Access to UAA is not allowed.");
         }
     }

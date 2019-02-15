@@ -138,7 +138,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
     }
 
     private String getSubjectText() {
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+        if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
         }
@@ -151,7 +151,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
         String verifyUrl = UaaUrlUtils.getUaaUrl("/verify_email");
 
         final Context ctx = new Context();
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+        if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
             ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
