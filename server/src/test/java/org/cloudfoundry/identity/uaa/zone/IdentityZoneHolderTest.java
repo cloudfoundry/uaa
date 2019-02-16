@@ -24,6 +24,8 @@ import org.mockito.InOrder;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.UUID;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -240,6 +242,16 @@ class IdentityZoneHolderTest {
 
         verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
         verify(mockSamlKeyManagerFactory, times(1)).getKeyManager(any());
+    }
+
+    @Test
+    void getCurrentZoneId() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        String expectedId = UUID.randomUUID().toString();
+        when(mockIdentityZone.getId()).thenReturn(expectedId);
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        assertThat(IdentityZoneHolder.getCurrentZoneId(), is(expectedId));
     }
 
     private static void setSamlKeyManagerFactory(

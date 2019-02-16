@@ -76,6 +76,10 @@ public class IdentityZoneHolder {
         return IDENTITY_ZONE_THREAD_LOCAL.get().isUaa();
     }
 
+    public static String getCurrentZoneId() {
+        return IDENTITY_ZONE_THREAD_LOCAL.get().getId();
+    }
+
     public static class Initializer {
         public Initializer(IdentityZoneProvisioning provisioning) {
             IdentityZoneHolder.setProvisioning(provisioning);
