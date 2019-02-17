@@ -1,29 +1,17 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.io.MarshallingException;
@@ -43,6 +31,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(PollutionPreventionExtension.class)
 public class ZoneAwareMetadataGeneratorTests {
 
     private static final String ZONE_ID = "zone-id";
@@ -58,16 +47,16 @@ public class ZoneAwareMetadataGeneratorTests {
     public static final String cert1Plain = certificate1.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replace("\n", "");
     public static final String cert2Plain = certificate2.replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "").replace("\n", "");
 
-    @BeforeClass
-    public static void bootstrap() throws Exception {
+    @BeforeAll
+    static void bootstrap() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         DefaultBootstrap.bootstrap();
         NamedKeyInfoGeneratorManager keyInfoGeneratorManager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
         keyInfoGeneratorManager.getManager(SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR);
     }
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         otherZone = new IdentityZone();
         otherZone.setId(ZONE_ID);
         otherZone.setName(ZONE_ID);
@@ -94,13 +83,13 @@ public class ZoneAwareMetadataGeneratorTests {
         generator.setKeyManager(keyManager);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void testRequestAndWantAssertionSignedInAnotherZone() {
+    void testRequestAndWantAssertionSignedInAnotherZone() {
         generator.setRequestSigned(true);
         generator.setWantAssertionSigned(true);
         assertTrue(generator.isRequestSigned());
@@ -118,13 +107,13 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void testMetadataContainsSamlBearerGrantEndpoint() throws Exception {
+    void testMetadataContainsSamlBearerGrantEndpoint() throws Exception {
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
         assertThat(metadata, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"1\"/>"));
     }
 
     @Test
-    public void testZonifiedEntityID() {
+    void testZonifiedEntityID() {
         generator.setEntityId("local-name");
         assertEquals("local-name", generator.getEntityId());
         assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
@@ -140,7 +129,7 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void testZonifiedValidAndInvalidEntityID() {
+    void testZonifiedValidAndInvalidEntityID() {
         IdentityZone newZone = new IdentityZone();
         newZone.setId("new-zone-id");
         newZone.setName("new-zone-id");
@@ -161,7 +150,7 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void defaultKeys() throws Exception {
+    void defaultKeys() throws Exception {
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
 
         List<String> encryptionKeys = SamlTestUtils.getCertificates(metadata, "encryption");
@@ -174,7 +163,7 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void multipleKeys() throws Exception {
+    void multipleKeys() throws Exception {
         otherZoneDefinition.getSamlConfig().addKey("key2", samlKey2);
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
 
@@ -188,7 +177,7 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void changeActiveKey() throws Exception {
+    void changeActiveKey() throws Exception {
         multipleKeys();
         otherZoneDefinition.getSamlConfig().addAndActivateKey("key2", samlKey2);
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
@@ -203,7 +192,7 @@ public class ZoneAwareMetadataGeneratorTests {
     }
 
     @Test
-    public void removeKey() throws Exception {
+    void removeKey() throws Exception {
         changeActiveKey();
         otherZoneDefinition.getSamlConfig().removeKey("key-1");
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
