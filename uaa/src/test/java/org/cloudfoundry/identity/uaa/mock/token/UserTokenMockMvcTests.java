@@ -22,8 +22,9 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -38,10 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,6 +48,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     @Test
     void test_user_managed_token() throws Exception {
@@ -91,7 +93,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals("test.scope", result.get("scope"));
         assertNull(result.get(ACCESS_TOKEN));
 
-        RevocableToken token = revocableTokenProvisioning.retrieve(refreshToken, IdentityZoneHolder.get().getId());
+        RevocableToken token = revocableTokenProvisioning.retrieve(refreshToken, identityZoneManager.getCurrentIdentityZoneId());
         assertEquals(recipientId, token.getClientId());
 
         response = mockMvc.perform(
