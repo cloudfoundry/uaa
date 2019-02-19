@@ -36,13 +36,13 @@ import org.springframework.util.MultiValueMap;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -59,11 +59,7 @@ public class CheckTokenEndpointIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Test
-    public void testDecodeToken() throws Exception {
-
-        // TODO Fix to use json API rather than HTML
-        // TODO: should be able to handle just TEXT_HTML
-
+    public void testDecodeToken() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -140,7 +136,7 @@ public class CheckTokenEndpointIntegrationTests {
         formData.clear();
         formData.add("client_id", resource.getClientId());
         formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
-        formData.add("grant_type", "authorization_code");
+        formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
@@ -160,7 +156,6 @@ public class CheckTokenEndpointIntegrationTests {
 
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        //System.err.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
@@ -173,8 +168,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testTokenKey() throws Exception {
-
+    public void testTokenKey() {
         HttpHeaders headers = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app",
                         "appclientsecret");
@@ -187,15 +181,12 @@ public class CheckTokenEndpointIntegrationTests {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        // System.err.println(map);
         assertNotNull(map.get("alg"));
         assertNotNull(map.get("value"));
-
     }
 
     @Test
-    public void testUnauthorized() throws Exception {
-
+    public void testUnauthorized() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -208,12 +199,10 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
         assertTrue(map.containsKey("error"));
-
     }
 
     @Test
     public void testForbidden() throws Exception {
-
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -227,7 +216,136 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
         assertTrue(map.containsKey("error"));
-
     }
 
+    @Test
+    public void testInvalidScope() {
+        OAuth2AccessToken accessToken = getAdminToken();
+
+        String requestBody = String.format("token=%s&scopes=%s", accessToken.getValue(), "uaa.resource%");
+
+        HttpHeaders headers = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/check_token", requestBody, headers);
+        System.out.println(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = response.getBody();
+        assertEquals("parameter_parsing_error", map.get("error"));
+        assertTrue(map.containsKey("error_description"));
+    }
+
+    @Test
+    public void testValidPasswordGrant() {
+        OAuth2AccessToken accessToken = getUserToken(null);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertNotNull(tokenResponse.getBody());
+        System.out.println(tokenResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+    }
+
+    @Test
+    public void testAddidionalAttributes() {
+        OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertNotNull(tokenResponse.getBody());
+        System.out.println(tokenResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+    }
+
+    @Test
+    public void testInvalidAddidionalAttributes() {
+        OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertNull(map.get("az_attr"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private OAuth2AccessToken getAdminToken() {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.set("client_id", testAccounts.getAdminClientId());
+        formData.set("client_secret", testAccounts.getAdminClientSecret());
+        formData.set("response_type", "token");
+        formData.set("grant_type", "client_credentials");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        return DefaultOAuth2AccessToken.valueOf(response.getBody());
+    }
+
+    @SuppressWarnings("unchecked")
+    private OAuth2AccessToken getUserToken(String optAdditionAttributes) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.set("client_id", "cf");
+        formData.set("client_secret", "");
+        formData.set("username", testAccounts.getUserName());
+        formData.set("password", testAccounts.getPassword());
+        formData.set("response_type", "token");
+        formData.set("grant_type", "password");
+        formData.set("token_format", "jwt");
+        if(optAdditionAttributes != null) {
+           formData.set("authorities", optAdditionAttributes);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        return DefaultOAuth2AccessToken.valueOf(response.getBody());
+    }
 }

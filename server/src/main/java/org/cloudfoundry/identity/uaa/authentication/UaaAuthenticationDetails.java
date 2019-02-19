@@ -12,13 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.bouncycastle.util.encoders.Base64;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Contains additional information about the authentication request which may be
@@ -32,6 +36,7 @@ public class UaaAuthenticationDetails implements Serializable {
     public static final String ADD_NEW = "add_new";
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
+    private UaaLoginHint loginHint;
 
     private boolean addNew;
 
@@ -40,6 +45,9 @@ public class UaaAuthenticationDetails implements Serializable {
     private String sessionId;
 
     private String clientId;
+
+    @JsonIgnore
+    private Map<String,String[]> parameterMap;
 
     private UaaAuthenticationDetails() {
         this.origin = "unknown";
@@ -62,6 +70,8 @@ public class UaaAuthenticationDetails implements Serializable {
                 if(StringUtils.hasText(authHeader) && authHeader.startsWith("Basic ")) {
                     String decodedCredentials = new String(Base64.decode(authHeader.substring("Basic ".length())));
                     String[] split = decodedCredentials.split(":");
+                    if (split == null || split.length == 0)
+                        throw new BadCredentialsException("Invalid basic authentication token");
                     this.clientId = split[0];
                 }
             }
@@ -69,6 +79,8 @@ public class UaaAuthenticationDetails implements Serializable {
             this.clientId = clientId;
         }
         this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
+        this.loginHint = UaaLoginHint.parseRequestParameter(request.getParameter("login_hint"));
+        this.parameterMap = request.getParameterMap();
     }
 
     public UaaAuthenticationDetails(@JsonProperty("addNew") boolean addNew,
@@ -101,6 +113,18 @@ public class UaaAuthenticationDetails implements Serializable {
         this.addNew = addNew;
     }
 
+    public UaaLoginHint getLoginHint() {
+        return loginHint;
+    }
+
+    public void setLoginHint(UaaLoginHint loginHint) {
+        this.loginHint = loginHint;
+    }
+
+    public Map<String, String[]> getParameterMap() {
+        return new HashMap<>(parameterMap);
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -117,7 +141,7 @@ public class UaaAuthenticationDetails implements Serializable {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
-            sb.append("sessionId=").append(sessionId);
+            sb.append("sessionId=<SESSION>");
         }
         return sb.toString();
     }

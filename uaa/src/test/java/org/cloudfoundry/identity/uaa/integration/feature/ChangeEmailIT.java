@@ -12,21 +12,18 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
 
-import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.springframework.http.HttpStatus.FOUND;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -78,15 +75,26 @@ public class ChangeEmailIT {
 
     @Test
     public void testChangeEmailWithLogout() throws Exception {
-        testChangeEmail(true);
+        String newEmail = testChangeEmail(true);
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome"));
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified. Login to access your account."));
+
+        signIn(newEmail, "secr3T");
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 
     @Test
     public void testChangeEmailWithoutLogout() throws Exception {
-        testChangeEmail(false);
+        String newEmail = testChangeEmail(false);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Account Settings"));
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified."));
+        assertThat(webDriver.findElement(By.cssSelector(".nav")).getText(), containsString(newEmail));
+        assertThat(webDriver.findElement(By.cssSelector(".profile")).getText(), containsString(newEmail));
     }
 
-    public void testChangeEmail(boolean logout) throws Exception {
+    public String testChangeEmail(boolean logout) throws Exception {
         signIn(userEmail, "secr3T");
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
@@ -119,10 +127,7 @@ public class ChangeEmailIT {
 
         webDriver.get(link);
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Account Settings"));
-        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified."));
-        assertThat(webDriver.findElement(By.cssSelector(".nav")).getText(), containsString(newEmail));
-        assertThat(webDriver.findElement(By.cssSelector(".profile")).getText(), containsString(newEmail));
+        return newEmail;
     }
 
     @Test
@@ -140,11 +145,9 @@ public class ChangeEmailIT {
         receivedEmail.remove();
         String link = testClient.extractLink(message.getBody());
 
-        //rest template that does NOT follow redirects
-        RestTemplate restTemplate = new RestTemplate(new DefaultIntegrationTestConfig.HttpClientFactory());
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity(link, String.class);
-        assertEquals(FOUND, responseEntity.getStatusCode());
-        assertEquals(new URI("http://localhost:8080/app/"), responseEntity.getHeaders().getLocation());
+        webDriver.get(link);
+        webDriver.findElement(By.id("authorize")).click();
+        assertThat(webDriver.getCurrentUrl(), startsWith("http://localhost:8080/app/"));
     }
 
     private void signIn(String userName, String password) {

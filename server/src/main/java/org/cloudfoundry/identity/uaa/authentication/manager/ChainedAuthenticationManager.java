@@ -15,8 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,7 +29,7 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
     public static final String IF_PREVIOUS_FALSE = "ifPreviousFalse";
     public static final String IF_PREVIOUS_TRUE = "ifPreviousTrue";
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
 
     private AuthenticationManagerConfiguration[] delegates;
 

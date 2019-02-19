@@ -137,14 +137,14 @@ public class InvitationsEndpoint {
 
     protected ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
-        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin));
+        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
         if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
-            return users.createUser(user, new RandomValueStringGenerator(12).generate());
+            return users.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
         } else if (results.size() == 1) {
             return results.get(0);
         } else {

@@ -14,20 +14,23 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.approval.ApprovalsService;
+import org.cloudfoundry.identity.uaa.account.ProfileController;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.account.ProfileController;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +39,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -49,76 +51,86 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasValue;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = ProfileControllerTests.ContextConfiguration.class)
 public class ProfileControllerTests extends TestClassNullifier {
 
     public static final String THE_ULTIMATE_APP = "The Ultimate App";
+    public static final String USER_ID = "userId";
 
     @Autowired
     WebApplicationContext webApplicationContext;
 
     @Autowired
-    ApprovalsService approvalsService;
+    ClientServicesExtension clientDetailsService;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
+    ApprovalStore approvalStore;
 
     private MockMvc mockMvc;
+    private List<DescribedApproval> allDescApprovals;
+    private List<Approval> allApprovals;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
-        Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
+        Mockito.reset(approvalStore);
+        Mockito.reset(clientDetailsService);
+        Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<>();
+
+        DescribedApproval otherApproval = new DescribedApproval();
+        otherApproval.setUserId(USER_ID);
+        otherApproval.setClientId("other-client");
+        otherApproval.setScope("thing.read");
+        otherApproval.setStatus(APPROVED);
+        otherApproval.setDescription("Read your thing resources");
 
         DescribedApproval readApproval = new DescribedApproval();
-        readApproval.setUserId("userId");
+        readApproval.setUserId(USER_ID);
         readApproval.setClientId("app");
         readApproval.setScope("thing.read");
         readApproval.setStatus(APPROVED);
         readApproval.setDescription("Read your thing resources");
 
         DescribedApproval writeApproval = new DescribedApproval();
-        writeApproval.setUserId("userId");
+        writeApproval.setUserId(USER_ID);
         writeApproval.setClientId("app");
         writeApproval.setScope("thing.write");
         writeApproval.setStatus(APPROVED);
         writeApproval.setDescription("Write to your thing resources");
 
-        approvalsByClientId.put("app", Arrays.asList(readApproval, writeApproval));
+        allDescApprovals = Arrays.asList(otherApproval, readApproval, writeApproval);
+        allApprovals = new LinkedList<>(allDescApprovals);
+        approvalsByClientId.put("app", allDescApprovals);
 
-        Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
+        Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(allApprovals);
 
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
-        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
+
+        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
+        Mockito.when(clientDetailsService.loadClientByClientId("other-client", "uaa")).thenReturn(otherClient);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
     }
@@ -130,8 +142,8 @@ public class ProfileControllerTests extends TestClassNullifier {
 
     @Test
     public void testGetProfileNoAppName() throws Exception {
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
-        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
         testGetProfile("app");
     }
 
@@ -158,8 +170,7 @@ public class ProfileControllerTests extends TestClassNullifier {
 
     @Test
     public void testSpecialMessageWhenNoAppsAreAuthorized() throws Exception {
-        Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
-        Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
+        Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(Collections.emptyList());
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
@@ -193,17 +204,23 @@ public class ProfileControllerTests extends TestClassNullifier {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile"));
 
-        ArgumentCaptor<List<DescribedApproval>> captor = ArgumentCaptor.forClass((Class)List.class);
-        Mockito.verify(approvalsService).updateApprovals(captor.capture());
+        ArgumentCaptor<String> args = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(approvalStore,Mockito.times(2)).revokeApprovalsForClientAndUser(args.capture(), args.capture(), args.capture());
+        Assert.assertEquals(6, args.getAllValues().size());
 
-        DescribedApproval readApproval = captor.getValue().get(0);
-        Assert.assertEquals("userId", readApproval.getUserId());
+        ArgumentCaptor<DescribedApproval> captor = ArgumentCaptor.forClass(DescribedApproval.class);
+        Mockito.verify(approvalStore, Mockito.times(2)).addApproval(captor.capture(), anyString());
+
+        Assert.assertEquals(2, captor.getAllValues().size());
+
+        DescribedApproval readApproval = captor.getAllValues().get(0);
+        Assert.assertEquals(USER_ID, readApproval.getUserId());
         Assert.assertEquals("app", readApproval.getClientId());
         Assert.assertEquals("thing.read", readApproval.getScope());
         Assert.assertEquals(APPROVED, readApproval.getStatus());
 
-        DescribedApproval writeApproval = captor.getValue().get(1);
-        Assert.assertEquals("userId", writeApproval.getUserId());
+        DescribedApproval writeApproval = captor.getAllValues().get(1);
+        Assert.assertEquals(USER_ID, writeApproval.getUserId());
         Assert.assertEquals("app", writeApproval.getClientId());
         Assert.assertEquals("thing.write", writeApproval.getScope());
         Assert.assertEquals(DENIED, writeApproval.getStatus());
@@ -220,7 +237,8 @@ public class ProfileControllerTests extends TestClassNullifier {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile"));
 
-        Mockito.verify(approvalsService).deleteApprovalsForClient("app");
+        String zoneId = IdentityZoneHolder.get().getId();
+        Mockito.verify(approvalStore, Mockito.times(1)).revokeApprovalsForClientAndUser("app", USER_ID, zoneId);
     }
 
     @Configuration
@@ -239,8 +257,8 @@ public class ProfileControllerTests extends TestClassNullifier {
         }
 
         @Bean
-        ApprovalsService approvalsService() {
-            return Mockito.mock(ApprovalsService.class);
+        ApprovalStore approvalsService() {
+            return Mockito.mock(ApprovalStore.class);
         }
 
         @Bean
@@ -249,8 +267,18 @@ public class ProfileControllerTests extends TestClassNullifier {
         }
 
         @Bean
-        ProfileController profileController(ApprovalsService approvalsService, ClientServicesExtension clientDetailsService) {
-            return new ProfileController(approvalsService, clientDetailsService);
+        SecurityContextAccessor securityContextAccessor() {
+            SecurityContextAccessor result = Mockito.mock(SecurityContextAccessor.class);
+            Mockito.when(result.isUser()).thenReturn(true);
+            Mockito.when(result.getUserId()).thenReturn(USER_ID);
+            return result;
+        }
+
+        @Bean
+        ProfileController profileController(ApprovalStore approvalsService,
+                                            ClientServicesExtension clientDetailsService,
+                                            SecurityContextAccessor securityContextAccessor) {
+            return new ProfileController(approvalsService, clientDetailsService, securityContextAccessor);
         }
     }
 }

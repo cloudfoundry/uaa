@@ -25,8 +25,8 @@ public class XOAuthCodeToken implements Authentication {
     private String redirectUrl;
     private String idToken;
     private String accessToken;
-    //DRE: Support for Facebook implementation of OAuth using signed_request
     private String signedRequest;
+    private String requestContextPath;
     private UaaAuthenticationDetails details;
 
     public XOAuthCodeToken(String code, String origin, String redirectUrl) {
@@ -35,16 +35,16 @@ public class XOAuthCodeToken implements Authentication {
         this.redirectUrl = redirectUrl;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken) {
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest) {
         this(code, origin, redirectUrl);
         this.idToken = idToken;
         this.accessToken = accessToken;
+        this.signedRequest = signedRequest;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, UaaAuthenticationDetails details, String signedRequest) {
-        this(code, origin, redirectUrl, idToken, accessToken);
+    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest, UaaAuthenticationDetails details) {
+        this(code, origin, redirectUrl, idToken, accessToken, signedRequest);
         this.details = details;
-        this.signedRequest = signedRequest;
     }
 
     public String getCode() {
@@ -133,5 +133,11 @@ public class XOAuthCodeToken implements Authentication {
         this.signedRequest = signedRequest;
     }
 
+    public String getRequestContextPath() {
+        return requestContextPath;
+    }
 
+    public void setRequestContextPath(String requestContextPath) {
+        this.requestContextPath = requestContextPath;
+    }
 }

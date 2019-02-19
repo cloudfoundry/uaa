@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -95,7 +95,7 @@ public class SessionResetFilterTests {
             OriginKeys.UAA,
             null,
             true,
-            IdentityZone.getUaa().getId(),
+            IdentityZone.getUaaZoneId(),
             "salt",
             yesterday
         );
@@ -113,7 +113,7 @@ public class SessionResetFilterTests {
             OriginKeys.UAA,
             null,
             true,
-            IdentityZone.getUaa().getId(),
+            IdentityZone.getUaaZoneId(),
             "salt",
             null
         );

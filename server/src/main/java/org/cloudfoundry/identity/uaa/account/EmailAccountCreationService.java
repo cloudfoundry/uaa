@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -70,12 +71,12 @@ public class EmailAccountCreationService implements AccountCreationService {
     public void beginActivation(String email, String password, String clientId, String redirectUri) {
         passwordValidator.validate(password);
 
-        String subject = getSubjectText();
+        String subject = buildSubjectText();
         try {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri);
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"");
+            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"", IdentityZoneHolder.get().getId());
             try {
                 if (users.size()>0) {
                     if (users.get(0).isVerified()) {
@@ -109,7 +110,7 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
-        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
+        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), IdentityZoneHolder.get().getId());
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
@@ -156,7 +157,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         scimUser.setPassword(password);
         scimUser.setVerified(false);
         try {
-            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
+            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password, IdentityZoneHolder.get().getId());
             return userResponse;
         } catch (RuntimeException x) {
             if (x instanceof ScimResourceAlreadyExistsException) {
@@ -166,15 +167,21 @@ public class EmailAccountCreationService implements AccountCreationService {
         }
     }
 
-    private String getSubjectText() {
-        return StringUtils.hasText(IdentityZoneHolder.resolveBranding().getCompanyName()) && IdentityZoneHolder.isUaa() ?  "Activate your " + IdentityZoneHolder.resolveBranding().getCompanyName() + " account" : "Activate your account";
+    private String buildSubjectText() {
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
+        boolean addBranding = StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa();
+        if(addBranding) {
+            return String.format("Activate your %s account", companyName);
+        } else {
+            return "Activate your account";
+        }
     }
 
     private String getEmailHtml(String code, String email) {
         String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
-        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         if (IdentityZoneHolder.isUaa()) {
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {

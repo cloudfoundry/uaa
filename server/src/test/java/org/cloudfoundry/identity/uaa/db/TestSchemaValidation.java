@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
 
@@ -32,9 +33,18 @@ public class TestSchemaValidation extends JdbcTestBase {
     }
 
     @Test
-    public void test_v3_9_0__That_Users_Perf_Id_Index_Exists() throws Exception {
+    public void test_v3_9_0__That_Group_Membership_Perf_Id_Index_Exists() throws Exception {
         String tableName = "group_membership";
         validate_index_existence(new String[] {tableName,tableName.toUpperCase()}, "group_membership_perf_idx");
+    }
+
+    @Test
+    public void test_v4_6_0__That_Group_Membership_Perf_Id_Index_Exists() throws Exception {
+        String tableName = "group_membership";
+        validate_index_existence(new String[] {tableName,tableName.toUpperCase()}, "group_membership_perf_group_idx");
+        if (ArrayUtils.contains(environment.getActiveProfiles(), "postgresql")) {
+            validate_index_existence(new String[] {tableName,tableName.toUpperCase()}, "group_membership_perf_group_lower_idx");
+        }
     }
 
 

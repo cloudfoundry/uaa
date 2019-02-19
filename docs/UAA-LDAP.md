@@ -1,6 +1,5 @@
-==================================================
-User Account and Authentication LDAP Integration
-==================================================
+
+# User Account and Authentication LDAP Integration
 
 # Overview
 UAA integrates with the Lightweight Directory Access Protocol in two major areas. 

@@ -27,13 +27,13 @@ import static org.junit.Assert.assertTrue;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
-    private OauthIdentityProviderDefinitionFactoryBean factoryBean;
+    private OauthIDPWrapperFactoryBean factoryBean;
     private HashMap<String, Object> idpDefinitionMap;
     private OIDCIdentityProviderDefinition providerDefinition;
 
     @Before
     public void setup() throws Exception {
-        factoryBean = new OauthIdentityProviderDefinitionFactoryBean(null);
+        factoryBean = new OauthIDPWrapperFactoryBean(null);
         providerDefinition = new OIDCIdentityProviderDefinition();
         idpDefinitionMap = new HashMap<>();
         idpDefinitionMap.put("authUrl", "http://auth.url");
@@ -42,6 +42,20 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("tokenKey", "key");
         idpDefinitionMap.put("tokenUrl", "http://token.url");
         idpDefinitionMap.put("tokenKeyUrl", "http://token-key.url");
+        idpDefinitionMap.put("clientAuthInBody", false);
+    }
+
+    @Test
+    public void as_configured() throws Exception {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertFalse(providerDefinition.isClientAuthInBody());
+    }
+
+    @Test
+    public void client_auth_in_body() throws Exception {
+        idpDefinitionMap.put("clientAuthInBody", true);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(providerDefinition.isClientAuthInBody());
     }
 
     @Test

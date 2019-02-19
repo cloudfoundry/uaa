@@ -91,9 +91,6 @@ public class IdpMetadataGenerator {
         aliases.put("http-post", SAMLConstants.SAML2_POST_BINDING_URI);
         aliases.put(SAMLConstants.SAML2_PAOS_BINDING_URI, SAMLConstants.SAML2_PAOS_BINDING_URI);
         aliases.put("paos", SAMLConstants.SAML2_PAOS_BINDING_URI);
-        aliases.put(SAMLConstants.SAML2_ARTIFACT_BINDING_URI, SAMLConstants.SAML2_ARTIFACT_BINDING_URI);
-        aliases.put("artifact", SAMLConstants.SAML2_ARTIFACT_BINDING_URI);
-        aliases.put("http-artifact", SAMLConstants.SAML2_ARTIFACT_BINDING_URI);
         aliases.put(SAMLConstants.SAML2_REDIRECT_BINDING_URI, SAMLConstants.SAML2_REDIRECT_BINDING_URI);
         aliases.put("redirect", SAMLConstants.SAML2_REDIRECT_BINDING_URI);
         aliases.put("http-redirect", SAMLConstants.SAML2_REDIRECT_BINDING_URI);
@@ -114,7 +111,7 @@ public class IdpMetadataGenerator {
     /**
      * Bindings for single sign-on
      */
-    private Collection<String> bindingsSSO = Arrays.asList("post", "artifact");
+    private Collection<String> bindingsSSO = Arrays.asList("post", "redirect");
 
     /**
      * Bindings for single sign-on holder of key
@@ -290,17 +287,13 @@ public class IdpMetadataGenerator {
 
         // Assertion consumer MUST NOT be used with HTTP Redirect, Profiles 424, same applies to HoK profile
         for (String binding : bindingsSSO) {
-            if (binding.equals(SAMLConstants.SAML2_ARTIFACT_BINDING_URI)) {
-                idpDescriptor.getSingleSignOnServices().add(getSingleSignOnService(entityBaseURL, entityAlias,
-                        getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_ARTIFACT_BINDING_URI));
-            }
             if (binding.equals(SAMLConstants.SAML2_POST_BINDING_URI)) {
                 idpDescriptor.getSingleSignOnServices().add(getSingleSignOnService(entityBaseURL, entityAlias,
                         getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_POST_BINDING_URI));
             }
-            if (binding.equals(SAMLConstants.SAML2_PAOS_BINDING_URI)) {
+            if (binding.equals(SAMLConstants.SAML2_REDIRECT_BINDING_URI)) {
                 idpDescriptor.getSingleSignOnServices().add(getSingleSignOnService(entityBaseURL, entityAlias,
-                        getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_PAOS_BINDING_URI));
+                        getSAMLWebSSOProcessingFilterPath(), SAMLConstants.SAML2_REDIRECT_BINDING_URI));
             }
         }
 
@@ -664,10 +657,10 @@ public class IdpMetadataGenerator {
      * List of bindings to be included in the generated metadata for Web Single Sign-On. Ordering of bindings affects
      * inclusion in the generated metadata.
      *
-     * Supported values are: "artifact" (or "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"), "post" (or
-     * "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST") and "paos" (or "urn:oasis:names:tc:SAML:2.0:bindings:PAOS").
+     * Supported values are: "post" (or
+     * "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST").
      *
-     * The following bindings are included by default: "artifact", "post"
+     * The following bindings are included by default: "post"
      *
      * @param bindingsSSO
      *            bindings for web single sign-on
@@ -712,7 +705,7 @@ public class IdpMetadataGenerator {
      * List of bindings to be included in the generated metadata for Web Single Sign-On Holder of Key. Ordering of
      * bindings affects inclusion in the generated metadata.
      *
-     * Supported values are: "artifact" (or "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact") and "post" (or
+     * "post" (or
      * "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST").
      *
      * By default there are no included bindings for the profile.

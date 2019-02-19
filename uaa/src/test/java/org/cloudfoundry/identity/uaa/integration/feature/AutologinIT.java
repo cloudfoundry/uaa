@@ -16,6 +16,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -210,7 +212,7 @@ public class AutologinIT {
 
         MultiValueMap<String,String> tokenParams = new LinkedMultiValueMap<>();
         tokenParams.add("response_type", "token");
-        tokenParams.add("grant_type", "authorization_code");
+        tokenParams.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
         tokenParams.add("code", newCode);
         tokenParams.add("redirect_uri", appUrl);
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
@@ -246,7 +248,9 @@ public class AutologinIT {
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
-        assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
+            assertThat(cookies, hasItem(startsWith("Saved-Account-")));
+        }
         assertThat(cookies, hasItem(startsWith("Current-User")));
         cookieStore.clear();
         setCookiesFromResponse(cookieStore, loginResponse);

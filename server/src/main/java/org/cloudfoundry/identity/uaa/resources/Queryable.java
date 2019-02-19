@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,10 +16,8 @@ import java.util.List;
 
 public interface Queryable<T> {
 
-    List<T> query(String filter);
+    List<T> query(String filter, String zoneId);
 
-    List<T> query(String filter, String sortBy, boolean ascending);
-
-    int delete(String filter);
+    List<T> query(String filter, String sortBy, boolean ascending, String zoneId);
 
 }

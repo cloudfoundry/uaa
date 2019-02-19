@@ -62,11 +62,10 @@ public class Links {
         private List<String> whitelist = null;
 
         public boolean isDisableRedirectParameter() {
-            return disableRedirectParameter;
+            return false;
         }
 
         public Logout setDisableRedirectParameter(boolean disableRedirectParameter) {
-            this.disableRedirectParameter = disableRedirectParameter;
             return this;
         }
 

@@ -12,7 +12,7 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
 
     @Override
     public ResponseEntity<OAuth2Exception> translate(Exception e) throws Exception {
-        if (e instanceof AccountNotVerifiedException || e instanceof PasswordExpiredException) {
+        if (e instanceof AccountNotVerifiedException) {
             return handleOAuth2Exception(new ForbiddenException(e.getMessage(), e));
         }
 

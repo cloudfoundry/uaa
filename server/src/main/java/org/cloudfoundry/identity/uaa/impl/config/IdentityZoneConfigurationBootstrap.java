@@ -15,10 +15,18 @@ package org.cloudfoundry.identity.uaa.impl.config;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,20 +37,25 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
+    private ClientSecretPolicy clientSecretPolicy;
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
     private Map<String,Object> selfServiceLinks;
+    private boolean mfaEnabled;
+    private String mfaProviderName;
     private List<String> logoutRedirectWhitelist;
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
     private boolean logoutDisableRedirectParameter = true;
     private List<Prompt> prompts;
+    private String defaultIdentityProvider;
 
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
+    private boolean disableSamlInResponseToCheck = false;
 
     private Map<String, Map<String, String>> samlKeys;
     private String activeKeyId;
@@ -51,7 +64,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private boolean accountChooserEnabled;
 
-    @Autowired
+    private Collection<String> defaultUserGroups;
+
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
 
@@ -65,15 +79,20 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
-        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
         definition.getSamlConfig().setCertificate(samlSpCertificate);
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
+        definition.getSamlConfig().setDisableInResponseToCheck(disableSamlInResponseToCheck);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
+        definition.getMfaConfig().setEnabled(mfaEnabled);
+        definition.getMfaConfig().setProviderName(mfaProviderName);
+        definition.setDefaultIdentityProvider(defaultIdentityProvider);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
@@ -109,12 +128,36 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         BrandingInformation brandingInfo = JsonUtils.convertValue(branding, BrandingInformation.class);
         definition.setBranding(brandingInfo);
 
+        if (defaultUserGroups!=null) {
+            definition.getUserConfig().setDefaultGroups(new LinkedList<>(defaultUserGroups));
+        }
+
+
         identityZone.setConfig(definition);
 
         identityZone = validator.validate(identityZone, IdentityZoneValidator.Mode.MODIFY);
         provisioning.update(identityZone);
     }
 
+    public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
+        this.clientSecretPolicy = clientSecretPolicy;
+    }
+
+    public void setMfaEnabled(boolean mfaEnabled) {
+        this.mfaEnabled = mfaEnabled;
+    }
+
+    public void setMfaProviderName(String mfaProviderName) {
+        this.mfaProviderName = mfaProviderName;
+    }
+
+    public String getMfaProviderName() {
+        return mfaProviderName;
+    }
+
+    public boolean isMfaEnabled()  {
+        return mfaEnabled;
+    }
 
     public IdentityZoneConfigurationBootstrap setSamlKeys(Map<String, Map<String, String>> samlKeys) {
         this.samlKeys = samlKeys;
@@ -166,6 +209,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         this.prompts = prompts;
     }
 
+    public void setDefaultIdentityProvider(String defaultIdentityProvider) {
+        this.defaultIdentityProvider = defaultIdentityProvider;
+    }
+
     public void setSamlSpCertificate(String samlSpCertificate) {
         this.samlSpCertificate = samlSpCertificate;
     }
@@ -200,5 +247,17 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public Map<String, Object> getBranding() {
         return branding;
+    }
+
+    public void setDefaultUserGroups(Collection<String> defaultUserGroups) {
+        this.defaultUserGroups = defaultUserGroups;
+    }
+
+    public boolean isDisableSamlInResponseToCheck() {
+        return disableSamlInResponseToCheck;
+    }
+
+    public void setDisableSamlInResponseToCheck(boolean disableSamlInResponseToCheck) {
+        this.disableSamlInResponseToCheck = disableSamlInResponseToCheck;
     }
 }

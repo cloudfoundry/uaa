@@ -16,15 +16,17 @@ import java.util.List;
 
 public interface IdentityZoneProvisioning {
 
-    public IdentityZone create(IdentityZone identityZone);
+    IdentityZone create(IdentityZone identityZone);
 
-    public IdentityZone update(IdentityZone identityZone);
+    IdentityZone update(IdentityZone identityZone);
 
-    public IdentityZone retrieve(String id);
-    
-    public IdentityZone retrieveBySubdomain(String subdomain);
+    IdentityZone retrieve(String id);
+
+    IdentityZone retrieveBySubdomain(String subdomain);
 
     List<IdentityZone> retrieveAll();
-    
-    
+
+    default IdentityZone retrieveIgnoreActiveFlag(String id) {
+        return retrieve(id);
+    }
 }

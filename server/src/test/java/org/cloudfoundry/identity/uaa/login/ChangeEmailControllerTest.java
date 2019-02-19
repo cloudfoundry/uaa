@@ -1,21 +1,22 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.account.ChangeEmailController;
+import org.cloudfoundry.identity.uaa.account.ChangeEmailService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
-import org.cloudfoundry.identity.uaa.account.ChangeEmailController;
-import org.cloudfoundry.identity.uaa.account.ChangeEmailService;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +30,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -44,21 +45,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = ChangeEmailControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -72,7 +68,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     @Autowired
     WebApplicationContext webApplicationContext;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
@@ -197,6 +193,28 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
         mockMvc.perform(get)
             .andExpect(status().isFound())
+            .andExpect(redirectedUrl("login?success=change_email_success"));
+    }
+
+    @Test
+    public void testVerifyEmailWhenAuthenticated() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-001");
+        response.put("username", "new@example.com");
+        response.put("email", "new@example.com");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+            .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
@@ -216,6 +234,29 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         response.put("email", "new@example.com");
         response.put("redirect_url", "//example.com/callback");
         when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("login?success=change_email_success&form_redirect_uri=//example.com/callback"));
+    }
+
+    @Test
+    public void testVerifyEmailWithRedirectWhenAuthenticated() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-001");
+        response.put("username", "new@example.com");
+        response.put("email", "new@example.com");
+        response.put("redirect_url", "//example.com/callback");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
 
         MockHttpServletRequestBuilder get = get("/verify_email")
             .contentType(APPLICATION_FORM_URLENCODED)
@@ -255,6 +296,67 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         mockMvc.perform(get)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile?error_message_code=email_change.invalid_code"));
+    }
+
+    @Test
+    public void testVerifyEmailWhenAutheticatedAsOtherUser() throws Exception {
+        UaaUser user = new UaaUser("user-id-002", "new2@example.com", "password", "new2@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-002", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-002");
+        response.put("username", "new2@example.com");
+        response.put("email", "new2@example.com");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+
+        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        Assert.assertEquals("user-id-001", principal.getId());
+        Assert.assertEquals("bob", principal.getName());
+        Assert.assertEquals("user@example.com", principal.getEmail());
+    }
+
+    @Test
+    public void testVerifyEmailDoesNotDeleteAuthenticationMethods() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String,String> response = new HashMap<>();
+        response.put("userId", "user-id-001");
+        response.put("username", "new@example.com");
+        response.put("email", "new@example.com");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        setupSecurityContext();
+        UaaAuthentication authentication = (UaaAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        authentication.setAuthenticationMethods(Collections.singleton("pwd"));
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+
+        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        Assert.assertEquals("user-id-001", principal.getId());
+        Assert.assertEquals("new@example.com", principal.getName());
+        Assert.assertEquals("new@example.com", principal.getEmail());
+
+        authentication = (UaaAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(authentication.getAuthenticationMethods());
+        Assert.assertTrue(authentication.getAuthenticationMethods().contains("pwd"));
+        Assert.assertEquals(1, authentication.getAuthenticationMethods().size());
     }
 
     private void setupSecurityContext() {

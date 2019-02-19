@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -116,11 +115,6 @@ public class LoginServerSecurityIntegrationTests {
     @BeforeOAuth2Context
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
     public void setUpUserAccounts() {
-
-        // If running against vcap we don't want to run these tests because they
-        // create new user accounts
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
         RestOperations client = serverRunning.getRestTemplate();
 
         ScimUser user = new ScimUser();
@@ -266,7 +260,6 @@ public class LoginServerSecurityIntegrationTests {
         params.remove("username");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        // TODO: should be 302
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
@@ -284,7 +277,6 @@ public class LoginServerSecurityIntegrationTests {
         params.set("given_name", "Mabel");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        // TODO: should be 302
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();

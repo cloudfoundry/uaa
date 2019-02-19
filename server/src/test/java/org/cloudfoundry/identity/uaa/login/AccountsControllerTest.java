@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
@@ -24,10 +23,12 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -38,10 +39,9 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -53,20 +53,14 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = AccountsControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -83,16 +77,21 @@ public class AccountsControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
 
-    @Before
+    private boolean selfServiceToReset = false;
+
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
+        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
     }
 
     @Test
@@ -200,6 +199,8 @@ public class AccountsControllerTest extends TestClassNullifier {
             .param("password_confirmation", "word")
             .param("client_id", "app");
 
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
+
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("accounts/new_activation_email"))
@@ -217,12 +218,9 @@ public class AccountsControllerTest extends TestClassNullifier {
 
         mockMvc.perform(get)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("//example.com/callback"));
+                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-        assertEquals("newly-created-user-id", principal.getId());
-        assertEquals("username", principal.getName());
-        assertEquals("user@example.com", principal.getEmail());
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
     @Configuration

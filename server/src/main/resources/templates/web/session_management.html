@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <script type="application/javascript" src="resources/javascripts/session/sjcl.js"></script>
+    <script type="application/javascript" src="resources/javascripts/session/session.js"></script>
+
+    <script type="application/javascript" th:inline="text">
+        /*<![CDATA[*/
+
+        var sm = SessionManagement(document);
+        var origin = '[[${messageOrigin}]]';
+        var clientId = '[[${clientId}]]';
+
+        window.addEventListener('message', sm.buildMessageHandler(origin, clientId), false);
+
+        /*]]>*/
+    </script>
+</head>
+</html>

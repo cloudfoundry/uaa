@@ -34,7 +34,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPON
 
 public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
 
-    public static final String CONFIG = "oauth.id_token.disable";
     public static final String ID_TOKEN = "id_token";
 
     protected static Log logger = LogFactory.getLog(DisableIdTokenResponseTypeFilter.class);

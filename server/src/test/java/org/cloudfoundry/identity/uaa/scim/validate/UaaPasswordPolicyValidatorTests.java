@@ -57,7 +57,7 @@ public class UaaPasswordPolicyValidatorTests {
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(policy, null);
         internalIDP.setConfig(idpDefinition);
 
-        Mockito.when(provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId()))
+        Mockito.when(provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId()))
                 .thenReturn(internalIDP);
     }
 
@@ -123,7 +123,9 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidationDisabledWhenZoneIsNotDefault() {
-        IdentityZoneHolder.set(new IdentityZone().setId("foo"));
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId("foo");
+        IdentityZoneHolder.set(identityZone);
         validatePassword("Password123");
     }
 

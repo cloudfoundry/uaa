@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hsqldb.lib.StringUtil;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -35,6 +34,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -50,6 +50,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 
 /**
  * Authentication filter to verify one time passwords with what's cached in the
@@ -184,7 +186,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 }
 
                 String passcode = expiringCodeAuthentication.getPasscode();
-                if (StringUtil.isEmpty(passcode)) {
+                if (StringUtils.isEmpty(passcode)) {
                     throw new InsufficientAuthenticationException("Passcode information is missing.");
                 }
 
@@ -238,7 +240,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     @Override
     protected Authentication extractCredentials(HttpServletRequest request) {
         String grantType = request.getParameter("grant_type");
-        if (grantType != null && grantType.equals("password")) {
+        if (grantType != null && grantType.equals(GRANT_TYPE_PASSWORD)) {
             Map<String, String> credentials = getCredentials(request);
             String passcode = credentials.get("passcode");
             if (passcode!=null) {

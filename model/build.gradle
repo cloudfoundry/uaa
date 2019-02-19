@@ -1,9 +1,12 @@
 description = 'CloudFoundry Identity Model JAR'
 
 dependencies {
+
+  compile project(':cloudfoundry-identity-metrics-data')
+
   compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
 
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
@@ -14,13 +17,19 @@ dependencies {
     exclude(module: 'spring-security-web')
   }
 
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:parent.slf4jVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
 
-  testCompile group: 'junit', name: 'junit', version:parent.junitVersion
+  testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
+    exclude(module: 'hamcrest-core')
+  }
+
 }
 
 apply from: file('build_properties.gradle')
+
+configurations.all {
+   exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
@@ -32,3 +41,15 @@ integrationTest {}.onlyIf { //disable since we don't have any
   false
 }
 
+
+publishing {
+  publications {
+    uaa_model(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-model'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
+}

@@ -1,11 +1,11 @@
 saml:
   audience:
-    entity-id: login.uaa-acceptance.cf-app.com
+    entity-id: login.oms.identity.team
     nameid-format: urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified
-    endpoint: https://login.uaa-acceptance.cf-app.com/oauth/token/alias/login.uaa-acceptance.cf-app.com
+    endpoint: https://login.oms.identity.team/oauth/token/alias/login.oms.identity.team
   issuer:
     username: saml2BearerUser
-    entity-id: dnd.login.uaa-acceptance.cf-app.com
+    entity-id: dnd.login.oms.identity.team
     signing:
       key: |
         -----BEGIN RSA PRIVATE KEY-----

@@ -19,11 +19,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 public interface ResetPasswordService {
     void resetUserPassword(String userId, String password);
 
-    ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri);
+    ForgotPasswordInfo forgotPassword(String username, String clientId, String redirectUri);
 
     ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
-
-    void updateLastLogonTime(String userId);
 
     class ResetPasswordResponse {
         @JsonProperty("user")

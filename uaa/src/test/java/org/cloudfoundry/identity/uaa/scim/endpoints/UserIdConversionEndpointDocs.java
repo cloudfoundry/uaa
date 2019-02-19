@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.String.format;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -55,18 +55,18 @@ public class UserIdConversionEndpointDocs extends InjectedMockContextTest{
     public void setUp() throws Exception {
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
 
-        String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         bob = new ScimUser(null, "bob"+generator.generate()+"@test.org", "Bob", "Exemplar");
         bob.setPrimaryEmail(bob.getUserName());
         bob.setPassword("password");
-        bob = utils().createUser(getMockMvc(),adminToken, bob);
+        bob = MockMvcUtils.createUser(getMockMvc(),adminToken, bob);
         dwayne = new ScimUser(null, "dwayne"+generator.generate()+"@test.org", "Dwayne", "Exemplar");
         dwayne.setPrimaryEmail(dwayne.getUserName());
         dwayne.setPassword("password");
-        dwayne = utils().createUser(getMockMvc(),adminToken, dwayne);
+        dwayne = MockMvcUtils.createUser(getMockMvc(),adminToken, dwayne);
         List<String> scopes = Arrays.asList("scim.userids");
-        utils().createClient(getMockMvc(), adminToken, clientId, clientSecret, null, scopes, Arrays.asList(new String[]{"client_credentials"}), "scim.userids");
-        userLookupToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.userids", null, true);
+        MockMvcUtils.createClient(getMockMvc(), adminToken, clientId, clientSecret, null, scopes, Arrays.asList(new String[]{"client_credentials"}), "scim.userids");
+        userLookupToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.userids", null, true);
     }
 
     @Test

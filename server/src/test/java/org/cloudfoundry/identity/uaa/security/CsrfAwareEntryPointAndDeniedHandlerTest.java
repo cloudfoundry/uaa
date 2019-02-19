@@ -48,13 +48,13 @@ public class CsrfAwareEntryPointAndDeniedHandlerTest {
     }
 
     @Test
-    public void testHandleWhenCsrfMissing() throws Exception {
+    public void testHandleWhenNotLoggedInAndNoCsrf() throws Exception {
         AccessDeniedException ex = new MissingCsrfTokenException("something");
         handler.handle(request, response, ex);
         assertEquals(HttpServletResponse.SC_FOUND, response.getStatus());
         assertSame(request.getAttribute(WebAttributes.ACCESS_DENIED_403), ex);
         assertTrue(response.isCommitted());
-        assertEquals("http://localhost/csrf", response.getHeader("Location"));
+        assertEquals("http://localhost/login", response.getHeader("Location"));
         assertEquals(HttpServletResponse.SC_MOVED_TEMPORARILY, response.getStatus());
     }
 

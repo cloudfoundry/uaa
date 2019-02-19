@@ -143,7 +143,7 @@ public class UaaStringUtils {
      * @return a regular expression string that will only match exact literals
      */
     public static String escapeRegExCharacters(String s) {
-        return escapeRegExCharacters(s, "([^a-zA-z0-9 ])");
+        return escapeRegExCharacters(s, "([^a-zA-Z0-9 ])");
     }
 
     /**
@@ -278,6 +278,14 @@ public class UaaStringUtils {
         } else {
             return new String(s.getBytes(Charset.forName(ISO_8859_1)), Charset.forName(UTF_8));
         }
+    }
+
+    public static String toJsonString(String s) {
+        if (s == null) {
+            return null;
+        }
+        String result = JsonUtils.writeValueAsString(s);
+        return result.substring(1, result.length()-1);
     }
 
 }

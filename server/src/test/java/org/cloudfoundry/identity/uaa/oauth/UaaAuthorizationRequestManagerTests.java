@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -53,12 +52,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -103,8 +101,8 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", "foo");
         factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
-        when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
-        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
+        when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(client);
+        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaaZoneId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
     }
 
@@ -169,7 +167,7 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("scope", "aud1.test aud2.test");
         parameters.put("client_id", client.getClientId());
         parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
-        factory.setDefaultScopes(Arrays.asList("aud1.test"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("aud1.test"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
@@ -195,10 +193,10 @@ public class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
-        factory.setDefaultScopes(Arrays.asList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
-        when(clientDetailsService.loadClientByClientId(recipient.getClientId())).thenReturn(recipient);
+        when(clientDetailsService.loadClientByClientId(recipient.getClientId(), "uaa")).thenReturn(recipient);
         ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
         client.setClientId("requestingId");
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(recipient);
@@ -215,13 +213,6 @@ public class UaaAuthorizationRequestManagerTests {
         assertNotNull(factory.createAuthorizationRequest(parameters));
     }
 
-    @Test
-    public void testScopeDefaultsToAuthoritiesForClientCredentials() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz"), request.getScope());
-    }
 
     @Test
     public void testScopeIncludesAuthoritiesForUser() {
@@ -279,7 +270,7 @@ public class UaaAuthorizationRequestManagerTests {
             }
         };
         parameters.put("scope", "openid foo.bar");
-        factory.setDefaultScopes(Arrays.asList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("openid"));
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
@@ -315,43 +306,6 @@ public class UaaAuthorizationRequestManagerTests {
         expectedException.expectMessage("[one, two] is invalid. This user is not allowed any of the requested scopes");
         factory.createAuthorizationRequest(parameters);
         throw new AssertionError();
-    }
-
-    @Test
-    @Ignore
-    public void missing_required_user_groups() {
-        expectedException.expect(InvalidScopeException.class);
-        expectedException.expectMessage("User does not meet the client's required group criteria.");
-        factory.setSecurityContextAccessor(securityContextAccessor);
-        client.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group.that.doesnt.exist"));
-        factory.createAuthorizationRequest(parameters);
-        throw new AssertionError();
-    }
-
-
-    @Test
-    public void testResourecIdsExtracted() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
-    }
-
-    @Test
-    public void testResourecIdsDoNotIncludeUaa() {
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none,spam.baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("spam"), request.getResourceIds());
-    }
-
-    @Test
-    public void testResourceIdsWithCustomSeparator() {
-        factory.setScopeSeparator("--");
-        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo--bar,spam--baz"));
-        parameters.put("grant_type", "client_credentials");
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
     }
 
     @Test

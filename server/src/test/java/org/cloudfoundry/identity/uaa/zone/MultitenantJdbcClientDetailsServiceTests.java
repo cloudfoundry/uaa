@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -52,8 +53,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -90,6 +91,7 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         template = spy(jdbcTemplate);
         service = spy(new MultitenantJdbcClientDetailsService(template));
+        service.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("testzone");
         otherIdentityZone.setName("testzone");
@@ -676,7 +678,7 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
         String identityZoneId = jdbcTemplate.queryForObject("select identity_zone_id from oauth_client_details where client_id = ?", String.class,clientId);
-        assertEquals(IdentityZone.getUaa().getId(), identityZoneId.trim());
+        assertEquals(IdentityZone.getUaaZoneId(), identityZoneId.trim());
     }
 
     @Test

@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredExcept
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 import javax.servlet.ServletException;
@@ -27,21 +28,22 @@ import java.io.IOException;
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
-    private AuthenticationFailureHandler delegate;
+    private ExceptionMappingAuthenticationFailureHandler delegate;
+    private CurrentUserCookieFactory currentUserCookieFactory;
 
-    public UaaAuthenticationFailureHandler(AuthenticationFailureHandler delegate) {
+    public UaaAuthenticationFailureHandler(ExceptionMappingAuthenticationFailureHandler delegate, CurrentUserCookieFactory currentUserCookieFactory) {
         this.delegate = delegate;
+        this.currentUserCookieFactory = currentUserCookieFactory;
     }
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        if(exception != null && exception instanceof PasswordChangeRequiredException) {
-            request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
-            addCookie(response, request.getContextPath());
-            response.sendRedirect(request.getContextPath()+"/force_password_change");
-            return;
+        addCookie(response);
+        if(exception != null) {
+            if (exception instanceof PasswordChangeRequiredException) {
+                request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
+            }
         }
-        addCookie(response, request.getContextPath());
         if (delegate!=null) {
             delegate.onAuthenticationFailure(request, response, exception);
         }
@@ -49,14 +51,11 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        addCookie(response, request.getContextPath());
+        addCookie(response);
     }
 
-    private void addCookie(HttpServletResponse response, String contextPath) {
-        Cookie currentUserCookie = new Cookie("Current-User", null);
-        currentUserCookie.setHttpOnly(false);
-        currentUserCookie.setMaxAge(0);
-        currentUserCookie.setPath(contextPath);
-        response.addCookie(currentUserCookie);
+    private void addCookie(HttpServletResponse response) {
+        Cookie clearCurrentUserCookie = currentUserCookieFactory.getNullCookie();
+        response.addCookie(clearCurrentUserCookie);
     }
 }

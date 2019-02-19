@@ -13,23 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
@@ -41,6 +24,22 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.RedirectUrlBuilder;
 import org.springframework.util.Assert;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Post processor which injects an additional filter at the head
@@ -64,7 +63,10 @@ import org.springframework.util.Assert;
  *
  * @author Luke Taylor
  */
-@ManagedResource
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=FilterChainProcessor",
+    description = "Ability to dump requests through JMX"
+)
 public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     public static class ReasonPhrase {
         private int code;
@@ -243,7 +245,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Filter chain '" + name + "' processing request " + request.getMethod() + " "
-                                + request.getRequestURI());
+                        + request.getRequestURI());
 
                 if (dumpRequests) {
                     logger.debug(dumpRequest(request));

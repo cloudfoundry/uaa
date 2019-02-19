@@ -34,7 +34,7 @@ public interface SamlServiceProviderDeletable extends ApplicationListener<Entity
     }
 
     default boolean isUaaZone(String zoneId) {
-        return IdentityZone.getUaa().getId().equals(zoneId);
+        return IdentityZone.getUaaZoneId().equals(zoneId);
     }
 
     int deleteByEntityId(String entityId, String zoneId);

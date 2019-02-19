@@ -15,18 +15,15 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
-import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class UaaScopesTests {
 
@@ -34,8 +31,8 @@ public class UaaScopesTests {
 
     @Test
     public void testGetUaaScopes() throws Exception {
-        assertEquals(26, uaaScopes.getUaaScopes().size());
-        assertEquals(26, uaaScopes.getUaaAuthorities().size());
+        assertEquals(31, uaaScopes.getUaaScopes().size());
+        assertEquals(31, uaaScopes.getUaaAuthorities().size());
     }
 
     @Test

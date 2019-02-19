@@ -1,6 +1,6 @@
 /*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -26,13 +26,10 @@ import java.util.Date;
 /**
  * JSON deserializer for Jackson to handle regular date instances as timestamps
  * in ISO format.
- * 
- * @author Dave Syer
- * 
  */
 public class JsonDateDeserializer extends JsonDeserializer<Date> {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    public static final String DATE_FORMATTER = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     @Override
     public Date deserialize(JsonParser parser, DeserializationContext context) throws IOException {
@@ -41,7 +38,7 @@ public class JsonDateDeserializer extends JsonDeserializer<Date> {
 
     public static Date getDate(String text, JsonLocation loc) throws IOException {
         try {
-            return dateFormat.parse(text);
+            return new SimpleDateFormat(DATE_FORMATTER).parse(text);
         } catch (ParseException e) {
             throw new JsonParseException("Could not parse date:"+ text, loc, e);
         }

@@ -14,12 +14,14 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
+import javax.servlet.ServletContext;
+import javax.servlet.SessionCookieConfig;
+import javax.servlet.SessionTrackingMode;
+import java.util.HashSet;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.context.ServletContextAware;
-
-import javax.servlet.ServletContext;
-import javax.servlet.SessionCookieConfig;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -67,6 +69,9 @@ public class UaaSessionCookieConfig implements SessionCookieConfig, ServletConte
                 logger.debug(String.format("Configuring session cookie - Name: %s", getName()));
                 config.setName(getName());
             }
+            HashSet<SessionTrackingMode> trackingModes = new HashSet<>();
+            trackingModes.add(SessionTrackingMode.COOKIE);
+            servletContext.setSessionTrackingModes(trackingModes);
         } catch (Exception e) {
             logger.error("Ignoring session cookie config - unable to configure UAA session cookie", e);
         }

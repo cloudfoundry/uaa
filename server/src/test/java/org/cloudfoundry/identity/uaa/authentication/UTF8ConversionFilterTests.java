@@ -24,7 +24,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,7 +46,7 @@ public class UTF8ConversionFilterTests {
 
     public void verifyChain(int count) throws IOException, ServletException {
         filter.doFilter(request, response, chain);
-        verify(chain, times(count)).doFilter(anyObject(), anyObject());
+        verify(chain, times(count)).doFilter(any(), any());
         if (count==0) {
             assertEquals(400, response.getStatus());
         }

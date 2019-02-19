@@ -12,14 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -29,25 +27,33 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.PortResolverImpl;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.Cookie;
 import java.sql.Timestamp;
@@ -60,66 +66,65 @@ import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest {
+@RunWith(SpringJUnit4ClassRunner.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+public class ResetPasswordControllerMockMvcTests {
+    @Rule
+    public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();
 
+    @Autowired
+    public WebApplicationContext webApplicationContext;
     private ExpiringCodeStore codeStore;
+    private MockMvc mockMvc;
 
     @Before
-    public void initResetPasswordTest() throws Exception {
-        codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
+    public void setup() {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+    }
+
+    @Before
+    public void initResetPasswordTest() {
+        codeStore = webApplicationContext.getBean(ExpiringCodeStore.class);
     }
 
     @After
-    public void resetGenerator() throws Exception {
-        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    public void resetGenerator() {
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
 
     @Test
     public void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
 
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
 
-        MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
+        mockMvc.perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
+            .andExpect(redirectedUrl("/login?success=password_reset"))
             .andReturn();
-
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        Authentication authentication = securityContext.getAuthentication();
-        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
-        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        assertThat(principal.getId(), equalTo(users.get(0).getId()));
-        assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
-        assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
-    public void testResettingPasswordUpdatesLastLogonTime() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+    public void testResettingPasswordDoesNotUpdateLastLogonTime() throws Exception {
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         Long lastLogonBeforeReset = users.get(0).getLastLogonTime();
@@ -127,23 +132,24 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
 
-        MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
+        mockMvc.perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
+            .andExpect(redirectedUrl("/login?success=password_reset"))
             .andReturn();
 
-        ScimUser userMarissa = getWebApplicationContext().getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId(), IdentityZoneHolder.get().getId());
-        assertNotNull(userMarissa.getLastLogonTime());
+        ScimUser userMarissa = webApplicationContext.getBean(ScimUserProvisioning.class).retrieve(users.get(0).getId(), IdentityZoneHolder.get().getId());
         if(lastLogonBeforeReset != null) {
-            assertTrue(userMarissa.getLastLogonTime() > lastLogonBeforeReset);
+            assertEquals(lastLogonBeforeReset,userMarissa.getLastLogonTime());
+        } else {
+            assertNull(userMarissa.getLastLogonTime());
         }
     }
 
     @Test
     public void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
 
-        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
@@ -155,7 +161,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         user.setUserName("newusername");
         user = userProvisioning.update(user.getId(), user, IdentityZoneHolder.get().getId());
         try {
-            getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
+            mockMvc.perform(createChangePasswordRequest(users.get(0), code, true))
                 .andExpect(status().isUnprocessableEntity());
         } finally {
             user.setUserName(formerUsername);
@@ -166,12 +172,12 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void testResettingAPassword_whenCodeIsValid_rendersTheChangePasswordForm() throws Exception {
 
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
@@ -180,7 +186,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         MockHttpServletRequestBuilder get = get("/reset_password?code={code}", code.getCode())
             .accept(MediaType.TEXT_HTML);
 
-        String content = getMockMvc().perform(get)
+        String content = mockMvc.perform(get)
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
 
@@ -190,9 +196,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(renderedEmail, user.getPrimaryEmail());
 
 
-        getMockMvc().perform(createChangePasswordRequest(user, renderedCode, true, "secret1", "secret1"))
+        mockMvc.perform(createChangePasswordRequest(user, renderedCode, true, "secret1", "secret1"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"));
+            .andExpect(redirectedUrl("/login?success=password_reset"));
     }
 
     private String findInRenderedPage(String renderedContent, String regexPattern) {
@@ -205,51 +211,51 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void correct_url_gets_generated_by_default() throws Exception {
         ScimUser user = getScimUser();
-        FakeJavaMailSender sender = getWebApplicationContext().getBean(FakeJavaMailSender.class);
+        FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
         sender.clearMessage();
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/forgot_password.do")
                 .header("Host", "localhost")
                 .header("X-Forwarded-Host", "other.host.com")
-                .param("email", user.getUserName())
+                .param("username", user.getUserName())
         )
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
         assertThat(sender.getSentMessages().get(0).getContentString(), containsString("http://localhost/reset_password?code="));
         assertThat(sender.getSentMessages().get(0).getContentString(), not(containsString("other.host.com")));
     }
 
-    public ScimUser getScimUser() throws Exception {
+    private ScimUser getScimUser() throws Exception {
         String username = new RandomValueStringGenerator().generate() + "@test.org";
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
         return user;
     }
 
     @Test
     public void new_code_overwrite_old_code_for_repeated_request() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
 
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
-        JdbcTemplate template = getWebApplicationContext().getBean(JdbcTemplate.class);
+        JdbcTemplate template = webApplicationContext.getBean(JdbcTemplate.class);
         String intent = FORGOT_PASSWORD_INTENT_PREFIX+user.getId();
 
-        getMockMvc().perform(post("/forgot_password.do")
-                                 .param("email", user.getUserName()))
+        mockMvc.perform(post("/forgot_password.do")
+                                 .param("username", user.getUserName()))
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
-        getMockMvc().perform(post("/forgot_password.do")
-                                 .param("email", user.getUserName()))
+        mockMvc.perform(post("/forgot_password.do")
+                                 .param("username", user.getUserName()))
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
         assertEquals(1, (int)template.queryForObject("select count(*) from expiring_code_store where intent=?", new Object[] {intent}, Integer.class));
@@ -258,12 +264,12 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
     @Test
     public void redirectToSavedRequest_ifPresent() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate() ;
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
@@ -289,54 +295,60 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
         PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        getMockMvc().perform(post("/forgot_password.do")
+        mockMvc.perform(post("/forgot_password.do")
                 .session(session)
-                .param("email", user.getUserName()))
+                .param("username", user.getUserName()))
                 .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
-        getMockMvc().perform(createChangePasswordRequest(user, "test" + generator.counter.get(), true, "secret1", "secret1")
+        mockMvc.perform(createChangePasswordRequest(user, "test" + generator.counter.get(), true, "secret1", "secret1")
                 .session(session))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
-                .andReturn();
+                .andExpect(redirectedUrl("/login?success=password_reset"));
+
+        mockMvc.perform(post("/login.do")
+            .session(session)
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", "secret1"))
+            .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"));
     }
 
     @Test
     public void testResettingAPasswordFailsWhenPasswordChanged() throws Exception {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
-        user.setPrimaryEmail(username);
+        user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
-        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null, IdentityZoneHolder.get().getId());
 
-        userProvisioning.changePassword(user.getId(), "secret", "secr3t");
-        getMockMvc().perform(createChangePasswordRequest(user, code, true))
+        userProvisioning.changePassword(user.getId(), "secret", "secr3t", IdentityZoneHolder.get().getId());
+        mockMvc.perform(createChangePasswordRequest(user, code, true))
             .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
     public void testResettingAPasswordNoCsrfParameter() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
 
-        getMockMvc().perform(createChangePasswordRequest(users.get(0), code, false))
+        mockMvc.perform(createChangePasswordRequest(users.get(0), code, false))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+            .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
     }
 
     @Test
     public void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
-        List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         PasswordChange passwordChange = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), null, null, null);
@@ -345,34 +357,24 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         MockHttpServletRequestBuilder post = createChangePasswordRequest(users.get(0), code,
             true, "newpassw0rD", "newpassw0rD");
 
-        MvcResult mvcResult = getMockMvc().perform(post)
+        mockMvc.perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"))
-            .andReturn();
-
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        Authentication authentication = securityContext.getAuthentication();
-        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
-        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        assertThat(principal.getId(), equalTo(users.get(0).getId()));
-        assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
-        assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
+            .andExpect(redirectedUrl("/login?success=password_reset"));
     }
 
     @Test
     public void resetPassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
-        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
         PasswordChange passwordChange = new PasswordChange(user.getId(), user.getUserName(), null, null, null);
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
-        getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
+        mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
 
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
-        getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
+        mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(request().attribute("message", equalTo("Your new password cannot be the same as the old password.")))
             .andExpect(forwardedUrl("/reset_password"));
@@ -381,32 +383,32 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     @Test
     public void resetPassword_ReturnsUnprocessableEntity_NewPasswordNotAccordingToPolicy() throws Exception {
 
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition currentDefinition = uaaProvider.getConfig();
         PasswordPolicy passwordPolicy = new PasswordPolicy();
         passwordPolicy.setMinLength(3);
         passwordPolicy.setMaxLength(20);
         uaaProvider.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
 
-        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
         PasswordChange passwordChange = new PasswordChange(user.getId(), user.getUserName(), null, null, null);
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
-        getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
+        mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
 
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
-        getMockMvc().perform(createChangePasswordRequest(user, code, true, "a", "a"))
+        mockMvc.perform(createChangePasswordRequest(user, code, true, "a", "a"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
             .andExpect(forwardedUrl("/reset_password"));
 
-        uaaProvider = getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         uaaProvider.setConfig(currentDefinition);
-        getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider);
+        webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
     }
 
     private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {
@@ -417,10 +419,10 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         return createChangePasswordRequest(user,code.getCode(),useCSRF, password,passwordConfirmation);
     }
 
-    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, String code, boolean useCSRF, String password, String passwordConfirmation) throws Exception {
+    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, String code, boolean useCSRF, String password, String passwordConfirmation) {
         MockHttpServletRequestBuilder post = post("/reset_password.do");
         if (useCSRF) {
-            post.with(csrf());
+            post.with(cookieCsrf());
         }
         post.param("code", code)
             .param("email", user.getPrimaryEmail())

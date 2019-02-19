@@ -3,6 +3,8 @@
 ;(function () {
   'use strict';
 
+  var loaded = false;
+
   var debounce = function(func, waitTime) {
     var timeout = false;
     return function() {
@@ -57,6 +59,12 @@
         }
       }
 
+      // Catch the initial load case
+      if (currentTop == scrollOffset && !loaded) {
+        best = window.location.hash;
+        loaded = true;
+      }
+
       var $best = $toc.find("[href='" + best + "']").first();
       if (!$best.hasClass("active")) {
         // .active is applied to the ToC link we're currently on, and its parent <ul>s selected by tocListSelector
@@ -71,7 +79,6 @@
         if (window.history.pushState) {
           window.history.pushState(null, "", best);
         }
-        // TODO remove classnames
         document.title = $best.data("title") + " – " + originalTitle;
       }
     };

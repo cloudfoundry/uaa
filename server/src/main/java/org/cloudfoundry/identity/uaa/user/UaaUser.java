@@ -320,7 +320,11 @@ public class UaaUser {
                 .withPasswordLastModified(passwordLastModified));
     }
 
-    public UaaUser modifyAttributes(String email, String givenName, String familyName, String phoneNumber) {
+    public UaaUser modifyAttributes(String email,
+                                    String givenName,
+                                    String familyName,
+                                    String phoneNumber,
+                                    boolean verified) {
         return new UaaUser(new UaaUserPrototype()
                 .withEmail(email)
                 .withGivenName(givenName)

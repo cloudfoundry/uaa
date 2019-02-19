@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Claims {
 
     @JsonProperty(ClaimConstants.USER_ID)
@@ -40,11 +42,13 @@ public class Claims {
     @JsonProperty(ClaimConstants.CLIENT_ID)
     private String clientId;
     @JsonProperty(ClaimConstants.EXP)
-    private Integer exp;
+    private Long exp;
     @JsonProperty(ClaimConstants.AUTHORITIES)
     private List<String> authorities;
     @JsonProperty(ClaimConstants.SCOPE)
     private List<String> scope;
+    @JsonProperty(ClaimConstants.GRANTED_SCOPES)
+    private List<String> grantedScopes;
     @JsonProperty(ClaimConstants.JTI)
     private String jti;
     @JsonProperty(ClaimConstants.AUD)
@@ -60,7 +64,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.GRANT_TYPE)
     private String grantType;
     @JsonProperty(ClaimConstants.ADDITIONAL_AZ_ATTR)
-    private String azAttr;
+    private Map<String,String> azAttr;
     @JsonProperty(ClaimConstants.AZP)
     private String azp;
     @JsonProperty(ClaimConstants.AUTH_TIME)
@@ -83,6 +87,10 @@ public class Claims {
     private boolean revocable;
     @JsonProperty(ClaimConstants.EXTERNAL_ATTR)
     private Map<String,String> extAttr;
+    @JsonProperty(ClaimConstants.PREVIOUS_LOGON_TIME)
+    private Long previousLogonTime;
+    @JsonProperty(ClaimConstants.AMR)
+    private String[] amr;
 
     public String getUserId() {
         return userId;
@@ -148,11 +156,11 @@ public class Claims {
         this.clientId = clientId;
     }
 
-    public Integer getExp() {
+    public Long getExp() {
         return exp;
     }
 
-    public void setExp(Integer exp) {
+    public void setExp(Long exp) {
         this.exp = exp;
     }
 
@@ -226,11 +234,11 @@ public class Claims {
         this.grantType = grantType;
     }
 
-    public String getAzAttr() {
+    public Map<String,String> getAzAttr() {
         return azAttr;
     }
 
-    public void setAzAttr(String azAttr) {
+    public void setAzAttr(Map<String,String> azAttr) {
         this.azAttr = azAttr;
     }
 
@@ -305,6 +313,7 @@ public class Claims {
     public void setUserAttributes(String userAttributes) {
         this.userAttributes = userAttributes;
     }
+
     public boolean isRevocable() {
         return revocable;
     }
@@ -319,5 +328,29 @@ public class Claims {
 
     public void setExtAttr(Map<String,String> extAttr) {
         this.extAttr = extAttr;
+    }
+
+    public Long getPreviousLogonTime() {
+        return previousLogonTime;
+    }
+
+    public void setPreviousLogonTime(Long previousLogonTime) {
+        this.previousLogonTime = previousLogonTime;
+    }
+
+    public String[] getAmr() {
+        return amr;
+    }
+
+    public void setAmr(String[] amr) {
+        this.amr = amr;
+    }
+
+    public List<String> getGrantedScopes() {
+        return grantedScopes;
+    }
+
+    public void setGrantedScopes(List<String> grantedScopes) {
+        this.grantedScopes = grantedScopes;
     }
 }

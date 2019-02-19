@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
++  ~ ******************************************************************************
++  ~      Cloud Foundry
++  ~      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
++  ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
++  ~      You may not use this product except in compliance with the License.
++  ~
++  ~      This product includes a number of subcomponents with
++  ~      separate copyright notices and license terms. Your use of these
++  ~      subcomponents is subject to the terms and conditions of the
++  ~      subcomponent's license, as noted in the LICENSE file.
++  ~ ******************************************************************************
++  -->
+
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/pui-mfa-main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<body>
+<div class="header" layout:fragment="page-header">
+    <th:block layout:include="nav :: nav"></th:block>
+</div>
+<div class="island" layout:fragment="page-content">
+    <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mbxl mfa-header"></h2>
+    <h1 class="plxl">Enter your Google Authentication Code</h1>
+    <div class="panel-body plxl">
+        <p class="mtxl">
+            Enter the 6-digit code displayed in Google Authenticator app:
+        </p>
+        <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
+            <div class="page">
+                <input name="code" type="number" placeholder="XXX-XXX" autofocus="autofocus" class="form-control mrs txt-c em-high" maxlength="6"/>
+                <button id= "verify_code_btn" type="submit" class="btn btn-highlight mlxl">Verify</button>
+            </div>
+            <div th:if="${error}" th:text="${error}" class="error-color mtl"></div>
+        </form>
+        <a th:href="${is_first_time_user} ? @{/login/mfa/register} : @{/logout.do}" >
+            <button id="Back"
+                type="Button"
+                onclick="window.history.back()"
+                class="btn btn-default mtl">Back</button>
+        </a>
+    </div>
+</div>
+</body>
+</html>

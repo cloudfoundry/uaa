@@ -18,11 +18,6 @@ public class RevocableToken {
         ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN
     }
 
-    public enum TokenFormat {
-        JWT, OPAQUE
-    }
-
-
     private String tokenId;
     private String clientId;
     private String userId;

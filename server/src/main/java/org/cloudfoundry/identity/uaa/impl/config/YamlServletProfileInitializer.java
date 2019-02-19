@@ -21,6 +21,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -77,6 +78,10 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
 
         ServletContext servletContext = applicationContext.getServletContext();
+
+        HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
+        servletContext.addListener(publisher);
+
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                         servletContext, applicationContext.getServletConfig());
 

@@ -13,19 +13,16 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,7 +31,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -47,24 +44,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailAccountCreationServiceTests {
 
@@ -77,16 +67,15 @@ public class EmailAccountCreationServiceTests {
     private ExpiringCode code = null;
     private ClientDetails details = null;
     private PasswordValidator passwordValidator;
+    private IdentityZone identityZone;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
+        IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
         messageService = mock(MessageService.class);
         codeStore = mock(ExpiringCodeStore.class);
@@ -101,6 +90,8 @@ public class EmailAccountCreationServiceTests {
         request.setServerName("uaa.example.com");
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
+
+        identityZone = new IdentityZone();
     }
 
     private EmailAccountCreationService initEmailAccountCreationService() {
@@ -114,7 +105,7 @@ public class EmailAccountCreationServiceTests {
         );
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -124,7 +115,13 @@ public class EmailAccountCreationServiceTests {
     public void testBeginActivation() throws Exception {
         String redirectUri = "";
         String data = setUpForSuccess(redirectUri);
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+
+        String zoneId = "BeginActivationZone";
+        identityZone.setId(zoneId);
+        identityZone.setSubdomain("uaa");
+        IdentityZoneHolder.set(identityZone);
+
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
@@ -149,8 +146,9 @@ public class EmailAccountCreationServiceTests {
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
 
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(code);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(zoneId))).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your account");
@@ -174,8 +172,9 @@ public class EmailAccountCreationServiceTests {
         try {
             emailAccountCreationService = initEmailAccountCreationService();
             String data = setUpForSuccess(null);
-            when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-            when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(code);
+            String zoneId = IdentityZoneHolder.get().getId();
+            when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+            when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(zoneId))).thenReturn(code);
 
             emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
 
@@ -194,13 +193,16 @@ public class EmailAccountCreationServiceTests {
         testBeginActivationWithCompanyNameConfigured(utf8String);
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void testBeginActivationWithExistingUser() throws Exception {
         setUpForSuccess(null);
         user.setVerified(true);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null));
     }
 
     @Test
@@ -208,8 +210,9 @@ public class EmailAccountCreationServiceTests {
         String data = setUpForSuccess("existing-user-id", null);
         user.setId("existing-user-id");
         user.setVerified(false);
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+        when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -230,10 +233,11 @@ public class EmailAccountCreationServiceTests {
     @Test
     public void testCompleteActivation() throws Exception {
         setUpForSuccess("");
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+        when(codeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(code);
+        when(scimUserProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
 
         ClientDetails client = mock(ClientDetails.class);
         when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(client);
@@ -253,10 +257,11 @@ public class EmailAccountCreationServiceTests {
     @Test
     public void completeActivation_usesAntPathMatching() throws Exception {
         setUpForSuccess("http://redirect.uri/");
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+        when(codeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(code);
+        when(scimUserProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
 
         ClientDetails client = mock(ClientDetails.class);
         when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(client);
@@ -270,9 +275,10 @@ public class EmailAccountCreationServiceTests {
     public void completeActivitionWithClientNotFound() throws Exception {
         setUpForSuccess("");
 
-        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(codeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(code);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId(anyString(), anyString());
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
@@ -282,10 +288,11 @@ public class EmailAccountCreationServiceTests {
     @Test
     public void completeActivationWithInvalidClientRedirect() throws Exception {
         setUpForSuccess("http://redirect_not_found.example.com/");
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+        when(codeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(code);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(details);
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
@@ -297,11 +304,12 @@ public class EmailAccountCreationServiceTests {
 
     @Test
     public void completeActivationWithValidClientRedirect() throws Exception {
+        String zoneId = IdentityZoneHolder.get().getId();
         setUpForSuccess("http://example.com/redirect");
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.retrieve(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(user);
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
+        when(codeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(code);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(details);
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
@@ -320,19 +328,18 @@ public class EmailAccountCreationServiceTests {
         }
     }
 
-    @Test(expected = InvalidPasswordException.class)
+    @Test
     public void beginActivation_throwsException_ifPasswordViolatesPolicy() throws Exception {
         doThrow(new InvalidPasswordException("Oh hell no")).when(passwordValidator).validate(anyString());
 
-        emailAccountCreationService.beginActivation("user@example.com", "some password", null, null);
+        Assertions.assertThrows(InvalidPasswordException.class,
+                () -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null));
+
         verify(passwordValidator).validate("some password");
     }
 
     @Test
     public void nonMatchingCodeTypeDisallowsActivation() throws Exception {
-        expectedEx.expect(HttpClientErrorException.class);
-        expectedEx.expectMessage("400 BAD_REQUEST");
-
         Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
         Map<String, Object> data = new HashMap<>();
         data.put("user_id", "user-id");
@@ -343,12 +350,16 @@ public class EmailAccountCreationServiceTests {
 
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
 
-        emailAccountCreationService.completeActivation("the_secret_code");
+        HttpClientErrorException httpClientErrorException = Assertions.assertThrows(HttpClientErrorException.class,
+                () -> emailAccountCreationService.completeActivation("the_secret_code"));
+
+        assertThat(httpClientErrorException.getMessage(), containsString("400 BAD_REQUEST"));
     }
 
     private String setUpForSuccess(String redirectUri) throws Exception {
         return setUpForSuccess("newly-created-user-id", redirectUri);
     }
+
     private String setUpForSuccess(String userId, String redirectUri) throws Exception {
         user = new ScimUser(
                 userId,

@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean, EnvironmentAware {
 
-    private static final Log logger = LogFactory.getLog(YamlConfigurationValidator.class);
+    private static Log logger = LogFactory.getLog(YamlConfigurationValidator.class);
 
     private Constructor constructor;
 
@@ -101,7 +101,6 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
             if (exceptionIfInvalid) {
                 throw e;
             }
-            logger.error("Failed to load YAML validation bean. Your YAML file may be invalid.", e);
         }
     }
 

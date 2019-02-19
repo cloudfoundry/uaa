@@ -22,7 +22,6 @@ import org.junit.rules.ExpectedException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
@@ -45,7 +44,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
-import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 
 
 public class UaaTokenEndpointTests {
@@ -124,12 +122,4 @@ public class UaaTokenEndpointTests {
             throw e;
         }
     }
-
-    @Test
-    public void call_to_post_with_query_string_throws_not_acceptable() throws Exception {
-        ResponseEntity<OAuth2Exception> result = endpoint.handleHttpRequestMethodNotSupportedException(new HttpRequestMethodNotSupportedException("POST"));
-        assertNotNull(result);
-        assertEquals(NOT_ACCEPTABLE, result.getStatusCode());
-    }
-
 }

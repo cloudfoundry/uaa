@@ -39,7 +39,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         new TestColumn("response_type", "varchar/nvarchar", 25),
         new TestColumn("issued_at", "bigint/int8", 64),
         new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "varchar/nvarchar", 4000),
+        new TestColumn("scope", "text/longtext/nvarchar/clob", 0),
         new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
         new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
@@ -66,7 +66,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
-                return ("varchar".equalsIgnoreCase(type) || "nvarchar".equalsIgnoreCase(type)) && !"data".equalsIgnoreCase(name) ?
+                return ("varchar".equalsIgnoreCase(type) || "nvarchar".equalsIgnoreCase(type)) && !("data".equalsIgnoreCase(name) || "scope".equalsIgnoreCase(name)) ?
                     c.type.toLowerCase().contains(type.toLowerCase()) && c.size == size :
                     c.type.toLowerCase().contains(type.toLowerCase());
             }

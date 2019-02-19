@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,13 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.app.web;
 
-import java.security.Principal;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
 
 @Controller
 public class HomeController {
@@ -94,7 +93,8 @@ public class HomeController {
     @RequestMapping("/logout")
     public String logout(Model model, HttpServletRequest request) {
         String redirect = request.getRequestURL().toString();
-        model.addAttribute("cflogout", logoutUrl + "?redirect=" + redirect);
+        model.addAttribute("cflogout", logoutUrl + "?client_id=app&redirect=" + redirect);
+        request.getSession().invalidate();
         return "loggedout";
     }
 

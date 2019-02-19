@@ -144,10 +144,23 @@ public class AuthzAuthenticationFilter implements Filter {
                 }
                 Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
                     new UaaAuthenticationDetails(req)));
-                SecurityContextHolder.getContext().setAuthentication(result);
-                ofNullable(successHandler).ifPresent(
-                    s -> s.setSavedAccountOptionCookie(req, res, result)
-                );
+
+                if (result.isAuthenticated()) {
+                    SecurityContextHolder.getContext().setAuthentication(result);
+                    ofNullable(successHandler).ifPresent(
+                        s -> s.setSavedAccountOptionCookie(req, res, result)
+                    );
+
+
+                    UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+                    if (uaaAuthentication.isRequiresPasswordChange()) {
+                        throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
+                    }
+
+                }
+
+
+
             }
         } catch (AuthenticationException e) {
             logger.debug("Authentication failed");

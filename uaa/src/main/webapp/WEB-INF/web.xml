@@ -82,4 +82,8 @@
         <location>/error404</location>
     </error-page>
 
+    <error-page>
+        <location>/error</location>
+    </error-page>
+
 </web-app>

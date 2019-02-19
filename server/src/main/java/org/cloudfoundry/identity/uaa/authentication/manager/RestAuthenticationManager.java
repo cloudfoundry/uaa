@@ -114,7 +114,6 @@ public class RestAuthenticationManager implements AuthenticationManager {
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
             if (evaluateResponse(authentication,response)) {
                 logger.info("Successful authentication request for " + authentication.getName());
-                //TODO - we can return a UAA principal containing the correct origin here.
                 return new UsernamePasswordAuthenticationToken(username, nullPassword?null:"", UaaAuthority.USER_AUTHORITIES);
             }
         } else if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {

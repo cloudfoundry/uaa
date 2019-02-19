@@ -28,7 +28,7 @@ import org.springframework.security.core.Authentication;
 import javax.servlet.http.HttpServletRequest;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Matchers.isA;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -64,7 +64,7 @@ public class AuditListenerTests {
     }
 
     @Test
-    public void failedUserAuthenticationIsAudited() throws Exception {
+    public void unsuccessfulUserAuthenticationIsAudited() throws Exception {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("auser", "password", details);
         listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));

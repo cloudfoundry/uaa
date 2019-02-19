@@ -46,6 +46,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+
 public class LocalUaaRestTemplate extends OAuth2RestTemplate implements InitializingBean {
     protected AuthorizationServerTokenServices tokenServices;
     protected String clientId;
@@ -69,11 +71,9 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         }
         Set<String> resourceIds = new HashSet<>();
         resourceIds.add(OriginKeys.UAA);
-        Set<String> responseTypes = new HashSet<>();
-        responseTypes.add("token");
         Map<String,String> requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, "login");
-        requestParameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
+        requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         OAuth2Request request = new OAuth2Request(
             requestParameters,
             "login",
@@ -82,7 +82,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
             scopes,
             resourceIds,
             null,
-            responseTypes,
+            new HashSet<>(),
             Collections.EMPTY_MAP);
         OAuth2Authentication authentication = new OAuth2Authentication(request, null);
         OAuth2AccessToken result = tokenServices.createAccessToken(authentication);

@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -32,10 +31,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletResponse;
-
 import java.sql.Timestamp;
 
 import static junit.framework.TestCase.assertNull;
@@ -43,11 +42,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -94,6 +92,7 @@ public class ResetPasswordAuthenticationFilterTest {
 
 
         response = mock(HttpServletResponse.class);
+
         chain = mock(FilterChain.class);
 
         service = mock(ResetPasswordService.class);
@@ -131,19 +130,21 @@ public class ResetPasswordAuthenticationFilterTest {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
-        happy_day_password_reset(null);
+        happy_day_password_reset("");
     }
-
 
     public void happy_day_password_reset(String redirectUri) throws Exception {
         filter.doFilterInternal(request, response, chain);
         //do our assertion
         verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
-        verify(authenticationSuccessHandler, times(1)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
-        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(chain, times(0)).doFilter(anyObject(), anyObject());
-        verify(service, times(1)).updateLastLogonTime(anyString());
-        assertEquals(redirectUri, request.getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE));
+        verify(authenticationSuccessHandler, times(0)).onAuthenticationSuccess(same(request), same(response), any(Authentication.class));
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        if (!StringUtils.hasText(redirectUri) || redirectUri.equals("home")) {
+            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
+        } else {
+            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri="+ redirectUri);
+        }
+        verify(chain, times(0)).doFilter(any(), any());
     }
 
 

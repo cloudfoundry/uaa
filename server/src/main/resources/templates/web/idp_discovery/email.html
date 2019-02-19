@@ -1,18 +1,36 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pivotal-ui-main">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pui-account-discovery-main">
 <div layout:fragment="page-content">
 <h4 class="txt-c pbxxl ptxl" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
     Sign in to continue
 </h4>
 <form action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form" _lpchecked="1">
-    <div th:if="${param.error}" class="alert alert-error mbxl">
+    <input class="" name="commit" type="submit" value="Next" hidden="true"/>
+    <div th:if="${param.error}" th:unless="${error}" class="alert alert-error mbxl">
         <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
     </div>
+    <div th:if="${error}" class="alert alert-error">
+        <p th:text="#{'login.' + ${error}}">Error Message</p>
+    </div>
+    <div th:if="${param.success}" class="alert alert-success mbxl">
+        <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+    </div>
+
     <div class="form-group email_address_field">
-        <label class="control-label" for="email">Email address</label>
-        <input class="form-control" id="email" name="email" type="email" autofocus="true"/>
+        <div style="height: 42px">
+            <input class="form-control" id="email" name="email" autofocus="true" placeholder="Email or Username" style="width: 100%; float: left"/>
+        </div>
+        <input th:if="${param.login_hint}"
+               th:unless="${login_hint}"
+               th:name="login_hint"
+               th:type="hidden"
+               th:value="${param.login_hint}"/>
+        <input th:if="${login_hint}"
+               th:name="login_hint"
+               th:type="hidden"
+               th:value="${login_hint}"/>
         <div class="help-block has-error" style="display: none;">
-            Please enter your email address
+            Please enter your username or email address
         </div>
     </div>
     <div class="form-group">

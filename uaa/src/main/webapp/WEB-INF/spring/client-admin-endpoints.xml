@@ -88,6 +88,7 @@
                 </constructor-arg>
             </bean>
         </property>
+        <property name="clientMaxCount" value="${clientMaxCount:500}"/>
     </bean>
 
     <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
@@ -99,6 +100,7 @@
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
     <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">

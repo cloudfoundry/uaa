@@ -14,9 +14,20 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,20 +37,15 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +54,8 @@ public class ClientAdminEndpointsValidatorTests {
     BaseClientDetails client;
     BaseClientDetails caller;
     ClientAdminEndpointsValidator validator;
+    ClientSecretValidator secretValidator;
+
     private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
     private List httpWildCardUrls = Arrays.asList(
         "http://*",
@@ -70,6 +78,8 @@ public class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
         validator = new ClientAdminEndpointsValidator();
+        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        validator.setClientSecretValidator(secretValidator);
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
         SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);
@@ -104,6 +114,29 @@ public class ClientAdminEndpointsValidatorTests {
         client.setScope(Arrays.asList(client.getClientId()+".read"));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
+    }
+
+    public void validate_rejectsMalformedUrls() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE));
+        client.setRegisteredRedirectUri(Collections.singleton("httasdfasp://anything.comadfsfdasfdsa"));
+
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void validate_allowsAUrlWithUnderscore() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE));
+        client.setRegisteredRedirectUri(Collections.singleton("http://foo_name.anything.com/"));
+
+        validator.validate(client, true, true);
+    }
+
+    @Test
+    public void test_validate_jwt_bearer_grant_type_without_secret_for_update() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_JWT_BEARER));
+        client.setScope(Collections.singleton(client.getClientId()+".write"));
+        client.setClientSecret("");
+        validator.validate(client, false, true);
     }
 
     @Test
@@ -146,7 +179,7 @@ public class ClientAdminEndpointsValidatorTests {
         invalidRedirectUris.addAll(httpWildCardUrls);
         invalidRedirectUris.addAll(convertToHttps(httpWildCardUrls));
 
-        for(String s : Arrays.asList(new String[] {"authorization_code", "implicit"})) {
+        for(String s : Arrays.asList(new String[] {GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})) {
             client.setAuthorizedGrantTypes(Collections.singleton(s));
             for(String url : invalidRedirectUris) {
                 testValidatorForInvalidURL(url);
@@ -177,7 +210,7 @@ public class ClientAdminEndpointsValidatorTests {
         urls.add("http://valid.com");
         urls.add("http://valid.com/with/path*");
         urls.add("http://invalid*");
-        client.setAuthorizedGrantTypes(Collections.singleton("authorization_code"));
+        client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
         validator.validateClientRedirectUri(client);
     }

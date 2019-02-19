@@ -1,17 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +13,7 @@ import java.util.Date;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZone {
-    public static final IdentityZone getUaa() {
+    public static IdentityZone getUaa() {
         Calendar calendar = Calendar.getInstance();
         calendar.clear();
         calendar.set(Calendar.YEAR, 2000);
@@ -39,13 +28,21 @@ public class IdentityZone {
         return uaa;
     }
 
+    public static String getUaaZoneId() {
+        return getUaa().getId();
+    }
+
+    @JsonIgnore
+    public boolean isUaa() {
+        return this.equals(getUaa());
+    }
+
     private String id;
 
     @NotNull
     private String subdomain;
 
     private IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-
 
     @NotNull
     private String name;
@@ -59,27 +56,26 @@ public class IdentityZone {
     @JsonProperty("last_modified")
     private Date lastModified = new Date();
 
+    private boolean active = true;
+
     public Date getCreated() {
         return created;
     }
 
-    public IdentityZone setCreated(Date created) {
+    public void setCreated(Date created) {
         this.created = created;
-        return this;
     }
 
     public Date getLastModified() {
         return lastModified;
     }
 
-    public IdentityZone setLastModified(Date lastModified) {
+    public void setLastModified(Date lastModified) {
         this.lastModified = lastModified;
-        return this;
     }
 
-    public IdentityZone setVersion(int version) {
+    public void setVersion(int version) {
         this.version = version;
-        return this;
     }
 
     public int getVersion() {
@@ -90,36 +86,48 @@ public class IdentityZone {
         return name;
     }
 
-    public IdentityZone setName(String name) {
+    public void setName(String name) {
         this.name = name;
-        return this;
     }
 
     public String getSubdomain() {
         return subdomain;
     }
 
-    public IdentityZone setSubdomain(String subdomain) {
+    public void setSubdomain(String subdomain) {
         this.subdomain = subdomain;
-        return this;
     }
 
     public String getId() {
         return id;
     }
 
-    public IdentityZone setId(String id) {
+    public void setId(String id) {
         this.id = id;
-        return this;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public IdentityZone setDescription(String description) {
+    public void setDescription(String description) {
         this.description = description;
-        return this;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public IdentityZoneConfiguration getConfig() {
+        return config;
+    }
+
+    public void setConfig(IdentityZoneConfiguration config) {
+        this.config = config;
     }
 
     @Override
@@ -140,19 +148,7 @@ public class IdentityZone {
             return false;
         IdentityZone other = (IdentityZone) obj;
         if (id == null) {
-            if (other.id != null)
-                return false;
-        } else if (!id.equals(other.id))
-            return false;
-        return true;
-    }
-
-    public IdentityZone setConfig(IdentityZoneConfiguration config) {
-        this.config = config;
-        return this;
-    }
-
-    public IdentityZoneConfiguration getConfig() {
-        return config;
+            return other.id == null;
+        } else return id.equals(other.id);
     }
 }

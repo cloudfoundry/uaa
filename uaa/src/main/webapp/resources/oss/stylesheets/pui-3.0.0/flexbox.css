@@ -17,6 +17,20 @@
     border-radius: 5px;
 }
 
+.banner-header {
+    min-height: 2em;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.banner-header img {
+    max-width: 100%;
+}
+
 .page .panel .logo {
     max-height: 64px;
     margin: auto;

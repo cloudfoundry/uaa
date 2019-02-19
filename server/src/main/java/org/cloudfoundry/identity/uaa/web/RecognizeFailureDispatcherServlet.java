@@ -15,13 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.Environment;
-import org.springframework.http.MediaType;
-import org.springframework.web.servlet.DispatcherServlet;
-
+import java.io.IOException;
+import java.util.Enumeration;
 import javax.servlet.GenericServlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -29,8 +24,13 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Enumeration;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.DispatcherServlet;
 
 public class RecognizeFailureDispatcherServlet extends GenericServlet {
 

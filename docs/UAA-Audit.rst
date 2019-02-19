@@ -70,6 +70,23 @@ Authentication and Password Events
     - Happens: When a user requests to reset his/her password
     - Data Recorded: Email used
 
+* IdentityProviderAuthenticationSuccess
+    - Happens: When a user successfully authenticates for the password login
+    - Data Recorded: User ID and Username
+
+* IdentityProviderAuthenticationFailure
+    - Happens: When a user authentication fails for the password login, and user exists
+    - Data Recorded: User ID
+    - Notes: Followed by a UserAuthenticationFailureEvent and PrincipalAuthenticationFailureEvent
+
+* MfaAuthenticationSuccess
+    - Happens: When a user successfully authenticates with MFA
+    - Data Recorded: User ID, Username and MFA type (e.g. google-authenticator)
+
+* MfaAuthenticationFailure
+    - Happens: When a user enters an incorrect code for MFA
+    - Data Recorded: User ID, Username and MFA type (e.g. google-authenticator)
+
 Scim Administration Events
 ==============================================================
 

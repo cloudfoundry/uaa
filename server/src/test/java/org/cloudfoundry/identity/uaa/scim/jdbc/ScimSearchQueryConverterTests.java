@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,7 +26,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class ScimSearchQueryConverterTests {
 
-    private ScimSearchQueryConverter filterProcessor;
+    private SimpleSearchQueryConverter filterProcessor;
 
     @Before
     public void setUp() {
@@ -33,7 +34,7 @@ public class ScimSearchQueryConverterTests {
         replaceWith.put("emails\\.value", "email");
         replaceWith.put("groups\\.display", "authorities");
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
-        filterProcessor = new ScimSearchQueryConverter();
+        filterProcessor = new SimpleSearchQueryConverter();
         filterProcessor.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
     }
 

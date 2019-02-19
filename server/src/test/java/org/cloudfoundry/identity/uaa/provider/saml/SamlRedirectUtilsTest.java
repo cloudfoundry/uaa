@@ -30,9 +30,10 @@ public class SamlRedirectUtilsTest {
                 .setNameID("nameID")
                 .setMetadataTrustCheck(true)
                 .setLinkText("link text")
-                .setZoneId(IdentityZone.getUaa().getId());
+                .setZoneId(IdentityZone.getUaaZoneId());
 
-        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, "login.uaa-acceptance.cf-app.com");
-        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=login.uaa-acceptance.cf-app.com&idp=simplesamlphp-url&isPassive=true", url);
+        String domain = "login.random-made-up-url.com";
+        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, domain);
+        Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=" + domain + "&idp=simplesamlphp-url&isPassive=true", url);
     }
 }

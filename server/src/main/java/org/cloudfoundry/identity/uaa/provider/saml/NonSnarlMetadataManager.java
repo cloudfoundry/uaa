@@ -65,6 +65,7 @@ import org.springframework.security.saml.trust.AllowAllSignatureTrustEngine;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolConfigurer;
 import org.springframework.security.saml.util.SAMLUtil;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientException;
 import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
@@ -154,7 +155,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
                 initializeProviderData(delegate);
                 initializeProviderFilters(delegate);
                 result.add(delegate);
-            } catch (MetadataProviderException e) {
+            } catch (RestClientException | MetadataProviderException e) {
                 log.error("Invalid SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]", e);
             }
         }

@@ -13,21 +13,31 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -35,9 +45,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.headerWithName;
-import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.*;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -46,10 +54,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
@@ -58,12 +63,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class LoginInfoEndpointDocs extends InjectedMockContextTest {
-
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+class LoginInfoEndpointDocs extends EndpointDocs {
 
     @Test
-    public void info_endpoint_for_json() throws Exception {
-        Snippet requestParameters = requestParameters();
+    void info_endpoint_for_json() throws Exception {
+        Snippet requestParameters = requestParameters(
+                parameterWithName("origin").optional(null).type(STRING).description("Use the configured prompts of the OpenID Connect Provider with the given origin key in the response. Fallback to zone values if no prompts are configured or origin is invalid.")
+        );
 
         Snippet responseFields = responseFields(
             fieldWithPath("app.version").type(STRING).description("The UAA version"),
@@ -89,7 +103,8 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
             headerWithName(ACCEPT).description("When set to accept " + APPLICATION_JSON_VALUE + " the server will return prompts and server info in JSON format.")
         );
 
-        getMockMvc().perform(get("/info")
+        mockMvc.perform(get("/info")
+            .param("origin","oidc-provider")
             .header(ACCEPT, APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
             .andDo(
@@ -102,7 +117,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void user_ui_login() throws Exception {
+    void user_ui_login() throws Exception {
         Snippet requestParameters = requestParameters(
             parameterWithName("username").required().type(STRING).description("The username of the user, sometimes the email address."),
             parameterWithName("password").required().type(STRING).description("The user's password"),
@@ -112,7 +127,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
             headerWithName("Cookie").required().type(STRING).description("Must contain the a value for the cookie X-Uaa-Csrf and that must match the request parameter of the same name")
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/login.do")
                 .with(cookieCsrf())
                 .header("Cookie","X-Uaa-Csrf=12345a")
@@ -129,8 +144,8 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void invalid_request() throws Exception {
-        getMockMvc().perform(get("/invalid_request"))
+    void invalid_request() throws Exception {
+        mockMvc.perform(get("/invalid_request"))
             .andDo(
                 document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()))
             )
@@ -138,11 +153,11 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void passcode_request() throws Exception {
-        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
+    void passcode_request() throws Exception {
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(
@@ -155,7 +170,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
             .session(session)
             .header("Cookie","JSESSIONID="+session.getId());
 
-        getMockMvc().perform(get)
+        mockMvc.perform(get)
             .andDo(
                 document("{ClassName}/{methodName}",
                          preprocessResponse(prettyPrint()),
@@ -167,10 +182,10 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void generate_auto_login_code() throws Exception {
+    void generate_auto_login_code() throws Exception {
         generate_auto_login_code(true);
     }
-    public Map<String,Object> generate_auto_login_code(boolean x) throws Exception {
+    Map<String,Object> generate_auto_login_code(boolean x) throws Exception {
         Snippet requestFields = requestFields(
             fieldWithPath("username").required().type(STRING).description("The username for the autologin request"),
             fieldWithPath("password").required().type(STRING).description("The password for the autologin request")
@@ -187,7 +202,7 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
         AutologinRequest request = new AutologinRequest();
         request.setUsername("marissa");
         request.setPassword("koala");
-        String body = getMockMvc().perform(
+        String body = mockMvc.perform(
             post("/autologin")
                 .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
@@ -207,13 +222,13 @@ public class LoginInfoEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void perform_auto_login() throws Exception {
+    void perform_auto_login() throws Exception {
         Map<String,Object> code = generate_auto_login_code(true);
         Snippet requestParameters = requestParameters(
             parameterWithName("code").required().type(STRING).description("The code generated from the POST /autologin"),
             parameterWithName("client_id").required().type(STRING).description("The client_id that generated the autologin code")
         );
-        getMockMvc().perform(MockMvcRequestBuilders.get("/autologin")
+        mockMvc.perform(MockMvcRequestBuilders.get("/autologin")
                                  .param("code", (String)code.get("code"))
                                  .param("client_id", "admin"))
             .andDo(print())

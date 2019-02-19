@@ -44,7 +44,7 @@ public class WhitelistLogoutHandlerTest {
         handler.setDefaultTargetUrl("/login");
         handler.setAlwaysUseDefaultTargetUrl(true);
         handler.setTargetUrlParameter("redirect");
-        when(clientDetailsService.loadClientByClientId(CLIENT_ID)).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId(CLIENT_ID, "uaa")).thenReturn(client);
         handler.setClientDetailsService(clientDetailsService);
     }
 
@@ -104,7 +104,7 @@ public class WhitelistLogoutHandlerTest {
 
     @Test
     public void client_not_found_exception() throws Exception {
-        when(clientDetailsService.loadClientByClientId("test")).thenThrow(new NoSuchClientException("test"));
+        when(clientDetailsService.loadClientByClientId("test", "uaa")).thenThrow(new NoSuchClientException("test"));
         handler.setWhitelist(Arrays.asList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://notwhitelisted.com");

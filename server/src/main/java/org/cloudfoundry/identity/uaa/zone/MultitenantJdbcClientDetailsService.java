@@ -28,7 +28,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
@@ -106,7 +105,7 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
 
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
-    private PasswordEncoder passwordEncoder = NoOpPasswordEncoder.getInstance();
+    private PasswordEncoder passwordEncoder;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -130,7 +129,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     public ClientDetails loadClientByClientId(String clientId, String zoneId) throws InvalidClientException {
         ClientDetails details;
         try {
-
             details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
@@ -243,11 +241,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     }
 
     @Override
-    public int deleteByOrigin(String origin, String zoneId) {
-        return 0;
-    }
-
-    @Override
     public int deleteByClient(String clientId, String zoneId) {
         int count = jdbcTemplate.update(DEFAULT_DELETE_STATEMENT, clientId, zoneId);
         if (count == 0) {
@@ -255,13 +248,6 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
         }
         return count;
     }
-
-    @Override
-    public int deleteByUser(String userId, String zoneId) {
-        //no op
-        return 0;
-    }
-
 
     @Override
     public Log getLogger() {

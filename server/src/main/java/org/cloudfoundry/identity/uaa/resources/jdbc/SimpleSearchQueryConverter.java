@@ -21,6 +21,8 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 import java.text.DateFormat;
@@ -33,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static com.unboundid.scim.sdk.SCIMException.createException;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
@@ -156,6 +159,19 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
+    @Override
+    public MultiValueMap<String,Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException {
+        try {
+            SCIMFilter scimFilter = SCIMFilter.parse(filter);
+            validateFilterAttributes(scimFilter, validAttributes);
+            MultiValueMap<String, Object> result = new LinkedMultiValueMap<>();
+            extractValues(scimFilter, result);
+            return result;
+        } catch (SCIMException x) {
+            throw new IllegalArgumentException(x.getMessage());
+        }
+    }
+
     protected SCIMFilter scimFilter(String filter) throws SCIMException {
         SCIMFilter scimFilter;
         try {
@@ -165,30 +181,62 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             filter = filter.replaceAll("'","\"");
             scimFilter = SCIMFilter.parse(filter);
         }
-        validateFilterAttributes(scimFilter);
+        validateFilterAttributes(scimFilter, VALID_ATTRIBUTE_NAMES);
         return scimFilter;
     }
 
-    private void validateFilterAttributes(SCIMFilter filter) throws SCIMException {
+    private void validateFilterAttributes(SCIMFilter filter, List<String> validAttributeNames) throws SCIMException {
         List<String> invalidAttributes = new LinkedList<>();
-        validateFilterAttributes(filter, invalidAttributes);
+        validateFilterAttributes(filter, invalidAttributes, validAttributeNames);
         if (!invalidAttributes.isEmpty()) {
             throw new InvalidResourceException("Invalid filter attributes:"+StringUtils.collectionToCommaDelimitedString(invalidAttributes));
         }
     }
 
-    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues) {
+    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues, List<String> validAttributeNames) {
         if (filter.getFilterAttribute()!=null && filter.getFilterAttribute().getAttributeName()!=null) {
             String name = filter.getFilterAttribute().getAttributeName();
             if (filter.getFilterAttribute().getSubAttributeName()!=null) {
                 name = name + "." + filter.getFilterAttribute().getSubAttributeName();
             }
-            if (!VALID_ATTRIBUTE_NAMES.contains(name.toLowerCase())) {
+            if (!validAttributeNames.contains(name.toLowerCase())) {
                 invalidAttribues.add(name);
             }
         }
         for (SCIMFilter subfilter : ofNullable(filter.getFilterComponents()).orElse(emptyList())) {
-            validateFilterAttributes(subfilter, invalidAttribues);
+            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames);
+        }
+    }
+
+    private void extractValues(SCIMFilter filter, MultiValueMap<String,Object> values) throws SCIMException {
+        switch (filter.getFilterType()) {
+            case AND:
+                extractValues(filter.getFilterComponents().get(0), values);
+                extractValues(filter.getFilterComponents().get(1), values);
+                break;
+            case OR:
+                throw createException(400, "[or] operator is not supported.");
+            case EQUALITY:
+                Object value = getStringOrDate(filter.getFilterValue());
+                String key = filter.getFilterAttribute().getAttributeName();
+                values.add(key, value);
+                break;
+            case CONTAINS:
+                throw createException(400, "[co] operator is not supported.");
+            case STARTS_WITH:
+                throw createException(400, "[sw] operator is not supported.");
+            case PRESENCE:
+                throw createException(400, "[pr] operator is not supported.");
+            case GREATER_THAN:
+                throw createException(400, "[gt] operator is not supported.");
+            case GREATER_OR_EQUAL:
+                throw createException(400, "[ge] operator is not supported.");
+            case LESS_THAN:
+                throw createException(400, "[lt] operator is not supported.");
+            case LESS_OR_EQUAL:
+                throw createException(400, "[le] operator is not supported.");
+            default:
+                throw createException(400, "Unknown filter operator:"+filter.getFilterType());
         }
     }
 

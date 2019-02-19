@@ -1,6 +1,7 @@
-/*******************************************************************************
+/*
+ * ****************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -9,16 +10,15 @@
  *     separate copyright notices and license terms. Your use of these
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+ * ****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
-import org.springframework.security.crypto.keygen.BytesKeyGenerator;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -44,7 +44,6 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private final MessageDigest messageDigest;
     private final byte[] secret;
     private final byte[] salt;
-    private final BytesKeyGenerator saltGenerator;
     private final int iterations;
 
     private int maxKeys = 1000;
@@ -62,13 +61,12 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private volatile Cache<CharSequence, Set<String>> cache = null;
 
-    private BCryptPasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
     public CachingPasswordEncoder() throws NoSuchAlgorithmException {
         messageDigest = MessageDigest.getInstance("SHA-256");
         this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
-        this.saltGenerator = KeyGenerators.secureRandom();
-        this.salt = saltGenerator.generateKey();
+        this.salt = KeyGenerators.secureRandom().generateKey();
         iterations = 25;
         buildCache();
     }
@@ -77,18 +75,18 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         return passwordEncoder;
     }
 
-    public void setPasswordEncoder(BCryptPasswordEncoder passwordEncoder) {
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
-    public String encode(CharSequence rawPassword) {
-        //encode we always use the Bcrypt mechanism
+    public String encode(CharSequence rawPassword) throws AuthenticationException {
+        //we always use the Bcrypt mechanism, we never store repeated information
         return getPasswordEncoder().encode(rawPassword);
     }
 
     @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+    public boolean matches(CharSequence rawPassword, String encodedPassword) throws AuthenticationException {
         if (isEnabled()) {
             String cacheKey = cacheEncode(rawPassword);
             return internalMatches(cacheKey, rawPassword, encodedPassword);
@@ -114,13 +112,11 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         List<String> searchList = (cacheValue!=null ? new ArrayList(cacheValue) : Collections.<String>emptyList());
         for (String encoded : searchList) {
             if (hashesEquals(encoded, encodedPassword)) {
-                result = true;
-                break;
+                return true;
             }
         }
         if (!result) {
-            String encoded = BCrypt.hashpw(rawPassword.toString(), encodedPassword);
-            if (hashesEquals(encoded, encodedPassword)) {
+            if (getPasswordEncoder().matches(rawPassword, encodedPassword)) {
                 result = true;
                 cacheValue = getOrCreateHashList(cacheKey);
                 if (cacheValue!=null) {
@@ -129,7 +125,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
                     if (cacheValue.size() >= getMaxEncodedPasswords()) {
                         cacheValue.clear();
                     }
-                    cacheValue.add(encoded);
+                    cacheValue.add(encodedPassword);
                 }
             }
         }

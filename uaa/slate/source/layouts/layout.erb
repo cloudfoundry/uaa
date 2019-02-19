@@ -16,6 +16,16 @@ under the License.
 <% language_tabs = current_page.data.language_tabs || [] %>
 <% page_content = yield %>
 <%
+  def get_version
+    version = File.exists?('source/versionfile') ? File.read('source/versionfile') : 'local'
+    if version =~ /release-candidate/
+      "Release Candidate"
+    else
+      "Version #{version}"
+    end
+  end
+%>
+<%
   if current_page.data.includes
     current_page.data.includes.each do |include|
       page_content += partial("includes/#{include}")
@@ -28,6 +38,9 @@ under the License.
   <head>
     <meta charset="utf-8">
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <meta http-equiv="Content-Language" content="en">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title><%= current_page.data.title || "API Documentation" %></title>
 
@@ -63,6 +76,27 @@ under the License.
           <% end %>
         </div>
       <% end %>
+
+      <div id="version-dropdown">
+        <div class="dropdown">
+          <button type="button" id="version-dropdown-button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><%= get_version %><span class="caret">&#x25BE;</span></button>
+          <ul id="version-dropdown-menu" class="dropdown-menu" role="menu" aria-labelledby="version-dropdown-button">
+            <div class="dropdown-filter">
+              <div class="dropdown-content">
+                <ul class="dropdown-list" id="version-list">
+                </ul>
+              </div>
+              <div class="dropdown-footer dropdown-content">
+                <ul class="dropdown-list">
+                  <li><a id="release-candidate" href="../../version/release-candidate">Release Candidate</a></li>
+                  <li><a id="latest-release" href="../../">Latest</a></li>
+                </ul>
+              </div>
+            </div>
+          </ul>
+        </div>
+      </div>
+
       <% if current_page.data.search %>
         <div class="search">
           <input type="text" class="search" id="input-search" placeholder="Search">
@@ -78,6 +112,15 @@ under the License.
                 <% h1[:children].each do |h2| %>
                   <li>
                     <a href="#<%= h2[:id] %>" class="toc-h2 toc-link" data-title="<%= h1[:content] %>"><%= h2[:content] %></a>
+                    <% if h2[:children].length > 0 %>
+                      <ul class="toc-list-h3">
+                        <% h2[:children].each do |h3| %>
+                          <li>
+                            <a href="#<%= h3[:id] %>" class="toc-h3 toc-link" data-title="<%= h1[:content] %>"><%= h3[:content] %></a>
+                          </li>
+                        <% end %>
+                      </ul>
+                    <% end %>
                   </li>
                 <% end %>
               </ul>

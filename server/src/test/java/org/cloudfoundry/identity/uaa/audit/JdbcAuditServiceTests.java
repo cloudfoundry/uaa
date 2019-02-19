@@ -47,7 +47,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
         assertEquals("1", events.get(0).getPrincipalId());
         assertEquals("joe", events.get(0).getData());
         assertEquals("1.1.1.1", events.get(0).getOrigin());
-        assertEquals(IdentityZone.getUaa().getId(), events.get(0).getIdentityZoneId());
+        assertEquals(IdentityZone.getUaaZoneId(), events.get(0).getIdentityZoneId());
     }
 
     @Test
@@ -57,7 +57,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
         assertEquals(1, events.size());
         assertEquals("clientA", events.get(0).getPrincipalId());
         assertEquals("1.1.1.1", events.get(0).getOrigin());
-        assertEquals(IdentityZone.getUaa().getId(), events.get(0).getIdentityZoneId());
+        assertEquals(IdentityZone.getUaaZoneId(), events.get(0).getIdentityZoneId());
     }
 
     @Test
@@ -78,7 +78,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
-        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId());
+        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaaZoneId(), null, null);
     }
 
 }

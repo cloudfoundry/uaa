@@ -1,17 +1,27 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.junit.Before;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -23,35 +33,39 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class UserInfoEndpointDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+class UserInfoEndpointDocs extends EndpointDocs {
+
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String clientId = generator.generate().toLowerCase();
     private String clientSecret = generator.generate().toLowerCase();
-
-    private String adminToken;
-
     private ScimUser user;
-    private String userName;
 
-    @Before
-    public void setUp() throws Exception {
-        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
+    @BeforeEach
+    void setUp() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
+        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
 
-        userName = new RandomValueStringGenerator().generate() + "@test.org";
+        String userName = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         ScimUser.PhoneNumber phoneNumber = new ScimUser.PhoneNumber("+15558880000");
         user.setPhoneNumbers(Collections.singletonList(phoneNumber));
-        user = utils().createUser(getMockMvc(), adminToken, user);
+        user = MockMvcUtils.createUser(mockMvc, adminToken, user);
     }
 
     @Test
-    public void test_Get_UserInfo() throws Exception {
-
+    void test_Get_UserInfo() throws Exception {
         String userInfoToken = testClient.getUserOAuthAccessToken(
             clientId,
             clientSecret,
@@ -63,7 +77,8 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
         Snippet requestHeaders = requestHeaders(
             headerWithName("Authorization")
                 .description("Access token with openid required. If the `" + USER_ATTRIBUTES + "` scope is in the token, " +
-                                 "the response object will contain custom attributes, if mapped to the external identity provider."
+                                "the response object will contain custom attributes, if mapped to the external identity provider." +
+                                "If  the `roles` scope is present, the response object will contain group memberships  from the external identity provider."
 
                 )
         );
@@ -71,21 +86,22 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("sub").description("Subject Identifier. A locally unique and never reassigned identifier within the Issuer for the End-User, which is intended to be consumed by the Client."),
             fieldWithPath("user_id").description("Unique user identifier."),
             fieldWithPath("email").description("The user's email address."),
+            fieldWithPath("email_verified").description("Indicates whether the user has verified their email address."),
             fieldWithPath("user_name").description("User name of the user, typically an email address."),
             fieldWithPath("given_name").description("The user's first name."),
             fieldWithPath("family_name").description("The user's last name."),
             fieldWithPath("name").description("A map with the user's first name and last name."),
             fieldWithPath("phone_number").description("The user's phone number."),
-            fieldWithPath(ClaimConstants.PREVIOUS_LOGON_TIME).description("The unix epoch timestamp of 2nd to last successful user authentication.")
+            fieldWithPath(ClaimConstants.PREVIOUS_LOGON_TIME).description("The unix epoch timestamp in milliseconds of 2nd to last successful user authentication.")
         );
 
-        getMockMvc().perform(
-            get("/userinfo")
+        mockMvc.perform(get("/userinfo")
                 .header("Authorization", "Bearer " + userInfoToken))
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}",
-                            preprocessResponse(prettyPrint()),
-                            requestHeaders,
-                            responseFields));
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint()),
+                        requestHeaders,
+                        responseFields)
+                );
     }
 }

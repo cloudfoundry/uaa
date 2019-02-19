@@ -15,6 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
+import java.sql.SQLException;
+import javax.servlet.ServletConfig;
+import javax.servlet.http.HttpServletResponse;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -22,13 +26,9 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.DispatcherServlet;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.http.HttpServletResponse;
-import java.sql.SQLException;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,40 +37,39 @@ public class RecognizeFailureDispatcherServletTest {
 
 
     private MockHttpServletRequest request;
+    private RecognizeFailureDispatcherServlet servlet;
+    private MockHttpServletResponse response;
+    private DispatcherServlet delegate;
 
     @Before
     public void setup() {
-
+        request = new MockHttpServletRequest();
+        servlet = new RecognizeFailureDispatcherServlet();
+        response = new MockHttpServletResponse();
+        delegate = mock(DispatcherServlet.class);
     }
 
     @Test
     public void service_when_failure() throws Exception {
-        DispatcherServlet delegate = mock(DispatcherServlet.class);
-        Mockito.doThrow(new RuntimeException("some app error", new SQLException("db error"))).when(delegate).init(anyObject());
-        request = new MockHttpServletRequest();
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        RecognizeFailureDispatcherServlet servlet = new RecognizeFailureDispatcherServlet();
+        Mockito.doThrow(new RuntimeException("some app error", new SQLException("db error"))).when(delegate).init(any());
         servlet.setDelegate(delegate);
         servlet.init(mock(ServletConfig.class));
         servlet.service(request, response);
         assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.getStatus());
-        verify(delegate, times(1)).init(anyObject());
-        verify(delegate, times(0)).service(anyObject(), anyObject());
+        verify(delegate, times(1)).init(any());
+        verify(delegate, times(0)).service(any(), any());
         assertNotNull(response.getHeader(RecognizeFailureDispatcherServlet.HEADER));
         assertEquals(RecognizeFailureDispatcherServlet.HEADER_MSG, response.getHeader(RecognizeFailureDispatcherServlet.HEADER));
     }
     @Test
     public void service_when_ok() throws Exception {
         DispatcherServlet delegate = mock(DispatcherServlet.class);
-        Mockito.doNothing().when(delegate).init(anyObject());
-        request = new MockHttpServletRequest();
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        RecognizeFailureDispatcherServlet servlet = new RecognizeFailureDispatcherServlet();
+        Mockito.doNothing().when(delegate).init(any());
         servlet.setDelegate(delegate);
         servlet.init(mock(ServletConfig.class));
         servlet.service(request, response);
-        verify(delegate, times(1)).init(anyObject());
-        verify(delegate, times(1)).service(anyObject(), anyObject());
+        verify(delegate, times(1)).init(any());
+        verify(delegate, times(1)).service(any(), any());
     }
 
 

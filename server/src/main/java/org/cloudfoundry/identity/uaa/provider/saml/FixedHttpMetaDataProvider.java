@@ -13,57 +13,46 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Timer;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-/**
- * This class works around the problem described in <a href="http://issues.apache.org/jira/browse/HTTPCLIENT-646">http://issues.apache.org/jira/browse/HTTPCLIENT-646</a> when a socket factory is set
- * on the OpenSAML
- * {@link HTTPMetadataProvider#setSocketFactory(ProtocolSocketFactory)} all
- * subsequent GET Methods should be executed using a relative URL, otherwise the
- * HttpClient
- * resets the underlying socket factory.
- *
- *
- */
-public class  FixedHttpMetaDataProvider extends HTTPMetadataProvider {
+public class FixedHttpMetaDataProvider {
 
-    private RestTemplate template;
+    private RestTemplate trustingRestTemplate;
+    private RestTemplate nonTrustingRestTemplate;
     private UrlContentCache cache;
 
-    public static FixedHttpMetaDataProvider buildProvider(Timer backgroundTaskTimer,
-                                                          HttpClientParams params,
-                                                          String metadataURL,
-                                                          RestTemplate template,
-                                                          UrlContentCache cache) throws MetadataProviderException {
-        SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-        connectionManager.getParams().setDefaults(params);
-        HttpClient client = new HttpClient(connectionManager);
-        return new FixedHttpMetaDataProvider(backgroundTaskTimer, client, metadataURL, template, cache);
+
+    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException, URISyntaxException {
+        validateMetadataURL(metadataURL);
+
+        if (isSkipSSLValidation) {
+            return cache.getUrlContent(metadataURL, trustingRestTemplate);
+        }
+        return cache.getUrlContent(metadataURL, nonTrustingRestTemplate);
     }
 
-    private FixedHttpMetaDataProvider(Timer backgroundTaskTimer,
-                                      HttpClient client,
-                                      String metadataURL,
-                                      RestTemplate template,
-                                      UrlContentCache cache) throws MetadataProviderException {
-        super(backgroundTaskTimer, client, metadataURL);
-        this.template = template;
+    private void validateMetadataURL(String metadataURL) throws MetadataProviderException {
+        try {
+            new URI(metadataURL);
+        } catch (URISyntaxException e) {
+            throw new MetadataProviderException("Illegal URL syntax", e);
+        }
+    }
+
+    public void setTrustingRestTemplate(RestTemplate trustingRestTemplate) {
+        this.trustingRestTemplate = trustingRestTemplate;
+    }
+
+    public void setNonTrustingRestTemplate(RestTemplate nonTrustingRestTemplate) {
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
+    }
+
+    public void setCache(UrlContentCache cache) {
         this.cache = cache;
     }
-
-    @Override
-    public byte[] fetchMetadata() throws MetadataProviderException {
-        return cache.getUrlContent(getMetadataURI(), template);
-    }
-
-
 }

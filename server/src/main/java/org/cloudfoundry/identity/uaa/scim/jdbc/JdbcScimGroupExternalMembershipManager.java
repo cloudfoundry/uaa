@@ -134,7 +134,6 @@ public class JdbcScimGroupExternalMembershipManager
 
                     }
                 });
-                System.out.println("update count = " + result);
             } catch (DuplicateKeyException e) {
                 // we should not throw, if the mapping exist, we should leave it
                 // there.
@@ -214,7 +213,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                                          final String zoneId)
         throws ScimResourceNotFoundException {
 
-        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName));
+        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName), IdentityZoneHolder.get().getId());
 
         if (null != groups && groups.size() > 0) {
             return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {

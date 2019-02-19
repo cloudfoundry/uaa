@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
@@ -29,6 +32,9 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     @Before
     public void setUp() throws Exception {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.write");
+        zoneEndpointsClientDetailsValidator.setClientSecretValidator(
+                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6)));
+
     }
 
     @Test
@@ -47,14 +53,14 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testCreateClientNoNameIsInvalid() {
-        BaseClientDetails clientDetails = new BaseClientDetails("", null, "openid", "authorization_code", "uaa.resource");
+        BaseClientDetails clientDetails = new BaseClientDetails("", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("secret");
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
     }
 
     @Test
     public void testCreateClientNoSecretIsInvalid() {
-        for (String grantType : Arrays.asList("password", "client_credentials", "authorization_code", GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN, GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER)) {
+        for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN, GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER)) {
             try {
                 BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", grantType, "uaa.resource");
                 clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
@@ -83,13 +89,13 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testCreateAdminScopeClientIsInvalid() {
-        ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "uaa.admin", "authorization_code", "uaa.resource");
+        ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "uaa.admin", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
     }
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testCreateAdminAuthorityClientIsInvalid() {
-        ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "openid", "authorization_code", "uaa.admin");
+        ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.admin");
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
     }
 }

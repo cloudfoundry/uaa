@@ -16,13 +16,13 @@ import java.util.List;
 
 public interface SamlServiceProviderProvisioning {
 
-    SamlServiceProvider create(SamlServiceProvider identityProvider);
+    SamlServiceProvider create(SamlServiceProvider identityProvider, final String zoneId);
 
-    void delete(String id);
+    void delete(String id, String zoneId);
 
-    SamlServiceProvider update(SamlServiceProvider identityProvider);
+    SamlServiceProvider update(SamlServiceProvider identityProvider, String zoneId);
 
-    SamlServiceProvider retrieve(String id);
+    SamlServiceProvider retrieve(String id, String zoneId);
 
     List<SamlServiceProvider> retrieveActive(String zoneId);
 

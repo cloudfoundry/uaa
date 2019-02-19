@@ -26,6 +26,7 @@ import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.springframework.security.saml.util.SAMLUtil;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,11 +41,19 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
 
     @Override
     public String getEntityId() {
+        if (!IdentityZoneHolder.isUaa()) {
+            String url = getZoneDefinition().getSamlConfig().getEntityID();
+            if (url != null) {
+                return url;
+            }
+        }
+
         String entityId = super.getEntityId();
+
         if (UaaUrlUtils.isUrl(entityId)) {
             return UaaUrlUtils.addSubdomainToUrl(entityId);
         } else {
-            return UaaUrlUtils.getSubdomain()+entityId;
+            return UaaUrlUtils.getSubdomain() + entityId;
         }
     }
 
@@ -116,4 +125,8 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
         return result;
     }
 
+    @Override
+    public Collection<String> getBindingsSSO() {
+        return Collections.singleton("post");
+    }
 }

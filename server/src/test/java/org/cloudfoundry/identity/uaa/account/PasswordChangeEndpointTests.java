@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.After;
@@ -76,8 +77,8 @@ public class PasswordChangeEndpointTests {
         joel.addEmail("jdsa@vmware.com");
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
-        joel = dao.createUser(joel, "password");
-        dale = dao.createUser(dale, "password");
+        joel = dao.createUser(joel, "password", IdentityZoneHolder.get().getId());
+        dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
 
     }
 

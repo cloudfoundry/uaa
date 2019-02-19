@@ -1,19 +1,30 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
+import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.Before;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,32 +32,32 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+class IdentityZoneEndpointDocs extends EndpointDocs {
 
     private static final String ID_DESC = "Unique ID of the identity zone";
     private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
-    private static final String LOCKOUT_PERIOD_SECONDS_DESC = "Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).";
-    private static final String LOCKOUT_AFTER_FAILURES_DESC = "Number of allowed failures before account is locked (defaults to 5).";
-    private static final String LOCKOUT_COUNT_FAILURES_WITHIN_DESC = "Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).";
+    private static final String ACTIVE_DESC = "Indicates whether the identity zone is active. Defaults to true.";
     private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_UPDATE_DESC = "Keys which will be used to sign the token. If null value is specified for keys, then existing value will be retained.";
@@ -56,10 +67,12 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `jwt`.";
     private static final String REFRESH_TOKEN_UNIQUE = "If true, uaa will only issue one refresh token per client_id/user_id combination. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
+    private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
     private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
     private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
     private static final String WANT_AUTHN_REQUEST_SIGNED_DESC = "If `true`, the authentication request from the partner service provider must be signed.";
+    private static final String SAML_DISABLE_IN_RESPONSE_TO_DESC = "If `true`, this zone will not validate the `InResponseToField` part of an incoming IDP assertion. Please see https://docs.spring.io/spring-security-saml/docs/current/reference/html/chapter-troubleshooting.html";
     private static final String ASSERTION_TIME_TO_LIVE_SECONDS_DESC = "The lifetime of a SAML assertion in seconds. Defaults to 600.";
     private static final String CERTIFICATE_DESC = "Exposed SAML metadata property. The certificate used to verify the authenticity all communications.";
     private static final String PRIVATE_KEY_DESC = "Exposed SAML metadata property. The SAML provider's private key.";
@@ -67,7 +80,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String REDIRECT_URL_DESC = "Logout redirect url";
     private static final String HOMEREDIRECT_URL_DESC = "Overrides the UAA home page and issues a redirect to this URL when the browser requests `/` and `/home`.";
     private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
-    private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Whether or not to allow the redirect parameter on logout";
+    private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Deprecated, no longer affects zone behavior. Whether or not to allow the redirect parameter on logout";
     private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
     private static final String SELF_SERVICE_LINKS_ENABLED_DESC = "Whether or not users are allowed to sign up or reset their passwords via the UI";
     private static final String SIGNUP_DESC = "Where users are directed upon clicking the account creation link";
@@ -84,6 +97,15 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String BRANDING_FOOTER_LEGAL_TEXT_DESC = "This text appears on the footer of all UAA pages";
     private static final String BRANDING_FOOTER_LINKS_DESC = "These links (Map<String,String>) appear on the footer of all UAA pages. You may choose to add multiple urls for things like Support, Terms of Service etc.";
 
+    private static final String BRANDING_BANNER_TEXT_DESC = "This is text displayed in a banner at the top of the UAA login page";
+    private static final String BRANDING_BANNER_LOGO_DESC = "This is base64 encoded PNG data displayed in a banner at the top of the UAA login page, overrides banner text";
+    private static final String BRANDING_BANNER_LINK_DESC = "The UAA login banner will be a link pointing to this url";
+    private static final String BRANDING_BANNER_TEXT_COLOR_DESC = "Hexadecimal color code for banner text color, does not allow color names";
+    private static final String BRANDING_BANNER_BACKGROUND_COLOR_DESC = "Hexadecimal color code for banner background color, does not allow color names";
+
+    private static final String BRANDING_CONSENT_TEXT_DESC = "If set, a checkbox on the registration and invitation pages will appear with the phrase `I agree to` followed by this text. The checkbox must be selected before the user can continue.";
+    private static final String BRANDING_CONSENT_LINK_DESC = "If `config.branding.consent.text` is set, the text after `I agree to` will be hyperlinked to this location.";
+
     private static final String CORS_XHR_ORIGINS_DESC = "`Access-Control-Allow-Origin header`. Indicates whether a resource can be shared based by returning the value of the Origin request header, \"*\", or \"null\" in the response.";
     private static final String CORS_XHR_ORIGIN_PATTERNS_DESC = "Indicates whether a resource can be shared based by returning the value of the Origin patterns.";
     private static final String CORS_XHR_URI_DESC = "The list of allowed URIs.";
@@ -92,6 +114,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String CORS_XHR_METHODS_DESC = "`Access-Control-Allow-Methods` header. Indicates which method will be used in the actual request as part of the preflight request.";
     private static final String CORS_XHR_CREDENTIALS_DESC = "`Access-Control-Allow-Credentials` header. Indicates whether the response to request can be exposed when the omit credentials flag is unset. When part of the response to a preflight request it indicates that the actual request can include user credentials..";
     private static final String CORS_XHR_MAXAGE_DESC = "`Access-Control-Max-Age` header. Indicates how long the results of a preflight request can be cached in a preflight result cache";
+    private static final String SECRET_POLICY_MIN_LENGTH = "Minimum number of characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_MAX_LENGTH = "Maximum number of characters required for secret to be considered valid (defaults to 255).";
+    private static final String SECRET_POLICY_UPPERCASE = "Minimum number of uppercase characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_LOWERCASE = "Minimum number of lowercase characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_DIGIT = "Minimum number of digits required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_SPECIAL_CHAR = "Minimum number of special characters required for secret to be considered valid (defaults to 0).";
+    private static final String SECRET_POLICY_EXPIRE_MONTHS = "Number of months after which current secret expires (defaults to 0).";
 
     private static final String SERVICE_PROVIDER_KEY =
         "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -122,14 +151,33 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         "Hn+GmxZA\n" +
         "-----END CERTIFICATE-----\n";
 
-    public static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
+    private static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
+    private static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
+    private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
+    private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
+    private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
+    private static final String MFA_CONFIG_IDENTITY_PROVIDER_DESC = "Only trigger MFA when user is using an identity provider whose origin key matches one of these values";
+    private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
+    private static final String DEFAULT_IDP_DESC = "This value can be set to the origin key of an identity provider. If set, the user will be directed to this identity provider automatically if no other identity provider is discovered or selected via login_hint.";
+    private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
 
-    @Before
-    public void setUp() throws Exception {
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
+
+    @BeforeEach
+    void setUp() {
+        Map<String, SystemDeletable> deleteMe = webApplicationContext.getBeansOfType(SystemDeletable.class);
+        webApplicationContext.getBean(JdbcIdentityZoneProvisioning.class)
+            .retrieveAll()
+            .stream()
+            .filter(zone -> !IdentityZone.getUaaZoneId().equals(zone.getId()))
+            .forEach(zone -> {
+                deleteMe.values().stream().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
+            });
     }
 
     @Test
-    public void createIdentityZone() throws Exception {
+    void createIdentityZone() throws Exception {
         String identityClientWriteToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
@@ -148,16 +196,30 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
+        identityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
         identityZone.getConfig().setSamlConfig(samlConfig);
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        tokenPolicy.setActiveKeyId("active-key-1");
+        tokenPolicy.setKeys(new HashMap<>(Collections.singletonMap("active-key-1", "key")));
+        identityZone.getConfig().setTokenPolicy(tokenPolicy);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
-
+        identityZone.getConfig().setDefaultIdentityProvider("uaa");
         FieldDescriptor[] fieldDescriptors = {
             fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
             fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
@@ -168,12 +230,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
-
+            fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
@@ -181,8 +244,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.samlConfig.keys.*.key").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.passphrase` and `keys.<key-id>.certificate`")),
             fieldWithPath("config.samlConfig.keys.*.passphrase").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.certificate`")),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.key` and `keys.<key-id>.passphrase`")),
-
-
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
@@ -200,12 +262,23 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.defaultIdentityProvider").type(STRING).description(DEFAULT_IDP_DESC).optional().attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.banner.text").description(BRANDING_BANNER_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.logo").description(BRANDING_BANNER_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
 
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -225,12 +298,17 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         };
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)
@@ -240,7 +318,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                   preprocessRequest(prettyPrint()),
                   preprocessResponse(prettyPrint()),
                   requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`")
                   ),
                   requestFields(fieldDescriptors),
                 getResponseFields()
@@ -248,7 +326,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void getIdentityZone() throws Exception {
+    void getIdentityZone() throws Exception {
         String id = "twiglet-get";
         createIdentityZoneHelper(id);
 
@@ -257,7 +335,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "identitysecret",
             "zones.read");
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientReadToken))
             .andExpect(status().is(HttpStatus.OK.value()))
@@ -267,14 +345,16 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` or `zones.<zone id>.read` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 getResponseFields()
             ));
     }
 
     @Test
-    public void getAllIdentityZones() throws Exception {
+    void getAllIdentityZones() throws Exception {
         String id1 = "twiglet-get-1";
         String id2 = "twiglet-get-2";
 
@@ -292,19 +372,29 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].name").description(NAME_DESC),
             fieldWithPath("[].description").description(DESCRIPTION_DESC),
             fieldWithPath("[].version").description(VERSION_DESC),
+            fieldWithPath("[].active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
+            fieldWithPath("[].config.tokenPolicy.activeKeyId").optional().type(VARIES).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
             fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
             fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("[].config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("[].config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+
+            fieldWithPath("[]config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+            fieldWithPath("[].config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
             fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
             fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
@@ -327,6 +417,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
             fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
 
+            fieldWithPath("[]config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("[]config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("[].config.prompts[]").type(OBJECT).description(PROMPTS_DESC),
             fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
@@ -335,12 +427,20 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("[].config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
             fieldWithPath("[].config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
+            fieldWithPath("[].config.issuer").description(ZONE_ISSUER_DESC),
 
             fieldWithPath("[].config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("[].config.branding.banner.text").description(BRANDING_BANNER_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.banner.logo").description(BRANDING_BANNER_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
+
 
             fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -360,25 +460,34 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("[].config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("[].config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("[].config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
+
             fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             get("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientReadToken))
             .andExpect(status().is(HttpStatus.OK.value()))
+            .andDo(print())
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields
             ));
     }
 
     @Test
-    public void updateIdentityZone() throws Exception {
+    void updateIdentityZone() throws Exception {
         String identityClientWriteToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
@@ -393,11 +502,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         updatedIdentityZone.setDescription("Like the Twilight Zone but not tastier.");
         Map<String, String> keys = new HashMap<>();
         keys.put("updatedKeyId", "upD4t3d.s1gNiNg.K3y/t3XT");
+        updatedIdentityZone.getConfig().getTokenPolicy().setActiveKeyId("updatedKeyId");
         updatedIdentityZone.getConfig().getTokenPolicy().setKeys(keys);
         SamlConfig samlConfig = new SamlConfig();
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
+        updatedIdentityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
         updatedIdentityZone.getConfig().setSamlConfig(samlConfig);
         IdentityZoneConfiguration brandingConfig = setBranding(updatedIdentityZone.getConfig());
         updatedIdentityZone.setConfig(brandingConfig);
@@ -407,7 +519,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
-
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
             fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
@@ -417,11 +529,21 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+
+            fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.samlConfig.entityID").description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Deprecated")),
@@ -446,12 +568,22 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.banner.text").description(BRANDING_BANNER_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.logo").description(BRANDING_BANNER_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC).attributes(key("constraints").value("Optional. Must be set if configuring consent.")),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC).attributes(key("constraints").value("Optional. Can be null if configuring consent.")),
 
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
@@ -471,11 +603,17 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
+
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         );
 
-        getMockMvc().perform(
+        mockMvc.perform(
             put("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)
@@ -488,7 +626,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to update")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields,
                 getResponseFields()
@@ -496,7 +636,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     }
 
     @Test
-    public void deleteIdentityZone() throws Exception {
+    void deleteIdentityZone() throws Exception {
         String id = "twiglet-delete";
         createIdentityZoneHelper(id);
 
@@ -505,7 +645,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "identitysecret",
             "zones.write");
 
-        getMockMvc().perform(
+        mockMvc.perform(
             delete("/identity-zones/{id}", id)
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON))
@@ -516,7 +656,9 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                     parameterWithName("id").description("Unique ID of the identity zone to delete")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.write`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `uaa.admin`. If you use the zone-switching header, bear token containing `zones.<zone id>.admin` can be used."),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 getResponseFields()
             ));
@@ -533,7 +675,15 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
+        samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         identityZone.getConfig().setSamlConfig(samlConfig);
+        identityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
+
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        tokenPolicy.setActiveKeyId("active-key-1");
+        tokenPolicy.setKeys(new HashMap<>(Collections.singletonMap("active-key-1", "key")));
+        identityZone.getConfig().setTokenPolicy(tokenPolicy);
+
         identityZone.setId(id);
         identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
@@ -542,7 +692,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.setConfig(brandingConfig);
 
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + identityClientWriteToken)
                 .contentType(APPLICATION_JSON)
@@ -557,6 +707,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("name").description(NAME_DESC),
             fieldWithPath("description").type(STRING).description(DESCRIPTION_DESC).optional(),
             fieldWithPath("version").description(VERSION_DESC),
+            fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
@@ -565,11 +716,21 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireLowerCaseCharacter").type(NUMBER).description(SECRET_POLICY_LOWERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+            fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
+
+            fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC),
             fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
             fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
             fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+
+            fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
             fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
             fieldWithPath("config.samlConfig.activeKeyId").optional().type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
             fieldWithPath("config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
@@ -588,13 +749,24 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
+            fieldWithPath("config.defaultIdentityProvider").type(STRING).description(DEFAULT_IDP_DESC).optional().attributes(key("constraints").value("Optional")),
             fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
             fieldWithPath("config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
+            fieldWithPath("config.issuer").description(ZONE_ISSUER_DESC),
             fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC),
             fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
             fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
             fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
             fieldWithPath("config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC),
+
+            fieldWithPath("config.branding.banner.text").description(BRANDING_BANNER_TEXT_DESC),
+            fieldWithPath("config.branding.banner.logo").description(BRANDING_BANNER_LOGO_DESC),
+            fieldWithPath("config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC),
+            fieldWithPath("config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC),
+            fieldWithPath("config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC),
+
+            fieldWithPath("config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
+            fieldWithPath("config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
 
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC),
             fieldWithPath("config.corsPolicy.defaultConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC),
@@ -614,6 +786,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.corsPolicy.xhrConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC),
             fieldWithPath("config.corsPolicy.xhrConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC),
 
+            fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC),
+
+            fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC),
+            fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).optional().type(STRING),
+            fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).optional().type(ARRAY),
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         );
@@ -625,9 +802,21 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         branding.setProductLogo("VGVzdFByb2R1Y3RMb2dv");
         branding.setSquareLogo("VGVzdFNxdWFyZUxvZ28=");
         branding.setFooterLegalText("Test footer legal text");
+
         HashMap<String, String> footerLinks = new HashMap<>();
         footerLinks.put("Support", "http://support.example.com");
         branding.setFooterLinks(footerLinks);
+
+        Banner banner = new Banner();
+        banner.setText("Announcement");
+        banner.setLink("http://announce.example.com");
+        banner.setLogo("VGVzdFByb2R1Y3RMb2dv");
+        banner.setTextColor("#000000");
+        banner.setBackgroundColor("#89cff0");
+        branding.setBanner(banner);
+
+        branding.setConsent(new Consent("Some Policy", "http://policy.example.com"));
+
         config.setBranding(branding);
         config.getLinks().setHomeRedirect("http://my.hosted.homepage.com/");
         return config;

@@ -13,56 +13,54 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import sun.security.x509.AlgorithmId;
-import sun.security.x509.CertificateAlgorithmId;
-import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateValidity;
-import sun.security.x509.CertificateVersion;
-import sun.security.x509.CertificateX509Key;
-import sun.security.x509.X500Name;
-import sun.security.x509.X509CertImpl;
-import sun.security.x509.X509CertInfo;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.joda.time.DateTime;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
+import java.math.BigInteger;
+import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.Random;
 
 
 public class SocketUtils {
-    public static X509Certificate getSelfCertificate(X500Name x500Name,
-                                                     Date issueDate,
+    private static final String BC = org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
+
+    public static X509Certificate getSelfCertificate(KeyPair keyPair, String organisation, String orgUnit, String commonName, Date issueDate,
                                                      long validForSeconds,
-                                                     KeyPair keyPair,
                                                      String signatureAlgorithm)
-        throws CertificateException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
-
+            throws CertificateException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
         try {
-            Date expirationDate = new Date();
-            expirationDate.setTime(issueDate.getTime() + validForSeconds * 1000L);
+            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-            X509CertInfo certInfo = new X509CertInfo();
-            certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-            certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber((new Random()).nextInt() & Integer.MAX_VALUE));
-            certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(AlgorithmId.get(signatureAlgorithm)));
+            X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+            builder.addRDN(BCStyle.OU, orgUnit);
+            builder.addRDN(BCStyle.O, organisation);
+            builder.addRDN(BCStyle.CN, commonName);
 
-            certInfo.set(X509CertInfo.SUBJECT, x500Name);
-            certInfo.set(X509CertInfo.ISSUER, x500Name);
 
-            certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
-            certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(issueDate, expirationDate));
+            BigInteger serial = BigInteger.valueOf(System.currentTimeMillis());
 
-            X509CertImpl selfSignedCert = new X509CertImpl(certInfo);
-            selfSignedCert.sign(keyPair.getPrivate(), signatureAlgorithm);
-            return selfSignedCert;
-        } catch (IOException ioe) {
+            Date notAfter = new DateTime(issueDate).plusSeconds((int) validForSeconds).toDate();
+            X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(builder.build(),
+                    serial, issueDate, notAfter, builder.build(), keyPair.getPublic());
+            ContentSigner sigGen = new JcaContentSignerBuilder(signatureAlgorithm)
+                    .setProvider(BC).build(keyPair.getPrivate());
+            X509Certificate cert = new JcaX509CertificateConverter().setProvider(BC)
+                    .getCertificate(certGen.build(sigGen));
+            cert.checkValidity(new Date());
+            cert.verify(cert.getPublicKey());
+
+            return cert;
+        } catch (OperatorCreationException ioe) {
             throw new CertificateEncodingException("Error during creation of self-signed Certificate: " + ioe.getMessage(), ioe);
         }
     }

@@ -1,0 +1,1 @@
+ALTER TABLE mfa_providers DROP COLUMN active;

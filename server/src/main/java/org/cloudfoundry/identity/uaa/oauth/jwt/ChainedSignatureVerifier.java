@@ -37,6 +37,10 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         delegates = Collections.unmodifiableList(ds);
     }
 
+    public ChainedSignatureVerifier(List<SignatureVerifier> delegates) {
+        this.delegates = delegates;
+    }
+
     @Override
     public void verify(byte[] content, byte[] signature) {
         Exception last = new InvalidSignatureException("No matching keys found.");

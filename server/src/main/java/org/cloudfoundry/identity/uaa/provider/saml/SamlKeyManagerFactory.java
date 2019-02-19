@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
 
-import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -33,13 +33,14 @@ public final class SamlKeyManagerFactory {
 
     protected final static Logger logger = LoggerFactory.getLogger(SamlKeyManagerFactory.class);
 
-    private SamlKeyManagerFactory() {}
+    public SamlKeyManagerFactory() {
+    }
 
-    public static KeyManager getKeyManager(SamlConfig config) {
+    public KeyManager getKeyManager(SamlConfig config) {
         return getKeyManager(config.getKeys(), config.getActiveKeyId());
     }
 
-    private static KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
+    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
         SamlKey activeKey = keys.get(activeKeyId);
 
         if (activeKey == null) {
@@ -53,28 +54,22 @@ public final class SamlKeyManagerFactory {
             for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
                 String password = ofNullable(entry.getValue().getPassphrase()).orElse("");
                 KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
-                    new KeyWithCert(entry.getValue().getCertificate()) :
-                    new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+                        new KeyWithCert(entry.getValue().getCertificate()) :
+                        new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
 
-                X509Certificate cert = keyWithCert.getCert();
-
+                X509Certificate certificate = keyWithCert.getCertificate();
 
                 String alias = entry.getKey();
-                keystore.setCertificateEntry(alias, cert);
-                if (keyWithCert.getPkey()!=null) {
-                    KeyPair pkey = keyWithCert.getPkey();
-                    keystore.setKeyEntry(alias, pkey.getPrivate(), password.toCharArray(), new Certificate[]{cert});
+                keystore.setCertificateEntry(alias, certificate);
+
+                PrivateKey privateKey = keyWithCert.getPrivateKey();
+                if (privateKey != null) {
+                    keystore.setKeyEntry(alias, privateKey, password.toCharArray(), new Certificate[]{certificate});
                     aliasPasswordMap.put(alias, password);
                 }
             }
 
-
             JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
-
-            if (null == keyManager) {
-                throw new IllegalArgumentException(
-                        "Could not load service provider certificate. Check serviceProviderKey and certificate parameters");
-            }
 
             logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
 

@@ -12,6 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -20,13 +27,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static java.util.Collections.EMPTY_MAP;
 
@@ -48,6 +48,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
     private Long lastLoginSuccessTime;
+    private boolean requiresPasswordChange = false;
 
     private Map userAttributes;
 
@@ -238,5 +239,21 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     public void setAuthContextClassRef(Set<String> authContextClassRef) {
         this.authContextClassRef = authContextClassRef;
+    }
+
+    public boolean isRequiresPasswordChange() {
+        return requiresPasswordChange;
+    }
+
+    public void setRequiresPasswordChange(boolean requiresPasswordChange) {
+        this.requiresPasswordChange = requiresPasswordChange;
+    }
+
+    public void setAuthenticatedTime(long authenticatedTime) {
+        this.authenticatedTime = authenticatedTime;
+    }
+
+    public void setAuthenticationDetails(UaaAuthenticationDetails authenticationDetails) {
+        this.details = authenticationDetails;
     }
 }

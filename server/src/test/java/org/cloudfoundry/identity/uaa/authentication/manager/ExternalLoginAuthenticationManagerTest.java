@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedExceptio
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -36,7 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -44,10 +43,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -423,7 +422,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
-        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString())).thenReturn(invitedUser);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
         UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
@@ -468,7 +467,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         providerDefinition.setStoreCustomAttributes(false);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         providerDefinition.setStoreCustomAttributes(true);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
@@ -481,14 +480,14 @@ public class ExternalLoginAuthenticationManagerTest  {
         reset(manager.getUserDatabase());
         manager.setProviderProvisioning(null);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         manager.setProviderProvisioning(providerProvisioning);
         //empty attributes does not store it
         reset(manager.getUserDatabase());
         userAttributes.clear();
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
     }
 
     @Test
@@ -497,9 +496,9 @@ public class ExternalLoginAuthenticationManagerTest  {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher,times(1)).publishEvent(userArgumentCaptor.capture());
         assertEquals(1,userArgumentCaptor.getAllValues().size());
-        UserAuthenticationSuccessEvent event = (UserAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
-        assertEquals(origin, event.getUser().getOrigin());
-        assertEquals(userName, event.getUser().getUsername());
+        IdentityProviderAuthenticationSuccessEvent userevent = (IdentityProviderAuthenticationSuccessEvent)userArgumentCaptor.getAllValues().get(0);
+        assertEquals(origin, userevent.getUser().getOrigin());
+        assertEquals(userName, userevent.getUser().getUsername());
     }
 
     @Test

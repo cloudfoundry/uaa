@@ -12,20 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -38,12 +34,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -69,6 +63,8 @@ public class AccountsController {
         }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
+        updateModelWithConsentAttributes(model);
+
         return "accounts/new_activation_email";
     }
 
@@ -78,7 +74,13 @@ public class AccountsController {
                                       @RequestParam(value = "redirect_uri", required = false) String redirectUri,
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
-                                      @RequestParam("password_confirmation") String passwordConfirmation) {
+                                      @RequestParam("password_confirmation") String passwordConfirmation,
+                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent) {
+
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "missing_consent");
+        }
         if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
@@ -125,29 +127,34 @@ public class AccountsController {
             return "accounts/link_prompt";
         }
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(accountCreation.getUserId(), accountCreation.getUsername(), accountCreation.getEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-        SecurityContextHolder.getContext().setAuthentication(token);
-
         String redirectLocation = accountCreation.getRedirectLocation();
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
-        if (redirectLocation.equals(accountCreationService.getDefaultRedirect()) && savedRequest != null && savedRequest.getRedirectUrl() != null) {
-            redirectLocation = savedRequest.getRedirectUrl();
+        String res = "redirect:/login?success=verify_success";
+        if (!redirectLocation.equals(accountCreationService.getDefaultRedirect())) {
+            res += "&form_redirect_uri=" + redirectLocation;
         }
-
-        return "redirect:" + redirectLocation;
+        return res;
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
         model.addAttribute(attributeKey, attributeValue);
+        updateModelWithConsentAttributes(model);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "accounts/new_activation_email";
     }
 
     private String handleSelfServiceDisabled(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
         model.addAttribute(attributeKey, attributeValue);
+        updateModelWithConsentAttributes(model);
         response.setStatus(HttpStatus.NOT_FOUND.value());
         return "error";
+    }
+
+    private void updateModelWithConsentAttributes(Model model) {
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null) {
+            model.addAttribute("consent_text", zoneBranding.getConsent().getText());
+            model.addAttribute("consent_link", zoneBranding.getConsent().getLink());
+        }
     }
 
     public static class ValidEmail {

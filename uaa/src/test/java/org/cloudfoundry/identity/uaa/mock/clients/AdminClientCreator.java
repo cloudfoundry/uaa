@@ -1,26 +1,31 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.clientFromString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -28,11 +33,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public abstract class AdminClientCreator extends InjectedMockContextTest {
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@ExtendWith(HoneycombJdbcInterceptorExtension.class)
+@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
+@ActiveProfiles("default")
+@WebAppConfiguration
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+public abstract class AdminClientCreator extends EndpointDocs {
     protected String adminToken = null;
     protected UaaTestAccounts testAccounts;
 
-    @Before
+    public static final String SECRET = "secret";
+
+    @BeforeEach
     public void initAdminToken() throws Exception {
         testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -41,7 +56,7 @@ public abstract class AdminClientCreator extends InjectedMockContextTest {
             "clients.admin clients.read clients.write clients.secret scim.read scim.write");
     }
 
-    protected ClientDetailsModification createBaseClient(String id, Collection<String> grantTypes, List<String> authorities, List<String> scopes) {
+    ClientDetailsModification createBaseClient(String id, String clientSecret, Collection<String> grantTypes, List<String> authorities, List<String> scopes) {
         if (id==null) {
             id = new RandomValueStringGenerator().generate();
         }
@@ -55,7 +70,7 @@ public abstract class AdminClientCreator extends InjectedMockContextTest {
         if(authorities != null) {
             client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
         }
-        client.setClientSecret("secret");
+        client.setClientSecret(clientSecret);
         Map<String, Object> additionalInformation = new HashMap<>();
         additionalInformation.put("foo", "bar");
         additionalInformation.put("name", makeClientName(id));
@@ -64,101 +79,54 @@ public abstract class AdminClientCreator extends InjectedMockContextTest {
         return client;
     }
 
-    protected ClientDetails createClient(String token, String id, Collection<String> grantTypes) throws Exception {
-        BaseClientDetails client = createBaseClient(id,grantTypes);
+    protected ClientDetails createClient(String token, String id, String clientSecret, Collection<String> grantTypes) throws Exception {
+        BaseClientDetails client = createBaseClient(id, clientSecret, grantTypes);
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
-        return getClient(client.getClientId());
-    }
-
-    protected ClientDetails createClientAdminsClient(String token) throws Exception {
-        List<String> scopes = Arrays.asList("oauth.approvals", "clients.admin");
-        BaseClientDetails client = createBaseClient(null, Arrays.asList("password", "client_credentials"), scopes, scopes);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + token)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
-        return getClient(client.getClientId());
-    }
-
-    protected ClientDetails createReadWriteClient(String token) throws Exception {
-        List<String> scopes = Arrays.asList("oauth.approvals","clients.read","clients.write");
-        BaseClientDetails client = createBaseClient(null, Arrays.asList("password","client_credentials"), scopes, scopes);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + token)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
     }
 
     protected ClientDetails createAdminClient(String token) throws Exception {
         List<String> scopes = Arrays.asList("uaa.admin","oauth.approvals","clients.read","clients.write");
-        BaseClientDetails client = createBaseClient(null, Arrays.asList("password","client_credentials"), scopes, scopes);
+        BaseClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password","client_credentials"), scopes, scopes);
 
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
     }
 
-
-    protected ClientDetailsModification createBaseClient(String id, Collection<String> grantTypes) {
-        return createBaseClient(id, grantTypes, Collections.singletonList("uaa.none"), Arrays.asList("foo", "bar", "oauth.approvals"));
+    private ClientDetailsModification createBaseClient(String id, String clientSecret, Collection<String> grantTypes) {
+        return createBaseClient(id, clientSecret, grantTypes, Collections.singletonList("uaa.none"), Arrays.asList("foo", "bar", "oauth.approvals"));
     }
 
-    protected ClientDetailsModification[] createBaseClients(int length, Collection<String> grantTypes) {
-        ClientDetailsModification[] result = new ClientDetailsModification[length];
-        for (int i=0; i<result.length; i++) {
-            result[i] = createBaseClient(null, grantTypes);
-        }
-        return result;
-    }
-
-    protected ClientDetails getClient(String id) throws Exception {
+    private ClientDetails getClient(String id) throws Exception {
         MockHttpServletResponse response = getClientHttpResponse(id);
         return getClientResponseAsClientDetails(response);
     }
-    protected String toString(Object client) throws Exception {
+    protected String toString(Object client) {
         return JsonUtils.writeValueAsString(client);
     }
-    protected String toString(Object[] clients) throws Exception {
+    protected String toString(Object[] clients) {
         return JsonUtils.writeValueAsString(clients);
     }
 
-    protected MockHttpServletResponse getClientHttpResponse(String id) throws Exception {
+    private MockHttpServletResponse getClientHttpResponse(String id) throws Exception {
         MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + id)
             .header("Authorization", "Bearer " + adminToken)
             .accept(APPLICATION_JSON);
-        ResultActions result = getMockMvc().perform(getClient);
+        ResultActions result = mockMvc.perform(getClient);
         return result.andReturn().getResponse();
     }
 
-
-    protected ClientDetails createApprovalsLoginClient(String token) throws Exception {
-        List<String> scopes = Arrays.asList("uaa.admin","oauth.approvals","oauth.login");
-        BaseClientDetails client = createBaseClient(null, Arrays.asList("password","client_credentials"), scopes, scopes);
-
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + token)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(toString(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
-        return getClient(client.getClientId());
-    }
-
-    protected ClientDetails getClientResponseAsClientDetails(MockHttpServletResponse response) throws Exception {
+    private ClientDetails getClientResponseAsClientDetails(MockHttpServletResponse response) throws Exception {
         int responseCode = response.getStatus();
         HttpStatus status = HttpStatus.valueOf(responseCode);
         String body = response.getContentAsString();
@@ -171,7 +139,7 @@ public abstract class AdminClientCreator extends InjectedMockContextTest {
         }
     }
 
-    protected static String makeClientName(String id) {
+    private static String makeClientName(String id) {
         return "Client " + id;
     }
 }

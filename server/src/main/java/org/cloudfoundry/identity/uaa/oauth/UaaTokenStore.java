@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -216,11 +217,15 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         if ((System.currentTimeMillis()-last) > getExpirationTime()) {
             //avoid concurrent deletes from the same UAA - performance improvement
             if (lastClean.compareAndSet(last, last+getExpirationTime())) {
-                JdbcTemplate template = new JdbcTemplate(dataSource);
-                int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
-                logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
-                logger.debug("[oauth_code] Removed "+expired+" old entries.");
+                try {
+                    JdbcTemplate template = new JdbcTemplate(dataSource);
+                    int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
+                    logger.debug("[oauth_code] Removed "+expired+" expired entries.");
+                    expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
+                    logger.debug("[oauth_code] Removed "+expired+" old entries.");
+                } catch (DeadlockLoserDataAccessException e) {
+                    logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
+                }
             }
         }
 

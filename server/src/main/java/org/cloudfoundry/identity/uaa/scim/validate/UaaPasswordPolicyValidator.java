@@ -11,12 +11,16 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
+import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 import org.passay.RuleResult;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.messageResolver;
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator;
 
 /**
  * ****************************************************************************
@@ -37,6 +41,14 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     private final IdentityProviderProvisioning provisioning;
     private final PasswordPolicy globalDefaultPolicy;
 
+    public static final String DEFAULT_MESSAGE_PATH = "/messages.properties";
+
+    private static PropertiesMessageResolver messageResolver;
+
+    static {
+            messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
+    }
+
     public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy, IdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
@@ -48,7 +60,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             password = "";
         }
 
-        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
             return;
@@ -61,7 +73,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             policy = idpDefinition.getPasswordPolicy();
         }
 
-        org.passay.PasswordValidator validator = getPasswordValidator(policy);
+        org.passay.PasswordValidator validator = validator(policy, messageResolver);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>();

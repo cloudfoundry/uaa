@@ -17,11 +17,11 @@ import java.util.List;
 
 public interface IdentityProviderProvisioning {
 
-    IdentityProvider create(IdentityProvider identityProvider);
+    IdentityProvider create(IdentityProvider identityProvider, String zoneId);
 
-    IdentityProvider update(IdentityProvider identityProvider);
+    IdentityProvider update(IdentityProvider identityProvider, String zoneId);
 
-    IdentityProvider retrieve(String id);
+    IdentityProvider retrieve(String id, String zoneId);
 
     List<IdentityProvider> retrieveActive(String zoneId);
 
@@ -29,5 +29,7 @@ public interface IdentityProviderProvisioning {
 
     IdentityProvider retrieveByOrigin(String origin, String zoneId);
 
-
+    default IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
+        return retrieveByOrigin(origin, zoneId);
+    }
 }

@@ -145,8 +145,6 @@ Several modes of operation and other optional features can be set in configurati
 
   * SAML - SAML is currently supported for user authentication and group integration. Limitation is that the username returned from the SAML assertion should be an email address
 
-  * Keystone - Keystone authentication is experimental and disabled in the Travis CI tests
-
 OAuth2 Token Endpoint: ``POST /oauth/token``
 ============================================
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens, in the case of authorization code grant. This endpoint also supports client credentials and password grant, which takes the client id and client secret for the former, in addition to username and password in case of the latter. The access_tokens can then be used to gain access to resources within a resource server.
@@ -164,7 +162,6 @@ Request Body    the authorization code (form encoded) in the case
 
                   grant_type=authorization_code
                   code=F45jH
-                  response_type=token
                   redirect_uri=http://example-app.com/welcome
 
                 OR the client credentials (form encoded) in the
@@ -183,7 +180,6 @@ Request Body    the authorization code (form encoded) in the case
                   client_secret=clientsecret
                   username=user
                   password=pass
-                  response_type=token
 
 Response Codes  ``200 OK``
 Response Body   ::
@@ -200,7 +196,7 @@ Support for additional authorization attributes
 
 Additional user defined claims can be added to the token by sending them in the token request. The format of the request is as follows::
 
-        authorities={"additionalAuthorizationAttributes":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+        authorities={"az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
 
 A sample password grant request is as follows::
 
@@ -208,7 +204,7 @@ A sample password grant request is as follows::
         Host: localhost:8080
         Accept: application/json
         Authorization: Basic YXBwOmFwcGNsaWVudHNlY3JldA==
-        "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
+        "grant_type=password&username=marissa&password=koala&authorities=%7B%22az_attr%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
 
 The access token will contain an az_attr claim like::
 
@@ -351,7 +347,7 @@ API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/a
 *Sample curl commands for this flow*
 
 * curl -v -H"Authorization: Bearer $TOKEN" "http://localhost:8080/uaa/oauth/authorize?grant_type=authorization_code&client_id=identity&state=mystate&response_type=code&redirect_uri=http://localhost"
-* TOKEN can be fetched by: curl -v -XPOST -H"Application/json" -u "cf:" --data "username=marissa&password=koala&client_id=cf&grant_type=password&response_type=token" http://localhost:8080/uaa/oauth/token
+* TOKEN can be fetched by: curl -v -XPOST -H"Application/json" -u "cf:" --data "username=marissa&password=koala&client_id=cf&grant_type=password" http://localhost:8080/uaa/oauth/token
 
 
 Client Obtains Token: ``POST /oauth/token``
@@ -370,7 +366,6 @@ Request Body    the authorization code (form encoded), e.g.::
                   [client_secret=clientsecret]
                   grant_type=authorization_code
                   code=F45jH
-                  response_type=token
 
 Response Codes  ``200 OK``
 Response Body   ::
@@ -444,7 +439,6 @@ Request Body    the ``username`` and ``password`` (form encoded), e.g. ::
                   grant_type=password
                   username=user
                   password=pass
-                  response_type=token
 
 Response Codes  ``200 OK``
 Response Body   ::
@@ -464,7 +458,6 @@ Response Body   ::
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
 
   * ``grant_type=password``
-  * ``response_type=token``
   * ``client_id=cf``
   * ``client_secret=cfsecret``
   * ``username=marissa``
@@ -838,7 +831,7 @@ Request body      *example* ::
                                 },
                                 {
                                     "name": "passcode",
-                                    "text": "One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
+                                    "text": "Temporary Authentication Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
                                     "type": "password"
                                 }
                             ],
@@ -969,7 +962,7 @@ Example::
 
     uaac token client get admin -s adminsecret
 
-    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.testzone1.admin,zones.write"
+    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.write"
 
     uaac token client get admin -s adminsecret
 
@@ -3437,12 +3430,11 @@ Internal Login: ``POST /login.do``
     302 - Found
     200 - Success
 
-Logout: `GET /logout.do`
+Logout: ``GET /logout.do``
 ------------------------
 
 The UAA can act as a Single Sign On server for the Cloud Foundry
-platform (and possibly user apps as well), so if a user logs out he
-logs out of all the apps.
+platform (and possibly user apps as well), so if a user logs out they log out of all the apps.
 
 OAuth2 Authorization Confirmation: ``GET /oauth/authorize/confirm_access``
 --------------------------------------------------------------------------

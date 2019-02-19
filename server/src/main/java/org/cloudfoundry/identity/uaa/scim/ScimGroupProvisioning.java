@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,4 +16,9 @@ import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.cloudfoundry.identity.uaa.resources.ResourceManager;
 
 public interface ScimGroupProvisioning extends ResourceManager<ScimGroup>, Queryable<ScimGroup> {
+    String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
+
+    ScimGroup createOrGet(ScimGroup group, String zoneId);
+
+    ScimGroup getByName(String displayName, String zoneId);
 }

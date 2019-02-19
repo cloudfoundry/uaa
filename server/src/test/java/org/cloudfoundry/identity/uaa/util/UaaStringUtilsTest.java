@@ -112,6 +112,8 @@ public class UaaStringUtilsTest {
         assertFalse(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string"));
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x"), "x"));
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x*x"), "x*x"));
+        assertEquals(UaaStringUtils.escapeRegExCharacters("\\"), "\\\\");
+        assertEquals(UaaStringUtils.escapeRegExCharacters("["), "\\[");
     }
 
     @Test
@@ -373,6 +375,19 @@ public class UaaStringUtilsTest {
     public void testGetMapFromProperties() throws Exception {
         Map<String,?> result = UaaStringUtils.getMapFromProperties(properties, "test.");
         assertEquals(3, result.size());
+    }
+
+    @Test
+    public void json_string() throws Exception {
+        String s = "Y1sPgF\"Yj4xYZ\"";
+        String escaped = s.replace("\"","\\\"");
+        assertEquals(escaped, UaaStringUtils.toJsonString(s));
+    }
+
+    @Test
+    public void json_null_string() throws Exception {
+        assertNull(UaaStringUtils.toJsonString(null));
+        assertEquals("", UaaStringUtils.toJsonString(""));
     }
 
 }

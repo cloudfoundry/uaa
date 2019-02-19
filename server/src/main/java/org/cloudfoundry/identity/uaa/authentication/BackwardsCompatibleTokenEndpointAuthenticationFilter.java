@@ -17,11 +17,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
-import org.springframework.security.authentication.AuthenticationDetailsSource;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,12 +32,7 @@ import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -49,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
 /**
@@ -133,7 +125,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 SecurityContextHolder.getContext().setAuthentication(userAuthentication);
                 AuthorizationRequest authorizationRequest = oAuth2RequestFactory.createAuthorizationRequest(map);
 
-                //authorizationRequest.setScope(getScope(request));
                 if (clientAuth.isAuthenticated()) {
                     // Ensure the OAuth2Authentication is authenticated
                     authorizationRequest.setApproved(true);
@@ -205,10 +196,18 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         String grantType = request.getParameter("grant_type");
         logger.debug("Processing token user authentication for grant:"+grantType);
         Authentication authResult = null;
-        if ("password".equals(grantType)) {
+        if (GRANT_TYPE_PASSWORD.equals(grantType)) {
             Authentication credentials = extractCredentials(request);
             logger.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
             authResult = authenticationManager.authenticate(credentials);
+
+            if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication) {
+                UaaAuthentication uaaAuthentication = (UaaAuthentication) authResult;
+                if (uaaAuthentication.isRequiresPasswordChange()) {
+                    throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
+                }
+            }
+
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
@@ -225,8 +224,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             String assertion = request.getParameter("assertion");
             if (assertion != null && xoAuthAuthenticationManager != null) {
                 logger.debug("Attempting OIDC JWT authentication for token endpoint.");
-                String idToken = assertion;
-                XOAuthCodeToken token = new XOAuthCodeToken(null,null,null, assertion,null);
+                XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, assertion, null, null);
+                token.setRequestContextPath(getContextPath(request));
                 authResult = xoAuthAuthenticationManager.authenticate(token);
             } else {
                 logger.debug("No assertion or authentication manager, not attempting JWT bearer authentication for token endpoint.");
@@ -248,6 +247,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     public void destroy() {
     }
 
-
-
+    private String getContextPath(HttpServletRequest request) {
+        StringBuffer requestURL = request.getRequestURL();
+        return requestURL.substring(0, requestURL.length() - request.getServletPath().length());
+    }
 }

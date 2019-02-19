@@ -1,0 +1,10 @@
+.panel.mfa {
+    min-width: 320px;
+    width: 50%;
+    max-width: 600px;
+    border-radius: 5px;
+}
+
+h2.mfa-header {
+    font-size: 24px;
+}

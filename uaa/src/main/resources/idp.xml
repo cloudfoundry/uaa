@@ -20,7 +20,6 @@ cGy/F2Zuj8XJJpuQRSE6PtQqBuDEHjjmOQJ0rV/r8mO1ZCtHRhpZ5zYRjhRC9eCbjx9VrFax0JDC
                 </ds:X509Data>
             </ds:KeyInfo>
         </KeyDescriptor>
-        <ArtifactResolutionService index="0" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://openam.example.com:8181/openam/ArtifactResolver/metaAlias/idp"/>
         <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://openam.example.com:8181/openam/IDPSloRedirect/metaAlias/idp" ResponseLocation="http://openam.example.com:8181/openam/IDPSloRedirect/metaAlias/idp"/>
         <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://openam.example.com:8181/openam/IDPSloPOST/metaAlias/idp" ResponseLocation="http://openam.example.com:8181/openam/IDPSloPOST/metaAlias/idp"/>
         <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://openam.example.com:8181/openam/IDPSloSoap/metaAlias/idp"/>
@@ -36,7 +35,6 @@ cGy/F2Zuj8XJJpuQRSE6PtQqBuDEHjjmOQJ0rV/r8mO1ZCtHRhpZ5zYRjhRC9eCbjx9VrFax0JDC
         <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName</NameIDFormat>
         <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://openam.example.com:8181/openam/SSORedirect/metaAlias/idp"/>
         <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://openam.example.com:8181/openam/SSOPOST/metaAlias/idp"/>
-        <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://openam.example.com:8181/openam/SSOSoap/metaAlias/idp"/>
         <NameIDMappingService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://openam.example.com:8181/openam/NIMSoap/metaAlias/idp"/>
         <AssertionIDRequestService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://openam.example.com:8181/openam/AIDReqSoap/IDPRole/metaAlias/idp"/>
         <AssertionIDRequestService Binding="urn:oasis:names:tc:SAML:2.0:bindings:URI" Location="http://openam.example.com:8181/openam/AIDReqUri/IDPRole/metaAlias/idp"/>

@@ -1,17 +1,17 @@
 description = 'CloudFoundry Identity Server JAR'
 
-Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-
 dependencies {
 
-  compile(identityModel)
+  compile project(':cloudfoundry-identity-model')
 
+  compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
 
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
   compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
+  compile group: 'com.google.zxing', name: 'javase', version: parent.zxingVersion
 
   compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
@@ -24,13 +24,8 @@ dependencies {
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
-    exclude(module: 'opensaml')
-  }
-  compile(group: 'org.opensaml', name: 'opensaml', version: '2.6.6') {
-    exclude(module: 'bcprov-jdk15on')
-    exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
-  }
+  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion
+
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
     exclude(module: 'jackson-mapper-asl')
@@ -43,10 +38,12 @@ dependencies {
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
 
   compile group: 'org.aspectj', name: 'aspectjrt', version: parent.aspectJVersion
+  compile group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
 
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
   compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
+  compile group: 'org.codehaus.groovy', name: 'groovy', version: parent.codehausGroovyVersion
 
   compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
     exclude(module: 'servlet-api')
@@ -74,11 +71,21 @@ dependencies {
 
   compile group: 'org.passay', name: 'passay', version: parent.passayVersion
 
+  compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
+
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
+
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
+  compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+
+  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile (group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion)  {
     exclude(module: 'hamcrest-core')
   }
@@ -88,10 +95,19 @@ dependencies {
   testCompile (group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: parent.mssqlVersion){
     exclude(group: 'com.microsoft.azure', module: 'azure-keyvault')
   }
+  testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
+  testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
+
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-el-api', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jasper-el', version:parent.tomcatJdbcPoolVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
 
+}
+
+configurations.all {
+    exclude group: 'org.beanshell', module: 'bsh-core'
 }
 
 processResources {
@@ -101,5 +117,18 @@ processResources {
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any
-  true == false
+  false
+}
+
+
+publishing {
+  publications {
+    server(MavenPublication) {
+      groupId 'org.cloudfoundry.identity'
+      artifactId 'cloudfoundry-identity-server'
+
+      from components.java
+      artifact sourceJar
+    }
+  }
 }

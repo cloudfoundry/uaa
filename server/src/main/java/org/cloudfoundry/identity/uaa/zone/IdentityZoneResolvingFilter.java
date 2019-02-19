@@ -71,12 +71,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     }
 
     private String getSubdomain(String hostname) {
-        if (defaultZoneHostnames.contains(hostname)) {
+        String lowerHostName = hostname.toLowerCase();
+        if (defaultZoneHostnames.contains(lowerHostName)) {
             return "";
         }
         for (String internalHostname : defaultZoneHostnames) {
-            if (hostname.endsWith("." + internalHostname)) {
-                return hostname.substring(0, hostname.length() - internalHostname.length() - 1);
+            if (lowerHostName.endsWith("." + internalHostname)) {
+                return lowerHostName.substring(0, lowerHostName.length() - internalHostname.length() - 1);
             }
         }
         //UAA is catch all if we haven't configured anything
@@ -94,17 +95,33 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
 
     public void setAdditionalInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
-            this.defaultZoneHostnames.addAll(hostnames);
+            hostnames
+                .stream()
+                .forEach(
+                  entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                 );
         }
     }
 
     public void setDefaultInternalHostnames(Set<String> hostnames) {
-        this.defaultZoneHostnames.addAll(hostnames);
+        if (hostnames!=null) {
+            hostnames
+                .stream()
+                .forEach(
+                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                );
+        }
     }
 
     public synchronized void restoreDefaultHostnames(Set<String> hostnames) {
         this.defaultZoneHostnames.clear();
-        this.defaultZoneHostnames.addAll(hostnames);
+        if (hostnames!=null) {
+            hostnames
+                .stream()
+                .forEach(
+                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                );
+        }
     }
 
     public Set<String> getDefaultZoneHostnames() {

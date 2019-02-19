@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,4 +21,8 @@ public class OracleLimitSqlAdapter implements LimitSqlAdapter {
                         + ") where rnum >= " + index;
     }
 
+    @Override
+    public String getDeleteExpiredQuery(String tablename, String primaryKeyColumn, String expiresColumn, int maxRows) {
+        throw new UnsupportedOperationException();
+    }
 }

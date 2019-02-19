@@ -21,18 +21,18 @@ import org.junit.Test;
 
 public class ScimGroupMemberTests {
 
-    private static final ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
-    private static final ScimGroupMember m2 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
-    private static final ScimGroupMember m3 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-    private static final ScimGroupMember m4 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-    private static final ScimGroupMember m5 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-    private static final ScimGroupMember m6 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP, null);
-    private static final ScimGroupMember m7 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+    private static final ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+    private static final ScimGroupMember m2 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+    private static final ScimGroupMember m3 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+    private static final ScimGroupMember m4 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP);
+    private static final ScimGroupMember m5 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP);
+    private static final ScimGroupMember m6 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP);
+    private static final ScimGroupMember m7 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
 
     @Test
     public void testHashCode() throws Exception {
-        assertTrue(m1.hashCode() == new ScimGroupMember(m1.getMemberId(), m1.getType(), m1.getRoles()).hashCode());
-        assertTrue(m4.hashCode() == new ScimGroupMember(m1.getMemberId(), m4.getType(), m4.getRoles()).hashCode());
+        assertTrue(m1.hashCode() == new ScimGroupMember(m1.getMemberId(), m1.getType()).hashCode());
+        assertTrue(m4.hashCode() == new ScimGroupMember(m1.getMemberId(), m4.getType()).hashCode());
         assertTrue(m1.hashCode() == m2.hashCode());
         assertTrue(m1.hashCode() == m3.hashCode());
         assertFalse(m1.hashCode() == m4.hashCode());
@@ -43,9 +43,9 @@ public class ScimGroupMemberTests {
 
     @Test
     public void testEquals() throws Exception {
-        assertEquals(m1, new ScimGroupMember(m1.getMemberId(), m1.getType(), null));
-        assertEquals(m3, new ScimGroupMember(m3.getMemberId(), m3.getType(), null));
-        assertEquals(m6, new ScimGroupMember(m6.getMemberId(), m6.getType(), m3.getRoles()));
+        assertEquals(m1, new ScimGroupMember(m1.getMemberId(), m1.getType()));
+        assertEquals(m3, new ScimGroupMember(m3.getMemberId(), m3.getType()));
+        assertEquals(m6, new ScimGroupMember(m6.getMemberId(), m6.getType()));
         assertNotSame(m7, m1);
         assertEquals(m1, m2);
         assertEquals(m1, m3);

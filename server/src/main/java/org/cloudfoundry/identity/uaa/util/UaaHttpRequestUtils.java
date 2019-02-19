@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.NoConnectionReuseStrategy;
@@ -40,16 +41,17 @@ public abstract class UaaHttpRequestUtils {
 
     private static Log logger = LogFactory.getLog(UaaHttpRequestUtils.class);
 
-    public static ClientHttpRequestFactory createRequestFactory() {
-        return createRequestFactory(false);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
+        return createRequestFactory(getClientBuilder(skipSslValidation), timeout);
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation) {
-        return createRequestFactory(getClientBuilder(skipSslValidation));
-    }
+    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs) {
+        HttpComponentsClientHttpRequestFactory httpComponentsClientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory(builder.build());
 
-    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder) {
-        return new HttpComponentsClientHttpRequestFactory(builder.build());
+        httpComponentsClientHttpRequestFactory.setReadTimeout(timeoutInMs);
+        httpComponentsClientHttpRequestFactory.setConnectionRequestTimeout(timeoutInMs);
+        httpComponentsClientHttpRequestFactory.setConnectTimeout(timeoutInMs);
+        return httpComponentsClientHttpRequestFactory;
     }
 
     protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation) {
@@ -58,6 +60,7 @@ public abstract class UaaHttpRequestUtils {
             .setRedirectStrategy(new DefaultRedirectStrategy());
         if (skipSslValidation) {
             builder.setSslcontext(getNonValidatingSslContext());
+            builder.setSSLHostnameVerifier(new NoopHostnameVerifier());
         }
         builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
         return builder;

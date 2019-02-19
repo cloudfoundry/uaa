@@ -12,6 +12,7 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -43,14 +44,18 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
     @Before
     public void initScimExternalGroupBootstrapTests() {
+        IdentityZone zone = new IdentityZone();
+        zone.setId(RandomStringUtils.randomAlphabetic(10));
+        IdentityZoneHolder.set(zone);
+
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 
-        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
-        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }
@@ -59,14 +64,14 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     public void canAddExternalGroups() throws Exception {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
-        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
+        externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
         externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         originMap.put(OriginKeys.LDAP, externalGroupMap);
         bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
 
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
+        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering Department,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
         assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
         assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
 
@@ -78,14 +83,14 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     public void cannotAddExternalGroupsThatDoNotExist() throws Exception {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
-        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
+        externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
         externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         originMap.put(OriginKeys.UAA, externalGroupMap);
         bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
 
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering Department,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
         assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
         assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
 
@@ -97,12 +102,12 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     public void cannotAddExternalGroupsThatMapToNull() throws Exception {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
-        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", null);
+        externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", null);
         originMap.put(OriginKeys.LDAP, externalGroupMap);
         bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
 
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering Department,ou=groups,dc=example,dc=com", OriginKeys.LDAP, IdentityZoneHolder.get().getId()).size());
     }
 
     @Test

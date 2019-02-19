@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -82,11 +83,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
+
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
 @Controller
-@ManagedResource
+@ManagedResource(
+    objectName="cloudfoundry.identity:name=ClientEndpoint",
+    description = "UAA Oauth Clients API Metrics"
+)
 public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
 
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
@@ -120,6 +126,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
+    private int clientMaxCount;
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
         return restrictedScopesValidator;
@@ -314,12 +321,11 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
                     @PathVariable("client") String clientId) throws Exception {
         Assert.state(clientId.equals(client.getClientId()),
-                        String.format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
+                        format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
         ClientDetails details = client;
         try {
             ClientDetails existing = getClientDetails(clientId);
             if (existing==null) {
-                //TODO - should we proceed? Previous code did by throwing a NPE and logging a warning
                 logger.warn("Couldn't fetch client config, null, for client_id: " + clientId);
             } else {
                 details = syncWithExisting(existing, client);
@@ -421,6 +427,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 clientId = change[i].getClientId();
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
+                clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
                 clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
                 if (!oldPasswordOk) {
                     deleteApprovals(clientId);
@@ -464,10 +471,15 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) throws Exception {
+
+        if (count > clientMaxCount) {
+            count = clientMaxCount;
+        }
+
         List<ClientDetails> result = new ArrayList<ClientDetails>();
         List<ClientDetails> clients;
         try {
-            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
             if (count > clients.size()) {
                 count = clients.size();
             }
@@ -483,8 +495,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<ClientDetails>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
-                            clients.size());
+            return new SearchResults<>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
+                clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
@@ -523,7 +535,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 if(!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
                 }
-
+                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
                 clientRegistrationService.addClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "Secret is added");
                 break;
@@ -538,6 +550,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 break;
 
             default:
+                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
                 clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "secret updated");
         }
@@ -558,6 +571,12 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
             return true;
         }
         return false;
+    }
+
+    @ExceptionHandler(InvalidClientSecretException.class)
+    public ResponseEntity<InvalidClientSecretException> handleInvalidClientSecret(InvalidClientSecretException e) {
+        incrementErrorCounts(e);
+        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(InvalidClientDetailsException.class)
@@ -601,8 +620,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
             if (!clientId.equals(currentClientId)) {
                 logger.warn("Client with id " + currentClientId + " attempting to change password for client "
                                 + clientId);
-                // TODO: This should be audited when we have non-authentication
-                // events in the log
                 throw new IllegalStateException("Bad request. Not permitted to change another client's secret");
             }
 
@@ -720,5 +737,14 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         publisher = applicationEventPublisher;
+    }
+
+    public void setClientMaxCount(int clientMaxCount) {
+        if (clientMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
+            );
+        }
+        this.clientMaxCount = clientMaxCount;
     }
 }

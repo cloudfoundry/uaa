@@ -25,11 +25,13 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static java.util.Optional.ofNullable;
+
 public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public static final String DEFAULT_CSRF_HEADER_NAME = "X-CSRF-TOKEN";
     public static final String DEFAULT_CSRF_COOKIE_NAME = "X-Uaa-Csrf";
-    public static final int DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24 *30;
+    public static final int DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24;
 
     // 22 characters of the 62-ary codec gives about 131 bits of entropy, 62 ^ 22 ~ 2^ 130.9923
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(22);
@@ -86,7 +88,7 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         Cookie csrfCookie = new Cookie(token.getParameterName(), token.getToken());
         csrfCookie.setHttpOnly(true);
         csrfCookie.setSecure(secure || request.getProtocol().equals("https"));
-
+        csrfCookie.setPath(ofNullable(request.getContextPath()).orElse("") + "/");
         if (expire) {
             csrfCookie.setMaxAge(0);
         } else {

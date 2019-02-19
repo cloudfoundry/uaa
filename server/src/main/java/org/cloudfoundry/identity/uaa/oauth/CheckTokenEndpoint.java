@@ -14,11 +14,14 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.error.ParameterParsingException;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.jwt.Jwt;
@@ -44,7 +47,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
-import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -56,11 +58,20 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @Controller
 public class CheckTokenEndpoint implements InitializingBean {
 
+    //Copy of the value from org.apache.Globals.PARAMETER_PARSE_FAILED_ATTR
+    private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
+
     private ResourceServerTokenServices resourceServerTokenServices;
+    private TimeService timeService;
+
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
+
     public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
         this.resourceServerTokenServices = resourceServerTokenServices;
+    }
+    public void setTimeService(TimeService timeService) {
+        this.timeService = timeService;
     }
 
     private Boolean allowQueryString = null;
@@ -84,8 +95,12 @@ public class CheckTokenEndpoint implements InitializingBean {
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
 
+        if (!hadParsedAllArgs(request)) {
+            throw new ParameterParsingException();
+        }
+
         if (hasText(request.getQueryString()) && !isAllowQueryString()) {
-            logger.debug("Call to /oauth/token contains a query string. Aborting.");
+            logger.debug("Call to /oauth/check_token contains a query string. Aborting.");
             throw new HttpRequestMethodNotSupportedException("POST");
         }
 
@@ -94,7 +109,7 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new InvalidTokenException("Token was not recognised");
         }
 
-        if (token.isExpired()) {
+        if (token.getExpiration() != null && token.getExpiration().before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Token has expired");
         }
 
@@ -122,6 +137,10 @@ public class CheckTokenEndpoint implements InitializingBean {
         return response;
     }
 
+    private boolean hadParsedAllArgs(HttpServletRequest request) {
+        return request.getAttribute(PARAMETER_PARSE_FAILED_ATTR) == null;
+    }
+
     @RequestMapping(value = "/check_token")
     @ResponseBody
     public Claims checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
@@ -139,7 +158,6 @@ public class CheckTokenEndpoint implements InitializingBean {
         }
     }
 
-
     private Claims getClaimsForToken(String token) {
         Jwt tokenJwt;
         try {
@@ -152,7 +170,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         try {
             claims = JsonUtils.readValue(tokenJwt.getClaims(), Claims.class);
         } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new InvalidTokenException("Cannot read token claims", e);
         }
 
         return claims;
@@ -175,28 +193,16 @@ public class CheckTokenEndpoint implements InitializingBean {
         return exceptionTranslator.translate(e400);
     }
 
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<OAuth2Exception> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
-        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
-        ResponseEntity<OAuth2Exception> result =  exceptionTranslator.translate(e);
-        if (HttpMethod.POST.matches(e.getMethod())) {
-            OAuth2Exception cause = new OAuth2Exception("Parameters must be passed in the body of the request", result.getBody().getCause()) {
-                public String getOAuth2ErrorCode() {
-                    return "query_string_not_allowed";
-                }
-                public int getHttpErrorCode() {
-                    return NOT_ACCEPTABLE.value();
-                }
-            };
-            result = new ResponseEntity<>(cause, result.getHeaders(), NOT_ACCEPTABLE);
-        }
-        return result;
-    }
-
     @ExceptionHandler(InvalidScopeException.class)
     public ResponseEntity<OAuth2Exception> handleInvalidScopeException(Exception e) throws Exception {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         return exceptionTranslator.translate(e);
     }
 
+
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) throws Exception {
+        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
+    }
 }

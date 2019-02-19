@@ -5,7 +5,7 @@ saml:
     endpoint: https://login.bosh-lite.com/oauth/token/alias/login.bosh-lite.com
   issuer:
     username: saml2BearerUser
-    entity-id: dnd.login.uaa-acceptance.cf-app.com
+    entity-id: dnd.login.oms.identity.team
     signing:
       key: |
         -----BEGIN RSA PRIVATE KEY-----

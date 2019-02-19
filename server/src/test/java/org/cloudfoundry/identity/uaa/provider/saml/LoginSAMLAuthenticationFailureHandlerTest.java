@@ -38,7 +38,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertEquals("https://example.com?error=access_denied&error_description=Denied%21", actual);
+        assertEquals("https://example.com/?error=access_denied&error_description=Denied%21", actual);
         int status = response.getStatus();
         assertEquals(302, status);
     }
@@ -62,7 +62,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertEquals("https://example.com?go=bears&error=access_denied&error_description=Denied%21", actual);
+        assertEquals("https://example.com/?go=bears&error=access_denied&error_description=Denied%21", actual);
         int status = response.getStatus();
         assertEquals(302, status);
     }

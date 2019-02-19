@@ -38,7 +38,11 @@ import java.util.stream.Collectors;
  * by default all sub classes will be run, in random order.
  * For a suite to change the classes to be run, simply implemement a method with the following signature
  * public static Class<?>[] suiteClasses()
+ *
+ * @deprecated Please don't add to this class.
+ * We want to delete this, UaaJunitSuiteRunner, and DefaultConfigurationTestSuite.
  */
+@Deprecated
 public class UaaJunitSuiteRunner extends Suite {
 
     protected static Class<?>[] allSuiteClasses() {

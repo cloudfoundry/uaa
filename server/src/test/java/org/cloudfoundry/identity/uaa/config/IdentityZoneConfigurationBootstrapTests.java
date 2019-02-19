@@ -12,21 +12,43 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator;
+import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfigValidator;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
@@ -47,18 +69,51 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
             "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
             "-----END RSA PRIVATE KEY-----";
 
-    public static final String PASSWORD = "password";
-
     public static final String ID = "id";
     private IdentityZoneProvisioning provisioning;
     private IdentityZoneConfigurationBootstrap bootstrap;
     private Map<String, Object> links = new HashMap<>();
-
-
+    private GeneralIdentityZoneValidator validator;
     @Before
     public void configureProvisioning() {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+
+        GeneralMfaProviderValidator mfaProviderValidator = new GeneralMfaProviderValidator();
+        MfaProviderProvisioning mfaProvisoning = new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProviderValidator);
+
+        MfaProvider<GoogleMfaProviderConfig> provider = new MfaProvider<>();
+        provider.setName("testProvider");
+        provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        provider.setConfig(new GoogleMfaProviderConfig());
+        provider.setIdentityZoneId("uaa");
+        mfaProvisoning.create(provider, "uaa");
+
+        MfaConfigValidator mfaConfigValidator = new MfaConfigValidator();
+        mfaConfigValidator.setMfaProviderProvisioning(mfaProvisoning);
+
+        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator();
+        configValidator.setMfaConfigValidator(mfaConfigValidator);
+
+        validator = new GeneralIdentityZoneValidator(configValidator);
+        bootstrap.setValidator(validator);
+
+        //For the SamlTestUtils keys we are using.
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
+    @Test
+    public void testClientSecretPolicy() throws Exception {
+        bootstrap.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 1, 1, 1, 6));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertEquals(0, uaa.getConfig().getClientSecretPolicy().getMinLength());
+        assertEquals(255, uaa.getConfig().getClientSecretPolicy().getMaxLength());
+        assertEquals(0, uaa.getConfig().getClientSecretPolicy().getRequireUpperCaseCharacter());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireLowerCaseCharacter());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireDigit());
+        assertEquals(1, uaa.getConfig().getClientSecretPolicy().getRequireSpecialCharacter());
+        assertEquals(-1, uaa.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
     }
 
     @Test
@@ -75,7 +130,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setActiveKeyId("key1");
         bootstrap.setSamlKeys(keys);
         bootstrap.afterPropertiesSet();
-        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         SamlConfig config = uaa.getConfig().getSamlConfig();
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, config.getPrivateKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, config.getPrivateKeyPassword());
@@ -95,10 +150,35 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
         bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
         bootstrap.afterPropertiesSet();
-        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, uaa.getConfig().getSamlConfig().getPrivateKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, uaa.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, uaa.getConfig().getSamlConfig().getCertificate());
+    }
+
+    @Test
+    public void enable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(false);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertFalse(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
+    }
+
+    @Test
+    public void saml_disable_in_response_to() throws Exception {
+        bootstrap.setDisableSamlInResponseToCheck(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertTrue(uaa.getConfig().getSamlConfig().isDisableInResponseToCheck());
+    }
+
+    @Test
+    public void testDefaultGroups() throws Exception {
+        String[] groups = {"group1", "group2", "group3"};
+        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertThat(uaa.getConfig().getUserConfig().getDefaultGroups(), containsInAnyOrder(groups));
     }
 
     @Test
@@ -114,7 +194,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
         bootstrap.afterPropertiesSet();
 
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = zone.getConfig();
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
         assertEquals(false, definition.getTokenPolicy().isRefreshTokenUnique());
@@ -127,7 +207,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setSelfServiceLinksEnabled(false);
         bootstrap.afterPropertiesSet();
 
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertFalse(zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled());
     }
 
@@ -136,7 +216,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setHomeRedirect("http://some.redirect.com/redirect");
         bootstrap.afterPropertiesSet();
 
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertEquals("http://some.redirect.com/redirect", zone.getConfig().getLinks().getHomeRedirect());
     }
 
@@ -146,7 +226,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setSelfServiceLinks(links);
         bootstrap.afterPropertiesSet();
 
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertEquals("/configured_signup", zone.getConfig().getLinks().getSelfService().getSignup());
         assertNull(zone.getConfig().getLinks().getSelfService().getPasswd());
     }
@@ -157,7 +237,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setSelfServiceLinks(links);
         bootstrap.afterPropertiesSet();
 
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertNull(zone.getConfig().getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zone.getConfig().getLinks().getSelfService().getPasswd());
     }
@@ -169,7 +249,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setLogoutRedirectParameterName("test");
         bootstrap.setLogoutRedirectWhitelist(Arrays.asList("http://single-url"));
         bootstrap.afterPropertiesSet();
-        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertEquals("/configured_login", config.getLinks().getLogout().getRedirectUrl());
         assertEquals("test", config.getLinks().getLogout().getRedirectParameterName());
         assertEquals(Arrays.asList("http://single-url"), config.getLinks().getLogout().getWhitelist());
@@ -185,7 +265,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         );
         bootstrap.setPrompts(prompts);
         bootstrap.afterPropertiesSet();
-        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertEquals(prompts, config.getPrompts());
     }
 
@@ -193,7 +273,35 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     public void idpDiscoveryEnabled() throws Exception {
         bootstrap.setIdpDiscoveryEnabled(true);
         bootstrap.afterPropertiesSet();
-        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertTrue(config.isIdpDiscoveryEnabled());
+    }
+
+    @Test
+    public void testMfaDisabledByDefault() throws Exception {
+        assertFalse(bootstrap.isMfaEnabled());
+    }
+
+    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    public void testMfaDisabledWithInvalidName() throws Exception {
+        bootstrap.setMfaProviderName("NotExistingProvider");
+        bootstrap.afterPropertiesSet();
+    }
+
+    @Test
+    public void testMfaEnabledValidName() throws Exception {
+        bootstrap.setMfaProviderName("testProvider");
+        bootstrap.setMfaEnabled(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertEquals("testProvider", config.getMfaConfig().getProviderName());
+        assertTrue(bootstrap.isMfaEnabled());
+    }
+
+    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    public void testMfaEnabledInvalidName() throws Exception {
+        bootstrap.setMfaProviderName("InvalidProvider");
+        bootstrap.setMfaEnabled(true);
+        bootstrap.afterPropertiesSet();
     }
 }
