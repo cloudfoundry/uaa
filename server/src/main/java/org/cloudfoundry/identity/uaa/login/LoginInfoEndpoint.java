@@ -744,7 +744,7 @@ public class LoginInfoEndpoint {
                 if (hasText(urlInPasscode)) {
                     String[] newDetails = new String[details.length];
                     System.arraycopy(details, 0, newDetails, 0, details.length);
-                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode, IdentityZoneHolder.get().getSubdomain()));
                     details = newDetails;
                 }
             }
@@ -754,7 +754,7 @@ public class LoginInfoEndpoint {
             Prompt p = new Prompt(
                 MFA_CODE,
                 "password",
-                "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )")
+                "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )", IdentityZoneHolder.get().getSubdomain())
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
@@ -952,13 +952,13 @@ public class LoginInfoEndpoint {
     protected Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
+        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
         if (getBaseUrl().contains("localhost:")) {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl()));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
         } else if (hasText(getExternalLoginUrl())){
             model.put("login", getExternalLoginUrl());
         } else {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login")));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
         }
         model.putAll(getSelfServiceLinks());
         return model;

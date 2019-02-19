@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -27,30 +26,28 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public abstract class UaaUrlUtils {
 
-    public static String getUaaUrl() {
-        return getUaaUrl("");
+    public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
+        return getUaaUrl(path, false, currentIdentityZone);
     }
 
-    public static String getUaaUrl(String path) {
-        return getUaaUrl(path, false);
+    public static String getUaaUrl(String path, boolean zoneSwitchPossible, IdentityZone currentIdentityZone) {
+        return getURIBuilder(path, zoneSwitchPossible, currentIdentityZone).build().toUriString();
     }
 
-    public static String getUaaUrl(String path, boolean zoneSwitchPossible) {
-        return getURIBuilder(path, zoneSwitchPossible).build().toUriString();
+    public static String getUaaHost(IdentityZone currentIdentityZone) {
+        return getURIBuilder("", false, currentIdentityZone).build().getHost();
     }
 
-    public static String getUaaHost() {
-        return getURIBuilder("", false).build().getHost();
-    }
-
-    private static UriComponentsBuilder getURIBuilder(String path, boolean zoneSwitchPossible) {
+    private static UriComponentsBuilder getURIBuilder(
+            String path,
+            boolean zoneSwitchPossible,
+            IdentityZone currentIdentityZone) {
         UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
-            IdentityZone current = IdentityZoneHolder.get();
-            if (host != null && !IdentityZoneHolder.isUaa()) {
-                if (!host.startsWith(current.getSubdomain() + ".")) {
-                    host = current.getSubdomain() + "." + host;
+            if (host != null && !currentIdentityZone.isUaa()) {
+                if (!host.startsWith(currentIdentityZone.getSubdomain() + ".")) {
+                    host = currentIdentityZone.getSubdomain() + "." + host;
                     builder.host(host);
                 }
             }
@@ -161,10 +158,6 @@ public abstract class UaaUrlUtils {
         return builder.build().toUriString();
     }
 
-    public static String addSubdomainToUrl(String url) {
-        return addSubdomainToUrl(url, getSubdomain());
-    }
-
     public static String addSubdomainToUrl(String url, String subdomain) {
         if (!hasText(subdomain)) {
             return url;
@@ -178,8 +171,7 @@ public abstract class UaaUrlUtils {
         return builder.build().toUriString();
     }
 
-    public static String getSubdomain() {
-        String subdomain = IdentityZoneHolder.get().getSubdomain();
+    public static String getSubdomain(String subdomain) {
         if (hasText(subdomain)) {
             subdomain = subdomain.trim();
             subdomain = subdomain.endsWith(".") ? subdomain : subdomain + ".";

@@ -88,7 +88,7 @@ public final class ScimUtils {
     public static URL getVerificationURL(ExpiringCode expiringCode) {
         String url = "";
         try {
-            url = UaaUrlUtils.getUaaUrl("/verify_user", true);
+            url = UaaUrlUtils.getUaaUrl("/verify_user", true, IdentityZoneHolder.get());
 
             if (expiringCode != null) {
                 url += "?code=" + expiringCode.getCode();

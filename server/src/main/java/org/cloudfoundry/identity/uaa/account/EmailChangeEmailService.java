@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -148,7 +147,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
     }
 
     private String getEmailChangeEmailHtml(String email, String newEmail, String code) {
-        String verifyUrl = UaaUrlUtils.getUaaUrl("/verify_email");
+        String verifyUrl = UaaUrlUtils.getUaaUrl("/verify_email", IdentityZoneHolder.get());
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.isUaa()) {
