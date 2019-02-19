@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -22,75 +10,72 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.test.TestUtils.withSubdomain;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class UaaUrlUtilsTest {
 
-    private List<String> invalidWildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
+    private List<String> invalidWildCardUrls = Arrays.asList(
+            "*",
+            "**",
+            "*/**",
+            "**/*",
+            "*/*",
+            "**/**");
     private List<String> invalidHttpWildCardUrls = Arrays.asList(
-        "http://*",
-        "http://**",
-        "http://*/**",
-        "http://*/*",
-        "http://**/*",
-        "http://a*",
-        "http://*.com",
-        "http://*domain*",
-        "http://*domain.com",
-        "http://*domain/path",
-        "http://local*",
-        "*.valid.com/*/with/path**",
-        "http://**/path",
-        "https://*.*.*.com/*/with/path**",
-        "www.*/path",
-        "www.invalid.com/*/with/path**",
-        "www.*.invalid.com/*/with/path**",
-        "http://username:password@*.com",
-        "http://username:password@*.com/path",
-        "org-;cl0udfoundry-identity://mobile-android-app.com/view"
+            "http://*",
+            "http://**",
+            "http://*/**",
+            "http://*/*",
+            "http://**/*",
+            "http://a*",
+            "http://*.com",
+            "http://*domain*",
+            "http://*domain.com",
+            "http://*domain/path",
+            "http://local*",
+            "*.valid.com/*/with/path**",
+            "http://**/path",
+            "https://*.*.*.com/*/with/path**",
+            "www.*/path",
+            "www.invalid.com/*/with/path**",
+            "www.*.invalid.com/*/with/path**",
+            "http://username:password@*.com",
+            "http://username:password@*.com/path",
+            "org-;cl0udfoundry-identity://mobile-android-app.com/view"
     );
     private List<String> validUrls = Arrays.asList(
-        "http://localhost",
-        "http://localhost:8080",
-        "http://localhost:8080/uaa",
-        "http://valid.com",
-        "http://sub.valid.com",
-        "http://valid.com/with/path",
-        "https://subsub.sub.valid.com/**",
-        "https://valid.com/path/*/path",
-        "http://sub.valid.com/*/with/path**",
-        "http*://sub.valid.com/*/with/path**",
-        "http*://*.valid.com/*/with/path**",
-        "http://*.valid.com/*/with/path**",
-        "https://*.valid.com/*/with/path**",
-        "https://*.*.valid.com/*/with/path**",
-        "http://sub*.valid.com/*/with/path**",
-        "http://*.domain.com",
-        "http://username:password@some.server.com",
-        "http://username:password@some.server.com/path",
-        "http://under_score_subdomain.example.com",
-        "http://under_score_subdomain.ex_ample.com",
-        "http://dash-subdomain.example.com",
-        "http://dash-subdomain.ex-ample.com",
-        "cool-app://example.com",
-        "org.cloudfoundry.identity://mobile-windows-app.com/view",
-        "org+cloudfoundry+identity://mobile-ios-app.com/view",
-        "org-cl0udfoundry-identity://mobile-android-app.com/view"
+            "http://localhost",
+            "http://localhost:8080",
+            "http://localhost:8080/uaa",
+            "http://valid.com",
+            "http://sub.valid.com",
+            "http://valid.com/with/path",
+            "https://subsub.sub.valid.com/**",
+            "https://valid.com/path/*/path",
+            "http://sub.valid.com/*/with/path**",
+            "http*://sub.valid.com/*/with/path**",
+            "http*://*.valid.com/*/with/path**",
+            "http://*.valid.com/*/with/path**",
+            "https://*.valid.com/*/with/path**",
+            "https://*.*.valid.com/*/with/path**",
+            "http://sub*.valid.com/*/with/path**",
+            "http://*.domain.com",
+            "http://username:password@some.server.com",
+            "http://username:password@some.server.com/path",
+            "http://under_score_subdomain.example.com",
+            "http://under_score_subdomain.ex_ample.com",
+            "http://dash-subdomain.example.com",
+            "http://dash-subdomain.ex-ample.com",
+            "cool-app://example.com",
+            "org.cloudfoundry.identity://mobile-windows-app.com/view",
+            "org+cloudfoundry+identity://mobile-ios-app.com/view",
+            "org-cl0udfoundry-identity://mobile-android-app.com/view"
     );
 
     @Before
@@ -109,18 +94,19 @@ public class UaaUrlUtilsTest {
     @Test
     public void getParameterMapFromQueryString() {
         String url = "http://localhost:8080/uaa/oauth/authorize?client_id=app-addnew-false4cEsLB&response_type=code&redirect_uri=http%3A%2F%2Fnosuchhostname%3A0%2Fnosuchendpoint";
-        Map<String,String[]> map = UaaUrlUtils.getParameterMap(url);
+        Map<String, String[]> map = UaaUrlUtils.getParameterMap(url);
         assertNotNull(map);
         assertEquals("app-addnew-false4cEsLB", map.get("client_id")[0]);
         assertEquals("http://nosuchhostname:0/nosuchendpoint", map.get("redirect_uri")[0]);
     }
+
     @Test
-    public void testGetUaaUrl() throws Exception {
+    public void getUaaUrl() {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());
     }
 
     @Test
-    public void testGetBaseURL() throws Exception {
+    public void getBaseURL() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.domain");
@@ -133,7 +119,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testGetBaseURLWhenPathMatchesHostname() throws Exception {
+    public void getBaseURLWhenPathMatchesHostname() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.domain");
@@ -146,7 +132,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testGetBaseURLOnLocalhost() throws Exception {
+    public void getBaseURLOnLocalhost() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
@@ -160,22 +146,21 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void test_ZoneAware_UaaUrl() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("id","subdomain");
+    public void zoneAwareUaaUrl() {
+        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         IdentityZoneHolder.set(zone);
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(""));
-        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl("",true));
+        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl("", true));
     }
 
-
     @Test
-    public void testGetUaaUrlWithPath() throws Exception {
+    public void getUaaUrlWithPath() {
         assertEquals("http://localhost/login", UaaUrlUtils.getUaaUrl("/login"));
     }
 
     @Test
-    public void testGetUaaUrlWithZone() throws Exception {
-        setIdentityZone("zone1");
+    public void getUaaUrlWithZone() {
+        setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -189,8 +174,8 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testGetUaaUrlWithZoneAndPath() throws Exception {
-        setIdentityZone("zone1");
+    public void getUaaUrlWithZoneAndPath() {
+        setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -204,13 +189,13 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testGetHost() throws Exception {
+    public void getHost() {
         assertEquals("localhost", UaaUrlUtils.getUaaHost());
     }
 
     @Test
-    public void testGetHostWithZone() throws Exception {
-        setIdentityZone("zone1");
+    public void getHostWithZone() {
+        setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -223,7 +208,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testLocalhostPortAndContextPathUrl() {
+    public void localhostPortAndContextPathUrl() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
@@ -239,7 +224,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testSecurityProtocol() {
+    public void securityProtocol() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("https");
         request.setServerPort(8443);
@@ -254,7 +239,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testMultiDomainUrls() {
+    public void multiDomainUrls() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -268,7 +253,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testZonedAndMultiDomainUrls() {
+    public void zonedAndMultiDomainUrls() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("testzone1-id", "testzone1"));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -284,7 +269,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testXForwardedPrefixUrls() {
+    public void xForwardedPrefixUrls() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -334,39 +319,39 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void test_add_query_parameter() {
+    public void addQueryParameter() {
         String url = "http://sub.domain.com";
         String name = "name";
         String value = "value";
         assertEquals("http://sub.domain.com?name=value", UaaUrlUtils.addQueryParameter(url, name, value));
-        assertEquals("http://sub.domain.com/?name=value", UaaUrlUtils.addQueryParameter(url+"/", name, value));
-        assertEquals("http://sub.domain.com?key=value&name=value", UaaUrlUtils.addQueryParameter(url+"?key=value", name, value));
-        assertEquals("http://sub.domain.com?key=value&name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url+"?key=value#frag=fragvalue", name, value));
-        assertEquals("http://sub.domain.com?name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url+"#frag=fragvalue", name, value));
+        assertEquals("http://sub.domain.com/?name=value", UaaUrlUtils.addQueryParameter(url + "/", name, value));
+        assertEquals("http://sub.domain.com?key=value&name=value", UaaUrlUtils.addQueryParameter(url + "?key=value", name, value));
+        assertEquals("http://sub.domain.com?key=value&name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url + "?key=value#frag=fragvalue", name, value));
+        assertEquals("http://sub.domain.com?name=value#frag=fragvalue", UaaUrlUtils.addQueryParameter(url + "#frag=fragvalue", name, value));
     }
 
     @Test
-    public void test_add_fragment_component() {
+    public void addFragmentComponent() {
         String url = "http://sub.domain.com";
         String component = "name=value";
         assertEquals("http://sub.domain.com#name=value", UaaUrlUtils.addFragmentComponent(url, component));
     }
 
     @Test
-    public void test_add_fragment_component_to_prior_fragment() {
+    public void addFragmentComponentToPriorFragment() {
         String url = "http://sub.domain.com#frag";
         String component = "name=value";
         assertEquals("http://sub.domain.com#frag&name=value", UaaUrlUtils.addFragmentComponent(url, component));
     }
 
     @Test
-    public void test_validate_valid_redirect_uri() {
+    public void validateValidRedirectUri() {
         validateRedirectUri(validUrls, true);
         validateRedirectUri(convertToHttps(validUrls), true);
     }
 
     @Test
-    public void test_validate_invalid_redirect_uri() {
+    public void validateInvalidRedirectUri() {
         validateRedirectUri(invalidWildCardUrls, false);
         validateRedirectUri(invalidHttpWildCardUrls, false);
         validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
@@ -425,7 +410,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void testUriHasMatchingHost() {
+    public void uriHasMatchingHost() {
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
@@ -438,13 +423,11 @@ public class UaaUrlUtilsTest {
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not.test.com/test", "test.com"));
     }
 
-    private void validateRedirectUri(List<String> urls, boolean result) {
+    private static void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getUnsuccessfulUrls(urls, result);
         if (!failed.isEmpty()) {
             StringBuilder builder = new StringBuilder("\n");
-            failed.entrySet().forEach(entry ->
-                builder.append(entry.getValue()).append("\n")
-            );
+            failed.forEach((key, value) -> builder.append(value).append("\n"));
             fail(builder.toString());
         }
     }
@@ -455,32 +438,37 @@ public class UaaUrlUtilsTest {
         LOWER_CASE
     }
 
-    private Map<String, String> getUnsuccessfulUrls(List<String> urls, boolean result) {
+    private static Map<String, String> getUnsuccessfulUrls(List<String> urls, boolean result) {
         Map<String, String> failed = new LinkedHashMap<>();
-        urls.stream().forEach(
-            url -> {
-                for (CASE c : CASE.values()) {
-                    switch (c) {
-                        case AS_IS: break;
-                        case LOWER_CASE: url = url.toLowerCase(); break;
-                        case UPPER_CASE: url = url.toUpperCase(); break;
-                    }
-                    String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
-                    if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
-                        failed.put(url, message);
+        urls.forEach(
+                url -> {
+                    for (CASE c : CASE.values()) {
+                        switch (c) {
+                            case AS_IS:
+                                break;
+                            case LOWER_CASE:
+                                url = url.toLowerCase();
+                                break;
+                            case UPPER_CASE:
+                                url = url.toUpperCase();
+                                break;
+                        }
+                        String message = "Assertion failed for " + (result ? "" : "in") + "valid url:" + url;
+                        if (result != UaaUrlUtils.isValidRegisteredRedirectUrl(url)) {
+                            failed.put(url, message);
+                        }
                     }
                 }
-            }
         );
         return failed;
     }
 
-    private List<String> convertToHttps(List<String> urls) {
+    private static List<String> convertToHttps(List<String> urls) {
         return urls.stream().map(url -> url.replace("http:", "https:")).collect(Collectors.toList());
     }
 
-    private void setIdentityZone(String subdomain) {
-        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
+    private static void setIdentityZone() {
+        IdentityZone zone = MultitenancyFixture.identityZone("zone1", "zone1");
         IdentityZoneHolder.set(zone);
     }
 }
