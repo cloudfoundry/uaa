@@ -19,6 +19,7 @@ import static org.cloudfoundry.identity.uaa.test.TestUtils.withSubdomain;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaUrlUtilsTest {
@@ -424,6 +425,13 @@ class UaaUrlUtilsTest {
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "test.com"));
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "1.2.3.4"));
         assertFalse(UaaUrlUtils.uriHasMatchingHost("http://not.test.com/test", "test.com"));
+    }
+
+    @Test
+    void getHostForURI() {
+        assertThat(UaaUrlUtils.getHostForURI("http://google.com"), is("google.com"));
+        assertThat(UaaUrlUtils.getHostForURI("http://subdomain.uaa.com/nowhere"), is("subdomain.uaa.com"));
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(""));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {

@@ -1,17 +1,3 @@
-/**
- * ****************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p/>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p/>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -48,18 +34,16 @@ public abstract class UaaUrlUtils {
     public static String getUaaUrl(String path) {
         return getUaaUrl(path, false);
     }
+
     public static String getUaaUrl(String path, boolean zoneSwitchPossible) {
         return getURIBuilder(path, zoneSwitchPossible).build().toUriString();
     }
 
     public static String getUaaHost() {
-        return getURIBuilder("").build().getHost();
+        return getURIBuilder("", false).build().getHost();
     }
 
-    public static UriComponentsBuilder getURIBuilder(String path) {
-        return getURIBuilder(path, false);
-    }
-    public static UriComponentsBuilder getURIBuilder(String path, boolean zoneSwitchPossible) {
+    private static UriComponentsBuilder getURIBuilder(String path, boolean zoneSwitchPossible) {
         UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
@@ -75,13 +59,14 @@ public abstract class UaaUrlUtils {
     }
 
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
-        "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
-        "(.*:.*@)?" +                    //username/password in URL
-        "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
-        "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
-        "[a-zA-Z0-9\\-]+" +              //tld
-        "(:[0-9]+)?(/.*|$)"              //port and path
+            "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
+                    "(.*:.*@)?" +                    //username/password in URL
+                    "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
+                    "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
+                    "[a-zA-Z0-9\\-]+" +              //tld
+                    "(:[0-9]+)?(/.*|$)"              //port and path
     );
+
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
             return allowedRedirectUriPattern.matcher(url).matches();
@@ -92,13 +77,14 @@ public abstract class UaaUrlUtils {
     /**
      * Finds and returns a matching redirect URL according to the following logic:
      * <ul>
-     *     <li>If the requstedRedirectUri matches the whitelist the requestedRedirectUri is returned</li>
-     *     <li>If the whitelist is null or empty AND the fallbackRedirectUri is null, the requestedRedirectUri is returned - OPEN REDIRECT</li>
-     *     <li>If the whitelist is null or empty AND the fallbackRedirectUri is not null, the fallbackRedirectUri is returned</li>
+     * <li>If the requstedRedirectUri matches the whitelist the requestedRedirectUri is returned</li>
+     * <li>If the whitelist is null or empty AND the fallbackRedirectUri is null, the requestedRedirectUri is returned - OPEN REDIRECT</li>
+     * <li>If the whitelist is null or empty AND the fallbackRedirectUri is not null, the fallbackRedirectUri is returned</li>
      * </ul>
-     * @param redirectUris - a whitelist collection of ant path patterns
+     *
+     * @param redirectUris         - a whitelist collection of ant path patterns
      * @param requestedRedirectUri - the requested redirect URI, returned if whitelist matches or the fallbackRedirectUri is null
-     * @param fallbackRedirectUri - returned if non null and the requestedRedirectUri doesn't match the whitelist redirectUris
+     * @param fallbackRedirectUri  - returned if non null and the requestedRedirectUri doesn't match the whitelist redirectUris
      * @return a redirect URI, either the requested or fallback as described above
      */
     public static String findMatchingRedirectUri(Collection<String> redirectUris, String requestedRedirectUri, String fallbackRedirectUri) {
@@ -114,8 +100,7 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getHostForURI(String uri) {
-        UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(uri);
-        return b.build().getHost();
+        return UriComponentsBuilder.fromHttpUrl(uri).build().getHost();
     }
 
     public static String getBaseURL(HttpServletRequest request) {
@@ -123,25 +108,20 @@ public abstract class UaaUrlUtils {
         //for example http://localhost:8080/uaa or http://login.oms.identity.team
         String requestURL = request.getRequestURL().toString();
         return hasText(request.getServletPath()) ?
-            requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :
-            requestURL;
+                requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :
+                requestURL;
     }
 
     public static Map<String, String[]> getParameterMap(String uri) {
         UriComponentsBuilder b = UriComponentsBuilder.fromUriString(uri);
         MultiValueMap<String, String> map = b.build().getQueryParams();
-        Map<String, String[]> result= new HashMap<>();
-        map
-            .entrySet()
-            .stream()
-            .forEach(
-                e -> result.put(e.getKey(), decodeValue(e.getValue()))
-            );
+        Map<String, String[]> result = new HashMap<>();
+        map.forEach((key, value) -> result.put(key, decodeValue(value)));
         return result;
     }
 
-    public static String[] decodeValue(List<String> value) {
-        if (value==null) {
+    private static String[] decodeValue(List<String> value) {
+        if (value == null) {
             return null;
         }
         String[] result = new String[value.size()];
@@ -170,7 +150,7 @@ public abstract class UaaUrlUtils {
 
     public static String addQueryParameter(String url, String name, String value) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
-        builder.queryParam(name,value);
+        builder.queryParam(name, value);
         return builder.build().toUriString();
     }
 
@@ -184,6 +164,7 @@ public abstract class UaaUrlUtils {
     public static String addSubdomainToUrl(String url) {
         return addSubdomainToUrl(url, getSubdomain());
     }
+
     public static String addSubdomainToUrl(String url, String subdomain) {
         if (!hasText(subdomain)) {
             return url;
@@ -211,7 +192,7 @@ public abstract class UaaUrlUtils {
             path = path.substring(1);
         }
         String[] paths = StringUtils.delimitedListToStringArray(path, "/");
-        if (paths.length!=0 && pathParameterIndex<paths.length) {
+        if (paths.length != 0 && pathParameterIndex < paths.length) {
             return paths[pathParameterIndex];
         }
         return null;
@@ -221,11 +202,14 @@ public abstract class UaaUrlUtils {
         String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
 
-        if(servletPath == null) { servletPath = ""; }
-        if(pathInfo == null) { pathInfo = ""; }
+        if (servletPath == null) {
+            servletPath = "";
+        }
+        if (pathInfo == null) {
+            pathInfo = "";
+        }
 
-        String path = String.format("%s%s", servletPath, pathInfo);
-        return path;
+        return String.format("%s%s", servletPath, pathInfo);
     }
 
     public static boolean uriHasMatchingHost(String uri, String hostname) {
