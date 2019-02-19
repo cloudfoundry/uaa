@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,7 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
 
-public class UaaUrlUtilsTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class UaaUrlUtilsTest {
 
     private List<String> invalidWildCardUrls = Arrays.asList(
             "*",
@@ -78,21 +81,21 @@ public class UaaUrlUtilsTest {
             "org-cl0udfoundry-identity://mobile-android-app.com/view"
     );
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void tearDown() {
         IdentityZoneHolder.clear();
         RequestContextHolder.setRequestAttributes(null);
     }
 
     @Test
-    public void getParameterMapFromQueryString() {
+    void getParameterMapFromQueryString() {
         String url = "http://localhost:8080/uaa/oauth/authorize?client_id=app-addnew-false4cEsLB&response_type=code&redirect_uri=http%3A%2F%2Fnosuchhostname%3A0%2Fnosuchendpoint";
         Map<String, String[]> map = UaaUrlUtils.getParameterMap(url);
         assertNotNull(map);
@@ -101,12 +104,12 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getUaaUrl() {
+    void getUaaUrl() {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());
     }
 
     @Test
-    public void getBaseURL() {
+    void getBaseURL() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.domain");
@@ -119,7 +122,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getBaseURLWhenPathMatchesHostname() {
+    void getBaseURLWhenPathMatchesHostname() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.domain");
@@ -132,7 +135,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getBaseURLOnLocalhost() {
+    void getBaseURLOnLocalhost() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
@@ -146,7 +149,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void zoneAwareUaaUrl() {
+    void zoneAwareUaaUrl() {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         IdentityZoneHolder.set(zone);
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(""));
@@ -154,12 +157,12 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getUaaUrlWithPath() {
+    void getUaaUrlWithPath() {
         assertEquals("http://localhost/login", UaaUrlUtils.getUaaUrl("/login"));
     }
 
     @Test
-    public void getUaaUrlWithZone() {
+    void getUaaUrlWithZone() {
         setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -174,7 +177,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getUaaUrlWithZoneAndPath() {
+    void getUaaUrlWithZoneAndPath() {
         setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -189,12 +192,12 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void getHost() {
+    void getHost() {
         assertEquals("localhost", UaaUrlUtils.getUaaHost());
     }
 
     @Test
-    public void getHostWithZone() {
+    void getHostWithZone() {
         setIdentityZone();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -208,7 +211,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void localhostPortAndContextPathUrl() {
+    void localhostPortAndContextPathUrl() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("localhost");
@@ -224,7 +227,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void securityProtocol() {
+    void securityProtocol() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("https");
         request.setServerPort(8443);
@@ -239,7 +242,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void multiDomainUrls() {
+    void multiDomainUrls() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -253,7 +256,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void zonedAndMultiDomainUrls() {
+    void zonedAndMultiDomainUrls() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("testzone1-id", "testzone1"));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -269,7 +272,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void xForwardedPrefixUrls() {
+    void xForwardedPrefixUrls() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -284,7 +287,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void findMatchingRedirectUri_usesAntPathMatching() {
+    void findMatchingRedirectUri_usesAntPathMatching() {
         //matches pattern
         String matchingRedirectUri1 = UaaUrlUtils.findMatchingRedirectUri(Collections.singleton("http://matching.redirect/*"), "http://matching.redirect/", null);
         assertThat(matchingRedirectUri1, equalTo("http://matching.redirect/"));
@@ -319,7 +322,7 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void addQueryParameter() {
+    void addQueryParameter() {
         String url = "http://sub.domain.com";
         String name = "name";
         String value = "value";
@@ -331,86 +334,86 @@ public class UaaUrlUtilsTest {
     }
 
     @Test
-    public void addFragmentComponent() {
+    void addFragmentComponent() {
         String url = "http://sub.domain.com";
         String component = "name=value";
         assertEquals("http://sub.domain.com#name=value", UaaUrlUtils.addFragmentComponent(url, component));
     }
 
     @Test
-    public void addFragmentComponentToPriorFragment() {
+    void addFragmentComponentToPriorFragment() {
         String url = "http://sub.domain.com#frag";
         String component = "name=value";
         assertEquals("http://sub.domain.com#frag&name=value", UaaUrlUtils.addFragmentComponent(url, component));
     }
 
     @Test
-    public void validateValidRedirectUri() {
+    void validateValidRedirectUri() {
         validateRedirectUri(validUrls, true);
         validateRedirectUri(convertToHttps(validUrls), true);
     }
 
     @Test
-    public void validateInvalidRedirectUri() {
+    void validateInvalidRedirectUri() {
         validateRedirectUri(invalidWildCardUrls, false);
         validateRedirectUri(invalidHttpWildCardUrls, false);
         validateRedirectUri(convertToHttps(invalidHttpWildCardUrls), false);
     }
 
     @Test
-    public void addSubdomainToUrl_givenUaaUrl() {
+    void addSubdomainToUrl_givenUaaUrl() {
         IdentityZoneHolder.set(withSubdomain("somezone"));
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone.localhost:8080", url);
     }
 
     @Test
-    public void addSubdomainToUrl_givenUaaUrlAndSubdomain() {
+    void addSubdomainToUrl_givenUaaUrlAndSubdomain() {
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "somezone");
         assertEquals("http://somezone.localhost:8080", url);
     }
 
     @Test
-    public void addSubdomainToUrl_handlesEmptySubdomain() {
+    void addSubdomainToUrl_handlesEmptySubdomain() {
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "");
         assertEquals("http://localhost:8080", url);
     }
 
     @Test
-    public void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
+    void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
         IdentityZoneHolder.set(withSubdomain(""));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://localhost:8080", url2);
     }
 
     @Test
-    public void addSudomain_handlesExtraSpaceInSubdomain() {
+    void addSudomain_handlesExtraSpaceInSubdomain() {
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone  ");
         assertEquals("http://somezone.localhost:8080", url);
     }
 
     @Test
-    public void addSudomain_handlesExtraSpaceInSubdomain_currentZone() {
+    void addSudomain_handlesExtraSpaceInSubdomain_currentZone() {
         IdentityZoneHolder.set(withSubdomain(" somezone2 "));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone2.localhost:8080", url2);
     }
 
     @Test
-    public void addSubdomain_handlesUnexpectedDotInSubdomain() {
+    void addSubdomain_handlesUnexpectedDotInSubdomain() {
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone. ");
         assertEquals("http://somezone.localhost:8080", url);
     }
 
     @Test
-    public void addSubdomain_handlesUnexpectedDotInSubdomain_currentZone() {
+    void addSubdomain_handlesUnexpectedDotInSubdomain_currentZone() {
         IdentityZoneHolder.set(withSubdomain(" somezone2. "));
         String url2 = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080");
         assertEquals("http://somezone2.localhost:8080", url2);
     }
 
     @Test
-    public void uriHasMatchingHost() {
+    void uriHasMatchingHost() {
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://test.com/test", "test.com"));
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://subdomain.test.com/test", "subdomain.test.com"));
         assertTrue(UaaUrlUtils.uriHasMatchingHost("http://1.2.3.4/test", "1.2.3.4"));
