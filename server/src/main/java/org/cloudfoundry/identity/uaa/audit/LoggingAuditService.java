@@ -109,11 +109,19 @@ public class LoggingAuditService implements UaaAuditService {
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
-        String logMessage = String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]", auditEvent.getType().name(), auditEvent.getData(),
-                auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId());
+
+        String logMessage = String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]",
+                auditEvent.getType().name(),
+                auditEvent.getData(),
+                auditEvent.getPrincipalId(),
+                auditEvent.getOrigin(),
+                auditEvent.getIdentityZoneId()
+        );
+
         if (auditEvent.getAuthenticationType() != null) {
             logMessage = String.format("%s, authenticationType=[%s]", logMessage, auditEvent.getAuthenticationType());
         }
+
         log(logMessage);
     }
 
