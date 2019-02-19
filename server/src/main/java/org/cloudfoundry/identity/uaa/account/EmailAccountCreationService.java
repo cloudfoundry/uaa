@@ -26,13 +26,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
@@ -61,7 +55,7 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
-        this.codeStore= codeStore;
+        this.codeStore = codeStore;
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
@@ -76,25 +70,18 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri);
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"", IdentityZoneHolder.get().getId());
-            try {
-                if (users.size()>0) {
-                    if (users.get(0).isVerified()) {
-                        throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
-                    } else {
-                        generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri);
-                    }
+            List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId());
+            if (users.size() > 0) {
+                if (users.get(0).isVerified()) {
+                    throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
+                } else {
+                    generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri);
                 }
-
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
             }
-        } catch (IOException e) {
-            logger.error("Exception raised while creating account activation email for " + email, e);
         }
     }
 
-    private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) throws IOException {
+    private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) {
         ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri, REGISTRATION, IdentityZoneHolder.getCurrentZoneId());
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
@@ -102,13 +89,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     @Override
-    public AccountCreationResponse completeActivation(String code) throws IOException {
+    public AccountCreationResponse completeActivation(String code) {
         ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !REGISTRATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(BAD_REQUEST);
         }
 
-        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+        });
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), IdentityZoneHolder.get().getId());
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), IdentityZoneHolder.get().getId());
 
@@ -119,7 +107,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
     }
 
-    private String getRedirect(String clientId, String redirectUri) throws IOException {
+    private String getRedirect(String clientId, String redirectUri) {
         if (clientId != null) {
             try {
                 ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
@@ -141,7 +129,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     @Override
-    public String getDefaultRedirect() throws IOException {
+    public String getDefaultRedirect() {
         return "home";
     }
 
@@ -152,25 +140,24 @@ public class EmailAccountCreationService implements AccountCreationService {
         ScimUser.Email email = new ScimUser.Email();
         email.setPrimary(true);
         email.setValue(username);
-        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setEmails(Collections.singletonList(email));
         scimUser.setOrigin(origin);
         scimUser.setPassword(password);
         scimUser.setVerified(false);
         try {
-            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password, IdentityZoneHolder.get().getId());
-            return userResponse;
+            return scimUserProvisioning.createUser(scimUser, password, IdentityZoneHolder.get().getId());
         } catch (RuntimeException x) {
             if (x instanceof ScimResourceAlreadyExistsException) {
                 throw x;
             }
-            throw new UaaException("Couldn't create user:"+username, x);
+            throw new UaaException("Couldn't create user:" + username, x);
         }
     }
 
     private String buildSubjectText() {
         String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         boolean addBranding = StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa();
-        if(addBranding) {
+        if (addBranding) {
             return String.format("Activate your %s account", companyName);
         } else {
             return "Activate your account";
