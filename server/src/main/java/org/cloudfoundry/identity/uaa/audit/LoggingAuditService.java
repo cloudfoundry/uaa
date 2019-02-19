@@ -169,4 +169,8 @@ public class LoggingAuditService implements UaaAuditService {
     public void setLogger(Log logger) {
         this.logger = logger;
     }
+
+    public Log getLogger() {
+        return logger;
+    }
 }
