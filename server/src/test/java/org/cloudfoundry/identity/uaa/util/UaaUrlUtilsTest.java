@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.test.TestUtils.withSubdomain;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -432,6 +433,16 @@ class UaaUrlUtilsTest {
         assertThat(UaaUrlUtils.getHostForURI("http://google.com"), is("google.com"));
         assertThat(UaaUrlUtils.getHostForURI("http://subdomain.uaa.com/nowhere"), is("subdomain.uaa.com"));
         assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(""));
+    }
+    
+    @Test
+    void getSubdomain() {
+        assertThat(UaaUrlUtils.getSubdomain(null), is(nullValue()));
+        assertThat(UaaUrlUtils.getSubdomain(""), is(""));
+        assertThat(UaaUrlUtils.getSubdomain("     "), is("     "));
+        assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
+        assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
+        assertThat(UaaUrlUtils.getSubdomain("a.b.c.d.e"), is("a.b.c.d.e."));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {
