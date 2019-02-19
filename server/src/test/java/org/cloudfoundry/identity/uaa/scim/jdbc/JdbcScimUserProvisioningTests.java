@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
-import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -39,6 +38,7 @@ import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -376,7 +376,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
-        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate, origin);
+        addIdentityProvider(jdbcTemplate, origin);
         String externalId = "testId";
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
@@ -393,7 +393,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
         String origin2 = "test2";
-        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate,origin2);
+        addIdentityProvider(jdbcTemplate,origin2);
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);
@@ -1056,4 +1056,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
         assertNull(joe.getGroups());
     }
+
+    private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')", UUID.randomUUID().toString(), originKey, originKey);
+    }
+
 }
