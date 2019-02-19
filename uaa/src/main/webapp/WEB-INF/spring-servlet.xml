@@ -520,6 +520,10 @@
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
+        <property name="mfaIdentityProviders"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['mfa']==null ? null :
+                           @config['login']['mfa']['identityProviders']}"/>
         <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
     </bean>
 
