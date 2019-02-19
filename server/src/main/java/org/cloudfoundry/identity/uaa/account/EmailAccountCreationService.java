@@ -95,7 +95,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) throws IOException {
-        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri, REGISTRATION);
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri, REGISTRATION, IdentityZoneHolder.getCurrentZoneId());
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
         messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
@@ -178,7 +178,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getEmailHtml(String code, String email) {
-        String accountsUrl = ScimUtils.getVerificationURL(null).toString();
+        String accountsUrl = ScimUtils.getVerificationURL(null, IdentityZoneHolder.get()).toString();
 
         final Context ctx = new Context();
         String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();

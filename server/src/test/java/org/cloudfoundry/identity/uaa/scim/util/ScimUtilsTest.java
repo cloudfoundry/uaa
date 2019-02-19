@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -31,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-
 @ExtendWith(PollutionPreventionExtension.class)
 class ScimUtilsTest {
 
@@ -42,6 +40,7 @@ class ScimUtilsTest {
         String email = "email";
         String clientId = "clientId";
         String redirectUri = "redirectUri";
+        String currentZoneId = "currentZoneId";
         ExpiringCodeType expiringCodeType = ExpiringCodeType.REGISTRATION;
 
         Timestamp before = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
@@ -52,7 +51,8 @@ class ScimUtilsTest {
                 email,
                 clientId,
                 redirectUri,
-                expiringCodeType
+                expiringCodeType,
+                currentZoneId
         );
 
         Timestamp after = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
@@ -63,7 +63,7 @@ class ScimUtilsTest {
                 eq("{\"user_id\":\"userId\",\"redirect_uri\":\"redirectUri\",\"email\":\"email\",\"client_id\":\"clientId\"}"),
                 timestampArgumentCaptor.capture(),
                 eq("REGISTRATION"),
-                eq("uaa"));
+                eq(currentZoneId));
 
         assertThat(timestampArgumentCaptor.getValue().after(before), is(true));
         assertThat(timestampArgumentCaptor.getValue().before(after), is(true));
@@ -93,7 +93,6 @@ class ScimUtilsTest {
         @AfterEach
         void tearDown() {
             RequestContextHolder.resetRequestAttributes();
-            IdentityZoneHolder.clear();
         }
 
         @Nested
@@ -101,7 +100,7 @@ class ScimUtilsTest {
 
             @Test
             void getVerificationURL() throws MalformedURLException {
-                URL actual = ScimUtils.getVerificationURL(mockExpiringCode);
+                URL actual = ScimUtils.getVerificationURL(mockExpiringCode, IdentityZone.getUaa());
 
                 URL expected = new URL("http://localhost:8080/uaa/verify_user?code=code");
 
@@ -117,9 +116,8 @@ class ScimUtilsTest {
                 IdentityZone mockIdentityZone = mock(IdentityZone.class);
                 when(mockIdentityZone.isUaa()).thenReturn(false);
                 when(mockIdentityZone.getSubdomain()).thenReturn("subdomain");
-                IdentityZoneHolder.set(mockIdentityZone);
 
-                URL actual = ScimUtils.getVerificationURL(mockExpiringCode);
+                URL actual = ScimUtils.getVerificationURL(mockExpiringCode, mockIdentityZone);
 
                 URL expected = new URL("http://subdomain.localhost:8080/uaa/verify_user?code=code");
 
