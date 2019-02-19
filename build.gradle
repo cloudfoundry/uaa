@@ -60,7 +60,7 @@ allprojects {
     publishing {
         repositories {
             maven {
-                url "https://oss.sonatype.org/content/repositories/releases/"
+                url "https://oss.sonatype.org/content/repositories/releases"
                 credentials {
                     username "$nexusUsername"
                     password "$nexusPassword"
