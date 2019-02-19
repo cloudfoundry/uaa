@@ -22,47 +22,35 @@ import java.util.regex.Pattern;
 
 import static org.springframework.util.StringUtils.hasText;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 public final class ScimUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(ScimUtils.class);
 
-    private ScimUtils() {}
+    private ScimUtils() {
+    }
 
     /**
      * Generates a 1 hour expiring code.
      *
-     * @param codeStore
-     *                  the code store to use, must not be null
-     * @param userId
-     *                  the user id that will be included in the code's data, must not be null
-     * @param email
-     *                  the email that will be included in the code's data, must not be null
-     * @param clientId
-     *                  client id that will be included in the code's data, must not be null
-     * @param redirectUri
-     *                  the redirect uri that will be included in the code's data, may be null
-     * @param intent
-     *                  the intended purpose of the generated code
-     * @return
-     *                  the expiring code
+     * @param codeStore   the code store to use, must not be null
+     * @param userId      the user id that will be included in the code's data, must not be null
+     * @param email       the email that will be included in the code's data, must not be null
+     * @param clientId    client id that will be included in the code's data, must not be null
+     * @param redirectUri the redirect uri that will be included in the code's data, may be null
+     * @param intent      the intended purpose of the generated code
+     * @return the expiring code
      */
-    public static ExpiringCode getExpiringCode(ExpiringCodeStore codeStore, String userId, String email, String clientId, String redirectUri, ExpiringCodeType intent) {
-        Assert.notNull(codeStore);
-        Assert.notNull(userId);
-        Assert.notNull(email);
-        Assert.notNull(intent);
+    public static ExpiringCode getExpiringCode(
+            ExpiringCodeStore codeStore,
+            String userId,
+            String email,
+            String clientId,
+            String redirectUri,
+            ExpiringCodeType intent) {
+        Assert.notNull(codeStore, "codeStore must not be null");
+        Assert.notNull(userId, "userId must not be null");
+        Assert.notNull(email, "email must not be null");
+        Assert.notNull(intent, "intent must not be null");
 
         Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", userId);
@@ -74,16 +62,18 @@ public final class ScimUtils {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
-        return codeStore.generateCode(codeDataString, expiresAt, intent.name(), IdentityZoneHolder.get().getId());
+        return codeStore.generateCode(
+                codeDataString,
+                expiresAt,
+                intent.name(),
+                IdentityZoneHolder.get().getId());
     }
 
     /**
      * Returns a verification URL that may be sent to a user.
      *
-     * @param expiringCode
-     *                      the expiring code to include on the URL, may be null
-     * @return
-     *          the verification URL
+     * @param expiringCode the expiring code to include on the URL, may be null
+     * @return the verification URL
      */
     public static URL getVerificationURL(ExpiringCode expiringCode) {
         String url = "";
