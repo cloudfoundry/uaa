@@ -220,7 +220,9 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
 
     @Test
     public void canRemoveAuthorities() throws Exception {
-        UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        RandomValueStringGenerator randomValueStringGenerator = new RandomValueStringGenerator();
+        String joeUserId = "joe" + randomValueStringGenerator.generate();
+        UaaUser joe = new UaaUser(joeUserId, "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe));
         bootstrap.afterPropertiesSet();
@@ -229,13 +231,11 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        @SuppressWarnings("unchecked")
-        Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) scimUserEndpoints.findUsers("id",
-                "id pr", "id", "ascending", 1, 100).getResources();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + joeUserId + "\"", IdentityZoneHolder.get().getId());
         assertEquals(1, users.size());
 
-        String id = (String) users.iterator().next().get("id");
-        ScimUser user = scimUserEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUser user = scimUserEndpoints.getUser(users.get(0).getId(), new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals(2, user.getGroups().size());
     }
