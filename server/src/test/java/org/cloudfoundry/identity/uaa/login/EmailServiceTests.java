@@ -29,7 +29,6 @@ class EmailServiceTests {
     private IdentityZoneManager mockIdentityZoneManager;
     private IdentityZone mockIdentityZone;
 
-
     @BeforeEach
     void setUp() {
         mailSender = new FakeJavaMailSender();
@@ -43,9 +42,17 @@ class EmailServiceTests {
 
     @Test
     void sendOssMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null, mockIdentityZoneManager);
+        EmailService emailService = new EmailService(
+                mailSender,
+                "http://login.example.com/login",
+                null,
+                mockIdentityZoneManager);
 
-        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+        emailService.sendMessage(
+                "user@example.com",
+                MessageType.CHANGE_EMAIL,
+                "Test Message",
+                "<html><body>hi</body></html>");
 
         assertThat(mailSender.getSentMessages(), hasSize(1));
         FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
@@ -68,9 +75,17 @@ class EmailServiceTests {
 
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com", mockIdentityZoneManager);
+        EmailService emailService = new EmailService(
+                mailSender,
+                "http://login.example.com/login",
+                "something-specific@bestcompany.example.com",
+                mockIdentityZoneManager);
 
-        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+        emailService.sendMessage(
+                "user@example.com",
+                MessageType.CHANGE_EMAIL,
+                "Test Message",
+                "<html><body>hi</body></html>");
 
         FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
         assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
