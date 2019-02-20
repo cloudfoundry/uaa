@@ -43,7 +43,7 @@ class ScimUtilsTest {
         String currentZoneId = "currentZoneId";
         ExpiringCodeType expiringCodeType = ExpiringCodeType.REGISTRATION;
 
-        Timestamp before = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
+        Timestamp before = new Timestamp(System.currentTimeMillis() + (55 * 60 * 1000));
 
         ScimUtils.getExpiringCode(
                 mockExpiringCodeStore,
@@ -55,7 +55,7 @@ class ScimUtilsTest {
                 currentZoneId
         );
 
-        Timestamp after = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
+        Timestamp after = new Timestamp(System.currentTimeMillis() + (65 * 60 * 1000));
 
         ArgumentCaptor<Timestamp> timestampArgumentCaptor = ArgumentCaptor.forClass(Timestamp.class);
 
