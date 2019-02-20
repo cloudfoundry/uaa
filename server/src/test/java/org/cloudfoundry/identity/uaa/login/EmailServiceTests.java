@@ -3,11 +3,13 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import javax.mail.Message;
 import javax.mail.internet.InternetAddress;
@@ -16,17 +18,18 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
-public class EmailServiceTests {
+@ExtendWith(PollutionPreventionExtension.class)
+class EmailServiceTests {
 
     private FakeJavaMailSender mailSender;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() {
         mailSender = new FakeJavaMailSender();
     }
 
     @Test
-    public void sendOssMimeMessage() throws Exception {
+    void sendOssMimeMessage() throws Exception {
         EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null);
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
@@ -43,7 +46,7 @@ public class EmailServiceTests {
     }
 
     @Test
-    public void sendPivotalMimeMessage() throws Exception {
+    void sendPivotalMimeMessage() throws Exception {
         IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName("Best Company");
@@ -63,6 +66,5 @@ public class EmailServiceTests {
         } finally {
             IdentityZoneHolder.get().setConfig(defaultConfig);
         }
-
     }
 }
