@@ -5,8 +5,10 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,20 +19,31 @@ import javax.mail.internet.InternetAddress;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class EmailServiceTests {
 
     private FakeJavaMailSender mailSender;
+    private IdentityZoneManager mockIdentityZoneManager;
+    private IdentityZone mockIdentityZone;
+
 
     @BeforeEach
     void setUp() {
         mailSender = new FakeJavaMailSender();
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        mockIdentityZone = mock(IdentityZone.class);
+
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
+        when(mockIdentityZoneManager.isCurrentZoneUaa()).thenReturn(true);
+        IdentityZoneHolder.set(mockIdentityZone);
     }
 
     @Test
     void sendOssMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null);
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null, mockIdentityZoneManager);
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
@@ -47,24 +60,22 @@ class EmailServiceTests {
 
     @Test
     void sendPivotalMimeMessage() throws Exception {
-        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
-        BrandingInformation branding = new BrandingInformation();
-        branding.setCompanyName("Best Company");
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        config.setBranding(branding);
-        IdentityZoneHolder.get().setConfig(config);
-        try {
-            EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com");
+        BrandingInformation mockBrandingInformation = mock(BrandingInformation.class);
+        when(mockBrandingInformation.getCompanyName()).thenReturn("Best Company");
+        IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+        when(mockIdentityZoneConfiguration.getBranding()).thenReturn(mockBrandingInformation);
+        when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
 
-            emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-            FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
-            assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
-            InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
-            assertThat(fromAddress.getAddress(), equalTo("something-specific@bestcompany.example.com"));
-            assertThat(fromAddress.getPersonal(), equalTo("Best Company"));
-        } finally {
-            IdentityZoneHolder.get().setConfig(defaultConfig);
-        }
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com", mockIdentityZoneManager);
+
+        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+
+        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
+        assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
+        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
+        assertThat(fromAddress.getAddress(), equalTo("something-specific@bestcompany.example.com"));
+        assertThat(fromAddress.getPersonal(), equalTo("Best Company"));
     }
 }

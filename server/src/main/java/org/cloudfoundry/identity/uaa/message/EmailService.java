@@ -2,8 +2,8 @@ package org.cloudfoundry.identity.uaa.message;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -20,9 +20,11 @@ public class EmailService implements MessageService {
 
     private JavaMailSender mailSender;
     private final String fromAddress;
+    private final IdentityZoneManager identityZoneManager;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress, IdentityZoneManager identityZoneManager) {
         this.mailSender = mailSender;
+        this.identityZoneManager = identityZoneManager;
 
         // if we are provided a from address use that, if not fallback to default based on loginUrl
         if (fromAddress != null && !fromAddress.isEmpty()) {
@@ -43,11 +45,11 @@ public class EmailService implements MessageService {
 
     private Address[] getSenderAddresses() throws UnsupportedEncodingException {
         String name;
-        if (IdentityZoneHolder.isUaa()) {
+        if (identityZoneManager.isCurrentZoneUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
-            name = IdentityZoneHolder.get().getName();
+            name = identityZoneManager.getCurrentIdentityZone().getName();
         }
 
         return new Address[]{new InternetAddress(fromAddress, name)};
