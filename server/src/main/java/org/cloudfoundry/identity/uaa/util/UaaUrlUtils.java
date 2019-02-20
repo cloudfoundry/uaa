@@ -75,12 +75,12 @@ public abstract class UaaUrlUtils {
     }
 
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
-        "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
+        "^(([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
         "(.*:.*@)?" +                    //username/password in URL
         "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
         "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
         "[a-zA-Z0-9\\-]+" +              //tld
-        "(:[0-9]+)?(/.*|$)"              //port and path
+        "(:[0-9]+)?)?(/.*|$)"              //port and path
     );
     public static boolean isValidRegisteredRedirectUrl(String url) {
         if (hasText(url)) {
