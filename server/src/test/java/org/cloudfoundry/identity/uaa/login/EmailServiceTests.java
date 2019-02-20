@@ -1,15 +1,14 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
+import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.internet.InternetAddress;
 
@@ -27,7 +26,7 @@ public class EmailServiceTests {
     }
 
     @Test
-    public void testSendOssMimeMessage() throws Exception {
+    public void sendOssMimeMessage() throws Exception {
         EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null);
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
@@ -39,19 +38,19 @@ public class EmailServiceTests {
         assertThat(fromAddress.getAddress(), equalTo("admin@login.example.com"));
         assertThat(fromAddress.getPersonal(), equalTo("Cloud Foundry"));
         assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO), hasSize(1));
-        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO).get(0), equalTo((Address) new InternetAddress("user@example.com")));
+        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO).get(0), equalTo(new InternetAddress("user@example.com")));
         assertThat(mimeMessageWrapper.getContentString(), equalTo("<html><body>hi</body></html>"));
     }
 
     @Test
-    public void testSendPivotalMimeMessage() throws Exception {
+    public void sendPivotalMimeMessage() throws Exception {
         IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
         BrandingInformation branding = new BrandingInformation();
         branding.setCompanyName("Best Company");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setBranding(branding);
         IdentityZoneHolder.get().setConfig(config);
-        try{
+        try {
             EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com");
 
             emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
