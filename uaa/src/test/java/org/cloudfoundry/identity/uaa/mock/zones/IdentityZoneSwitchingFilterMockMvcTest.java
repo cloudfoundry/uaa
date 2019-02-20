@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.junit.Assert.assertEquals;
@@ -210,23 +211,5 @@ class IdentityZoneSwitchingFilterMockMvcTest {
                 .content(JsonUtils.writeValueAsString(client)))
                 .andExpect(statusMatcher);
         return client;
-    }
-
-    private static RequestPostProcessor httpBearer(String authorization) {
-        return new HttpBearerAuthRequestPostProcessor(authorization);
-    }
-
-    private static class HttpBearerAuthRequestPostProcessor implements RequestPostProcessor {
-        private String headerValue;
-
-        private HttpBearerAuthRequestPostProcessor(String authorization) {
-            this.headerValue = "Bearer " + authorization;
-        }
-
-        @Override
-        public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-            request.addHeader("Authorization", this.headerValue);
-            return request;
-        }
     }
 }

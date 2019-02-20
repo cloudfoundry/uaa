@@ -1368,6 +1368,24 @@ public final class MockMvcUtils {
         }
     }
 
+    public static RequestPostProcessor httpBearer(String authorization) {
+        return new HttpBearerAuthRequestPostProcessor(authorization);
+    }
+
+    private static class HttpBearerAuthRequestPostProcessor implements RequestPostProcessor {
+        private String headerValue;
+
+        private HttpBearerAuthRequestPostProcessor(String authorization) {
+            this.headerValue = "Bearer " + authorization;
+        }
+
+        @Override
+        public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+            request.addHeader("Authorization", this.headerValue);
+            return request;
+        }
+    }
+
     public static class PredictableGenerator extends RandomValueStringGenerator {
         public AtomicInteger counter = new AtomicInteger(1);
 
