@@ -349,7 +349,6 @@
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
-
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />

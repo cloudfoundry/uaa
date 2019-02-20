@@ -36,10 +36,7 @@ import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.jupiter.api.AfterAll;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -126,6 +123,8 @@ class AuditCheckMockMvcTests {
     private ConfigurableApplicationContext configurableApplicationContext;
     private MockMvc mockMvc;
     private TestClient testClient;
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     @Value("${allowUnverifiedUsers:true}")
     private boolean allowUnverifiedUsers;
@@ -477,7 +476,7 @@ class AuditCheckMockMvcTests {
         }
 
         //after we reach our max attempts, 5, the system stops logging them until the period is over
-        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis() - 10000, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis() - 10000, identityZoneManager.getCurrentIdentityZoneId());
         assertEquals(5, events.size());
         for (AuditEvent event : events) {
             assertTrue(event.getOrigin().contains("sessionId=<SESSION>"));
@@ -636,8 +635,8 @@ class AuditCheckMockMvcTests {
     void password_change_recorded_at_dao(@Autowired ScimUserProvisioning provisioning) {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "first", "last");
         user.setPrimaryEmail(user.getUserName());
-        user = provisioning.createUser(user, "oldpassword", IdentityZoneHolder.get().getId());
-        provisioning.changePassword(user.getId(), "oldpassword", "newpassword", IdentityZoneHolder.get().getId());
+        user = provisioning.createUser(user, "oldpassword", identityZoneManager.getCurrentIdentityZoneId());
+        provisioning.changePassword(user.getId(), "oldpassword", "newpassword", identityZoneManager.getCurrentIdentityZoneId());
 
         assertNumberOfAuditEventsReceived(2);
 
@@ -807,7 +806,7 @@ class AuditCheckMockMvcTests {
         assertEquals(UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(IdentityZoneHolder.get().getId())
+        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
         assertLogMessageWithSession(testLogger.getLatestMessage(),
                 UserCreatedEvent, createdUser.getId(), format("[\"user_id=%s\",\"username=%s\"]", createdUser.getId(), username));
@@ -852,7 +851,7 @@ class AuditCheckMockMvcTests {
         assertEquals(UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(IdentityZoneHolder.get().getId())
+        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0),
                 UserCreatedEvent, createdUser.getId(), format("[\"user_id=%s\",\"username=%s\"]", createdUser.getId(), username));
@@ -1018,7 +1017,7 @@ class AuditCheckMockMvcTests {
         ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", "password", true);
 
 
-        ScimGroup group = new ScimGroup(null, "testgroup", IdentityZoneHolder.get().getId());
+        ScimGroup group = new ScimGroup(null, "testgroup", identityZoneManager.getCurrentIdentityZoneId());
         ScimGroupMember mjacob = new ScimGroupMember(
                 jacob.getId(),
                 ScimGroupMember.Type.USER);
