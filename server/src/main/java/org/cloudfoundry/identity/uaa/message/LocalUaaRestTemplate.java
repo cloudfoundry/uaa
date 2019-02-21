@@ -33,14 +33,26 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
-public class LocalUaaRestTemplate extends OAuth2RestTemplate implements InitializingBean {
-    private AuthorizationServerTokenServices authorizationServerTokenServices;
-    protected String clientId;
-    protected ClientServicesExtension clientServicesExtension;
-    private boolean verifySsl = true;
+public class LocalUaaRestTemplate extends OAuth2RestTemplate {
+    private final AuthorizationServerTokenServices authorizationServerTokenServices;
+    private final String clientId;
+    private final ClientServicesExtension clientServicesExtension;
 
-    LocalUaaRestTemplate(OAuth2ProtectedResourceDetails resource) {
+    LocalUaaRestTemplate(
+            final OAuth2ProtectedResourceDetails resource,
+            final AuthorizationServerTokenServices authorizationServerTokenServices,
+            final String clientId,
+            final ClientServicesExtension clientServicesExtension,
+            final boolean verifySsl) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         super(resource);
+
+        this.authorizationServerTokenServices = authorizationServerTokenServices;
+        this.clientId = clientId;
+        this.clientServicesExtension = clientServicesExtension;
+
+        if (!verifySsl) {
+            skipSslValidation();
+        }
     }
 
     @Override
@@ -53,11 +65,11 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         Set<String> resourceIds = new HashSet<>();
         resourceIds.add(OriginKeys.UAA);
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put(OAuth2Utils.CLIENT_ID, "login");
+        requestParameters.put(OAuth2Utils.CLIENT_ID, clientId);
         requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         OAuth2Request request = new OAuth2Request(
                 requestParameters,
-                "login",
+                clientId,
                 new HashSet<>(),
                 true,
                 scopes,
@@ -71,42 +83,10 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         return result;
     }
 
-    public void setAuthorizationServerTokenServices(AuthorizationServerTokenServices authorizationServerTokenServices) {
-        this.authorizationServerTokenServices = authorizationServerTokenServices;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public void setClientServicesExtension(ClientServicesExtension clientServicesExtension) {
-        this.clientServicesExtension = clientServicesExtension;
-    }
-
-    public void setVerifySsl(boolean verifySsl) {
-        this.verifySsl = verifySsl;
-    }
-
     private void skipSslValidation() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
         SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
         CloseableHttpClient httpClient = HttpClients.custom().setSslcontext(sslContext).build();
         ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
         this.setRequestFactory(requestFactory);
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        if (authorizationServerTokenServices == null) {
-            throw new NullPointerException("authorizationServerTokenServices property is null!");
-        }
-        if (clientId == null) {
-            throw new NullPointerException("clientId property is null!");
-        }
-        if (clientServicesExtension == null) {
-            throw new NullPointerException("clientServicesExtension property is null!");
-        }
-        if (!verifySsl) {
-            skipSslValidation();
-        }
     }
 }

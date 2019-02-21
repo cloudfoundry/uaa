@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
+import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -19,6 +20,9 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.io.Serializable;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -35,12 +39,17 @@ class LocalUaaRestTemplateTests {
     private AuthorizationServerTokenServices mockAuthorizationServerTokenServices;
 
     @BeforeEach
-    void setUp() {
-        ClientCredentialsResourceDetails clientCredentialsResourceDetails = new ClientCredentialsResourceDetails();
-        localUaaRestTemplate = new LocalUaaRestTemplate(clientCredentialsResourceDetails);
-
+    void setUp() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        OAuth2ProtectedResourceDetails mockOAuth2ProtectedResourceDetails = mock(OAuth2ProtectedResourceDetails.class);
+        mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
         mockClientServicesExtension = mock(ClientServicesExtension.class);
-        localUaaRestTemplate.setClientServicesExtension(mockClientServicesExtension);
+
+        localUaaRestTemplate = new LocalUaaRestTemplate(
+                mockOAuth2ProtectedResourceDetails,
+                mockAuthorizationServerTokenServices,
+                "clientId",
+                mockClientServicesExtension,
+                true);
 
         ClientDetails mockClientDetails = mock(ClientDetails.class);
         when(mockClientDetails.getAuthorities()).thenReturn(Arrays.asList(
@@ -49,10 +58,6 @@ class LocalUaaRestTemplateTests {
         ));
 
         when(mockClientServicesExtension.loadClientByClientId(any(), any())).thenReturn(mockClientDetails);
-
-        mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
-        localUaaRestTemplate.setAuthorizationServerTokenServices(mockAuthorizationServerTokenServices);
-        localUaaRestTemplate.setClientId("login");
     }
 
     @Test
@@ -66,12 +71,12 @@ class LocalUaaRestTemplateTests {
         assertThat(actualResult, is(mockOAuth2AccessToken));
 
         ImmutableMap<String, String> requestParameters = ImmutableMap.<String, String>builder()
-                .put(OAuth2Utils.CLIENT_ID, "login")
+                .put(OAuth2Utils.CLIENT_ID, "clientId")
                 .put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .build();
         OAuth2Request request = new OAuth2Request(
                 requestParameters,
-                "login",
+                "clientId",
                 new HashSet<>(),
                 true,
                 Sets.newHashSet("something", "else"),
@@ -81,7 +86,7 @@ class LocalUaaRestTemplateTests {
                 ImmutableMap.<String, Serializable>builder().build());
         OAuth2Authentication authentication = new OAuth2Authentication(request, null);
 
-        verify(mockClientServicesExtension).loadClientByClientId("login", "uaa");
+        verify(mockClientServicesExtension).loadClientByClientId("clientId", "uaa");
         verify(mockOAuth2ClientContext).setAccessToken(mockOAuth2AccessToken);
         verify(mockAuthorizationServerTokenServices).createAccessToken(authentication);
     }

@@ -35,10 +35,10 @@
 
     <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate">
         <constructor-arg ref="uaa"/>
-        <property name="clientId" value="login"/>
-        <property name="authorizationServerTokenServices" ref="tokenServices"/>
-        <property name="clientServicesExtension" ref="jdbcClientDetailsService"/>
-        <property name="verifySsl" value="${notifications.verify_ssl:false}"/>
+        <constructor-arg value="login"/>
+        <constructor-arg ref="tokenServices"/>
+        <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg value="${notifications.verify_ssl:false}"/>
     </bean>
 
     <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
