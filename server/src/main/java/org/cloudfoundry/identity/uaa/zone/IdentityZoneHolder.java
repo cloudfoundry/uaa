@@ -15,6 +15,10 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.springframework.security.saml.key.KeyManager;
 
+/*
+ * @Deprecated Use {@code org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager} instead
+ */
+@Deprecated
 public class IdentityZoneHolder {
 
     private static IdentityZoneProvisioning provisioning;
