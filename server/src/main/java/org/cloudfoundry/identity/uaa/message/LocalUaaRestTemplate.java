@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.message;
 
+import com.google.common.collect.Sets;
 import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
@@ -61,23 +63,13 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
 
     @Override
     public OAuth2AccessToken acquireAccessToken(OAuth2ClientContext oauth2Context) throws UserRedirectRequiredException {
-        ClientDetails client = clientServicesExtension.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
-        Set<String> scopes = new HashSet<>();
-        for (GrantedAuthority authority : client.getAuthorities()) {
-            scopes.add(authority.getAuthority());
-        }
-        Set<String> resourceIds = new HashSet<>();
-        resourceIds.add(OriginKeys.UAA);
-        Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put(OAuth2Utils.CLIENT_ID, clientId);
-        requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
         OAuth2Request request = new OAuth2Request(
-                requestParameters,
+                buildRequestParameters(),
                 clientId,
                 new HashSet<>(),
                 true,
-                scopes,
-                resourceIds,
+                buildScopes(),
+                Sets.newHashSet(OriginKeys.UAA),
                 null,
                 new HashSet<>(),
                 new HashMap<>());
@@ -85,6 +77,22 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
         OAuth2AccessToken result = authorizationServerTokenServices.createAccessToken(authentication);
         oauth2Context.setAccessToken(result);
         return result;
+    }
+
+    private Set<String> buildScopes() {
+        ClientDetails client = clientServicesExtension.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
+
+        return client.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+    }
+
+    private Map<String, String> buildRequestParameters() {
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put(OAuth2Utils.CLIENT_ID, clientId);
+        requestParameters.put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
+        return requestParameters;
     }
 
     private void skipSslValidation() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
