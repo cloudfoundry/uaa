@@ -40,7 +40,7 @@ class LocalUaaRestTemplateTests {
         localUaaRestTemplate = new LocalUaaRestTemplate(clientCredentialsResourceDetails);
 
         mockClientServicesExtension = mock(ClientServicesExtension.class);
-        localUaaRestTemplate.setClientDetailsService(mockClientServicesExtension);
+        localUaaRestTemplate.setClientServicesExtension(mockClientServicesExtension);
 
         ClientDetails mockClientDetails = mock(ClientDetails.class);
         when(mockClientDetails.getAuthorities()).thenReturn(Arrays.asList(
@@ -51,7 +51,7 @@ class LocalUaaRestTemplateTests {
         when(mockClientServicesExtension.loadClientByClientId(any(), any())).thenReturn(mockClientDetails);
 
         mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
-        localUaaRestTemplate.setTokenServices(mockAuthorizationServerTokenServices);
+        localUaaRestTemplate.setAuthorizationServerTokenServices(mockAuthorizationServerTokenServices);
         localUaaRestTemplate.setClientId("login");
     }
 
