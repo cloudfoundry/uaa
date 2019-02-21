@@ -7,7 +7,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.GrantedAuthority;
@@ -39,15 +40,14 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     private final ClientServicesExtension clientServicesExtension;
 
     LocalUaaRestTemplate(
-            final OAuth2ProtectedResourceDetails resource,
+            @Qualifier("uaa") final OAuth2ProtectedResourceDetails resource,
             final AuthorizationServerTokenServices authorizationServerTokenServices,
-            final String clientId,
             final ClientServicesExtension clientServicesExtension,
-            final boolean verifySsl) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+            @Value("${notifications.verify_ssl:false}") final boolean verifySsl) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         super(resource);
 
         this.authorizationServerTokenServices = authorizationServerTokenServices;
-        this.clientId = clientId;
+        this.clientId = "login";
         this.clientServicesExtension = clientServicesExtension;
 
         if (!verifySsl) {

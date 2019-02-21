@@ -33,15 +33,7 @@
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>
 
-    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate">
-        <constructor-arg ref="uaa"/>
-        <constructor-arg value="login"/>
-        <constructor-arg ref="tokenServices"/>
-        <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg value="${notifications.verify_ssl:false}"/>
-    </bean>
-
-    <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
+    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate" />
 
     <context:annotation-config/>
 

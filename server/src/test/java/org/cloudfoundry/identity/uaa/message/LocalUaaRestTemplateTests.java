@@ -47,7 +47,6 @@ class LocalUaaRestTemplateTests {
         localUaaRestTemplate = new LocalUaaRestTemplate(
                 mockOAuth2ProtectedResourceDetails,
                 mockAuthorizationServerTokenServices,
-                "clientId",
                 mockClientServicesExtension,
                 true);
 
@@ -71,12 +70,12 @@ class LocalUaaRestTemplateTests {
         assertThat(actualResult, is(mockOAuth2AccessToken));
 
         ImmutableMap<String, String> requestParameters = ImmutableMap.<String, String>builder()
-                .put(OAuth2Utils.CLIENT_ID, "clientId")
+                .put(OAuth2Utils.CLIENT_ID, "login")
                 .put(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .build();
         OAuth2Request request = new OAuth2Request(
                 requestParameters,
-                "clientId",
+                "login",
                 new HashSet<>(),
                 true,
                 Sets.newHashSet("something", "else"),
@@ -86,7 +85,7 @@ class LocalUaaRestTemplateTests {
                 ImmutableMap.<String, Serializable>builder().build());
         OAuth2Authentication authentication = new OAuth2Authentication(request, null);
 
-        verify(mockClientServicesExtension).loadClientByClientId("clientId", "uaa");
+        verify(mockClientServicesExtension).loadClientByClientId("login", "uaa");
         verify(mockOAuth2ClientContext).setAccessToken(mockOAuth2AccessToken);
         verify(mockAuthorizationServerTokenServices).createAccessToken(authentication);
     }
