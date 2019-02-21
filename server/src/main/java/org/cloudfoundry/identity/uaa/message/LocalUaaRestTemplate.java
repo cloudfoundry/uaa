@@ -6,7 +6,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.ClientHttpRequestFactory;
@@ -38,17 +38,21 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     private final AuthorizationServerTokenServices authorizationServerTokenServices;
     private final String clientId;
     private final ClientServicesExtension clientServicesExtension;
+    private final IdentityZoneManager identityZoneManager;
 
     LocalUaaRestTemplate(
             @Qualifier("uaa") final OAuth2ProtectedResourceDetails resource,
             final AuthorizationServerTokenServices authorizationServerTokenServices,
             final ClientServicesExtension clientServicesExtension,
-            @Value("${notifications.verify_ssl:false}") final boolean verifySsl) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+            @Value("${notifications.verify_ssl:false}") final boolean verifySsl,
+            final IdentityZoneManager identityZoneManager)
+            throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         super(resource);
 
         this.authorizationServerTokenServices = authorizationServerTokenServices;
         this.clientId = "login";
         this.clientServicesExtension = clientServicesExtension;
+        this.identityZoneManager = identityZoneManager;
 
         if (!verifySsl) {
             skipSslValidation();
@@ -57,7 +61,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
 
     @Override
     public OAuth2AccessToken acquireAccessToken(OAuth2ClientContext oauth2Context) throws UserRedirectRequiredException {
-        ClientDetails client = clientServicesExtension.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        ClientDetails client = clientServicesExtension.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
         Set<String> scopes = new HashSet<>();
         for (GrantedAuthority authority : client.getAuthorities()) {
             scopes.add(authority.getAuthority());
