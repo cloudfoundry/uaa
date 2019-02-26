@@ -16,9 +16,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.springframework.security.saml.key.KeyManager;
@@ -41,6 +39,11 @@ class IdentityZoneHolderTest {
     void setUp() {
         mockSamlKeyManagerFactory = mock(SamlKeyManagerFactory.class);
         setSamlKeyManagerFactory(mockSamlKeyManagerFactory);
+    }
+
+    @AfterAll
+    static void tearDown() {
+        setSamlKeyManagerFactory(new SamlKeyManagerFactory());
     }
 
     @Test
