@@ -13,9 +13,10 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:util="http://www.springframework.org/schema/util"
-    xmlns:aop="http://www.springframework.org/schema/aop"
-    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
@@ -733,7 +734,8 @@
         <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator" />
     </bean>
 
-    <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+    <bean id="passwdEncoderFactory" class="org.cloudfoundry.identity.uaa.util.PasswordEncoderFactory"/>
+    <bean id="passwdEncoder" factory-bean="passwdEncoderFactory" factory-method="get"/>
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
         <property name="passwordEncoder" ref="passwdEncoder"/>
         <property name="maxKeys" value="1000"/>
