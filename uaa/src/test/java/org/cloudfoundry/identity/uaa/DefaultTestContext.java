@@ -24,7 +24,8 @@ import java.lang.annotation.Target;
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletAndHoneycombTestConfig.class,
-        TestClientAndMockMvcTestConfig.class
+        TestClientAndMockMvcTestConfig.class,
+        FakePasswordEncoderConfig.class
 })
 public @interface DefaultTestContext {
 }

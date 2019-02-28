@@ -20,9 +20,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 @Configuration
-@ImportResource(locations = {
-        "file:./src/main/webapp/WEB-INF/spring-servlet.xml"
-})
+@ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml"})
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
 public class SpringServletAndHoneycombTestConfig {
     @Bean
