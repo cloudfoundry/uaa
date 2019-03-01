@@ -24,7 +24,7 @@ buildscript {
 
     dependencies {
         classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.4'
+        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
@@ -49,7 +49,7 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
-        maven { url 'http://repository.mulesoft.org/releases/'}
+        maven { url 'http://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
@@ -170,7 +170,7 @@ cargo {
     }
 
     local {
-        timeout = 540000
+        startStopTimeout = 540000
         List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
         if (activeProfiles.contains('debug')) {
             jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
@@ -178,10 +178,10 @@ cargo {
             jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
-            configFile {
-                    file = file('scripts/cargo/tomcat-conf/context.xml')
-                    toDir = 'conf'
-            }
+        configFile {
+            files = files('scripts/cargo/tomcat-conf/context.xml')
+            toDir = 'conf'
+        }
 
         systemProperties {
             property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
@@ -213,8 +213,8 @@ task manifests(dependsOn: assemble, type: Copy) {
         include '**/*.yml'
         filter(ReplaceTokens,
                 tokens: [
-                        version: version,
-                        app: System.getProperty('app', 'myuaa'),
+                        version  : version,
+                        app      : System.getProperty('app', 'myuaa'),
                         appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
                 ]
         )
@@ -243,13 +243,13 @@ task mockAssertion(type: JavaExec) {
 task encrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Encryptor'
     args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 task decrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Decryptor'
     args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 // task dependencies
@@ -267,7 +267,7 @@ private EventFactory buildEventFactory() {
         return null
     }
 
-    HoneyClient honeyClient  = create(
+    HoneyClient honeyClient = create(
             options()
                     .setWriteKey(honeycombKey)
                     .setDataset(honeycombDataset)
