@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
@@ -33,14 +34,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(JUnitRestDocumentationExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 public abstract class AdminClientCreator extends EndpointDocs {
     protected String adminToken = null;
     protected UaaTestAccounts testAccounts;
@@ -51,23 +46,23 @@ public abstract class AdminClientCreator extends EndpointDocs {
     public void initAdminToken() throws Exception {
         testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "clients.admin clients.read clients.write clients.secret scim.read scim.write");
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "clients.admin clients.read clients.write clients.secret scim.read scim.write");
     }
 
     ClientDetailsModification createBaseClient(String id, String clientSecret, Collection<String> grantTypes, List<String> authorities, List<String> scopes) {
-        if (id==null) {
+        if (id == null) {
             id = new RandomValueStringGenerator().generate();
         }
-        if (grantTypes==null) {
+        if (grantTypes == null) {
             grantTypes = Collections.singleton("client_credentials");
         }
         ClientDetailsModification client = new ClientDetailsModification();
         client.setClientId(id);
         client.setScope(scopes);
         client.setAuthorizedGrantTypes(grantTypes);
-        if(authorities != null) {
+        if (authorities != null) {
             client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
         }
         client.setClientSecret(clientSecret);
@@ -82,23 +77,23 @@ public abstract class AdminClientCreator extends EndpointDocs {
     protected ClientDetails createClient(String token, String id, String clientSecret, Collection<String> grantTypes) throws Exception {
         BaseClientDetails client = createBaseClient(id, clientSecret, grantTypes);
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + token)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(toString(client));
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
     }
 
     protected ClientDetails createAdminClient(String token) throws Exception {
-        List<String> scopes = Arrays.asList("uaa.admin","oauth.approvals","clients.read","clients.write");
-        BaseClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password","client_credentials"), scopes, scopes);
+        List<String> scopes = Arrays.asList("uaa.admin", "oauth.approvals", "clients.read", "clients.write");
+        BaseClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password", "client_credentials"), scopes, scopes);
 
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + token)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(toString(client));
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
     }
@@ -111,17 +106,19 @@ public abstract class AdminClientCreator extends EndpointDocs {
         MockHttpServletResponse response = getClientHttpResponse(id);
         return getClientResponseAsClientDetails(response);
     }
+
     protected String toString(Object client) {
         return JsonUtils.writeValueAsString(client);
     }
+
     protected String toString(Object[] clients) {
         return JsonUtils.writeValueAsString(clients);
     }
 
     private MockHttpServletResponse getClientHttpResponse(String id) throws Exception {
         MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + id)
-            .header("Authorization", "Bearer " + adminToken)
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON);
         ResultActions result = mockMvc.perform(getClient);
         return result.andReturn().getResponse();
     }
@@ -132,10 +129,10 @@ public abstract class AdminClientCreator extends EndpointDocs {
         String body = response.getContentAsString();
         if (status == HttpStatus.OK) {
             return clientFromString(body);
-        } else if ( status == HttpStatus.NOT_FOUND) {
+        } else if (status == HttpStatus.NOT_FOUND) {
             return null;
         } else {
-            throw new InvalidClientDetailsException(status+" : "+body);
+            throw new InvalidClientDetailsException(status + " : " + body);
         }
     }
 

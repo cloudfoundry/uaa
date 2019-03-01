@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.impl.NoOpLog;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
@@ -93,13 +94,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class AuditCheckMockMvcTests {
 
     @Autowired
@@ -241,7 +236,7 @@ class AuditCheckMockMvcTests {
                 .andExpect(header().string("Location", "/"));
 
         assertNumberOfAuditEventsReceived(2);
-        
+
         IdentityProviderAuthenticationSuccessEvent passwordEvent = testListener.getLatestEventOfType(IdentityProviderAuthenticationSuccessEvent.class);
         assertEquals(testUser.getUserName(), passwordEvent.getUser().getUsername());
         assertTrue(passwordEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));

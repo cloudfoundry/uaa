@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.logout;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
@@ -26,35 +27,29 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(JUnitRestDocumentationExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class LogoutInfoEndpointDocs extends EndpointDocs {
 
     @Test
     void logout() throws Exception {
         Snippet requestParameters = requestParameters(
-          parameterWithName("redirect").optional("Identity Zone redirect uri").type(STRING).description("On a successful logout redirect the user to here, provided the URL is whitelisted"),
-          parameterWithName("client_id").optional(null).type(STRING).description("On a successful logout the client's redirect_uri configuration is used as the redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead.")
+                parameterWithName("redirect").optional("Identity Zone redirect uri").type(STRING).description("On a successful logout redirect the user to here, provided the URL is whitelisted"),
+                parameterWithName("client_id").optional(null).type(STRING).description("On a successful logout the client's redirect_uri configuration is used as the redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead.")
         );
 
         Snippet responseHeaders = responseHeaders(HeaderDocumentation.headerWithName("Location").description("Redirect URI"));
 
         mockMvc.perform(
-          get("/logout.do")
-            .param("redirect", "http://redirect.localhost")
-            .param("client_id", "some_client_that_contains_redirect_uri_matching_request_param")
+                get("/logout.do")
+                        .param("redirect", "http://redirect.localhost")
+                        .param("client_id", "some_client_that_contains_redirect_uri_matching_request_param")
         ).andDo(
-          document("{ClassName}/{methodName}",
-            preprocessResponse(prettyPrint()),
-            responseHeaders,
-            requestParameters))
-          .andExpect(status().isFound())
-          .andExpect(redirectedUrl("http://redirect.localhost"));
+                document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint()),
+                        responseHeaders,
+                        requestParameters))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://redirect.localhost"));
     }
 }

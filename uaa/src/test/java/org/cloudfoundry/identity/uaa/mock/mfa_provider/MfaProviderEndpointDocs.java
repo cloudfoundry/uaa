@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
@@ -45,14 +46,8 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(JUnitRestDocumentationExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class MfaProviderEndpointDocs extends EndpointDocs {
 
     private static final String NAME_DESC = "Human-readable name for this provider. Must be alphanumeric.";
@@ -128,13 +123,13 @@ class MfaProviderEndpointDocs extends EndpointDocs {
 
     private MfaProvider<GoogleMfaProviderConfig> getGoogleMfaProvider() {
         return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<GoogleMfaProviderConfig>()
-                    .setName("sampleGoogleMfaProvider"+new RandomValueStringGenerator(6).generate())
-                    .setType(GOOGLE_AUTHENTICATOR)
-                    .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));
+                .setName("sampleGoogleMfaProvider" + new RandomValueStringGenerator(6).generate())
+                .setType(GOOGLE_AUTHENTICATOR)
+                .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));
     }
 
     @Test
-    void testGetMfaProvider() throws Exception{
+    void testGetMfaProvider() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = getGoogleMfaProvider();
         mfaProvider = createMfaProviderHelper(mfaProvider);
 
@@ -158,7 +153,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void testListMfaProviders() throws Exception{
+    void testListMfaProviders() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = getGoogleMfaProvider();
         createMfaProviderHelper(mfaProvider);
 
@@ -170,13 +165,13 @@ class MfaProviderEndpointDocs extends EndpointDocs {
                 .accept(APPLICATION_JSON));
 
         listMfaProviderAction.andDo(
-            document("{ClassName}/{methodName}",
-            preprocessResponse(prettyPrint()),
-            requestHeaders(
-                    MFA_AUTHORIZATION_HEADER,
-                    IDENTITY_ZONE_ID_HEADER),
-            responseFields
-        ));
+                document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                MFA_AUTHORIZATION_HEADER,
+                                IDENTITY_ZONE_ID_HEADER),
+                        responseFields
+                ));
     }
 
     @Test
@@ -203,7 +198,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
         ));
     }
 
-    private MfaProvider createMfaProviderHelper(MfaProvider<GoogleMfaProviderConfig> mfaProvider) throws Exception{
+    private MfaProvider createMfaProviderHelper(MfaProvider<GoogleMfaProviderConfig> mfaProvider) throws Exception {
         MockHttpServletResponse createResponse = mockMvc.perform(
                 post("/mfa-providers")
                         .header("Authorization", "Bearer " + adminToken)

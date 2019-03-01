@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -48,13 +49,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class ForcePasswordChangeControllerMockMvcTest {
     private ScimUser user;
     private String token;
@@ -92,13 +87,7 @@ class ForcePasswordChangeControllerMockMvcTest {
     }
 
     @Nested
-    @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-    @ActiveProfiles("default")
-    @WebAppConfiguration
-    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+    @DefaultTestContext
     class HappyPath {
         @BeforeEach
         void setup() throws Exception {
@@ -159,13 +148,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         }
 
         @Nested
-        @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-        @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-        @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-        @ActiveProfiles("default")
-        @WebAppConfiguration
-        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+        @DefaultTestContext
         class WithMFA {
             @BeforeEach
             void setup() {
@@ -212,13 +195,7 @@ class ForcePasswordChangeControllerMockMvcTest {
     }
 
     @Nested
-    @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-    @ActiveProfiles("default")
-    @WebAppConfiguration
-    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+    @DefaultTestContext
     class WithPasswordPolicy {
         IdentityProvider identityProvider;
         UaaIdentityProviderDefinition cleanIdpDefinition;
@@ -358,12 +335,12 @@ class ForcePasswordChangeControllerMockMvcTest {
 
     static Stream<PasswordPolicyWithInvalidPassword> authenticationTestParams() {
         return Stream.of(
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(2, 0, 0, 0, 0, 0, 0), "1", "Password must be at least 2 characters in length."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 0, 0), "12", "Password must be no more than 1 characters in length."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 1, 0, 0, 0, 0), "1", "Password must contain at least 1 uppercase characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 1, 0, 0, 0), "1", "Password must contain at least 1 lowercase characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 1, 0, 0), "a", "Password must contain at least 1 digit characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 1, 0), "a", "Password must contain at least 1 special characters.")
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(2, 0, 0, 0, 0, 0, 0), "1", "Password must be at least 2 characters in length."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 0, 0), "12", "Password must be no more than 1 characters in length."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 1, 0, 0, 0, 0), "1", "Password must contain at least 1 uppercase characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 1, 0, 0, 0), "1", "Password must contain at least 1 lowercase characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 1, 0, 0), "a", "Password must contain at least 1 digit characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 1, 0), "a", "Password must contain at least 1 special characters.")
         );
 
     }

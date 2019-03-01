@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.invitations;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -48,14 +49,8 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(JUnitRestDocumentationExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class InvitationsEndpointDocs extends EndpointDocs {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -68,7 +63,7 @@ class InvitationsEndpointDocs extends EndpointDocs {
     @BeforeEach
     void setup() throws Exception {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
-        domain = generator.generate().toLowerCase()+".com";
+        domain = generator.generate().toLowerCase() + ".com";
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
@@ -78,7 +73,7 @@ class InvitationsEndpointDocs extends EndpointDocs {
 
     @Test
     void inviteUsers() throws Exception {
-        String[] emails = new String[] {"user1@"+domain, "user2@"+domain};
+        String[] emails = new String[]{"user1@" + domain, "user2@" + domain};
         String redirectUri = "example.com";
 
         InvitationsRequest invitationsRequest = new InvitationsRequest(emails);
@@ -105,7 +100,7 @@ class InvitationsEndpointDocs extends EndpointDocs {
         );
 
         mockMvc.perform(post("/invite_users?" + String.format("%s=%s&%s=%s", CLIENT_ID, clientId, REDIRECT_URI, redirectUri))
-                .header("Authorization","Bearer "+token)
+                .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
                 .content(requestBody)
         ).andExpect(status().isOk())

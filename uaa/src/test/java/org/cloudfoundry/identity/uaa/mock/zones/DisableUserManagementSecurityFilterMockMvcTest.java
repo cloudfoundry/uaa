@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.EmailChange;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
@@ -49,15 +50,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class DisableUserManagementSecurityFilterMockMvcTest {
-
     private static final String PASSWD = "passwd";
     private static final String ACCEPT_TEXT_HTML = "text/html";
     private static final String ERROR_TEXT = "internal_user_management_disabled";

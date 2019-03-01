@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -79,14 +80,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class ScimUserEndpointsMockMvcTests {
     private static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private static final String USER_PASSWORD = "pas5Word";
@@ -790,13 +785,7 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Nested
-    @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-    @ActiveProfiles("default")
-    @WebAppConfiguration
-    @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+    @DefaultTestContext
     class WhenSelfEditing {
         private ZoneSeeder zoneSeeder;
 
@@ -806,13 +795,7 @@ class ScimUserEndpointsMockMvcTests {
         }
 
         @Nested
-        @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-        @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-        @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-        @ActiveProfiles("default")
-        @WebAppConfiguration
-        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+        @DefaultTestContext
         class WhenAnAdminSelfEdits {
             private ScimUser adminUser;
             private ClientDetails adminClient;
@@ -874,13 +857,7 @@ class ScimUserEndpointsMockMvcTests {
         }
 
         @Nested
-        @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-        @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-        @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-        @ActiveProfiles("default")
-        @WebAppConfiguration
-        @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+        @DefaultTestContext
         class WhenARegularUserSelfEdits {
             private ScimUser regularUser;
 
@@ -982,13 +959,7 @@ class ScimUserEndpointsMockMvcTests {
             }
 
             @Nested
-            @ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
-            @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-            @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-            @ActiveProfiles("default")
-            @WebAppConfiguration
-            @ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+            @DefaultTestContext
             class WithInternalUserStoreDisabled {
 
                 @BeforeEach

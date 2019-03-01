@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
@@ -69,14 +70,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(JUnitRestDocumentationExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 class ScimUserEndpointDocs extends EndpointDocs {
 
     private final String startIndexDescription = "The starting index of the search results when paginated. Index starts with 1.";
@@ -127,178 +122,178 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String requiredUserUpdateScopes = "Access token with `scim.write`, `uaa.admin`, or `openid` required. The `openid` scope only allows the user to update their **own** first and last name, when `origin` is `uaa`.";
 
     private FieldDescriptor[] searchResponseFields = {
-        fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
-        fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
-        fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
-        fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
-        fieldWithPath("resources").type(ARRAY).description(resourceDescription),
-        fieldWithPath("resources[].schemas").type(ARRAY).description(schemasDescription),
-        fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
-        fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
-        fieldWithPath("resources[].name").type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("resources[].name.familyName").type(STRING).description(lastnameDescription),
-        fieldWithPath("resources[].name.givenName").type(STRING).description(firstnameDescription),
-        fieldWithPath("resources[].phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("resources[].phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
-        fieldWithPath("resources[].emails[].value").type(STRING).description(emailDescription),
-        fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("resources[].groups").type(ARRAY).description(groupDescription),
-        fieldWithPath("resources[].groups[].value").type(STRING).description(groupIdDescription),
-        fieldWithPath("resources[].groups[].display").type(STRING).description(groupDisplayNameDescription),
-        fieldWithPath("resources[].groups[].type").type(STRING).description(membershipTypeDescription),
-        fieldWithPath("resources[].approvals").type(ARRAY).description(approvalsListDescription),
-        fieldWithPath("resources[].approvals[].userId").type(STRING).description(approvalUserIdDescription),
-        fieldWithPath("resources[].approvals[].clientId").type(STRING).description(approvalClientIdDescription),
-        fieldWithPath("resources[].approvals[].scope").type(STRING).description(approvalScopeDescription),
-        fieldWithPath("resources[].approvals[].status").type(STRING).description(approvalStatusDescription),
-        fieldWithPath("resources[].approvals[].lastUpdatedAt").type(STRING).description(approvalsLastUpdatedAtDescription),
-        fieldWithPath("resources[].approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
-        fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("resources[].lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
-        fieldWithPath("resources[].previousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
-        fieldWithPath("resources[].verified").type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
-        fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
-        fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
-        fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
-        fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
-        fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
+            fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
+            fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
+            fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
+            fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
+            fieldWithPath("resources").type(ARRAY).description(resourceDescription),
+            fieldWithPath("resources[].schemas").type(ARRAY).description(schemasDescription),
+            fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
+            fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
+            fieldWithPath("resources[].name").type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("resources[].name.familyName").type(STRING).description(lastnameDescription),
+            fieldWithPath("resources[].name.givenName").type(STRING).description(firstnameDescription),
+            fieldWithPath("resources[].phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("resources[].phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
+            fieldWithPath("resources[].emails[].value").type(STRING).description(emailDescription),
+            fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("resources[].groups").type(ARRAY).description(groupDescription),
+            fieldWithPath("resources[].groups[].value").type(STRING).description(groupIdDescription),
+            fieldWithPath("resources[].groups[].display").type(STRING).description(groupDisplayNameDescription),
+            fieldWithPath("resources[].groups[].type").type(STRING).description(membershipTypeDescription),
+            fieldWithPath("resources[].approvals").type(ARRAY).description(approvalsListDescription),
+            fieldWithPath("resources[].approvals[].userId").type(STRING).description(approvalUserIdDescription),
+            fieldWithPath("resources[].approvals[].clientId").type(STRING).description(approvalClientIdDescription),
+            fieldWithPath("resources[].approvals[].scope").type(STRING).description(approvalScopeDescription),
+            fieldWithPath("resources[].approvals[].status").type(STRING).description(approvalStatusDescription),
+            fieldWithPath("resources[].approvals[].lastUpdatedAt").type(STRING).description(approvalsLastUpdatedAtDescription),
+            fieldWithPath("resources[].approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
+            fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("resources[].lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
+            fieldWithPath("resources[].previousLogonTime").optional(null).type(NUMBER).description(userPreviousLogonTimeDescription),
+            fieldWithPath("resources[].verified").type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
+            fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
+            fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
+            fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
+            fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+            fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     private Snippet createFields = requestFields(
-        fieldWithPath("userName").required().type(STRING).description(usernameDescription),
-        fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
-        fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
-        fieldWithPath("name.familyName").optional(null).type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").optional(null).type(STRING).description(firstnameDescription),
-        fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
-        fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
-        fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
-        fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
+            fieldWithPath("userName").required().type(STRING).description(usernameDescription),
+            fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
+            fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.formatted").ignored().type(STRING).description("First and last name combined"),
+            fieldWithPath("name.familyName").optional(null).type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").optional(null).type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
+            fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     private FieldDescriptor[] createResponse = {
-        fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
-        fieldWithPath("id").type(STRING).description(userIdDescription),
-        fieldWithPath("userName").type(STRING).description(usernameDescription),
-        fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
-        fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("emails").type(ARRAY).description(emailListDescription),
-        fieldWithPath("emails[].value").type(STRING).description(emailDescription),
-        fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("groups").type(ARRAY).description(groupDescription),
-        fieldWithPath("groups[].value").type(STRING).description(groupIdDescription),
-        fieldWithPath("groups[].display").type(STRING).description(groupDisplayNameDescription),
-        fieldWithPath("groups[].type").type(STRING).description(membershipTypeDescription),
-        fieldWithPath("approvals").type(ARRAY).description(approvalsListDescription),
-        fieldWithPath("active").type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("verified").type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("origin").type(STRING).description(userOriginDescription),
-        fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
-        fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(OBJECT).description(metaDesc),
-        fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
-        fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
-        fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
+            fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
+            fieldWithPath("id").type(STRING).description(userIdDescription),
+            fieldWithPath("userName").type(STRING).description(usernameDescription),
+            fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("groups").type(ARRAY).description(groupDescription),
+            fieldWithPath("groups[].value").type(STRING).description(groupIdDescription),
+            fieldWithPath("groups[].display").type(STRING).description(groupDisplayNameDescription),
+            fieldWithPath("groups[].type").type(STRING).description(membershipTypeDescription),
+            fieldWithPath("approvals").type(ARRAY).description(approvalsListDescription),
+            fieldWithPath("active").type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").type(STRING).description(userOriginDescription),
+            fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
+            fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("meta").type(OBJECT).description(metaDesc),
+            fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
+            fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+            fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     private Snippet updateFields = requestFields(
-        fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
-        fieldWithPath("userName").required().type(STRING).description(usernameDescription),
-        fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
-        fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
-        fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
-        fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
-        fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
-        fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
-        fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
-        fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
+            fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
+            fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
+            fieldWithPath("userName").required().type(STRING).description(usernameDescription),
+            fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
+            fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
+            fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
+            fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
     private FieldDescriptor[] updateResponse = {
-        fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
-        fieldWithPath("id").type(STRING).description(userIdDescription),
-        fieldWithPath("userName").type(STRING).description(usernameDescription),
-        fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
-        fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("emails").type(ARRAY).description(emailListDescription),
-        fieldWithPath("emails[].value").type(STRING).description(emailDescription),
-        fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("groups").type(ARRAY).description(groupDescription),
-        fieldWithPath("groups[].value").type(STRING).description(groupIdDescription),
-        fieldWithPath("groups[].display").type(STRING).description(groupDisplayNameDescription),
-        fieldWithPath("groups[].type").type(STRING).description(membershipTypeDescription),
-        fieldWithPath("approvals").type(ARRAY).description(approvalsListDescription),
-        fieldWithPath("approvals[].userId").type(STRING).description(approvalUserIdDescription),
-        fieldWithPath("approvals[].clientId").type(STRING).description(approvalClientIdDescription),
-        fieldWithPath("approvals[].scope").type(STRING).description(approvalScopeDescription),
-        fieldWithPath("approvals[].status").type(STRING).description(approvalStatusDescription),
-        fieldWithPath("approvals[].lastUpdatedAt").type(STRING).description(approvalsLastUpdatedAtDescription),
-        fieldWithPath("approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
-        fieldWithPath("active").type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("verified").type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("origin").type(STRING).description(userOriginDescription),
-        fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
-        fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
-        fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
-        fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(OBJECT).description(metaDesc),
-        fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
-        fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
-        fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
+            fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
+            fieldWithPath("id").type(STRING).description(userIdDescription),
+            fieldWithPath("userName").type(STRING).description(usernameDescription),
+            fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("groups").type(ARRAY).description(groupDescription),
+            fieldWithPath("groups[].value").type(STRING).description(groupIdDescription),
+            fieldWithPath("groups[].display").type(STRING).description(groupDisplayNameDescription),
+            fieldWithPath("groups[].type").type(STRING).description(membershipTypeDescription),
+            fieldWithPath("approvals").type(ARRAY).description(approvalsListDescription),
+            fieldWithPath("approvals[].userId").type(STRING).description(approvalUserIdDescription),
+            fieldWithPath("approvals[].clientId").type(STRING).description(approvalClientIdDescription),
+            fieldWithPath("approvals[].scope").type(STRING).description(approvalScopeDescription),
+            fieldWithPath("approvals[].status").type(STRING).description(approvalStatusDescription),
+            fieldWithPath("approvals[].lastUpdatedAt").type(STRING).description(approvalsLastUpdatedAtDescription),
+            fieldWithPath("approvals[].expiresAt").type(STRING).description(approvalsExpiresAtDescription),
+            fieldWithPath("active").type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").type(STRING).description(userOriginDescription),
+            fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
+            fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
+            fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
+            fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("meta").type(OBJECT).description(metaDesc),
+            fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
+            fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+            fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     private Snippet patchFields = requestFields(
-        fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
-        fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
-        fieldWithPath("userName").required().type(STRING).description(usernameDescription),
-        fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
-        fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
-        fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
-        fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
-        fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
-        fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
-        fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
-        fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
-        fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
-        fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-        fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
-        fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
-        fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
-        fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
-        fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
-        fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
-        fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
+            fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
+            fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
+            fieldWithPath("userName").required().type(STRING).description(usernameDescription),
+            fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
+            fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
+            fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
+            fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
+            fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
 
     private final String scimFilterDescription = "SCIM filter for searching";
@@ -308,30 +303,30 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String countDescription = "Max number of results to be returned";
 
     private ParameterDescriptor[] searchUsersParameters = {
-        parameterWithName("filter").optional(null).description(scimFilterDescription).attributes(key("type").value(STRING)),
-        parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
-        parameterWithName("sortOrder").optional("ascending").description(sortOrderDescription).attributes(key("type").value(STRING)),
-        parameterWithName("startIndex").optional("1").description(startIndexDescription).attributes(key("type").value(NUMBER)),
-        parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
+            parameterWithName("filter").optional(null).description(scimFilterDescription).attributes(key("type").value(STRING)),
+            parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
+            parameterWithName("sortOrder").optional("ascending").description(sortOrderDescription).attributes(key("type").value(STRING)),
+            parameterWithName("startIndex").optional("1").description(startIndexDescription).attributes(key("type").value(NUMBER)),
+            parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
     };
 
     private ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
-        searchUsersParameters,
-        new ParameterDescriptor[] {parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
+            searchUsersParameters,
+            new ParameterDescriptor[]{parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
     );
 
     private FieldDescriptor[] searchWithAttributesResponseFields = {
-        fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
-        fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
-        fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
-        fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
-        fieldWithPath("resources").type(ARRAY).description(resourceDescription),
-        fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
-        fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
-        fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
-        fieldWithPath("resources[].emails[].value").type(STRING).description(emailDescription),
-        fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
-        fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
+            fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
+            fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
+            fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
+            fieldWithPath("resources").type(ARRAY).description(resourceDescription),
+            fieldWithPath("resources[].id").type(STRING).description(userIdDescription),
+            fieldWithPath("resources[].userName").type(STRING).description(usernameDescription),
+            fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
+            fieldWithPath("resources[].emails[].value").type(STRING).description(emailDescription),
+            fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("resources[].active").type(BOOLEAN).description(userActiveDescription),
     };
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
@@ -347,32 +342,32 @@ class ScimUserEndpointDocs extends EndpointDocs {
         userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
 
         scimReadToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            mockMvc,
-            "admin",
-            "adminsecret",
-            "scim.read",
-            null,
-            true
+                mockMvc,
+                "admin",
+                "adminsecret",
+                "scim.read",
+                null,
+                true
         );
         scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            mockMvc,
-            "admin",
-            "adminsecret",
-            "scim.write",
-            null,
-            true
+                mockMvc,
+                "admin",
+                "adminsecret",
+                "scim.write",
+                null,
+                true
         );
 
         user = createScimUserObject();
         user = MockMvcUtils.createUser(mockMvc, scimWriteToken, user);
         ApprovalStore approvalStore = webApplicationContext.getBean(ApprovalStore.class);
         approvalStore.addApproval(
-            new Approval()
-                .setClientId("client id")
-                .setUserId(user.getId())
-                .setExpiresAt(new Date(System.currentTimeMillis() + 10000))
-                .setScope("scim.read")
-                .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId()
+                new Approval()
+                        .setClientId("client id")
+                        .setUserId(user.getId())
+                        .setExpiresAt(new Date(System.currentTimeMillis() + 10000))
+                        .setScope("scim.read")
+                        .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId()
         );
     }
 
@@ -395,31 +390,31 @@ class ScimUserEndpointDocs extends EndpointDocs {
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         mockMvc.perform(
-            get("/Users")
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimReadToken)
-                .param("filter", String.format("id eq \"%s\" or email eq \"%s\"", user.getId(), user.getUserName()))
-                .param("sortBy", "email")
-                .param("count", "50")
-                .param("sortOrder", "ascending")
-                .param("startIndex", "1")
+                get("/Users")
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .param("filter", String.format("id eq \"%s\" or email eq \"%s\"", user.getId(), user.getUserName()))
+                        .param("sortBy", "email")
+                        .param("count", "50")
+                        .param("sortOrder", "ascending")
+                        .param("startIndex", "1")
         )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.resources[0].previousLogonTime").exists())
-            .andExpect(jsonPath("$.resources[0].lastLogonTime").exists())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with `scim.read` or `uaa.admin` required"),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestParameters,
-                    responseFields
-                )
-            );
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources[0].previousLogonTime").exists())
+                .andExpect(jsonPath("$.resources[0].lastLogonTime").exists())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `scim.read` or `uaa.admin` required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestParameters,
+                                responseFields
+                        )
+                );
     }
 
     @Test
@@ -428,31 +423,31 @@ class ScimUserEndpointDocs extends EndpointDocs {
         Snippet requestParameters = requestParameters(searchWithAttributes);
 
         mockMvc.perform(
-            get("/Users")
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimReadToken)
-                .param("attributes", "id,userName,emails,active")
-                .param("filter", String.format("id eq \"%s\"", user.getId()))
-                .param("sortBy", "email")
-                .param("count", "50")
-                .param("sortOrder", "ascending")
-                .param("startIndex", "1")
+                get("/Users")
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .param("attributes", "id,userName,emails,active")
+                        .param("filter", String.format("id eq \"%s\"", user.getId()))
+                        .param("sortBy", "email")
+                        .param("count", "50")
+                        .param("sortOrder", "ascending")
+                        .param("startIndex", "1")
         )
-            .andExpect(status().isOk())
-            .andDo(print())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                         preprocessRequest(prettyPrint()),
-                         preprocessResponse(prettyPrint()),
-                         requestHeaders(
-                             headerWithName("Authorization").description("Access token with `scim.read` or `uaa.admin` required"),
-                             IDENTITY_ZONE_ID_HEADER,
-                             IDENTITY_ZONE_SUBDOMAIN_HEADER
-                         ),
-                         requestParameters,
-                         responseFields
-                )
-            );
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `scim.read` or `uaa.admin` required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestParameters,
+                                responseFields
+                        )
+                );
     }
 
     @Test
@@ -461,26 +456,26 @@ class ScimUserEndpointDocs extends EndpointDocs {
         user = createScimUserObject();
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.post("/Users")
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimWriteToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .content(JsonUtils.writeValueAsString(user))
+                RestDocumentationRequestBuilders.post("/Users")
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimWriteToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .content(JsonUtils.writeValueAsString(user))
         )
-            .andExpect(status().isCreated())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` scope required"),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    createFields,
-                    responseFields(createResponse)
-                )
-            );
+                .andExpect(status().isCreated())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` scope required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                createFields,
+                                responseFields(createResponse)
+                        )
+                );
     }
 
     @Test
@@ -490,29 +485,29 @@ class ScimUserEndpointDocs extends EndpointDocs {
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
 
         mockMvc
-            .perform(
-                RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
-                    .header("Authorization", "Bearer " + scimWriteToken)
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(jsonStatus)
-            )
-            .andExpect(status().isOk())
-            .andExpect(content().json(jsonStatus))
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with `scim.write`, `uaa.account_status.write`, or `uaa.admin` required"),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
-                    responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
+                .perform(
+                        RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
                 )
-            );
+                .andExpect(status().isOk())
+                .andExpect(content().json(jsonStatus))
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `scim.write`, `uaa.account_status.write`, or `uaa.admin` required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
+                                responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
+                        )
+                );
     }
 
     @Test
@@ -522,184 +517,184 @@ class ScimUserEndpointDocs extends EndpointDocs {
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
 
         mockMvc
-            .perform(
-                RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
-                    .header("Authorization", "Bearer " + scimWriteToken)
-                    .accept(APPLICATION_JSON)
-                    .contentType(APPLICATION_JSON)
-                    .content(jsonStatus)
-            )
-            .andExpect(status().isOk())
-            .andExpect(content().json(jsonStatus))
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with `scim.write`, `uaa.account_status.write`, or `uaa.admin` required"),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(fieldWithPath("passwordChangeRequired").optional(null).description("Set to `true` in order to force internal user’s password to expire").type(BOOLEAN)),
-                    responseFields(fieldWithPath("passwordChangeRequired").description("The `passwordChangeRequired` value given in the request.").type(BOOLEAN))
+                .perform(
+                        RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
                 )
-            );
+                .andExpect(status().isOk())
+                .andExpect(content().json(jsonStatus))
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `scim.write`, `uaa.account_status.write`, or `uaa.admin` required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestFields(fieldWithPath("passwordChangeRequired").optional(null).description("Set to `true` in order to force internal user’s password to expire").type(BOOLEAN)),
+                                responseFields(fieldWithPath("passwordChangeRequired").description("The `passwordChangeRequired` value given in the request.").type(BOOLEAN))
+                        )
+                );
     }
 
     @Test
     void test_Update_User() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
-            .setUserId(user.getId())
-            .setStatus(Approval.ApprovalStatus.DENIED)
-            .setScope("uaa.user")
-            .setClientId("identity")
-            .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
-            .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
+                .setUserId(user.getId())
+                .setStatus(Approval.ApprovalStatus.DENIED)
+                .setScope("uaa.user")
+                .setClientId("identity")
+                .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
+                .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
         store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.put("/Users/{userId}", user.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimWriteToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header("If-Match", user.getVersion())
-                .content(JsonUtils.writeValueAsString(user))
+                RestDocumentationRequestBuilders.put("/Users/{userId}", user.getId())
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimWriteToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .header("If-Match", user.getVersion())
+                        .content(JsonUtils.writeValueAsString(user))
         )
-            .andExpect(status().isOk())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description(requiredUserUpdateScopes),
-                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted."),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    updateFields,
-                    responseFields(updateResponse)
-                )
-            );
+                .andExpect(status().isOk())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description(requiredUserUpdateScopes),
+                                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted."),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                updateFields,
+                                responseFields(updateResponse)
+                        )
+                );
     }
 
     @Test
     void test_Patch_User() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
-            .setUserId(user.getId())
-            .setStatus(Approval.ApprovalStatus.DENIED)
-            .setScope("uaa.user")
-            .setClientId("identity")
-            .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
-            .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
+                .setUserId(user.getId())
+                .setStatus(Approval.ApprovalStatus.DENIED)
+                .setScope("uaa.user")
+                .setClientId("identity")
+                .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
+                .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
         store.addApproval(approval, IdentityZoneHolder.get().getId());
         user.setGroups(Collections.emptyList());
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.patch("/Users/{userId}", user.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimWriteToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header("If-Match", user.getVersion())
-                .content(JsonUtils.writeValueAsString(user))
+                RestDocumentationRequestBuilders.patch("/Users/{userId}", user.getId())
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimWriteToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .header("If-Match", user.getVersion())
+                        .content(JsonUtils.writeValueAsString(user))
         )
-            .andExpect(status().isOk())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description(requiredUserUpdateScopes),
-                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
-                    ),
-                    patchFields,
-                    responseFields(updateResponse)
-                )
-            );
+                .andExpect(status().isOk())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description(requiredUserUpdateScopes),
+                                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                                ),
+                                patchFields,
+                                responseFields(updateResponse)
+                        )
+                );
     }
 
     @Test
     void test_Delete_User() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
-            .setUserId(user.getId())
-            .setStatus(Approval.ApprovalStatus.APPROVED)
-            .setScope("uaa.user")
-            .setClientId("identity")
-            .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
-            .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
+                .setUserId(user.getId())
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setScope("uaa.user")
+                .setClientId("identity")
+                .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
+                .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
         store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimWriteToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header("If-Match", user.getVersion())
+                RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimWriteToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .header("If-Match", user.getVersion())
         )
-            .andExpect(status().isOk())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description(scimWriteOrUaaAdminRequired),
-                        headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
+                .andExpect(status().isOk())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description(scimWriteOrUaaAdminRequired),
+                                        headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
 
-                    responseFields(updateResponse)
-                )
-            );
+                                responseFields(updateResponse)
+                        )
+                );
     }
 
     @Test
     void test_Get_User() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
-            .setUserId(user.getId())
-            .setStatus(Approval.ApprovalStatus.APPROVED)
-            .setScope("uaa.user")
-            .setClientId("identity")
-            .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
-            .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
+                .setUserId(user.getId())
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setScope("uaa.user")
+                .setClientId("identity")
+                .setExpiresAt(new Date(System.currentTimeMillis() + 30000))
+                .setLastUpdatedAt(new Date(System.currentTimeMillis() + 30000));
         store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.get("/Users/{userId}", user.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + scimReadToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header("If-Match", user.getVersion())
+                RestDocumentationRequestBuilders.get("/Users/{userId}", user.getId())
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .header("If-Match", user.getVersion())
         )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.previousLogonTime").exists())
-            .andExpect(jsonPath("$.lastLogonTime").exists())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with scope `scim.read`, `uaa.admin`, or `zones.uaa.admin` required"),
-                        headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.previousLogonTime").exists())
+                .andExpect(jsonPath("$.lastLogonTime").exists())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with scope `scim.read`, `uaa.admin`, or `zones.uaa.admin` required"),
+                                        headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
 
-                    responseFields(updateResponse)
-                )
-            );
+                                responseFields(updateResponse)
+                        )
+                );
     }
 
 
@@ -712,33 +707,33 @@ class ScimUserEndpointDocs extends EndpointDocs {
         String myToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, "app", "appclientsecret", user.getUserName(), "secret", null, null, true);
 
         mockMvc.perform(
-            RestDocumentationRequestBuilders.put("/Users/{userId}/password", user.getId())
-                .accept(APPLICATION_JSON)
-                .header("Authorization", "Bearer " + myToken)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .content(JsonUtils.writeValueAsString(request))
+                RestDocumentationRequestBuilders.put("/Users/{userId}/password", user.getId())
+                        .accept(APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + myToken)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .content(JsonUtils.writeValueAsString(request))
         )
-            .andExpect(status().isOk())
-            .andDo(
-                document("{ClassName}/{methodName}",
-                    preprocessRequest(prettyPrint()),
-                    preprocessResponse(prettyPrint()),
-                    pathParameters(parameterWithName("userId").description(userIdDescription)),
-                    requestHeaders(
-                        headerWithName("Authorization").description("Access token with `password.write` or `uaa.admin` required"),
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(
-                        fieldWithPath("oldPassword").required().description("Old password. Optional when resetting another users password as an admin with `uaa.admin` scope").type(STRING),
-                        fieldWithPath("password").required().description("New password.").type(STRING)
-                    ),
-                    responseFields(
-                        fieldWithPath("status").description("Will be 'ok' if password changed successfully."),
-                        fieldWithPath("message").description("Will be 'password updated' if password changed successfully.")
-                    )
-                )
-            );
+                .andExpect(status().isOk())
+                .andDo(
+                        document("{ClassName}/{methodName}",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                pathParameters(parameterWithName("userId").description(userIdDescription)),
+                                requestHeaders(
+                                        headerWithName("Authorization").description("Access token with `password.write` or `uaa.admin` required"),
+                                        IDENTITY_ZONE_ID_HEADER,
+                                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                                ),
+                                requestFields(
+                                        fieldWithPath("oldPassword").required().description("Old password. Optional when resetting another users password as an admin with `uaa.admin` scope").type(STRING),
+                                        fieldWithPath("password").required().description("New password.").type(STRING)
+                                ),
+                                responseFields(
+                                        fieldWithPath("status").description("Will be 'ok' if password changed successfully."),
+                                        fieldWithPath("message").description("Will be 'password updated' if password changed successfully.")
+                                )
+                        )
+                );
     }
 
     @Test
@@ -752,22 +747,22 @@ class ScimUserEndpointDocs extends EndpointDocs {
         joel = userProvisioning.createUser(joel, "pas5Word", IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/Users/{userId}/verify-link", joel.getId())
-            .header("Authorization", "Bearer " + accessToken)
-            .param("redirect_uri", "http://redirect.to/app")
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + accessToken)
+                .param("redirect_uri", "http://redirect.to/app")
+                .accept(APPLICATION_JSON);
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"), IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER);
         Snippet requestParameters = requestParameters(parameterWithName("redirect_uri").required().description("Location where the user will be redirected after verifying by clicking the verification link").attributes(key("type").value(STRING)));
         Snippet responseFields = responseFields(fieldWithPath("verify_link").description("Location the user must visit and authenticate to verify"));
 
         Snippet pathParameters = pathParameters(
-            RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")
+                RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")
         );
         mockMvc.perform(get)
-            .andDo(print())
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                pathParameters, requestHeaders, requestParameters, responseFields))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
+                        pathParameters, requestHeaders, requestParameters, responseFields))
         ;
     }
 
@@ -783,23 +778,23 @@ class ScimUserEndpointDocs extends EndpointDocs {
         billy = userProvisioning.createUser(billy, "pas5Word", IdentityZoneHolder.get().getId());
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"),
-            headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"),
-            IDENTITY_ZONE_ID_HEADER,
-            IDENTITY_ZONE_SUBDOMAIN_HEADER);
+                headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"),
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER);
 
         Snippet pathParameters = pathParameters(
-            RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")
+                RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")
         );
 
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/Users/{userId}/verify", billy.getId())
-            .header("Authorization", "Bearer " + accessToken)
-            .header("If-Match", "12")
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + accessToken)
+                .header("If-Match", "12")
+                .accept(APPLICATION_JSON);
 
         mockMvc.perform(get)
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                pathParameters, requestHeaders))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
+                        pathParameters, requestHeaders))
         ;
     }
 
@@ -814,20 +809,20 @@ class ScimUserEndpointDocs extends EndpointDocs {
         tommy = userProvisioning.createUser(tommy, "pas5Word", IdentityZoneHolder.get().getId());
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with `zones.<zoneId>.admin` or `uaa.admin` required."),
-            IDENTITY_ZONE_ID_HEADER,
-            IDENTITY_ZONE_SUBDOMAIN_HEADER);
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER);
 
         Snippet pathParameters = pathParameters(
-            RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
+                RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
         );
 
         MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/Users/{userId}/mfa", tommy.getId())
-            .header("Authorization", "Bearer " + accessToken);
+                .header("Authorization", "Bearer " + accessToken);
 
         mockMvc.perform(delete)
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                pathParameters, requestHeaders))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
+                        pathParameters, requestHeaders))
         ;
     }
 }
