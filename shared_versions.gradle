@@ -1,8 +1,7 @@
 ext {
   apacheLdapApiVersion = '1.0.0'
   aspectJVersion = '1.8.12'
-  bcpkixVersion  = '1.60'
-  bcprovVersion  = '1.60'
+  bouncyCastleVersion  = '1.61'
   cglibVersion = '3.2.5'
   codehausGroovyVersion = '2.5.2'
   commonsHttpClientVersion = '4.5.3'

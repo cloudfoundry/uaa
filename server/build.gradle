@@ -32,8 +32,8 @@ dependencies {
     exclude(module: 'spring-security-web')
   }
 
-  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bcprovVersion
-  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bcpkixVersion
+  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bouncyCastleVersion
+  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bouncyCastleVersion
 
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
 
