@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.audit;
 
 
-import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
@@ -17,12 +17,12 @@ import static org.mockito.Mockito.verify;
 class LoggingAuditServiceTest {
 
     private LoggingAuditService loggingAuditService;
-    private Log mockLogger;
+    private Logger mockLogger;
 
     @BeforeEach
     void setup() {
         loggingAuditService = new LoggingAuditService();
-        mockLogger = mock(Log.class);
+        mockLogger = mock(Logger.class);
         loggingAuditService.setLogger(mockLogger);
     }
 

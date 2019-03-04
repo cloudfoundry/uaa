@@ -3,10 +3,8 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.logging.Log;
 import org.apache.commons.logging.impl.NoOpLog;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
@@ -33,16 +31,19 @@ import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.helpers.NOPLogger;
+import org.slf4j.helpers.SubstituteLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,10 +61,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -126,7 +123,7 @@ class AuditCheckMockMvcTests {
     @Autowired
     private LoggingAuditService loggingAuditService;
     private InterceptingLogger testLogger;
-    private Log originalAuditServiceLogger;
+    private Logger originalAuditServiceLogger;
 
     @Autowired
     JdbcScimUserProvisioning jdbcScimUserProvisioning;
@@ -1262,12 +1259,16 @@ class AuditCheckMockMvcTests {
         assertThat(memberIdsFromLogMessage, equalTo(Sets.newHashSet(expectedUserIds)));
     }
 
-    private class InterceptingLogger extends NoOpLog {
+    private class InterceptingLogger extends SubstituteLogger {
         private List<String> messages = new ArrayList<>();
 
+        InterceptingLogger() {
+            super("InterceptingLogger", new LinkedList<>(), true);
+        }
+
         @Override
-        public void info(Object message) {
-            messages.add(message.toString());
+        public void info(String message) {
+            messages.add(message);
         }
 
         void reset() {
