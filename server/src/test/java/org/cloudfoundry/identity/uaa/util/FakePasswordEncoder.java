@@ -17,13 +17,11 @@ public class FakePasswordEncoder implements PasswordEncoder {
 
     @Override
     public String encode(CharSequence rawPassword) {
-        System.out.println("FakePasswordEncoder");
         return PREFIX + rawPassword;
     }
 
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        System.out.println("FakePasswordEncoder");
         return encodedPassword.equals(PREFIX + rawPassword);
     }
 }

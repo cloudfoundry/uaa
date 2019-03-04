@@ -1,7 +1,16 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.cloudfoundry.identity.uaa.authentication.*;
-import org.cloudfoundry.identity.uaa.authentication.event.*;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -12,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,27 +34,42 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class AuthzAuthenticationManagerTests {
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
     private ApplicationEventPublisher publisher;
-    private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO"; // "password"
+    private static final String PASSWORD = "password";
     private UaaUser user = null;
-    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private PasswordEncoder encoder = new FakePasswordEncoder();
     private String loginServerUserName = "loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
 
@@ -78,7 +103,7 @@ class AuthzAuthenticationManagerTests {
         return new UaaUserPrototype()
                 .withId(id)
                 .withUsername("auser")
-                .withPassword(PASSWORD)
+                .withPassword(encoder.encode(PASSWORD))
                 .withEmail("auser@blah.com")
                 .withAuthorities(UaaAuthority.USER_AUTHORITIES)
                 .withGivenName("A")
@@ -119,7 +144,7 @@ class AuthzAuthenticationManagerTests {
         user = new UaaUser(
                 user.getId(),
                 user.getUsername(),
-                PASSWORD,
+                encoder.encode(PASSWORD),
                 user.getPassword(),
                 user.getAuthorities(),
                 user.getGivenName(),

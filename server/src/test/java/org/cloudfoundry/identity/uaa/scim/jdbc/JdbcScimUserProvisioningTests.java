@@ -43,6 +43,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
@@ -113,14 +114,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         db.setQueryConverter(filterConverter);
-        BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+        PasswordEncoder encoder = new BCryptPasswordEncoder(4); // 4 mean as fast/weak as possible
 
         existingUserCount = jdbcTemplate.queryForObject("select count(id) from users", Integer.class);
 
         defaultIdentityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, OriginKeys.UAA, "uaa");
 
-        addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
-        addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
+        addUser(JOE_ID, "joe", encoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
+        addUser(MABEL_ID, "mabel", encoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
     }
 
     private String createUserForDelete() {
