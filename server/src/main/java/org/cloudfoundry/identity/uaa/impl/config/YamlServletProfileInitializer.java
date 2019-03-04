@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.apache.log4j.MDC;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -22,7 +24,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
-import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -30,16 +31,10 @@ import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.net.URI;
+import java.util.*;
 
-import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
-import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.springframework.util.StringUtils.*;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
@@ -190,15 +185,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             }
         }
 
-        try {
-            servletContext.log("Loading log4j config from location: " + log4jConfigLocation);
-            Log4jConfigurer.initLogging(log4jConfigLocation);
-        } catch (FileNotFoundException e) {
-            servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
-        }
 
-        MDC.put("context", servletContext.getContextPath());
+        servletContext.log("Loading log4j config from location: " + log4jConfigLocation);
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        context.setConfigLocation(URI.create("classpath:log4j2.properties"));
+        context.reconfigure();
 
+        MDC.put("context", servletContext.getContextPath()); //TODO: why? should we still be using this?
     }
 
     protected void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {

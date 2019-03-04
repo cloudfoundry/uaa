@@ -72,8 +72,9 @@ dependencies {
   compile group: 'org.passay', name: 'passay', version: parent.passayVersion
 
   compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
-
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
+  
+  compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: parent.log4j2Version
+  compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: parent.log4j2Version
 
   compile group: 'commons-io', name: 'commons-io', version: '2.6'
 

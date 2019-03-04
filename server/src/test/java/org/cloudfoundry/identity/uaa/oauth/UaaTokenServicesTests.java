@@ -3,7 +3,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.io.output.TeeOutputStream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.bouncycastle.util.Strings;
 import org.cloudfoundry.identity.uaa.annotations.WithSpring;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -33,32 +36,18 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
@@ -88,34 +77,11 @@ public class UaaTokenServicesTests {
     class WhenRequestingAnIdToken {
         private String requestedScope;
 
-        private PrintStream systemOut;
-        private PrintStream systemErr;
-        private ByteArrayOutputStream loggingOutputStream;
-
-        @BeforeEach
-        void setupLogger() {
-            systemOut = System.out;
-            systemErr = System.err;
-
-            loggingOutputStream = new ByteArrayOutputStream();
-
-            System.setErr(new PrintStream(new TeeOutputStream(loggingOutputStream, systemOut), true));
-            System.setOut(new PrintStream(new TeeOutputStream(loggingOutputStream, systemErr), true));
-        }
-
-        @AfterEach
-        void resetStdout() {
-            System.setOut(systemOut);
-            System.setErr(systemErr);
-        }
-
-
         @BeforeEach
         void setupRequest() {
             requestedScope = "openid";
         }
 
-        @Tag("oidc spec")
         @DisplayName("id token should contain jku header")
         @Test
         public void ensureJKUHeaderIsSetWhenBuildingAnIdToken() {
@@ -130,8 +96,6 @@ public class UaaTokenServicesTests {
             assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
         }
 
-        @Tag("oidc spec")
-        @Tag("uaa oidc logic")
         @DisplayName("ensureIdToken Returned when Client Has OpenId Scope and Scope=OpenId withGrantType")
         @ParameterizedTest
         @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})
@@ -146,12 +110,33 @@ public class UaaTokenServicesTests {
             JwtHelper.decode(accessToken.getIdTokenValue());
         }
 
-        @Tag("oidc spec")
-        @Tag("uaa oidc logic")
         @Nested
         @DisplayName("when the user doesn't request the 'openid' scope")
         @WithSpring
         class WhenUserDoesntRequestOpenIdScope {
+            private List<String> logEvents = new ArrayList<>();
+            private AbstractAppender appender;
+
+            @BeforeEach
+            void addLoggerAppender() {
+                appender = new AbstractAppender("", null, null) {
+                    @Override
+                    public void append(LogEvent event) {
+                        logEvents.add(event.getMessage().getFormattedMessage());
+                    }
+                };
+                appender.start();
+
+                LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                context.getRootLogger().addAppender(appender);
+            }
+
+            @AfterEach
+            void removeAppender() {
+                LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                context.getRootLogger().removeAppender(appender);
+            }
+
             @BeforeEach
             void setupRequest() {
                 requestedScope = "uaa.admin";
@@ -168,7 +153,7 @@ public class UaaTokenServicesTests {
                 CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
                 assertAll("id token is not returned, and a useful log message is printed",
                   () -> assertThat(accessToken.getIdTokenValue(), is(nullValue())),
-                  () -> assertThat("Useful log message", loggingOutputStream.toString(), containsString("an ID token was requested but 'openid' is missing from the requested scopes"))
+                  () -> assertThat("Useful log message", logEvents, hasItem("an ID token was requested but 'openid' is missing from the requested scopes"))
                 );
             }
         }
