@@ -102,19 +102,22 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private JdbcPagingListFactory pagingListFactory;
 
     @Before
-    public void initJdbcScimUserProvisioningTests() throws Exception {
+    public void initJdbcScimUserProvisioningTests() {
         pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+
         db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
+        PasswordEncoder encoder = new BCryptPasswordEncoder(4); // 4 mean as fast/weak as possible
+        db.setPasswordEncoder(encoder);
+
         zoneDb = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         providerDb = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
-        Map<String, String> replaceWith = new HashMap<String, String>();
+        Map<String, String> replaceWith = new HashMap<>();
         replaceWith.put("emails\\.value", "email");
         replaceWith.put("groups\\.display", "authorities");
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         db.setQueryConverter(filterConverter);
-        PasswordEncoder encoder = new BCryptPasswordEncoder(4); // 4 mean as fast/weak as possible
 
         existingUserCount = jdbcTemplate.queryForObject("select count(id) from users", Integer.class);
 

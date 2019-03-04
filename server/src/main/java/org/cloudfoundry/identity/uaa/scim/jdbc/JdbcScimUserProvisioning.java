@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.PasswordEncoderFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.dao.DuplicateKeyException;
@@ -109,7 +110,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     protected final JdbcTemplate jdbcTemplate;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private PasswordEncoder passwordEncoder = new PasswordEncoderFactory().get();
 
     private boolean deactivateOnDelete = true;
 
