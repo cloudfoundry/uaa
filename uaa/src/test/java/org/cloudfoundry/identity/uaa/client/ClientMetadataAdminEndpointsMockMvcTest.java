@@ -1,39 +1,20 @@
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
-import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -55,14 +36,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@DefaultTestContext
 public class ClientMetadataAdminEndpointsMockMvcTest {
-    @Rule
-    public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();
-
     @Autowired
     public WebApplicationContext webApplicationContext;
     private String adminClientTokenWithClientsWrite;
@@ -73,8 +48,8 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     private MockMvc mockMvc;
     private TestClient testClient;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
@@ -96,7 +71,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void getClientMetadata() throws Exception {
+    void getClientMetadata() throws Exception {
         String clientId = generator.generate();
 
         String marissaToken = getUserAccessToken(clientId);
@@ -113,7 +88,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void getClientMetadata_WhichDoesNotExist() throws Exception {
+    void getClientMetadata_WhichDoesNotExist() throws Exception {
         String clientId = generator.generate();
 
         MockHttpServletResponse response = getTestClientMetadata(clientId, adminClientTokenWithClientsRead);
@@ -122,7 +97,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void getAllClientMetadata() throws Exception {
+    void getAllClientMetadata() throws Exception {
         String clientId1 = generator.generate();
         String marissaToken = getUserAccessToken(clientId1);
 
@@ -161,14 +136,14 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void missingAcceptHeader_isOk() throws Exception {
+    void missingAcceptHeader_isOk() throws Exception {
         mockMvc.perform(get("/oauth/clients/meta")
                 .header("Authorization", "Bearer " + getUserAccessToken(generator.generate())))
                 .andExpect(status().isOk());
     }
 
     @Test
-    public void wrongAcceptHeader_isNotAcceptable() throws Exception {
+    void wrongAcceptHeader_isNotAcceptable() throws Exception {
         mockMvc.perform(get("/oauth/clients/meta")
                 .header("Authorization", "Bearer " + getUserAccessToken(generator.generate()))
                 .accept(TEXT_PLAIN))
@@ -176,7 +151,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void updateClientMetadata() throws Exception {
+    void updateClientMetadata() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -204,7 +179,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void updateClientMetadata_InsufficientScope() throws Exception {
+    void updateClientMetadata_InsufficientScope() throws Exception {
         String clientId = generator.generate();
         String marissaToken = getUserAccessToken(clientId);
 
@@ -224,7 +199,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void updateClientMetadata_WithNoClientIdInBody() throws Exception {
+    void updateClientMetadata_WithNoClientIdInBody() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -248,7 +223,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void updateClientMetadata_ForNonExistentClient() throws Exception {
+    void updateClientMetadata_ForNonExistentClient() throws Exception {
         String clientId = generator.generate();
 
         ClientMetadata clientMetadata = new ClientMetadata();
@@ -267,7 +242,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     @Test
-    public void updateClientMetadata_ClientIdMismatch() throws Exception {
+    void updateClientMetadata_ClientIdMismatch() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
