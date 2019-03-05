@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -136,7 +137,7 @@ public class SamlServiceProviderConfiguratorTest {
             assertEquals(1, spList.size());
             assertEquals(sp, spList.get(0).getSamlServiceProvider());
         } finally {
-            IdentityZoneHolder.set(IdentityZone.getUaa());
+            TestUtils.resetIdentityZoneHolder(null);
         }
     }
 

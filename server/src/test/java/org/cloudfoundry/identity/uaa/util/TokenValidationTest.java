@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -29,7 +30,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -108,6 +111,16 @@ public class TokenValidationTest {
     public void resetStdout() {
         System.setOut(systemOut);
         System.setErr(systemErr);
+    }
+
+    @BeforeClass
+    public static void beforeClass() {
+        TestUtils.resetIdentityZoneHolder(null);
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        TestUtils.resetIdentityZoneHolder(null);
     }
 
     @Rule
