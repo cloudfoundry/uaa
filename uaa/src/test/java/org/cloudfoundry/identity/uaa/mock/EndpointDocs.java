@@ -1,7 +1,10 @@
 package org.cloudfoundry.identity.uaa.mock;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.security.web.FilterChainProxy;
@@ -12,6 +15,8 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 
+@ExtendWith(JUnitRestDocumentationExtension.class)
+@DefaultTestContext
 public class EndpointDocs {
 
     @Autowired
