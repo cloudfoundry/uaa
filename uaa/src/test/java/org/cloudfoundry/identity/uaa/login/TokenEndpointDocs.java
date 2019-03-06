@@ -98,10 +98,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 public class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
