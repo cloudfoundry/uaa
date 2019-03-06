@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.lang.String.format;
-import static org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest.getWebApplicationContext;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -41,7 +40,7 @@ class UserIdConversionEndpointDocs extends EndpointDocs {
 
     @BeforeEach
     void setUp() throws Exception {
-        getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
+        webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(true);
 
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
                 "admin",
