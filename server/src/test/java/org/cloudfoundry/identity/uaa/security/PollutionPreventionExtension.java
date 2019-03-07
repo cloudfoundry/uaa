@@ -11,7 +11,7 @@ public class PollutionPreventionExtension implements AfterAllCallback, BeforeAll
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) {
-        TestUtils.resetIdentityZoneHolder(getApplicationContextOrNull(extensionContext));
+        TestUtils.restoreToDefaults(getApplicationContextOrNull(extensionContext));
     }
 
     @Override
