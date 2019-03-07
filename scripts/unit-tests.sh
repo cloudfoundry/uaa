@@ -16,7 +16,7 @@ cat <<EOF >>/etc/hosts
 127.0.0.1 testzoneinactive.localhost
 EOF
 
-bootDB "${DB}"
+bootDB "${DB}" # DB is set in the Dockerfile for each image
 
 pushd $(dirname $SCRIPT_DIR)
   /etc/init.d/slapd start
