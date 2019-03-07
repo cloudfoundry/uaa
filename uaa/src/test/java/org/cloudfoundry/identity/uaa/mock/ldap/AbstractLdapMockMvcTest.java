@@ -121,9 +121,8 @@ public abstract class AbstractLdapMockMvcTest {
     private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     private static final String REDIRECT_URI = "http://invitation.redirect.test";
 
-    private static int ldapPortRotation = 0;
+    private static int secondLdapServerPortRotation = 0;
     private static String defaultTrustStore;
-    private static ApacheDsSSLContainer apacheDS;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -145,6 +144,14 @@ public abstract class AbstractLdapMockMvcTest {
     private MockMvc getMockMvc() {
         return mockMvc;
     }
+
+    protected abstract void ensureLdapServerIsRunning() throws Exception;
+
+    protected abstract void stopLdapServer() throws Exception;
+
+    protected abstract int getLdapPort();
+
+    protected abstract int getLdapSPort();
 
     // Called by child classes. Allows this abstract parent class to act like a parameterized test.
     AbstractLdapMockMvcTest(String ldapProfile, String ldapGroup, String baseUrl, String tlsConfig) {
@@ -170,16 +177,6 @@ public abstract class AbstractLdapMockMvcTest {
         } else {
             System.clearProperty(JAVAX_NET_SSL_TRUST_STORE);
         }
-    }
-
-    @BeforeAll
-    static void startApacheDS() throws Exception {
-        apacheDS = ApacheDSHelper.start();
-    }
-
-    @AfterAll
-    static void stopApacheDS() {
-        apacheDS.stop();
     }
 
     @BeforeEach
@@ -214,6 +211,8 @@ public abstract class AbstractLdapMockMvcTest {
 
         listener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);
         configurableApplicationContext.addApplicationListener(listener);
+
+        ensureLdapServerIsRunning();
     }
 
     @AfterEach
@@ -461,7 +460,7 @@ public abstract class AbstractLdapMockMvcTest {
         String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
 
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:33389",
+                "ldap://localhost:" + getLdapPort(),
                 "cn=admin,ou=Users,dc=test,dc=com",
                 "adminsecret",
                 "dc=test,dc=com",
@@ -632,7 +631,7 @@ public abstract class AbstractLdapMockMvcTest {
 
         //SSL self signed cert problems
         definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldaps://localhost:33636",
+                "ldaps://localhost:" + getLdapSPort(),
                 "cn=admin,ou=Users,dc=test,dc=com",
                 "adminsecret",
                 "dc=test,dc=com",
@@ -885,34 +884,41 @@ public abstract class AbstractLdapMockMvcTest {
 
     @Test
     void testTwoLdapServers() throws Exception {
-        int port = 33389 + 400 + (ldapPortRotation++);
-        int sslPort = 33636 + 400 + (ldapPortRotation++);
-        ApacheDsSSLContainer apacheDS2 = ApacheDSHelper.start(port, sslPort);
+        // Setup second ldap server
+        int port = 33389 + 400 + (secondLdapServerPortRotation++);
+        int sslPort = 33636 + 400 + (secondLdapServerPortRotation++);
+
+        ApacheDsSSLContainer secondLdapServer = ApacheDSHelper.start(port, sslPort);
+
         String originalUrl = ldapBaseUrl;
         if (ldapBaseUrl.contains("ldap://")) {
             ldapBaseUrl = ldapBaseUrl + " ldap://localhost:" + port;
         } else {
             ldapBaseUrl = ldapBaseUrl + " ldaps://localhost:" + sslPort;
         }
+
         provider.getConfig().setBaseUrl(ldapBaseUrl);
         updateLdapProvider();
+
         try {
 
+            // Actually test it
             testSuccessfulLogin();
-            apacheDS.stop();
+            stopLdapServer();
+
             testSuccessfulLogin();
-            apacheDS2.stop();
+            stopLdapServer(secondLdapServer);
+
         } finally {
             ldapBaseUrl = originalUrl;
-            if (apacheDS.isRunning()) {
-                apacheDS.stop();
-            }
-            apacheDS = null;
-            if (apacheDS2.isRunning()) {
-                apacheDS2.stop();
-            }
-            Thread.sleep(1500);
-            apacheDS = ApacheDSHelper.start();
+            stopLdapServer();
+            stopLdapServer(secondLdapServer);
+        }
+    }
+
+    private void stopLdapServer(ApacheDsSSLContainer ldapServer) {
+        if (ldapServer.isRunning()) {
+            ldapServer.stop();
         }
     }
 
