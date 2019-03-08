@@ -913,6 +913,7 @@ public abstract class AbstractLdapMockMvcTest {
             ldapBaseUrl = originalUrl;
             stopLdapServer();
             stopLdapServer(secondLdapServer);
+            Thread.sleep(1500);
         }
     }
 
