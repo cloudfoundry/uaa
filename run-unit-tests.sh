@@ -8,17 +8,20 @@ GRADLE_LOCK_DIR='/root/uaa/.gradle/'
 
 case "$1" in
     hsqldb)
-        DB_IMAGE_NAME=postgresql
+        DB_IMAGE_NAME=postgresql # we don't have a container image for hsqldb, and can use any image
+        DB=hsqldb
         PROFILE_NAME=hsqldb
         ;;
 
     percona)
         DB_IMAGE_NAME=percona
+        DB=percona
         PROFILE_NAME=mysql
         ;;
 
     postgresql|sqlserver|mysql)
         DB_IMAGE_NAME=$1
+        DB=$1
         PROFILE_NAME=$1
         ;;
 
@@ -27,4 +30,4 @@ case "$1" in
         exit 1
 esac
 
-docker run --privileged -t -i --shm-size=1G  -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" -v "${GRADLE_LOCK_DIR}" "cfidentity/uaa-${DB_IMAGE_NAME}" /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
+docker run --privileged -t -i --shm-size=1G --env DB=${DB} -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" -v "${GRADLE_LOCK_DIR}" "cfidentity/uaa-${DB_IMAGE_NAME}" /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
