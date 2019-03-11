@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.util.StringUtils;
@@ -12,20 +14,21 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
-public class YamlServletProfileInitializerTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class YamlServletProfileInitializerTest {
 
     private static String systemConfiguredProfiles;
     private YamlServletProfileInitializer initializer;
     private MockEnvironment environment;
     private MockServletContext context;
 
-    @BeforeClass
-    public static void saveProfiles() {
+    @BeforeAll
+    static void saveProfiles() {
         systemConfiguredProfiles = System.getProperty("spring.profiles.active");
     }
 
-    @AfterClass
-    public static void restoreProfiles() {
+    @AfterAll
+    static void restoreProfiles() {
         if (systemConfiguredProfiles != null) {
             System.setProperty("spring.profiles.active", systemConfiguredProfiles);
         } else {
@@ -33,15 +36,15 @@ public class YamlServletProfileInitializerTest {
         }
     }
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         initializer = new YamlServletProfileInitializer();
         environment = new MockEnvironment();
         context = new MockServletContext();
     }
 
     @Test
-    public void tokenizeToStringArray_RemovesSpaces() {
+    void tokenizeToStringArray_RemovesSpaces() {
         String profileString = "    database    ,  ldap ";
         String[] profiles = StringUtils.tokenizeToStringArray(profileString, ",", true, true);
         assertThat(profiles.length, is(2));
@@ -55,21 +58,21 @@ public class YamlServletProfileInitializerTest {
     }
 
     @Test
-    public void ifNoProfilesAreSetUseHsqldb() {
+    void ifNoProfilesAreSetUseHsqldb() {
         System.clearProperty("spring.profiles.active");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
     }
 
     @Test
-    public void ifProfilesAreSetUseThem() {
+    void ifProfilesAreSetUseThem() {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
     }
 
     @Test
-    public void defaultProfileUnset() {
+    void defaultProfileUnset() {
         System.setProperty("spring.profiles.active", "hsqldb");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
@@ -77,7 +80,7 @@ public class YamlServletProfileInitializerTest {
     }
 
     @Test
-    public void yamlConfiguredProfilesAreUsed() {
+    void yamlConfiguredProfilesAreUsed() {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         environment.setProperty("spring_profiles", "mysql,default");
         initializer.applySpringProfiles(environment, context);
