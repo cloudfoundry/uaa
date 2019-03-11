@@ -1,7 +1,5 @@
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.cloudfoundry.identity.uaa.impl.config.SystemEnvironmentAccessor;
-import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
