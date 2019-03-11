@@ -29,7 +29,9 @@ import java.util.HashSet;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,7 +79,7 @@ class AntPathRedirectResolverTests {
             assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
             assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
         }
-        
+
         @Test
         void doesNotMatchDifferentProtocol() {
             assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
@@ -183,7 +185,7 @@ class AntPathRedirectResolverTests {
     @DisplayName("redirectMatches")
     class RedirectMatches {
 
-        private final String requestedRedirectHttp  = "http://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
+        private final String requestedRedirectHttp = "http://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
         private final String requestedRedirectHttps = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
 
         @Test
@@ -241,14 +243,6 @@ class AntPathRedirectResolverTests {
         }
 
         @Test
-        void matchesEverything() {
-            String clientRedirectUri = "**";
-
-            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
-        }
-
-        @Test
         void matchesSchemeWildcard() {
             String clientRedirectUri = "http*://subdomain.domain.com/**";
 
@@ -291,7 +285,7 @@ class AntPathRedirectResolverTests {
         }
 
         @Test
-        void redirect_Subdomain() {
+        void redirectSubdomain() {
             String clientRedirectUri = "http*://*.domain.com/path1/path2**";
 
             assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
@@ -303,6 +297,41 @@ class AntPathRedirectResolverTests {
             assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
         }
 
+        @Test
+        void redirectSupportsMultipleSubdomainWildcards() {
+            String clientRedirectUri = "http://*.*.domain.com/";
+            assertTrue(resolver.redirectMatches("http://sub1.sub2.domain.com/", clientRedirectUri));
+        }
+
+        @Test
+        void subdomainMatchingRejectsDomainRedirectOnWildcardSubdomain() {
+            String clientRedirectUri = "http://*.domain.com/";
+            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+        }
+
+        @Test
+        void subdomainMatchingRejectsDomainRedirectOnMultilevelWildcardSubdomain() {
+            String clientRedirectUri = "http://**.domain.com/";
+            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+        }
+
+        @Test
+        void subdomainMatchingRejectsDomainRedirectOnWildcardSuffixedSubdomain() {
+            String clientRedirectUri = "http://sub*.example.com";
+            assertFalse(resolver.redirectMatches("http://sub.other-domain.com?stuff.example.com", clientRedirectUri));
+        }
+
+        @Test
+        void subdomainMatchingDoesNotBlowUpWhenRequestedRedirectIsShorterThanConfiguredRedirect() {
+            String clientRedirectUri = "http://sub*.domain.com/";
+            assertFalse(resolver.redirectMatches("http://domain.com/", clientRedirectUri));
+        }
+
+        @Test
+        void subdomainMatchingOnWildcardSubdomainWithBasicAuth() {
+            String clientRedirectUri = "http://u:p@*.domain.com/";
+            assertTrue(resolver.redirectMatches("http://u:p@sub.domain.com/", clientRedirectUri));
+        }
     }
 
     @Nested
