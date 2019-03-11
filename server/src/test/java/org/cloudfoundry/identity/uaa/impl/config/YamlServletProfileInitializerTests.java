@@ -21,33 +21,30 @@ import java.util.Enumeration;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class YamlServletProfileInitializerTests {
 
-    private YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
+    private static String systemConfiguredProfiles;
 
-    private ConfigurableWebApplicationContext context = Mockito.mock(ConfigurableWebApplicationContext.class);
-
-    private StandardServletEnvironment environment = new StandardServletEnvironment();
-
-    private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-
-    private ServletContext servletContext = Mockito.mock(ServletContext.class);
-
-    private static String activeProfiles;
+    private YamlServletProfileInitializer initializer;
+    private ConfigurableWebApplicationContext context;
+    private StandardServletEnvironment environment;
+    private ServletConfig servletConfig;
+    private ServletContext servletContext;
 
     @BeforeAll
     static void saveProfiles() {
-        activeProfiles = System.getProperty("spring.profiles.active");
+        systemConfiguredProfiles = System.getProperty("spring.profiles.active");
     }
 
     @AfterAll
     static void restoreProfiles() {
-        if (activeProfiles != null) {
-            System.setProperty("spring.profiles.active", activeProfiles);
+        if (systemConfiguredProfiles != null) {
+            System.setProperty("spring.profiles.active", systemConfiguredProfiles);
         } else {
             System.clearProperty("spring.profiles.active");
         }
@@ -55,6 +52,12 @@ class YamlServletProfileInitializerTests {
 
     @BeforeEach
     void setup() {
+        initializer = new YamlServletProfileInitializer();
+        context = mock(ConfigurableWebApplicationContext.class);
+        environment = new StandardServletEnvironment();
+        servletConfig = mock(ServletConfig.class);
+        servletContext = mock(ServletContext.class);
+
         Mockito.when(servletConfig.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
         Mockito.when(servletContext.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
 
