@@ -41,7 +41,7 @@ public class YamlServletProfileInitializerTest {
     }
 
     @Test
-    public void tokenizeToStringArray_RemovesSpaces() throws Exception {
+    public void tokenizeToStringArray_RemovesSpaces() {
         String profileString = "    database    ,  ldap ";
         String[] profiles = StringUtils.tokenizeToStringArray(profileString, ",", true, true);
         assertThat(profiles.length, is(2));
@@ -58,21 +58,21 @@ public class YamlServletProfileInitializerTest {
     public void if_no_profiles_are_set_use_hsqldb() {
         System.clearProperty("spring.profiles.active");
         initializer.applySpringProfiles(environment, context);
-        assertArrayEquals(new String[] {"hsqldb"}, environment.getActiveProfiles());
+        assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
     }
 
     @Test
     public void if_profiles_are_set_use_them() {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         initializer.applySpringProfiles(environment, context);
-        assertArrayEquals(new String[] {"hsqldb", "default"}, environment.getActiveProfiles());
+        assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
     }
 
     @Test
     public void default_profile_unset() {
         System.setProperty("spring.profiles.active", "hsqldb");
         initializer.applySpringProfiles(environment, context);
-        assertArrayEquals(new String[] {"hsqldb"}, environment.getActiveProfiles());
+        assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
         assertArrayEquals(new String[0], environment.getDefaultProfiles());
     }
 
@@ -81,6 +81,6 @@ public class YamlServletProfileInitializerTest {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         environment.setProperty("spring_profiles", "mysql,default");
         initializer.applySpringProfiles(environment, context);
-        assertArrayEquals(new String[] {"mysql", "default"}, environment.getActiveProfiles());
+        assertArrayEquals(new String[]{"mysql", "default"}, environment.getActiveProfiles());
     }
 }
