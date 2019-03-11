@@ -148,24 +148,24 @@ class YamlServletProfileInitializerTests {
     void loadServletConfiguredResource() {
         Mockito.when(servletConfig.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
         Mockito.when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
-                new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+                new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-config".getBytes()));
 
         initializer.initialize(context);
 
         assertEquals("bar", environment.getProperty("foo"));
-        assertEquals("baz", environment.getProperty("spam.foo"));
+        assertEquals("baz-from-config", environment.getProperty("spam.foo"));
     }
 
     @Test
     void loadContextConfiguredResource() {
         Mockito.when(servletContext.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
         Mockito.when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
-                new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+                new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-context".getBytes()));
 
         initializer.initialize(context);
 
         assertEquals("bar", environment.getProperty("foo"));
-        assertEquals("baz", environment.getProperty("spam.foo"));
+        assertEquals("baz-from-context", environment.getProperty("spam.foo"));
     }
 
     @Test
