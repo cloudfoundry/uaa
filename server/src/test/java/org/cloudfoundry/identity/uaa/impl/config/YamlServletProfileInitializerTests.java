@@ -66,7 +66,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadDefaultResource() {
-
         Mockito.when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -74,12 +73,10 @@ class YamlServletProfileInitializerTests {
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
-
     }
 
     @Test
     void loadSessionEventPublisher() {
-
         Mockito.when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -92,7 +89,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void activeProfiles() {
-
         System.setProperty("spring.profiles.active", "foo");
 
         Mockito.when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
@@ -105,7 +101,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void activeProfilesFromYaml() {
-
         Mockito.when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
@@ -139,7 +134,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadServletConfiguredFilename() {
-
         Mockito.when(servletConfig.getInitParameter("APPLICATION_CONFIG_FILE")).thenReturn("/config/path/foo.yml");
         Mockito.when(context.getResource(ArgumentMatchers.eq("file:/config/path/foo.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -152,7 +146,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadServletConfiguredResource() {
-
         Mockito.when(servletConfig.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
         Mockito.when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -165,7 +158,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadContextConfiguredResource() {
-
         Mockito.when(servletContext.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
         Mockito.when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -178,7 +170,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadReplacedResource() {
-
         System.setProperty("APPLICATION_CONFIG_URL", "file:foo/uaa.yml");
 
         Mockito.when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
@@ -192,7 +183,6 @@ class YamlServletProfileInitializerTests {
 
     @Test
     void loadReplacedResourceFromFileLocation() {
-
         System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
 
         Mockito.when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
