@@ -55,21 +55,21 @@ public class YamlServletProfileInitializerTest {
     }
 
     @Test
-    public void if_no_profiles_are_set_use_hsqldb() {
+    public void ifNoProfilesAreSetUseHsqldb() {
         System.clearProperty("spring.profiles.active");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
     }
 
     @Test
-    public void if_profiles_are_set_use_them() {
+    public void ifProfilesAreSetUseThem() {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
     }
 
     @Test
-    public void default_profile_unset() {
+    public void defaultProfileUnset() {
         System.setProperty("spring.profiles.active", "hsqldb");
         initializer.applySpringProfiles(environment, context);
         assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
@@ -77,7 +77,7 @@ public class YamlServletProfileInitializerTest {
     }
 
     @Test
-    public void yaml_configured_profiles_are_used() {
+    public void yamlConfiguredProfilesAreUsed() {
         System.setProperty("spring.profiles.active", "hsqldb,default");
         environment.setProperty("spring_profiles", "mysql,default");
         initializer.applySpringProfiles(environment, context);
