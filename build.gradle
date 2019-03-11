@@ -49,7 +49,7 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
-        maven { url 'http://repository.mulesoft.org/releases/' }
+        maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
