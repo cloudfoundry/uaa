@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
@@ -20,35 +22,18 @@ import javax.servlet.ServletContext;
 import java.util.Enumeration;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(SpringProfileCleanupExtension.class)
 class YamlServletProfileInitializerTests {
-
-    private static String systemConfiguredProfiles;
 
     private YamlServletProfileInitializer initializer;
     private ConfigurableWebApplicationContext context;
     private StandardServletEnvironment environment;
     private ServletConfig servletConfig;
     private ServletContext servletContext;
-
-    @BeforeAll
-    static void saveProfiles() {
-        systemConfiguredProfiles = System.getProperty("spring.profiles.active");
-    }
-
-    @AfterAll
-    static void restoreProfiles() {
-        if (systemConfiguredProfiles != null) {
-            System.setProperty("spring.profiles.active", systemConfiguredProfiles);
-        } else {
-            System.clearProperty("spring.profiles.active");
-        }
-    }
 
     @BeforeEach
     void setup() {

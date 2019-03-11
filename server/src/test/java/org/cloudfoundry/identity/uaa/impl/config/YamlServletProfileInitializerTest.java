@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,26 +13,12 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(SpringProfileCleanupExtension.class)
 class YamlServletProfileInitializerTest {
 
-    private static String systemConfiguredProfiles;
     private YamlServletProfileInitializer initializer;
     private MockEnvironment environment;
     private MockServletContext context;
-
-    @BeforeAll
-    static void saveProfiles() {
-        systemConfiguredProfiles = System.getProperty("spring.profiles.active");
-    }
-
-    @AfterAll
-    static void restoreProfiles() {
-        if (systemConfiguredProfiles != null) {
-            System.setProperty("spring.profiles.active", systemConfiguredProfiles);
-        } else {
-            System.clearProperty("spring.profiles.active");
-        }
-    }
 
     @BeforeEach
     void setup() {
