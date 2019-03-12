@@ -13,7 +13,6 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
-import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
@@ -27,6 +26,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)
+@ExtendWith(LoggerContextCleanupExtension.class)
 class YamlServletProfileInitializerTests {
 
     private YamlServletProfileInitializer initializer;
@@ -57,11 +57,10 @@ class YamlServletProfileInitializerTests {
     }
 
     @AfterEach
-    void cleanup() throws Exception {
+    void cleanup() {
         System.clearProperty("APPLICATION_CONFIG_URL");
         System.clearProperty("LOG_FILE");
         System.clearProperty("LOG_PATH");
-        Log4jConfigurer.initLogging("classpath:log4j.properties");
     }
 
     @Test
