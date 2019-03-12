@@ -38,32 +38,32 @@ import static java.util.Optional.ofNullable;
 public class AntPathRedirectResolver extends DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(AntPathRedirectResolver.class);
 
-    // The URI spec provides a regex for matching URI parts
-    // https://tools.ietf.org/html/rfc3986#appendix-B
-    private static final Pattern URI_EXTRACTOR =
-            Pattern.compile("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
-
-    private static final int URI_EXTRACTOR_AUTHORITY_GROUP = 4; // "Authority" means "user:password@example.com"
-
-    private static String[] splitAndReverseHostName(String host) {
-        String[] parts = host.split("\\.");
-        ArrayUtils.reverse(parts); // supports comparison of tld, host, and subdomains in that order
-
-        return parts;
-    }
-
     @Override
-    protected boolean redirectMatches(String requestedRedirect, String redirectPattern) {
-        AntPathMatcher matcher = new AntPathMatcher();
+    protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
+        try {
+            URI requestedRedirectURI = URI.create(requestedRedirect);
+            ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(clientRedirect);
 
-        if (redirectPattern != null &&
-                isWildcard(redirectPattern) &&
-                isSafeRedirect(requestedRedirect, redirectPattern) &&
-                matcher.match(redirectPattern, requestedRedirect)) {
-            return true;
+            if (!clientRedirectUri.isValidRedirect()) {
+                logger.error(String.format("Invalid redirect uri: %s", clientRedirect));
+                return false;
+            }
+
+            if (clientRedirectUri.isWildcard(clientRedirect) &&
+                    clientRedirectUri.isSafeRedirect(requestedRedirectURI) &&
+                    clientRedirectUri.match(requestedRedirectURI)) {
+                return true;
+            }
+
+            return super.redirectMatches(requestedRedirect, clientRedirect);
+        } catch (IllegalArgumentException e) {
+            logger.error(
+                    String.format("Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)",
+                            requestedRedirect,
+                            clientRedirect),
+                    e);
+            return false;
         }
-
-        return super.redirectMatches(requestedRedirect, redirectPattern);
     }
 
     @Override
@@ -85,49 +85,78 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
         return super.resolveRedirect(requestedRedirect, client);
     }
 
-    private boolean isSafeRedirect(String requestedRedirect, String configuredRedirectPattern) {
-        Matcher redirectMatch = URI_EXTRACTOR.matcher(configuredRedirectPattern);
-        if (!redirectMatch.matches()) {
-            logger.error(String.format("Invalid redirect uri: %s", configuredRedirectPattern));
-            return false;
-        }
 
-        String configuredRedirectAuthority = redirectMatch.group(URI_EXTRACTOR_AUTHORITY_GROUP);
+    private static class ClientRedirectUriPattern {
+        // The URI spec provides a regex for matching URI parts
+        // https://tools.ietf.org/html/rfc3986#appendix-B
+        private static final Pattern URI_EXTRACTOR =
+                Pattern.compile("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
 
-        URI requestedRedirectURI;
-        try {
-            requestedRedirectURI = URI.create(requestedRedirect);
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        private static final int URI_EXTRACTOR_AUTHORITY_GROUP = 4; // "Authority" means "user:password@example.com"
 
-        String[] configuredRedirectHost = splitAndReverseHostName(extractHost(configuredRedirectAuthority));
-        String[] requestedRedirectHost = splitAndReverseHostName(requestedRedirectURI.getHost());
+        private Matcher redirectMatcher;
+        private boolean isValidRedirect = true;
+        private AntPathMatcher matcher;
+        private String redirectUri;
 
-        if (requestedRedirectHost.length < configuredRedirectHost.length) {
-            return false;
-        }
-
-        boolean isSafe = true;
-        for (int i = 0; i < configuredRedirectHost.length; i++) {
-            if (configuredRedirectHost[i].equals("*")) {
-                break;
+        ClientRedirectUriPattern(String redirectUri) {
+            if (redirectUri == null) {
+                throw new IllegalArgumentException("Client Redirect URI was null");
             }
 
-            isSafe = isSafe && configuredRedirectHost[i].equals(requestedRedirectHost[i]);
+            this.redirectUri = redirectUri;
+            matcher = new AntPathMatcher();
+            this.redirectMatcher = URI_EXTRACTOR.matcher(redirectUri);
+            if (!redirectMatcher.matches()) {
+                isValidRedirect = false;
+            }
         }
 
-        return isSafe;
-    }
+        boolean isSafeRedirect(URI requestedRedirect) {
+            // We iterate backwards through the hosts to make sure the TLD and domain match
+            String[] configuredRedirectHost = splitAndReverseHost(getHost());
+            String[] requestedRedirectHost = splitAndReverseHost(requestedRedirect.getHost());
 
-    private String extractHost(String authority) {
-        if (authority.contains("@")) {
-            return authority.split("@")[1];
+            if (requestedRedirectHost.length < configuredRedirectHost.length) {
+                return false;
+            }
+
+            boolean isSafe = true;
+            for (int i = 0; i < configuredRedirectHost.length && !isWildcard(configuredRedirectHost[i]); i++) {
+                isSafe = isSafe && configuredRedirectHost[i].equals(requestedRedirectHost[i]);
+            }
+
+            return isSafe;
         }
-        return authority;
-    }
 
-    private boolean isWildcard(String configuredRedirectPattern) {
-        return configuredRedirectPattern.contains("*");
+        boolean isValidRedirect() {
+            return isValidRedirect;
+        }
+
+        boolean match(URI requestedRedirect) {
+            return matcher.match(redirectUri, requestedRedirect.toString());
+        }
+
+        private boolean isWildcard(String configuredRedirectPattern) {
+            return configuredRedirectPattern.contains("*");
+        }
+
+        private String getHost() {
+            String authority = redirectMatcher.group(URI_EXTRACTOR_AUTHORITY_GROUP);
+            return extractHost(authority);
+        }
+
+        private String extractHost(String authority) {
+            if (authority.contains("@")) {
+                return authority.split("@")[1];
+            }
+            return authority;
+        }
+
+        private static String[] splitAndReverseHost(String host) {
+            String[] parts = host.split("\\.");
+            ArrayUtils.reverse(parts);
+            return parts;
+        }
     }
 }
