@@ -6,15 +6,17 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class SpringProfileCleanupExtension implements BeforeAllCallback, AfterAllCallback {
 
-    private static String activeSpringProfiles;
-
     @Override
     public void beforeAll(ExtensionContext context) {
-        activeSpringProfiles = System.getProperty("spring.profiles.active");
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+        store.put("spring.profiles.active", System.getProperty("spring.profiles.active"));
     }
 
     @Override
     public void afterAll(ExtensionContext context) {
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+        String activeSpringProfiles = store.get("spring.profiles.active", String.class);
+
         if (activeSpringProfiles != null) {
             System.setProperty("spring.profiles.active", activeSpringProfiles);
         } else {

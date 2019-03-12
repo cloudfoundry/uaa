@@ -10,16 +10,19 @@ import java.net.URI;
 
 public class LoggerContextCleanupExtension implements BeforeAllCallback, AfterAllCallback {
 
-    private URI configLocation = null;
-
     @Override
     public void beforeAll(ExtensionContext context) {
         LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-        configLocation = loggerContext.getConfigLocation();
+
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+        store.put("configLocation", loggerContext.getConfigLocation());
     }
 
     @Override
     public void afterAll(ExtensionContext context) {
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+        URI configLocation = store.get("configLocation", URI.class);
+
         LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
         loggerContext.setConfigLocation(configLocation);
     }
