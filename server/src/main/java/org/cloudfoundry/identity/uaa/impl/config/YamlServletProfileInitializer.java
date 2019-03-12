@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.apache.log4j.MDC;
@@ -34,7 +22,6 @@ import org.yaml.snakeyaml.Yaml;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.FileNotFoundException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
@@ -60,12 +47,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private static final String PROFILE_CONFIG_FILE_DEFAULT = "environmentConfigDefaults";
 
-    public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[]{"${APPLICATION_CONFIG_URL}",
+    private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[]{
+            "${APPLICATION_CONFIG_URL}",
             "file:${APPLICATION_CONFIG_FILE}"};
 
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
-
-    private String rawYamlKey = DEFAULT_YAML_KEY;
 
     private String yamlEnvironmentVariableName = "UAA_CONFIG_YAML";
 
@@ -98,7 +84,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             }
         }
 
-
         resources.addAll(getResource(servletContext, applicationContext, locations));
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
@@ -121,7 +106,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
             Map<String, Object> map = factory.getObject();
             String yamlStr = (new Yaml()).dump(map);
-            map.put(rawYamlKey, yamlStr);
+            map.put(DEFAULT_YAML_KEY, yamlStr);
             NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
             applicationContext.getEnvironment().getPropertySources().addLast(properties);
             applySpringProfiles(applicationContext.getEnvironment(), servletContext);
@@ -130,12 +115,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         } catch (Exception e) {
             servletContext.log("Error loading YAML environment properties from location: " + resources.toString(), e);
         }
-
     }
 
-    protected Resource getYamlFromEnvironmentVariable() {
-        if (getEnvironmentAccessor() != null) {
-            String data = getEnvironmentAccessor().getEnvironmentVariable(getYamlEnvironmentVariableName());
+    private Resource getYamlFromEnvironmentVariable() {
+        if (environmentAccessor != null) {
+            String data = environmentAccessor.getEnvironmentVariable(getYamlEnvironmentVariableName());
             if (hasText(data)) {
                 //validate the Yaml? We don't do that for the others
                 return new InMemoryResource(data);
@@ -206,7 +190,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         MDC.put("context", servletContext.getContextPath()); //TODO: why? should we still be using this?
     }
 
-    protected void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
+    void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
         String systemProfiles = System.getProperty("spring.profiles.active");
         environment.setDefaultProfiles(new String[0]);
         if (environment.containsProperty("spring_profiles")) {
@@ -222,19 +206,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
     }
 
-    public String getYamlEnvironmentVariableName() {
+    String getYamlEnvironmentVariableName() {
         return yamlEnvironmentVariableName;
     }
 
-    public void setYamlEnvironmentVariableName(String yamlEnvironmentVariableName) {
+    void setYamlEnvironmentVariableName(String yamlEnvironmentVariableName) {
         this.yamlEnvironmentVariableName = yamlEnvironmentVariableName;
     }
 
-    public SystemEnvironmentAccessor getEnvironmentAccessor() {
-        return environmentAccessor;
-    }
-
-    public void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {
+    void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {
         this.environmentAccessor = environmentAccessor;
     }
 }
