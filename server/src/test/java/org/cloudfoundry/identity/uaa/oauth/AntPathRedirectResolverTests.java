@@ -332,6 +332,12 @@ class AntPathRedirectResolverTests {
             String clientRedirectUri = "http://u:p@*.domain.com/";
             assertTrue(resolver.redirectMatches("http://u:p@sub.domain.com/", clientRedirectUri));
         }
+
+        @Test
+        void matchesHostsWithPort() {
+            String clientRedirectUri = "http://*.domain.com:8080/";
+            assertTrue(resolver.redirectMatches("http://any.domain.com:8080/", clientRedirectUri));
+        }
     }
 
     @Nested

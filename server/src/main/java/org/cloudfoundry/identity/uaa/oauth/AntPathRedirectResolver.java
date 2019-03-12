@@ -143,14 +143,21 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
 
         private String getHost() {
             String authority = redirectMatcher.group(URI_EXTRACTOR_AUTHORITY_GROUP);
-            return extractHost(authority);
+            return stripPort(stripAuthority(authority));
         }
 
-        private String extractHost(String authority) {
+        private String stripAuthority(String authority) {
             if (authority.contains("@")) {
                 return authority.split("@")[1];
             }
             return authority;
+        }
+
+        private String stripPort(String hostAndPort) {
+            if (hostAndPort.contains(":")) {
+                return hostAndPort.split(":")[0];
+            }
+            return hostAndPort;
         }
 
         private static String[] splitAndReverseHost(String host) {
