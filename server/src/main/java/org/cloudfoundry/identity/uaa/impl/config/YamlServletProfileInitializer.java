@@ -145,18 +145,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     }
 
     private void applyLog4jConfiguration(ConfigurableEnvironment environment, ServletContext servletContext) {
+        String log4jConfigLocation = "classpath:log4j2.properties";
 
-        String log4jConfigLocation = "classpath:log4j.properties";
-
-        if (environment.containsProperty("logging.file")) {
-            String location = environment.getProperty("logging.file");
-            servletContext.log("Setting LOG_FILE: " + location);
-            System.setProperty("LOG_FILE", location);
-        } else if (environment.containsProperty("logging.path")) {
-            String location = environment.getProperty("logging.path");
-            servletContext.log("Setting LOG_PATH: " + location);
-            System.setProperty("LOG_PATH", location);
-        } else if (environment.containsProperty("logging.config")) {
+        if (environment.containsProperty("logging.config")) {
             //tomcat sets the LOGGING_CONFIG environment variable,
             //we do not want that variable
             //this variable starts with -D, so we can ignore it.
