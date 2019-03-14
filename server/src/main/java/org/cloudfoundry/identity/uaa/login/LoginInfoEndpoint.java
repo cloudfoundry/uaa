@@ -479,7 +479,7 @@ public class LoginInfoEndpoint {
                     return "idp_discovery/account_chooser";
                 }
 
-                if (!discoveryPerformed && !loginHintParam.isPresent()) {
+                if (!discoveryPerformed && !loginHintParam.isPresent() && !combinedIdps.isEmpty()) {
                     return "idp_discovery/email";
                 }
 
