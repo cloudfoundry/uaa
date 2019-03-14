@@ -26,6 +26,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import java.util.Collections;
 import java.util.HashSet;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -338,6 +339,12 @@ class AntPathRedirectResolverTests {
             String clientRedirectUri = "http://*.domain.com:8080/";
             assertTrue(resolver.redirectMatches("http://any.domain.com:8080/", clientRedirectUri));
         }
+
+        @Test
+        void subdomainMatchingRejectsDomainRedirectOnAntPathVariableSubdomain() {
+            String clientRedirectUri = "http://{foo:.*}.domain.com/";
+            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+        }
     }
 
     @Nested
@@ -353,14 +360,6 @@ class AntPathRedirectResolverTests {
         }
 
         @Test
-        void clientWithValidRedirectUri_shouldResolve() {
-            when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://uaa.com"));
-
-            String resolvedRedirect = resolver.resolveRedirect("http://uaa.com", mockClientDetails);
-            assertThat(resolvedRedirect, equalTo("http://uaa.com"));
-        }
-
-        @Test
         void clientMissingRedirectUri() {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(new HashSet<>());
 
@@ -372,13 +371,271 @@ class AntPathRedirectResolverTests {
 
         @Test
         void clientWithInvalidRedirectUri() {
-            when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton("*, */*"));
+            final String invalidRedirectUri = "*, */*";
+            mockRegisteredRedirectUri(invalidRedirectUri);
 
             RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
                     () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails));
 
             assertThat(exception.getMessage(), containsString("Client registration contains invalid redirect_uri"));
-            assertThat(exception.getMessage(), containsString("*, */*"));
+            assertThat(exception.getMessage(), containsString(invalidRedirectUri));
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasNoWildcardsAndDoesNotEndInSlash() {
+            mockRegisteredRedirectUri("http://uaa.com");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com");
+            assertResolveRedirectReturnsSameUrl("http://user:pass@uaa.com");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234");
+            assertResolveRedirectReturnsSameUrl("http://subdomain.uaa.com");
+            assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.subdomain3.uaa.com");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar#fragment");
+
+            assertResolveRedirectThrows________("http://uaa.com:8080");
+            assertResolveRedirectThrows________("https://uaa.com");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasPortAndHasNoWildcardsAndDoesNotEndInSlash() {
+            mockRegisteredRedirectUri("http://uaa.com:8080");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080");
+            assertResolveRedirectReturnsSameUrl("http://user:pass@uaa.com:8080");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080/xyz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080/xyz/abc/1234");
+            assertResolveRedirectReturnsSameUrl("http://subdomain.uaa.com:8080");
+            assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.subdomain3.uaa.com:8080");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080/xyz?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080/xyz?foo=bar#fragment");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com:8080");
+
+            assertResolveRedirectThrows________("http://uaa.com:8081");
+            assertResolveRedirectThrows________("https://uaa.com:8080");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasNoWildcardsAndDoesEndInSlash() {
+            mockRegisteredRedirectUri("http://uaa.com/");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://user:pass@uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234");
+            assertResolveRedirectReturnsSameUrl("http://subdomain.uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.subdomain3.uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar#fragment");
+
+            assertResolveRedirectThrows________("http://uaa.com:8080");
+            assertResolveRedirectThrows________("http://uaa.com");
+            assertResolveRedirectThrows________("http://uaa.com?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com#foo");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.uaa.com");
+            assertResolveRedirectThrows________("https://uaa.com");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasWildcardsOrDoubleWildcardsInTheSubdomainAndDoesNotEndInSlash() {
+            for (String uriPattern : newArrayList("http://*.uaa.com", "http://**.uaa.com")) {
+                mockRegisteredRedirectUri(uriPattern);
+
+                assertResolveRedirectReturnsSameUrl("http://subdomain.uaa.com");
+                assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.uaa.com");
+                assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.subdomain3.uaa.com");
+                assertResolveRedirectReturnsSameUrl("http://user:pass@subdomain.uaa.com");
+
+                assertResolveRedirectThrows________("http://subdomain.evil.com/domain.uaa.com");
+                assertResolveRedirectThrows________("http://evil.com/domain.uaa.com");
+                assertResolveRedirectThrows________("http://evil.com/uaa.com");
+
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/xyz");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/xyz/abc/1234");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/xyz?foo=bar");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/?foo=bar");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com?foo=bar");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/xyz?foo=bar#fragment");
+
+                assertResolveRedirectThrows________("http://subdomain.uaa.com:8080");
+                assertResolveRedirectThrows________("http://uaa.com");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com#foo");
+                assertResolveRedirectThrows________("http://subdomain.uaa.com/");
+                assertResolveRedirectThrows________("https://subdomain.uaa.com");
+            }
+
+            for (String uriPattern : newArrayList("http://sub*.uaa.com", "http://sub**.uaa.com")) {
+                mockRegisteredRedirectUri(uriPattern);
+
+                assertResolveRedirectReturnsSameUrl("http://subdomain.uaa.com");
+                assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.uaa.com");
+                assertResolveRedirectReturnsSameUrl("http://subdomain1.subdomain2.subdomain3.uaa.com");
+                assertResolveRedirectThrows________("http://user:pass@subdomain.uaa.com");
+            }
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasWildcardAsThePath() {
+            mockRegisteredRedirectUri("http://uaa.com/*");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar#fragment");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/#fragment");
+
+            assertResolveRedirectThrows________("http://uaa.com");
+            assertResolveRedirectThrows________("http://user:pass@uaa.com");
+            assertResolveRedirectThrows________("http://uaa.com/xyz/abc/1234");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com/");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.subdomain3.uaa.com/");
+            assertResolveRedirectThrows________("http://uaa.com:8080");
+            assertResolveRedirectThrows________("http://uaa.com?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com#foo");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.uaa.com");
+            assertResolveRedirectThrows________("https://uaa.com");
+            assertResolveRedirectThrows________("https://uaa.com/");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasWildcardInThePath() {
+            mockRegisteredRedirectUri("http://uaa.com/a/*/b");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/zzz/b?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com/a/zzz/b#fragment");
+            assertResolveRedirectThrows________("http://uaa.com/a/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/xyz");
+            assertResolveRedirectThrows________("http://uaa.com");
+            assertResolveRedirectThrows________("http://user:pass@uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.subdomain3.uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://uaa.com:8080/a/zzz/b");
+            assertResolveRedirectThrows________("https://uaa.com/a/zzz/b");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/z*z/b");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxxxxz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/z?foo=baz/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/z/z/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/b?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/b#foo");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/z*z/b*c");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zz/bc");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxz/bxc");
+            assertResolveRedirectThrows________("http://uaa.com/a/zz/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/bxc?foo=bar");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/b*");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/bzzz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b#foo");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c?foo=bar");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasDoubleWildcardAsThePath() {
+            mockRegisteredRedirectUri("http://uaa.com/**");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz?foo=bar#fragment");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/#fragment");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234?foo=bar#fragment");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/xyz/abc/1234#fragment");
+
+            assertResolveRedirectThrows________("http://user:pass@uaa.com");
+            assertResolveRedirectThrows________("http://user:pass@uaa.com/");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com/");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.subdomain3.uaa.com/");
+            assertResolveRedirectThrows________("http://uaa.com:8080");
+            assertResolveRedirectThrows________("http://uaa.com:8080/");
+            assertResolveRedirectThrows________("http://uaa.com?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com#foo");
+            assertResolveRedirectThrows________("https://uaa.com");
+            assertResolveRedirectThrows________("https://uaa.com/");
+        }
+
+        @Test
+        void testResolveClientWithUrlWhichHasDoubleWildcardInThePath() {
+            // note that this case works as you might expect, but the other cases below work as if you had used a single '*'
+            mockRegisteredRedirectUri("http://uaa.com/a/**/b");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zzz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/c/d/e/f/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/zzz/b?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com/a/zzz/b#fragment");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/xyz");
+            assertResolveRedirectThrows________("http://uaa.com");
+            assertResolveRedirectThrows________("http://user:pass@uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://subdomain.uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://subdomain1.subdomain2.subdomain3.uaa.com/a/zzz/b");
+            assertResolveRedirectThrows________("http://uaa.com:8080/a/zzz/b");
+            assertResolveRedirectThrows________("https://uaa.com/a/zzz/b");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/z**z/b");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxxxxz/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/z?foo=baz/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/z/x/z/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxx/xx/xxz/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/z/z/b");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/b?foo=bar");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/b#foo");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/z**z/b**c");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zz/bc");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/zxz/bxc");
+            assertResolveRedirectThrows________("http://uaa.com/a/z/x/z/b/x/c");
+            assertResolveRedirectThrows________("http://uaa.com/a/zz/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/a/zxz/bxc?foo=bar");
+
+            mockRegisteredRedirectUri("http://uaa.com/a/b**");
+
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/bzzz");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b?foo=bar");
+            assertResolveRedirectReturnsSameUrl("http://uaa.com/a/b#foo");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c");
+            assertResolveRedirectThrows________("http://uaa.com/a/b/c?foo=bar");
+        }
+
+        private void mockRegisteredRedirectUri(String allowedRedirectUri) {
+            when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton(allowedRedirectUri));
+        }
+
+        private void assertResolveRedirectReturnsSameUrl(String requestedRedirect) {
+            assertThat(resolver.resolveRedirect(requestedRedirect, mockClientDetails), equalTo(requestedRedirect));
+        }
+
+        private void assertResolveRedirectThrows________(String requestedRedirect) {
+            assertThrows(RedirectMismatchException.class, () -> resolver.resolveRedirect(requestedRedirect, mockClientDetails));
         }
 
     }
