@@ -15,11 +15,13 @@ package org.cloudfoundry.identity.uaa.audit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * through the logger.
  * <p>
  * Also accumulates count data for exposure through /varz
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -37,6 +39,13 @@ import java.util.concurrent.atomic.AtomicInteger;
     description = "UAA Audit Metrics"
 )
 public class LoggingAuditService implements UaaAuditService {
+
+    // NOTE:
+    //   While it's preferable to use the more natural @Value("${AUDIT_EVENT_TYPES_DEBUG:#{null}}") SpEL expression,
+    //   that requires creating a ConversionService bean which unfortunately breaks other functionality. Hence we resort
+    //   to a SpEL expression that explicitly converts the comma-separated string to a Java Collection.
+    @Value("#{'${AUDIT_EVENT_TYPES_DEBUG:}'.split(',')}")
+    private Set<String> debugOnlyAuditEventTypes;
 
     private Log logger = LogFactory.getLog(LoggingAuditService.class);
 
@@ -111,8 +120,14 @@ public class LoggingAuditService implements UaaAuditService {
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
-        log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s], authenticationType=[%s]", auditEvent.getType().name(), auditEvent.getData(),
-                        auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId(), auditEvent.getAuthenticationType()));
+        logAuditMessage(auditEvent,
+                        String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s], authenticationType=[%s]",
+                                      auditEvent.getType().name(),
+                                      auditEvent.getData(),
+                                      auditEvent.getPrincipalId(),
+                                      auditEvent.getOrigin(),
+                                      auditEvent.getIdentityZoneId(),
+                                      auditEvent.getAuthenticationType()));
     }
 
     private void updateCounters(AuditEvent auditEvent) {
@@ -149,7 +164,7 @@ public class LoggingAuditService implements UaaAuditService {
         }
     }
 
-    private void log(String msg) {
+    private void logAuditMessage(AuditEvent auditEvent, String msg) {
         String sanitized = LogSanitizerUtil.sanitize(msg);
 
         if (logger.isTraceEnabled()) {
@@ -159,12 +174,12 @@ public class LoggingAuditService implements UaaAuditService {
             output.append("\n\n************************************************************\n");
             logger.trace(output.toString());
         }
+        else if (debugOnlyAuditEventTypes != null &&
+                 debugOnlyAuditEventTypes.stream().anyMatch(auditEvent.getType().name()::equalsIgnoreCase)) {
+            logger.debug(sanitized);
+        }
         else {
             logger.info(sanitized);
         }
-    }
-
-    public void setLogger(Log logger) {
-        this.logger = logger;
     }
 }
