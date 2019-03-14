@@ -105,6 +105,7 @@ import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
@@ -2278,11 +2279,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void idpDiscoveryPageDisplayed_IfFlagIsEnabled() throws Exception {
+    public void idpDiscoveryPageDisplayed_IfFlagIsEnabled_AndAtLeastOneIdpConfigured() throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         IdentityZone zone = setupZone(config);
+        String originKey =  generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
         getMockMvc().perform(get("/login")
+                .session(session)
                 .header("Accept", TEXT_HTML)
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
@@ -2307,6 +2312,34 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void idpDiscoveryPageNotDisplayed_IfClientOnlyHasUAAProvider() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZone(config);
+
+        MockHttpSession session = new MockHttpSession();
+        createOIDCProvider(zone, "code");
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        MockMvcUtils.createClient(getWebApplicationContext(), client, zone);
+
+        SavedRequest savedRequest = getSavedRequest(client);
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+
+        getMockMvc().perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/password"))
+                .andExpect(xpath("//input[@name='username']").exists())
+                .andExpect(xpath("//input[@name='password']").exists())
+                .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
+    }
+
+    @Test
     public void idpDiscoveryClientNameDisplayed_WithUTF8Characters() throws Exception {
         String utf8String = "\u7433\u8D3A";
         String clientName = "woohoo-"+utf8String;
@@ -2315,6 +2348,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = setupZone(config);
 
         MockHttpSession session = new MockHttpSession();
+        createOIDCProvider(zone, "code");
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
@@ -2344,6 +2378,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone zone = setupZone(config);
 
         MockHttpSession session = new MockHttpSession();
+        String originKey = createOIDCProvider(zone, "code");
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
