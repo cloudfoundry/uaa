@@ -229,7 +229,7 @@ public class SamlLoginAT {
 
         HttpEntity postHeaders = new HttpEntity(provider, headers);
         ResponseEntity<String> providerPost = client.exchange(
-                url + "/identity-providers/{id}",
+                url + "/identity-providers",
                 HttpMethod.POST,
                 postHeaders,
                 String.class,

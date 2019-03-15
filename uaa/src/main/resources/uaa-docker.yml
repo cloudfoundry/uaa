@@ -1,0 +1,611 @@
+# Configuration in this file ixs overridden by an external file
+# if any of these exist:
+# [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
+
+#spring_profiles: postgresql,default
+#spring_profiles: ldap,default,hsqldb
+#spring_profiles: saml
+#spring_profiles: keystone,default,hsqldb
+
+#database:
+#  driverClassName: org.postgresql.Driver
+#  url: jdbc:postgresql:uaa
+#  username: pivotal
+#  password:
+#  maxactive: 100
+#  maxidle: 10
+#  minidle: 3
+#  removeabandoned: false
+#  logabandoned: true
+#  abandonedtimeout: 300
+#  evictionintervalms: 15000
+#  caseinsensitive: false
+
+#note - this is not the place to set these properties
+# - they are just here for documentation purposes
+#database.driverClassName: org.postgresql.Driver
+#database.url: jdbc:postgresql:uaa
+#database.username: root
+#database.password: changeme
+
+#MS SQL Server Install https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-setup-ubuntu
+#sqlserver commands are (first command is to allow contained user authentication for a DB
+#sp_configure 'contained database authentication', 1
+#go
+#RECONFIGURE
+#go
+#CREATE DATABASE uaa CONTAINMENT = PARTIAL;
+#go
+#USE uaa;
+#go
+#CREATE USER root WITH PASSWORD = 'changemeCHANGEME1234!';
+#go
+#EXEC sp_addrolemember N'db_owner', N'root';
+#go
+
+
+#postgresql commands that were run were
+#create database uaa;
+#create user root with superuser password 'changeme';
+
+# A comprehensive list of hostnames routed to the UAA default zone. The UAA uses this to resolve subdomains for Identity Zones.
+# Defaults to 'localhost'
+#zones:
+#  internal:
+#    hostnames:
+#      - host1.domain.com
+#      - host2
+#      - testzone3.localhost
+#      - testzone4.localhost
+
+#authentication:
+#  policy:
+#    lockoutAfterFailures: 5
+#    countFailuresWithinSeconds: 3600
+#    lockoutPeriodSeconds: 600
+
+# Set this property to true for disabling authentication via the internal IDP. Defaults to false.
+#disableInternalAuth: false
+
+# Set this property to true for disabling access to user management endpoints and controllers. Defaults to false.
+#disableInternalUserManagement: true
+
+#keystone:
+#  authentication:
+#    url: http://localhost:35357/v2.0/tokens
+#    url: http://localhost:5000/v3/auth/tokens
+
+#ldap:
+#  profile:
+#    file: ldap/ldap-simple-bind.xml
+#  base:
+#    url: 'ldaps://192.168.3.39:10636/'
+#    userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'
+#  ssl:
+#    skipverification: false
+#    sslCertificate: ! '-----BEGIN CERTIFICATE-----
+#    MIIBfTCCAScCBgFDfaC2yzANBgkqhkiG9w0BAQUFADBCMQswCQYDVQQGEwJVUzEMMAoGA1UEChMD
+#    QVNGMRIwEAYDVQQLEwlEaXJlY3RvcnkxETAPBgNVBAMTCEFwYWNoZURTMB4XDTE0MDExMDE5Mjg0
+#    MVoXDTE1MDExMDE5Mjg0MVowTDELMAkGA1UEBhMCVVMxDDAKBgNVBAoTA0FTRjESMBAGA1UECxMJ
+#    RGlyZWN0b3J5MRswGQYDVQQDExJmaGFuaWstd29ya3N0YXRpb24wXDANBgkqhkiG9w0BAQEFAANL
+#    ADBIAkEAuA6Nmto6NFCCJ+CwsBnT2cvMxuYgf26iZ3ckIpLhs2V4ZJ4PFinR6JZUsVnRp0RbYoV5
+#    iW6F91XDTVtAMtDTJwIDAQABMA0GCSqGSIb3DQEBBQUAA0EATFGpEIprKYcnc+JuNcSQ8v2P2J7e
+#    lQ23NhTaljASF0g8AZ7SZEItU8JFYqf/KnNJ7FPwo4LbMbr7Zg6BRKBvnQ==
+#    -----END CERTIFICATE-----'
+#    tls: <none | simple | external>
+#  externalGroupsWhitelist:
+#    - admin
+#    - user
+#  emailDomain:
+#    - example.com
+#  attributeMappings:
+#    given_name: givenname
+#    family_name: sn
+#    phone_number: telephonenumber
+#    user.attribute.employeeCostCenter: costCenter
+#    user.attribute.terribleBosses: uaaManager
+#  providerDescription: 'Human readable description of this provider'
+
+
+#ldap:
+#  profile:
+#    file: ldap/ldap-search-and-bind.xml
+#  base:
+#    url: 'ldap://localhost:389/'
+#    userDn: 'cn=admin,dc=test,dc=com'
+#    password: 'password'
+#    searchBase: 'dc=test,dc=com'
+#    searchFilter: 'cn={0}'
+#    referral: follow
+#  groups:
+#      file: 'ldap/ldap-groups-map-to-scopes.xml'
+#      searchBase: 'dc=test,dc=com'
+#      groupSearchFilter: 'member={0}'
+#      searchSubtree: true
+#      maxSearchDepth: 10
+#      autoAdd: true
+#      ignorePartialResultException: true
+
+#ldap:
+#  profile:
+#    file: ldap/ldap-search-and-compare.xml
+#  base:
+#    url: 'ldap://localhost:10389/'
+#    userDn: 'cn=admin,dc=test,dc=com'
+#    password: 'password'
+#    searchBase: ''
+#    searchFilter: 'cn={0}'
+#    passwordAttributeName: userPassword
+#    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
+#    localPasswordCompare: true
+
+#password:
+#  policy:
+#    minLength: 0
+#    maxLength: 128
+#    requireUpperCaseCharacter: 0
+#    requireLowercaseCharacter: 0
+#    requireDigit: 0
+#    requireSpecialCharacter: 0
+#    expirePasswordInMonths: 0
+
+scim:
+  groups:
+    zones.read: Read identity zones
+    zones.write: Create and update identity zones
+    idps.read: Retrieve identity providers
+    idps.write: Create and update identity providers
+    clients.admin: Create, modify and delete OAuth clients
+    clients.write: Create and modify OAuth clients
+    clients.read: Read information about OAuth clients
+    clients.secret: Change the password of an OAuth client
+    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
+    scim.read: Read all SCIM entities, i.e. users and groups
+    scim.create: Create users
+    scim.userids: Read user IDs and retrieve users by ID
+    scim.zones: Control a user's ability to manage a zone
+    scim.invite: Send invitations to users
+    password.write: Change your password
+    oauth.approval: Manage approved scopes
+    oauth.login: Authenticate users outside of the UAA
+    openid: Access profile information, i.e. email, first and last name, and phone number
+    groups.update: Update group information and memberships
+    uaa.user: Act as a user in the UAA
+    uaa.resource: Serve resources protected by the UAA
+    uaa.admin: Act as an administrator throughout the UAA
+    uaa.none: Forbid acting as a user
+    uaa.offline_token: Allow offline access
+
+oauth:
+  user:
+    authorities:
+    - openid
+    - scim.me
+    - cloud_controller.read
+    - cloud_controller.write
+    - cloud_controller_service_permissions.read
+    - password.write
+    - scim.userids
+    - uaa.user
+    - approvals.me
+    - oauth.approvals
+    - profile
+    - roles
+    - user_attributes
+    - uaa.offline_token
+#  client:
+#    secret:
+#      policy:
+#        minLength: 0
+#        maxLength: 128
+#        requireUpperCaseCharacter: 0
+#        requireLowerCaseCharacter: 0
+#        requireDigit: 0
+#        requireSpecialCharacter: 0
+
+# Default token signing key. Each installation MUST provide a unique key
+# in order for tokens to be usable only on that installation.
+#jwt:
+#  token:
+#    verification-key: |
+#      -----BEGIN PUBLIC KEY-----
+#      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO
+#      rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7
+#      fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB
+#      LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO
+#      kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo
+#      jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI
+#      JwIDAQAB
+#      -----END PUBLIC KEY-----
+#    signing-key: |
+#      -----BEGIN RSA PRIVATE KEY-----
+#      MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV
+#      lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT
+#      JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy
+#      VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc
+#      usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W
+#      SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op
+#      zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY
+#      pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw
+#      UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa
+#      Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO
+#      BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2
+#      RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK
+#      /sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z
+#      cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j
+#      UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA
+#      jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/
+#      +YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr
+#      RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4
+#      PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna
+#      cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I
+#      aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4
+#      DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq
+#      b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv
+#      QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
+#      fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
+#      -----END RSA PRIVATE KEY-----
+#    claims:
+#      exclude:
+#        - authorities
+#    policy:
+#      # Will override global validity policies for the default zone only.
+#      accessTokenValiditySeconds: 3600
+#      refreshTokenValiditySeconds: 3600
+#      activeKeyId: key-id-1
+#      keys:
+#        key-id-1:
+#          signingKey: |
+#            -----BEGIN RSA PRIVATE KEY-----
+#            MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV
+#            lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT
+#            JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy
+#            VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc
+#            usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W
+#            SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op
+#            zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY
+#            pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw
+#            UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa
+#            Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO
+#            BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2
+#            RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK
+#            /sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z
+#            cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j
+#            UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA
+#            jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/
+#            +YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr
+#            RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4
+#            PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna
+#            cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I
+#            aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4
+#            DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq
+#            b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv
+#            QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
+#            fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
+#            -----END RSA PRIVATE KEY-----
+#      # Sets the default validity for all zones
+#      global:
+#        accessTokenValiditySeconds: 3600
+#        refreshTokenValiditySeconds: 3600
+#    # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
+#    refresh:
+#      restrict_grant: true
+#      unique: false
+#      format: jwt
+
+# Configure whitelist for allowing cross-origin XMLHttpRequest requests.
+#cors:
+#  xhr:
+#    allowed:
+#      headers:
+#        - Accept
+#        - Authorization
+#        - Content-Type
+#        - X-Requested-With
+#      origin:
+#        - ^localhost$
+#        - ^.*\.localhost$
+#      uris:
+#        - ^/userinfo$
+#        - ^/logout\.do$
+#      methods:
+#        - GET
+#        - OPTIONS
+#  default:
+#    allowed:
+#      headers:
+#        - Accept
+#        - Authorization
+#        - Content-Type
+#        - X-Requested-With
+#      origin:
+#        - ^localhost$
+#        - ^.*\.localhost$
+#      uris:
+#        - ^/userinfo$
+#        - ^/logout\.do$
+#      methods:
+#        - GET
+#        - PUT
+#        - POST
+#        - DELETE
+assetBaseUrl: /resources/predix
+
+#tiles:
+#  - name: Pivotal Network
+#    login-link: https://network.gopivotal.com/login
+#    image: /resources/pivotal/images/network-logo-gray.png
+#  - name: Pivotal Web Services
+#    login-link: https://console.10.244.0.34.xip.io
+#    image: /resources/pivotal/images/pws-logo-gray.png
+#  - name: Pivotal Partners
+#    login-link: https://partners.gopivotal.com/login
+#    image: /resources/pivotal/images/partners-logo-gray.png
+
+links:
+  # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
+  # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server
+  # will use internal links.
+  passwd: /forgot_password
+  signup: /create_account
+
+#notifications:
+#  url: http://localhost:3001
+#logout:
+#  redirect:
+#    url: /login
+#    parameter:
+#      whitelist:
+#        - https://url1.domain1.com/logout-success
+#        - https://url2.domain2.com/logout-success
+
+login:
+  # Enable create account and forgot password links on the Login Server (enabled by default)
+  selfServiceLinksEnabled: true
+  #base URL that the login server can be reached at
+  #  oauth:
+  #    providers:
+  #      my-oauth-provider:
+  #        type: oauth2.0
+  #        authUrl: http://my-auth.com
+  #        tokenUrl: http://my-token.com
+  #        tokenKey: my-token-key
+  #        tokenKeyUrl:
+  #        issuer: token issuer (iss)
+  #        scopes:
+  #          - openid
+  #          - scope.example
+  #        linkText: My Oauth Provider
+  #        showLinkText: true
+  #        addShadowUserOnLogin: false
+  #        relyingPartyId: uaa
+  #        relyingPartySecret: secret
+  #        attributeMappings:
+  #          given_name: firstName
+  #          family_name: lastname
+  #          user_name: username
+  #          external_groups:
+  #            - scopes_example_group
+  #            - roles_example_group
+  url: http://localhost:8080
+  #  idpDiscoveryEnabled: true
+  #  accountChooserEnabled: true
+
+  #  mfa:
+  #    enabled: true
+  #    providerName: customProviderName
+  #    providers:
+  #      customProviderName:
+  #        type: google-authenticator
+  #        config:
+  #          issuer: "custom issuer"
+  #          providerDescription: "Default authenticator for uaa zone"
+
+  # SAML Key Configuration
+  # The location and credentials of the certificate for this SP
+  # See README.md for details on how to create this.
+  #  serviceProviderKey: |
+  #    -----BEGIN RSA PRIVATE KEY-----
+  #    MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5
+  #    L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA
+  #    fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB
+  #    AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges
+  #    7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu
+  #    lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp
+  #    ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX
+  #    kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL
+  #    gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK
+  #    vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe
+  #    A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS
+  #    N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
+  #    qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
+  #    -----END RSA PRIVATE KEY-----
+  #  serviceProviderKeyPassword: password
+  #  serviceProviderCertificate: |
+  #    -----BEGIN CERTIFICATE-----
+  #    MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
+  #    MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
+  #    MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
+  #    cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
+  #    CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
+  #    BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
+  #    BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
+  #    ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
+  #    qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
+  #    znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
+  #    MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
+  #    gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
+  #    VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
+  #    VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
+  #    QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
+  #    0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
+  #    KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
+  #    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
+  #    -----END CERTIFICATE-----
+
+  # SAML - The entity base url is the location of this application
+  # (The host and port of the application that will accept assertions)
+  entityBaseURL: http://localhost:8080
+  # The entityID of this SP
+  entityID: cloudfoundry-saml-login
+  saml:
+    #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
+    #entityIDAlias: cloudfoundry-saml-login
+    #Default nameID if IDP nameID is not set
+    nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
+    #Default assertionConsumerIndex if IDP value is not set
+    assertionConsumerIndex: 0
+    #Local/SP metadata - sign metadata
+    signMetaData: true
+    #Local/SP metadata - requests signed
+    signRequest: true
+    #Local/SP metadata - want incoming assertions signed
+    #wantAssertionSigned: true
+    #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
+    #signatureAlgorithm: SHA256
+    socket:
+      # URL metadata fetch - pool timeout
+      connectionManagerTimeout: 10000
+      # URL metadata fetch - read timeout
+      soTimeout: 10000
+  #BEGIN SAML PROVIDERS
+  #    providers:
+  #      okta-signed-or-encrypted:
+  #        idpMetadata: |
+  #          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k36wkjw6EAEJVZXFFDAU"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+  #          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+  #          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+  #          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+  #          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+  #          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+  #          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+  #          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+  #          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+  #          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+  #          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+  #          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+  #        assertionConsumerIndex: 0
+  #        metadataTrustCheck: true
+  #        showSamlLoginLink: true
+  #        linkText: 'Okta Preview Signed'
+  #      okta-local:
+  #        idpMetadata: https://pivotal.oktapreview.com/app/k36wkjw6EAEJVZXFFDAU/sso/saml/metadata
+  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+  #        assertionConsumerIndex: 0
+  #        metadataTrustCheck: true
+  #        showSamlLoginLink: true
+  #        linkText: 'Okta Preview 1'
+  #        iconUrl: 'http://link.to/icon.jpg'
+  #        addShadowUserOnLogin: true
+  #        externalGroupsWhitelist:
+  #          - admin
+  #          - user
+  #        emailDomain:
+  #          - example.com
+  #        attributeMappings:
+  #          given_name: firstName
+  #          family_name: surname
+  #        providerDescription: 'Human readable description of this provider'
+  #      okta-local-2:
+  #        idpMetadata: |
+  #          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+  #          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+  #          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+  #          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+  #          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+  #          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+  #          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+  #          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+  #          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+  #          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+  #          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+  #          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+  #        assertionConsumerIndex: 0
+  #        metadataTrustCheck: true
+  #        showSamlLoginLink: true
+  #        linkText: 'Okta Preview 2'
+  #        addShadowUserOnLogin: true
+  #      vsphere.local:
+  #        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
+  #        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+  #        assertionConsumerIndex: 0
+  #        showSamlLoginLink: true
+  #        linkText: 'Log in with vCenter SSO'
+  #        addShadowUserOnLogin: true
+  #        groupMappingMode: EXPLICITLY_MAPPED
+  #      openam-local:
+  #        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
+  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+  #        assertionConsumerIndex: 0
+  #        signMetaData: false
+  #        signRequest: false
+  #        showSamlLoginLink: true
+  #        linkText: 'Log in with OpenAM'
+  #        addShadowUserOnLogin: true
+  #        groupMappingMode: AS_SCOPES
+  #END SAML PROVIDERS
+
+  authorize:
+    url: http://localhost:8080/oauth/authorize
+
+  #  homeRedirect: http://example.com/
+
+  branding:
+    companyName: Predix
+    #    productLogo: |
+    #      iVBORw0KGgoAAAANSUhEUgAAAR8AAAFoCAYAAABucP80AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEAAAAAAAA+UO7fwAAAAlwSFlzAAALEgAACxIB0t1+/AAAZKVJREFUeNrtnXecXkX1/99n5j5lWyqQ0EJHepdeAgHpRZqKKILg15+9IVIEQhMExYJdsQPSVDoCAkrvPfQAARLSk21PuXPO74+7kc1md/PsZpdNmffr9bz22Vtm7tznzufOnDlzBiKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJDIAyFBfQGTpZrvz9yGUqwRTMEDJnhrXy0n6/leR7PikkOfxM+4c6uJEliKi+ES6ZdvzJxDKASsrT8+cxGajNiyYWSNKHY4cgiN7fhZ87H8fJQBVM9px2tpUt3K5rTKHpJDgCp7HT79rqIsXWPY92jEwd/quP0D6/vZiS+7SonQE8b9iZ9U08VtGC3fql2znwF/tiqeJECKWUXM4VBFvHOdmSrGW1qxMU4U5BrjHjwYYRSSkB2tp
+    #    squareLogo: |
+    #      AAABAAQAQEAAAAEAIAAoQAAARgAAACAgAAABACAAKBAAAG5AAAAYGAAAAQAgACgJAACWUAAAEBAAAAEAIAAoBAAAvlkAACgAAABAAAAAgAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAAgwAAAMMAAADuAAAA/wAAAP8AAADuAAAAwwAAAIMAAAAsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAawAAAPAAAADdAAAAeQAAAC0AAAAAAAAKAAAAvgAAANoAAAApAAAAXAAAAOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADrAAAAXgAAAA
+    footerLegalText:  "Copyright © 2018 General Electric Company. All rights reserved."
+    footerLinks:
+      Contact Us: mailto:info@predix.io
+      #GE Digital: https://www.gesoftware.com
+      #Legal: https://predix-io.run.asv-sb.ice.predix.io/legal
+#    banner:
+#      logo: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVQ4EaVTO04DMRB9YdOTC+QcK46wFU3apclKuQMH4AYUkUxFmyY0PgLac3AB6ImM3kyePYkQDZZ27Zl58+aNP8A/x2J7ixI5Xr6wiHaMX8eIW/L3/tlStisUAZm8fx1acMxWTPFK0BBORhL5ukP2ZQ9UsjHXIqZA4LuVrwjsPjxxenRfAtAh47QenCiQgFL5fb8NpTyjlAf/5KOfa/llk/pG1WvV2T3T0We1wLh8jNAmaSUwyTMMRGC6dxDXIlExtUd7SZb0BKhXU3LIRrTfKKXNpsLU+R7VTWTFKJEpuzGbktNmuFiLjnEj4M52s4OnMVt/CedTYLWjx9Artc1269hG3MSohMps9LAjVCqrc9QWaJgSZCRWOp+GoX5J5u3lvan3nioIphIOnQr711BVXf0LAoGuieRnMt8A438SKEFEsuMDirEf/oirUgza/ucAAAAASUVORK5CYII=
+#      text: Welcome to UAA! We will be undergoing system maintenance tonight.
+#      textColor: "#000000"
+#      backgroundColor: "#FFFFFF"
+#      link: https://example.com
+
+uaa:
+  # The hostname of the UAA that this login server will connect to
+  url: http://localhost:8080
+  token:
+    url: http://localhost:8080/oauth/token
+  approvals:
+    url: http://localhost:8080/approvals
+  login:
+    url: http://localhost:8080/authenticate
+  limitedFunctionality:
+    enabled: false
+    whitelist:
+      endpoints:
+      - /oauth/authorize/**
+      - /oauth/token/**
+      - /check_token/**
+      - /login/**
+      - /login.do
+      - /logout/**
+      - /logout.do
+      - /saml/**
+      - /autologin/**
+      - /authenticate/**
+      - /idp_discovery/**
+      methods:
+      - GET
+      - HEAD
+      - OPTIONS
+
+# Google Analytics
+#analytics:
+#  code: secret_code
+#  domain: example.com
+
+#smtp:
+#  host: localhost
+#  port: 2525
+#  user:
+#  password:

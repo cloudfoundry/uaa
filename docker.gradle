@@ -54,7 +54,7 @@ task createDockerfile(type: Dockerfile) {
   instruction 'RUN bash -c "adduser --uid 1100 --disabled-password --gecos \'\' dockeruser"'
   instruction 'RUN bash -c "adduser dockeruser docker"'
   instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/ROOT.war'
-  instruction 'ADD uaa.yml /uaa/uaa.yml'
+  instruction 'ADD uaa-docker.yml /uaa/uaa.yml'
   instruction 'RUN bash -c "echo $LOGIN_CONFIG_URL"'
   instruction 'RUN bash -c "chown -R dockeruser:docker /usr/local/tomcat"'
   instruction 'RUN bash -c "ls -l /usr/local/tomcat"'
@@ -72,7 +72,7 @@ task copyContainerFiles(type: Copy) {
   dependsOn createDockerfile
   from 'uaa/build/libs'
   from 'uaa/build/resources/main/tomcat-server.xml'
-  from 'uaa/build/resources/main/uaa.yml'
+  from 'uaa/build/resources/main/uaa-docker.yml'
   into 'build/docker'
 }
 
