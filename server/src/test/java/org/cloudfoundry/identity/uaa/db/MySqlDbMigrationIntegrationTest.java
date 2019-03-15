@@ -1,37 +1,20 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.flywaydb.core.Flyway;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.String.format;
-import static java.lang.System.getProperties;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assume.assumeTrue;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:/spring/data-source.xml", "classpath*:/spring/env.xml"})
-public class MySqlDbMigrationIntegrationTest {
-    @Autowired
-    private Flyway flyway;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestParent {
 
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
@@ -39,23 +22,13 @@ public class MySqlDbMigrationIntegrationTest {
     private String fetchColumnTypeFromTable = "SELECT column_type FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
     private String fetchColumnIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
 
-    private MigrationTestRunner migrationTestRunner;
-
-    @Before
-    public void setup() {
-        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("mysql"));
-
-        flyway.clean();
-        migrationTestRunner = new MigrationTestRunner(flyway);
-    }
-
-    @After
-    public void cleanup() {
-        flyway.clean();
+    @Override
+    protected String onlyRunTestsForActiveSpringProfileName() {
+        return "mysql";
     }
 
     @Test
-    public void insertMissingPrimaryKeys_onMigrationOnNewDatabase() throws SQLException {
+    public void insertMissingPrimaryKeys_onMigrationOnNewDatabase() {
         MigrationTest migrationTest = new MigrationTest() {
             @Override
             public String getTargetMigration() {
