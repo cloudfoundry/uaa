@@ -59,34 +59,6 @@ public class MetricsQueueTest {
         assertEquals(3, summary.getAverageDatabaseQueryTime(), DELTA);
         assertEquals(2, summary.getDatabaseIntolerableQueryCount());
         assertEquals(3.5, summary.getAverageDatabaseIntolerableQueryTime(), DELTA);
-
-    }
-
-    private void validateMetricsQueue(MetricsQueue queue) {
-        Map<StatusCodeGroup, RequestMetricSummary> summary = queue.getDetailed();
-        assertNotNull(summary);
-        assertEquals(2, summary.size());
-        RequestMetricSummary twoHundredResponses = summary.get(StatusCodeGroup.SUCCESS);
-        assertNotNull(twoHundredResponses);
-        assertEquals(2, twoHundredResponses.getCount());
-        assertEquals(1, twoHundredResponses.getIntolerableCount());
-        assertEquals((double)(MAX_TIME+3) / 2.0, twoHundredResponses.getAverageTime(), DELTA);
-        assertEquals(MAX_TIME+1, twoHundredResponses.getAverageIntolerableTime(), DELTA);
-        assertEquals(2, twoHundredResponses.getDatabaseQueryCount());
-        assertEquals(3.5, twoHundredResponses.getAverageDatabaseQueryTime(), DELTA);
-
-        RequestMetricSummary fiveHundredResponses = summary.get(StatusCodeGroup.SERVER_ERROR);
-        assertNotNull(fiveHundredResponses);
-        assertEquals(1, fiveHundredResponses.getCount());
-        assertEquals(0, fiveHundredResponses.getIntolerableCount());
-        assertEquals(5, fiveHundredResponses.getAverageTime(), DELTA);
-        assertEquals(0, fiveHundredResponses.getAverageIntolerableTime(), DELTA);
-        assertEquals(1, fiveHundredResponses.getDatabaseQueryCount());
-        assertEquals(2, fiveHundredResponses.getAverageDatabaseQueryTime(), DELTA);
-        assertEquals(0, fiveHundredResponses.getDatabaseIntolerableQueryCount());
-        assertEquals(0, fiveHundredResponses.getAverageDatabaseIntolerableQueryTime(), DELTA);
-
-        assertEquals(3, queue.getLastRequests().size());
     }
 
     @Test
@@ -101,7 +73,7 @@ public class MetricsQueueTest {
     }
 
     @Test
-    public void overflow_limit_respected() throws Exception {
+    public void overflowLimitRespected() throws Exception {
         RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.stop(200, 2);
@@ -136,6 +108,33 @@ public class MetricsQueueTest {
         RequestMetricSummary totals = queue.getTotals();
         assertEquals(3, totals.getDatabaseQueryCount());
         assertEquals(2, totals.getDatabaseIntolerableQueryCount());
+    }
+
+    private static void validateMetricsQueue(MetricsQueue queue) {
+        Map<StatusCodeGroup, RequestMetricSummary> summary = queue.getDetailed();
+        assertNotNull(summary);
+        assertEquals(2, summary.size());
+        RequestMetricSummary twoHundredResponses = summary.get(StatusCodeGroup.SUCCESS);
+        assertNotNull(twoHundredResponses);
+        assertEquals(2, twoHundredResponses.getCount());
+        assertEquals(1, twoHundredResponses.getIntolerableCount());
+        assertEquals((double)(MAX_TIME+3) / 2.0, twoHundredResponses.getAverageTime(), DELTA);
+        assertEquals(MAX_TIME+1, twoHundredResponses.getAverageIntolerableTime(), DELTA);
+        assertEquals(2, twoHundredResponses.getDatabaseQueryCount());
+        assertEquals(3.5, twoHundredResponses.getAverageDatabaseQueryTime(), DELTA);
+
+        RequestMetricSummary fiveHundredResponses = summary.get(StatusCodeGroup.SERVER_ERROR);
+        assertNotNull(fiveHundredResponses);
+        assertEquals(1, fiveHundredResponses.getCount());
+        assertEquals(0, fiveHundredResponses.getIntolerableCount());
+        assertEquals(5, fiveHundredResponses.getAverageTime(), DELTA);
+        assertEquals(0, fiveHundredResponses.getAverageIntolerableTime(), DELTA);
+        assertEquals(1, fiveHundredResponses.getDatabaseQueryCount());
+        assertEquals(2, fiveHundredResponses.getAverageDatabaseQueryTime(), DELTA);
+        assertEquals(0, fiveHundredResponses.getDatabaseIntolerableQueryCount());
+        assertEquals(0, fiveHundredResponses.getAverageDatabaseIntolerableQueryTime(), DELTA);
+
+        assertEquals(3, queue.getLastRequests().size());
     }
 
 }

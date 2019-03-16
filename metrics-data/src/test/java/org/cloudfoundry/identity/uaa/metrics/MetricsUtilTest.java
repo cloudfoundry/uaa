@@ -5,6 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class MetricsUtilTest {
+
     private static final double DELTA = 1e-15;
 
     @Test
