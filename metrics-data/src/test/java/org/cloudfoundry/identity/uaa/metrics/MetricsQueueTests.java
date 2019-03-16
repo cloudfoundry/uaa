@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.metrics;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -58,12 +43,12 @@ public class MetricsQueueTests {
     }
 
     @Test
-    public void summary() throws Exception {
+    public void summary() {
         validateMetricsQueue(queue);
     }
 
     @Test
-    public void totals() throws Exception {
+    public void totals() {
         RequestMetricSummary summary = queue.getTotals();
         assertNotNull(summary);
         assertEquals(3, summary.getCount());
@@ -77,7 +62,7 @@ public class MetricsQueueTests {
 
     }
 
-    public void validateMetricsQueue(MetricsQueue queue) {
+    private void validateMetricsQueue(MetricsQueue queue) {
         Map<StatusCodeGroup, RequestMetricSummary> summary = queue.getDetailed();
         assertNotNull(summary);
         assertEquals(2, summary.size());
@@ -105,11 +90,13 @@ public class MetricsQueueTests {
     }
 
     @Test
-    public void json_serialize() throws Exception {
+    public void json_serialize() {
         String json = JsonUtils.writeValueAsString(queue);
         Map<String,Object> object = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
+        assertNotNull(object);
         assertEquals(3, object.size());
         MetricsQueue deserialized = JsonUtils.readValue(json, MetricsQueue.class);
+        assertNotNull(deserialized);
         validateMetricsQueue(deserialized);
     }
 
@@ -138,7 +125,7 @@ public class MetricsQueueTests {
     }
 
     @Test
-    public void offer() throws Exception {
+    public void offer() {
         queue = new MetricsQueue();
         RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
