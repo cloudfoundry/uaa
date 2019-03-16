@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-public class MetricsQueueTests {
+public class MetricsQueueTest {
 
     private static final long MAX_TIME = 3000;
     private static final double DELTA = 1e-15;
