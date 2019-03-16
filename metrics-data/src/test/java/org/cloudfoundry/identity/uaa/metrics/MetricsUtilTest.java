@@ -1,15 +1,15 @@
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MetricsUtilTest {
+class MetricsUtilTest {
 
     private static final double DELTA = 1e-15;
 
     @Test
-    public void addToAverage() {
+    void addToAverage() {
         double average = 1.0;
         double avergeCount = 1.0;
 
@@ -24,7 +24,7 @@ public class MetricsUtilTest {
     }
 
     @Test
-    public void addAverages() {
+    void addAverages() {
         double average = 1.0;
         double avergeCount = 1.0;
 

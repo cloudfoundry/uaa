@@ -3,16 +3,16 @@ package org.cloudfoundry.identity.uaa.metrics;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-public class MetricsQueueTest {
+class MetricsQueueTest {
 
     private static final long MAX_TIME = 3000;
     private static final double DELTA = 1e-15;
@@ -25,8 +25,8 @@ public class MetricsQueueTest {
         .setPattern("/uri")
         .setCategory("test");
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() {
         queue = new MetricsQueue();
         RequestMetric metric = RequestMetric.start("uri", uriGroup,0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
@@ -43,12 +43,12 @@ public class MetricsQueueTest {
     }
 
     @Test
-    public void summary() {
+    void summary() {
         validateMetricsQueue(queue);
     }
 
     @Test
-    public void totals() {
+    void totals() {
         RequestMetricSummary summary = queue.getTotals();
         assertNotNull(summary);
         assertEquals(3, summary.getCount());
@@ -62,7 +62,7 @@ public class MetricsQueueTest {
     }
 
     @Test
-    public void json_serialize() {
+    void json_serialize() {
         String json = JsonUtils.writeValueAsString(queue);
         Map<String,Object> object = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
         assertNotNull(object);
@@ -73,7 +73,7 @@ public class MetricsQueueTest {
     }
 
     @Test
-    public void overflowLimitRespected() throws Exception {
+    void overflowLimitRespected() throws Exception {
         RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.stop(200, 2);
@@ -93,11 +93,10 @@ public class MetricsQueueTest {
             threads[i].join();
         }
         assertThat(queue.getLastRequests().size(), Matchers.lessThanOrEqualTo(MetricsQueue.MAX_ENTRIES));
-
     }
 
     @Test
-    public void offer() {
+    void offer() {
         queue = new MetricsQueue();
         RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
