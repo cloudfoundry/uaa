@@ -100,7 +100,7 @@ public class UaaMetricsEmitterIT {
     }
 
     @Test
-    public void assert_generic_metrics() {
+    public void assertGenericMetrics() {
         String data1 = firstBatch.get(statsDKey);
         String data2 = secondBatch.get(statsDKey);
 

@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-public class UaaMetricsEmitterTests {
+public class UaaMetricsEmitterTest {
 
     private MBeanServerConnection server;
     private StatsDClient statsDClient;
@@ -134,7 +134,7 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void test_delta_method() {
+    public void getMetricDelta() {
         String name = "metric.name";
         assertEquals(5L, uaaMetricsEmitter.getMetricDelta(name, 5L));
         assertEquals(0L, uaaMetricsEmitter.getMetricDelta(name, 5L));
@@ -163,7 +163,7 @@ public class UaaMetricsEmitterTests {
     }
 
     @Test
-    public void testNotifications() {
+    public void sendNotification() {
         uaaMetricsEmitter.enableNotification();
         emitter.sendNotification(new Notification("/api", 45L, 0));
         Mockito.verify(statsDClient).time("requests.api.latency", 45L);

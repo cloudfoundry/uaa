@@ -12,7 +12,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class MBeanMapTests {
+public class MBeanMapTest {
 
     private MBeanServerConnection server;
 
@@ -25,7 +25,7 @@ public class MBeanMapTests {
     }
 
     @Test
-    public void testListDomain() throws Exception {
+    public void listDomain() throws Exception {
         Set<ObjectName> names = server.queryNames(ObjectName.getInstance("java.lang:type=Runtime,*"), null);
         System.err.println(names);
         assertEquals(1, names.size());
