@@ -71,8 +71,6 @@ class YamlServletProfileInitializerTest {
     @AfterEach
     void cleanup() {
         System.clearProperty("APPLICATION_CONFIG_URL");
-        System.clearProperty("LOG_FILE");
-        System.clearProperty("LOG_PATH");
     }
 
     @Test
