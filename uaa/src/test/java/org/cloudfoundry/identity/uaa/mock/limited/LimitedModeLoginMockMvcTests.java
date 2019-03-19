@@ -16,34 +16,36 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
-import org.junit.After;
-import org.junit.Before;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
+import static org.junit.Assert.assertTrue;
 
-public class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
+class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
+    private File originalLimitedModeStatusFile;
 
-    private File statusFile;
-    private File existingStatusFile = null;
+    @BeforeEach
+    void setUpLimitedModeLoginMockMvcTests(
+            @Autowired WebApplicationContext webApplicationContext,
+            @Autowired LimitedModeUaaFilter limitedModeUaaFilter
+    ) throws Exception {
+        originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
+        MockMvcUtils.setLimitedModeStatusFile(webApplicationContext);
 
-    @Before
-    @Override
-    public void setUpContext() throws Exception {
-        super.setUpContext();
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+        assertTrue(isLimitedMode(limitedModeUaaFilter));
     }
 
-
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
+    @AfterEach
+    void tearDownLimitedModeLoginMockMvcTests(
+            @Autowired WebApplicationContext webApplicationContext
+    ) throws Exception {
+        MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
     }
 
 }

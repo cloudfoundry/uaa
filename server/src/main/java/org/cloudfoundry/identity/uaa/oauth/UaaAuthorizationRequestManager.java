@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -65,6 +67,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
  *
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
+    private static final Logger logger = LoggerFactory.getLogger(UaaAuthorizationRequestManager.class);
 
     private final ClientServicesExtension clientDetailsService;
 
@@ -152,22 +155,14 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
-        String grantType = authorizationParameters.get(GRANT_TYPE);
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
-        if ((scopes == null || scopes.isEmpty())) {
-            if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
-                // The client authorities should be a list of requestedScopes
-                scopes = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
-            }
-            else {
-                // The default for a user token is the requestedScopes registered with
-                // the client
+        if (scopes == null || scopes.isEmpty()) {
+                // The default for a user token is the requestedScopes registered with the client
                 scopes = clientDetails.getScope();
-            }
         }
 
-        if (!GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType) && securityContextAccessor.isUser()) {
+        if (securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
             Collection<? extends GrantedAuthority> authorities = uaaUser.getAuthorities();
@@ -267,11 +262,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
         // Check that a token with empty scope is not going to be granted
         if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
+            logger.warn("The requested scopes are invalid");
             throw new InvalidScopeException(requestedScopes + " is invalid. This user is not allowed any of the requested scopes");
         }
 
         Collection<String> requiredUserGroups = ofNullable((Collection<String>) clientDetails.getAdditionalInformation().get(REQUIRED_USER_GROUPS)).orElse(emptySet());
         if (!UaaTokenUtils.hasRequiredUserAuthorities(requiredUserGroups, authorities)) {
+            logger.warn("The requested scopes are invalid");
             throw new InvalidScopeException("User does not meet the client's required group criteria.");
         }
 

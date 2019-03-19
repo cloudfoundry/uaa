@@ -8,9 +8,6 @@ import io.honeycomb.libhoney.EventFactory
 import static io.honeycomb.libhoney.LibHoney.create
 import static io.honeycomb.libhoney.LibHoney.options
 
-apply from: file('shared_versions.gradle')
-apply plugin: 'com.bmuschko.cargo'
-
 buildscript {
     apply from: file('shared_versions.gradle')
 
@@ -27,13 +24,16 @@ buildscript {
 
     dependencies {
         classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
+        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
     }
 }
+
+apply from: file('shared_versions.gradle')
+apply plugin: 'com.bmuschko.cargo'
 
 allprojects {
     apply plugin: 'maven'
@@ -49,7 +49,7 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
-        maven { url 'http://repository.mulesoft.org/releases/'}
+        maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
@@ -60,7 +60,7 @@ allprojects {
     publishing {
         repositories {
             maven {
-                url "https://oss.sonatype.org/content/repositories/releases/"
+                url "https://oss.sonatype.org/content/repositories/releases"
                 credentials {
                     username "$nexusUsername"
                     password "$nexusPassword"
@@ -77,19 +77,22 @@ subprojects {
 
     dependencies {
         testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
-        testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
+        testCompile("org.junit.jupiter:junit-jupiter-api:${junit5JupiterVersion}")
+        testCompile("org.junit.jupiter:junit-jupiter-params:${junit5JupiterVersion}")
         testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
         testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
-        testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
+        testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit5JupiterVersion}")
+        testRuntime("org.junit.vintage:junit-vintage-engine:${junit5JupiterVersion}")
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
     test {
+        maxParallelForks = 6
+
         useJUnitPlatform()
-        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener"]
+        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         afterSuite { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
@@ -98,10 +101,26 @@ subprojects {
         afterTest { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
         }
+
+        testLogging {
+            events 'skipped', 'failed', 'passed'
+            exceptionFormat 'full'
+
+            // Uncomment the following line to see all standard output from tests (there's a ton of it!)
+            //showStandardStreams = true
+        }
     }
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
+
+        afterSuite { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
+        }
+
+        afterTest { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
+        }
     }
 
     task packageSources(type: Jar) {
@@ -125,7 +144,7 @@ subprojects {
 }
 
 cargo {
-    containerId = tomcatContainerId
+    containerId = 'tomcat9x'
     port = 8080
 
     deployable {
@@ -149,7 +168,7 @@ cargo {
     }
 
     local {
-        timeout = 540000
+        startStopTimeout = 540000
         List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
         if (activeProfiles.contains('debug')) {
             jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
@@ -157,10 +176,10 @@ cargo {
             jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
         }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
-            configFile {
-                    file = file('scripts/cargo/tomcat-conf/context.xml')
-                    toDir = 'conf'
-            }
+        configFile {
+            files = files('scripts/cargo/tomcat-conf/context.xml')
+            toDir = 'conf'
+        }
 
         systemProperties {
             property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
@@ -180,6 +199,7 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
         it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+        it.systemProperty 'testId', System.getProperty('testId', '')
     }
 }
 
@@ -191,8 +211,8 @@ task manifests(dependsOn: assemble, type: Copy) {
         include '**/*.yml'
         filter(ReplaceTokens,
                 tokens: [
-                        version: version,
-                        app: System.getProperty('app', 'myuaa'),
+                        version  : version,
+                        app      : System.getProperty('app', 'myuaa'),
                         appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
                 ]
         )
@@ -221,13 +241,13 @@ task mockAssertion(type: JavaExec) {
 task encrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Encryptor'
     args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 task decrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Decryptor'
     args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find {it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 // task dependencies
@@ -238,19 +258,25 @@ cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 private EventFactory buildEventFactory() {
-    if (System.getProperty('honeycomb.writekey', '').isEmpty() || System.getProperty('honeycomb.dataset', '').isEmpty()) {
+    def honeycombKey = System.getenv("HONEYCOMB_KEY")
+    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
+
+    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
         return null
     }
 
-    HoneyClient honeyClient  = create(
+    HoneyClient honeyClient = create(
             options()
-                    .setWriteKey(System.getProperty('honeycomb.writekey', ''))
-                    .setDataset(System.getProperty('honeycomb.dataset', ''))
+                    .setWriteKey(honeycombKey)
+                    .setDataset(honeycombDataset)
                     .build()
     )
 
+    def uniqueTestID = UUID.randomUUID().toString()
+    System.setProperty("testId", uniqueTestID)
+
     return honeyClient.buildEventFactory()
-            .addField("testId", UUID.randomUUID().toString())
+            .addField("testId", uniqueTestID)
             .addField("cpuCores", Runtime.getRuntime().availableProcessors())
             .addField("hostname", InetAddress.getLocalHost().getHostName())
             .build()

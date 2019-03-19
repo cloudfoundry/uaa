@@ -58,6 +58,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_PROVIDER_BY_ORIGIN_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider " + "where origin_key=? and identity_zone_id=? ";
 
+    public static final String IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE =  IDENTITY_PROVIDER_BY_ORIGIN_QUERY + " and active = ? ";
+
     protected final JdbcTemplate jdbcTemplate;
 
 
@@ -90,6 +92,12 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
+        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE, mapper, origin, zoneId, true);
+        return identityProvider;
+    }
+
+    @Override
+    public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
         IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, zoneId);
         return identityProvider;
     }

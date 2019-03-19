@@ -32,8 +32,8 @@ dependencies {
     exclude(module: 'spring-security-web')
   }
 
-  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bcprovVersion
-  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bcpkixVersion
+  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bouncyCastleVersion
+  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bouncyCastleVersion
 
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
 
@@ -43,6 +43,7 @@ dependencies {
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
   compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
+  compile group: 'org.codehaus.groovy', name: 'groovy', version: parent.codehausGroovyVersion
 
   compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
     exclude(module: 'servlet-api')
@@ -71,16 +72,17 @@ dependencies {
   compile group: 'org.passay', name: 'passay', version: parent.passayVersion
 
   compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
+  
+  compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: parent.log4j2Version
+  compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: parent.log4j2Version
 
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
+  compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+
+  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-
-  testCompile('com.github.sbrannen:spring-test-junit5:1.2.0')
-  testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
-  testCompile("org.junit.jupiter:junit-jupiter-params:5.2.0")
-  testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
-  testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
 
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
@@ -103,6 +105,10 @@ dependencies {
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
 
+}
+
+configurations.all {
+    exclude group: 'org.beanshell', module: 'bsh-core'
 }
 
 processResources {

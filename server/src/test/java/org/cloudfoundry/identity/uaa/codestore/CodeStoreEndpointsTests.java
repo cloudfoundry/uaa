@@ -22,33 +22,36 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class CodeStoreEndpointsTests extends JdbcTestBase {
 
     private CodeStoreEndpoints codeStoreEndpoints;
-
     private ExpiringCodeStore expiringCodeStore;
-
-    private TimeService timeService = new TimeServiceImpl();
+    private AtomicLong currentTime;
 
     @Before
-    public void initCodeStoreTests() throws Exception {
+    public void initCodeStoreTests() {
         codeStoreEndpoints = new CodeStoreEndpoints();
-        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), timeService);
+        currentTime = new AtomicLong(System.currentTimeMillis());
+
+        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), new TimeService() {
+            @Override
+            public long getCurrentTimeMillis() {
+                return currentTime.get();
+            }
+        });
         codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
     }
 
     @Test
-    public void testGenerateCode() throws Exception {
+    public void testGenerateCode() {
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
 
         ExpiringCode result = codeStoreEndpoints.generateCode(expiringCode);
@@ -64,8 +67,8 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullData() throws Exception {
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+    public void testGenerateCodeWithNullData() {
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, null);
 
         try {
@@ -78,7 +81,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullExpiresAt() throws Exception {
+    public void testGenerateCodeWithNullExpiresAt() {
         String data = "{}";
         ExpiringCode expiringCode = new ExpiringCode(null, null, data, null);
 
@@ -92,9 +95,9 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithExpiresAtInThePast() throws Exception {
+    public void testGenerateCodeWithExpiresAtInThePast() {
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() - 60000);
+        Timestamp expiresAt = new Timestamp(currentTime.get() - 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
 
         try {
@@ -107,13 +110,13 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithDuplicateCode() throws Exception {
+    public void testGenerateCodeWithDuplicateCode() {
         RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
 
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
 
         try {
@@ -127,9 +130,9 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCode() throws Exception {
+    public void testRetrieveCode() {
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
 
@@ -147,7 +150,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithCodeNotFound() throws Exception {
+    public void testRetrieveCodeWithCodeNotFound() {
         try {
             codeStoreEndpoints.retrieveCode("unknown");
 
@@ -158,7 +161,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithNullCode() throws Exception {
+    public void testRetrieveCodeWithNullCode() {
         try {
             codeStoreEndpoints.retrieveCode(null);
 
@@ -169,11 +172,11 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testStoreLargeData() throws Exception {
+    public void testStoreLargeData() {
         char[] oneMb = new char[1024 * 1024];
         Arrays.fill(oneMb, 'a');
         String data = new String(oneMb);
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
 
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
@@ -185,15 +188,14 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithExpiredCode() throws Exception {
+    public void testRetrieveCodeWithExpiredCode() {
         String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 1000);
+        int expiresIn = 1000;
+        Timestamp expiresAt = new Timestamp(currentTime.get() + expiresIn);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
 
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
-
-        Thread.currentThread();
-        Thread.sleep(1001);
+        currentTime.addAndGet(expiresIn + 1);
 
         try {
             codeStoreEndpoints.retrieveCode(generatedCode.getCode());

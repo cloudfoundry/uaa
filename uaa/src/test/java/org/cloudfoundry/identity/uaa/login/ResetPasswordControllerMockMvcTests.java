@@ -1,18 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -27,14 +15,13 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
-import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -45,10 +32,6 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -67,43 +50,48 @@ import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORG
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@DefaultTestContext
 public class ResetPasswordControllerMockMvcTests {
     @Autowired
     public WebApplicationContext webApplicationContext;
     private ExpiringCodeStore codeStore;
     private MockMvc mockMvc;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .build();
     }
 
-    @Before
-    public void initResetPasswordTest() {
+    @BeforeEach
+    void initResetPasswordTest() {
         codeStore = webApplicationContext.getBean(ExpiringCodeStore.class);
     }
 
-    @After
-    public void resetGenerator() {
+    @AfterEach
+    void resetGenerator() {
         webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
-
     @Test
-    public void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
+    void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
 
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
@@ -119,7 +107,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingPasswordDoesNotUpdateLastLogonTime() throws Exception {
+    void testResettingPasswordDoesNotUpdateLastLogonTime() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
@@ -142,7 +130,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
+    void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
 
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
@@ -166,14 +154,14 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingAPassword_whenCodeIsValid_rendersTheChangePasswordForm() throws Exception {
+    void testResettingAPassword_whenCodeIsValid_rendersTheChangePasswordForm() throws Exception {
 
         String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
@@ -205,7 +193,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void correct_url_gets_generated_by_default() throws Exception {
+    void correct_url_gets_generated_by_default() throws Exception {
         ScimUser user = getScimUser();
         FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
         sender.clearMessage();
@@ -225,19 +213,19 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
         return user;
     }
 
     @Test
-    public void new_code_overwrite_old_code_for_repeated_request() throws Exception {
+    void new_code_overwrite_old_code_for_repeated_request() throws Exception {
         String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
 
         PredictableGenerator generator = new PredictableGenerator();
@@ -259,13 +247,13 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void redirectToSavedRequest_ifPresent() throws Exception {
+    void redirectToSavedRequest_ifPresent() throws Exception {
         String username = new RandomValueStringGenerator().generate() ;
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
@@ -313,13 +301,13 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingAPasswordFailsWhenPasswordChanged() throws Exception {
+    void testResettingAPasswordFailsWhenPasswordChanged() throws Exception {
         String username = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(null, username, "givenname","familyname");
         user.setPrimaryEmail(username + "@test.org");
         user.setPassword("secret");
-        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        user = MockMvcUtils.utils().createUser(mockMvc, token, user);
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        user = MockMvcUtils.createUser(mockMvc, token, user);
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
@@ -331,7 +319,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingAPasswordNoCsrfParameter() throws Exception {
+    void testResettingAPasswordNoCsrfParameter() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
@@ -343,7 +331,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
+    void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
         assertEquals(1, users.size());
@@ -359,7 +347,7 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void resetPassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+    void resetPassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertNotNull(users);
@@ -377,9 +365,9 @@ public class ResetPasswordControllerMockMvcTests {
     }
 
     @Test
-    public void resetPassword_ReturnsUnprocessableEntity_NewPasswordNotAccordingToPolicy() throws Exception {
+    void resetPassword_ReturnsUnprocessableEntity_NewPasswordNotAccordingToPolicy() throws Exception {
 
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition currentDefinition = uaaProvider.getConfig();
         PasswordPolicy passwordPolicy = new PasswordPolicy();
         passwordPolicy.setMinLength(3);
@@ -402,7 +390,7 @@ public class ResetPasswordControllerMockMvcTests {
             .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
             .andExpect(forwardedUrl("/reset_password"));
 
-        uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaa().getId());
+        uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         uaaProvider.setConfig(currentDefinition);
         webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
     }

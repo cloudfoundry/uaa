@@ -2,57 +2,60 @@ apply plugin: 'java'
 apply plugin: 'war'
 
 war {
-  baseName = 'cloudfoundry-identity-statsd'
+    baseName = 'cloudfoundry-identity-statsd'
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+configurations.all {
+    exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+}
+
 dependencies {
-  compile project(':cloudfoundry-identity-metrics-data')
-  compile group: 'org.springframework.boot', name: 'spring-boot-starter', version: parent.springBootVersion
-  compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-  compile group: 'log4j', name: 'log4j', version: '1.2.14'
-  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
-  providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
-  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
-  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
+    compile project(':cloudfoundry-identity-metrics-data')
+    compile("org.springframework.boot:spring-boot-starter:${parent.springBootVersion}")
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: parent.springBootVersion
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-log4j2', version: parent.springBootVersion
+    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
+    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+    providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
+    testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
+
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.3'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.5.4'
 }
 
 test {
-  exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
-  exclude '**/*IT.class'
+    exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
+    exclude '**/*IT.class'
 }
 
 integrationTest {
-  filter {
-    includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
-    includeTestsMatching "*IT"
-  }
+    filter {
+        includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+        includeTestsMatching "*IT"
+    }
 }
 
 
 publishing {
-  publications {
-    statsd(MavenPublication) {
-      apply plugin: 'war'
+    publications {
+        statsd(MavenPublication) {
+            apply plugin: 'war'
 
-      groupId 'org.cloudfoundry.identity'
-      version version
-      artifactId 'cloudfoundry-identity-statsd'
+            groupId 'org.cloudfoundry.identity'
+            version version
+            artifactId 'cloudfoundry-identity-statsd'
 
-      from components.web
-      artifact sourceJar
+            from components.web
+            artifact sourceJar
+        }
     }
-  }
 }

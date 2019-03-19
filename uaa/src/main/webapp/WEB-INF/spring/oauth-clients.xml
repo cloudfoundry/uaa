@@ -44,7 +44,7 @@
     </bean>
 
     <beans profile="default">
-        <bean class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
+        <bean id="defaultClientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
             <constructor-arg ref="passwdEncoder"/>
             <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />

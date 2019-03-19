@@ -1,36 +1,24 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -44,16 +32,18 @@ import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
-public class TokenKeyEndpointMockMvcTests {
+@DefaultTestContext
+class TokenKeyEndpointMockMvcTests {
+
     private static final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIIEpQIBAAKCAQEA5JgjYNjLOeWC1Xf/NFcremS9peiQd3esa64KZ0BJue74bEtp\n" +
       "N8CLmbeTD9NHvKzCg833cF81gkrkP/pkra7WZF+zNlHBDnO68D/tBkEAzPJYlFLL\n" +
@@ -96,8 +86,8 @@ public class TokenKeyEndpointMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    @Before
-    public void setSigningKeyAndDefaultClient() throws Exception {
+    @BeforeEach
+    void setSigningKeyAndDefaultClient() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
@@ -107,7 +97,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKey() throws Exception {
+    void checkTokenKey() throws Exception {
         MvcResult result = mockMvc
           .perform(
             get("/token_key")
@@ -123,7 +113,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeyReturnETag() throws Exception {
+    void checkTokenKeyReturnETag() throws Exception {
         mockMvc.perform(
           get("/token_key")
             .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
@@ -134,7 +124,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeyReturns304IfResourceUnchanged() throws Exception {
+    void checkTokenKeyReturns304IfResourceUnchanged() throws Exception {
         mockMvc.perform(
           get("/token_key")
             .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
@@ -144,7 +134,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKey_IsNotFromDefaultZone() throws Exception {
+    void checkTokenKey_IsNotFromDefaultZone() throws Exception {
         MvcResult nonDefaultZoneResponse = mockMvc
           .perform(
             get("/token_key")
@@ -173,7 +163,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser() throws Exception {
+    void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser() throws Exception {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
           "",
           "foo,bar",
@@ -195,7 +185,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser_withoutCorrectScope() throws Exception {
+    void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser_withoutCorrectScope() throws Exception {
         setSigningKeyAndDefaultClient("key");
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
           "",
@@ -217,7 +207,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKey_asUnauthenticatedUser() throws Exception {
+    void checkTokenKey_asUnauthenticatedUser() throws Exception {
         MvcResult result = mockMvc
           .perform(
             get("/token_key")
@@ -232,7 +222,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeys() throws Exception {
+    void checkTokenKeys() throws Exception {
         MvcResult result = mockMvc
           .perform(
             get("/token_keys")
@@ -248,7 +238,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeysReturnETag() throws Exception {
+    void checkTokenKeysReturnETag() throws Exception {
         mockMvc.perform(
           get("/token_keys")
             .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
@@ -259,7 +249,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeysReturns304IfResourceUnchanged() throws Exception {
+    void checkTokenKeysReturns304IfResourceUnchanged() throws Exception {
         mockMvc.perform(
           get("/token_keys")
             .with(new SetServerNameRequestPostProcessor(testZone.getSubdomain() + ".localhost"))
@@ -269,7 +259,7 @@ public class TokenKeyEndpointMockMvcTests {
     }
 
     @Test
-    public void checkTokenKeys_asUnauthenticatedUser() throws Exception {
+    void checkTokenKeys_asUnauthenticatedUser() throws Exception {
         MvcResult result = mockMvc
           .perform(
             get("/token_keys")
@@ -287,7 +277,10 @@ public class TokenKeyEndpointMockMvcTests {
         String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         testZone = new IdentityZone();
-        testZone.setConfig(new IdentityZoneConfiguration()).setId(subdomain).setSubdomain(subdomain).setName(subdomain);
+        testZone.setConfig(new IdentityZoneConfiguration());
+        testZone.setId(subdomain);
+        testZone.setSubdomain(subdomain);
+        testZone.setName(subdomain);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
         testZone.getConfig().setTokenPolicy(tokenPolicy);

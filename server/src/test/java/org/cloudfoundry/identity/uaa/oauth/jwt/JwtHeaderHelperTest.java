@@ -73,7 +73,7 @@ class JwtHeaderHelperTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"JWT", "jwt"})
-        void containsValidRequiredHeaders(String validCty) {
+        void canDeserializeCtyHeader(String validCty) {
             objectNode.put("cty", validCty);
 
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -106,6 +106,8 @@ class JwtHeaderHelperTest {
             assertThat(header.toString(), not(containsString("x5t")));
             assertThat(header.toString(), not(containsString("x5t#S256")));
             assertThat(header.toString(), not(containsString("crit")));
+            // support not including `cty` if not present for back-compat
+            assertThat(header.toString(), not(containsString("cty")));
         }
 
         @DisplayName("Optional headers from JWS spec")

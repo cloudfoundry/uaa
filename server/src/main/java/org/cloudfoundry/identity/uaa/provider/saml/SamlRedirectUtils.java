@@ -54,9 +54,9 @@ public class SamlRedirectUtils {
         } catch (Exception ignored) {}
 
         if (UaaUrlUtils.isUrl(entityID)) {
-            return UaaUrlUtils.addSubdomainToUrl(entityID);
+            return UaaUrlUtils.addSubdomainToUrl(entityID, IdentityZoneHolder.get().getSubdomain());
         } else {
-            return UaaUrlUtils.getSubdomain() + entityID;
+            return UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain()) + entityID;
         }
     }
 

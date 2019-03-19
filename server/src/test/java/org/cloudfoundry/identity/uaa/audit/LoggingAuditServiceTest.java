@@ -1,33 +1,58 @@
 package org.cloudfoundry.identity.uaa.audit;
 
 
-import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-public class LoggingAuditServiceTest {
+class LoggingAuditServiceTest {
 
     private LoggingAuditService loggingAuditService;
-    private Log mockLogger;
+    private Logger mockLogger;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         loggingAuditService = new LoggingAuditService();
-        mockLogger = mock(Log.class);
+        mockLogger = mock(Logger.class);
         loggingAuditService.setLogger(mockLogger);
     }
 
     @Test
-    public void log_sanitizesMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t", null, null);
+    void log_format_whenThereIsAnAuthType() {
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "thePrincipalId", "theOrigin", "theData", 42L, "theZoneId", "theAuthType", "theDescription");
+
+        loggingAuditService.log(auditEvent, "not-used");
+
+        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockLogger).info(stringCaptor.capture());
+        String logMessage = stringCaptor.getValue();
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId], authenticationType=[theAuthType]"));
+    }
+
+    @Test
+    void log_format_whenAuthTypeIsNull() {
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "thePrincipalId", "theOrigin", "theData", 42L, "theZoneId", null, "theDescription");
+
+        loggingAuditService.log(auditEvent, "not-used");
+
+        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockLogger).info(stringCaptor.capture());
+        String logMessage = stringCaptor.getValue();
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId]"));
+    }
+
+    @Test
+    void log_sanitizesMaliciousInput() {
+        AuditEvent auditEvent = new AuditEvent(UserAuthenticationSuccess, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 
@@ -40,25 +65,13 @@ public class LoggingAuditServiceTest {
     }
 
     @Test
-    public void log_doesNotModifyNonMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "safe-zone", null, null);
+    void log_doesNotModifyNonMaliciousInput() {
+        AuditEvent auditEvent = new AuditEvent(UserAuthenticationSuccess, "principalId", "origin", "data", 100L, "safe-zone", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).info(stringCaptor.capture());
         assertFalse(stringCaptor.getValue().contains(LogSanitizerUtil.SANITIZED_FLAG));
-        assertFalse(stringCaptor.getValue().contains("authenticationType"));
-    }
-
-    @Test
-    public void log_containsAuthenticationType() {
-        AuditEvent auditEvent = new AuditEvent(UserAuthenticationSuccess, "principalId", "origin", "data", 100L, "safe-zone", "password", null);
-
-        loggingAuditService.log(auditEvent, "not-used");
-
-        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(mockLogger).info(stringCaptor.capture());
-        assertTrue(stringCaptor.getValue().contains("authenticationType=[password]"));
     }
 }

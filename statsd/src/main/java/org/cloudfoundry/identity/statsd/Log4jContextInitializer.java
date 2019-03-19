@@ -13,16 +13,9 @@
 
 package org.cloudfoundry.identity.statsd;
 
-import org.apache.log4j.MDC;
+import org.slf4j.MDC;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
@@ -31,11 +24,10 @@ import java.io.IOException;
  * in a log4j format, like this:
  *
  * <pre>
- * log4j.appender.CONSOLE.layout.ConversionPattern=[%d] %X{context} - [%t] %5p - %c{1}: %m%n
+ * [%d] %X{context} - [%t] %5p - %c{1}: %m%n
  * </pre>
  *
  * @author Dave Syer
- *
  */
 public class Log4jContextInitializer implements ServletContextListener, Filter {
 
@@ -55,7 +47,7 @@ public class Log4jContextInitializer implements ServletContextListener, Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
             ServletException {
-        MDC.put("context", ((HttpServletRequest)request).getContextPath());
+        MDC.put("context", ((HttpServletRequest) request).getContextPath());
         try {
             chain.doFilter(request, response);
         } finally {

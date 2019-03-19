@@ -12,14 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
+import com.timgroup.statsd.StatsDClient;
+import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
+import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
+import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
+import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.expression.MapAccessor;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.ReflectionUtils;
+
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.NotificationEmitter;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
-import java.lang.management.OperatingSystemMXBean;
-import java.lang.management.ThreadMXBean;
+import java.lang.management.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
@@ -29,26 +39,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import org.cloudfoundry.identity.uaa.metrics.MetricsQueue;
-import org.cloudfoundry.identity.uaa.metrics.RequestMetricSummary;
-import org.cloudfoundry.identity.uaa.metrics.StatusCodeGroup;
-import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-
-import com.timgroup.statsd.StatsDClient;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.context.expression.MapAccessor;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.util.ReflectionUtils;
-
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.ReflectionUtils.findMethod;
 
 public class UaaMetricsEmitter {
-    private static Log logger = LogFactory.getLog(UaaMetricsEmitter.class);
+    private static Logger logger = LoggerFactory.getLogger(UaaMetricsEmitter.class);
 
     private static final RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
     private final StatsDClient statsDClient;

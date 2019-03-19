@@ -678,7 +678,7 @@ public class MultitenantJdbcClientDetailsServiceTests extends JdbcTestBase {
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
         String identityZoneId = jdbcTemplate.queryForObject("select identity_zone_id from oauth_client_details where client_id = ?", String.class,clientId);
-        assertEquals(IdentityZone.getUaa().getId(), identityZoneId.trim());
+        assertEquals(IdentityZone.getUaaZoneId(), identityZoneId.trim());
     }
 
     @Test

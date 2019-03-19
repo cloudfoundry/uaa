@@ -66,7 +66,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
             ((InMemoryExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
         } else {
             // confirm that everything is clean prior to test.
-            TestUtils.deleteFrom(jdbcTemplate.getDataSource(), JdbcExpiringCodeStore.tableName);
+            TestUtils.deleteFrom(jdbcTemplate, JdbcExpiringCodeStore.tableName);
             ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
             ((JdbcExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
         }

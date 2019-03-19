@@ -19,12 +19,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -39,10 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,11 +47,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
+class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     @Test
-    public void test_user_managed_token() throws Exception {
+    void test_user_managed_token() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
         BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"), 50000);
 
@@ -63,16 +63,16 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        String requestorToken = MockMvcUtils.getUserOAuthAccessToken(getMockMvc(),
+        String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
                                                                      requestorId,
                                                                      SECRET,
                                                                      username,
                                                                      SECRET,
                                                                      "uaa.user");
 
-        String response = getMockMvc().perform(
+        String response = mockMvc.perform(
             post("/oauth/token")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
                 .accept(MediaType.APPLICATION_JSON)
@@ -93,10 +93,10 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals("test.scope", result.get("scope"));
         assertNull(result.get(ACCESS_TOKEN));
 
-        RevocableToken token = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(refreshToken, IdentityZoneHolder.get().getId());
+        RevocableToken token = revocableTokenProvisioning.retrieve(refreshToken, identityZoneManager.getCurrentIdentityZoneId());
         assertEquals(recipientId, token.getClientId());
 
-        response = getMockMvc().perform(
+        response = mockMvc.perform(
             post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -112,7 +112,7 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void test_client_credentials_token() throws Exception {
+    void test_client_credentials_token() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
         BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"), 50000);
 
@@ -121,17 +121,17 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            getMockMvc(),
+            mockMvc,
             requestorId,
             SECRET,
             "uaa.user",
             null,
             true);
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/token")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
                 .accept(MediaType.APPLICATION_JSON)
@@ -146,7 +146,7 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void test_invalid_grant_type() throws Exception {
+    void test_invalid_grant_type() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
         BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"), 50000);
 
@@ -155,16 +155,16 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        String requestorToken = MockMvcUtils.getUserOAuthAccessToken(getMockMvc(),
+        String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
                                                                      requestorId,
                                                                      SECRET,
                                                                      username,
                                                                      SECRET,
                                                                      "uaa.user");
 
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/token")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
                 .accept(MediaType.APPLICATION_JSON)
@@ -179,9 +179,9 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void test_create_client_with_user_token_grant() throws Exception {
+    void test_create_client_with_user_token_grant() throws Exception {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            getMockMvc(),
+            mockMvc,
             "admin",
             "adminsecret",
             "uaa.admin",
@@ -198,7 +198,7 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
             "http://redirect.uri"
         );
         client.setClientSecret(SECRET);
-        getMockMvc().perform(
+        mockMvc.perform(
             post("/oauth/clients")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer "+adminToken)
                 .accept(MediaType.APPLICATION_JSON)

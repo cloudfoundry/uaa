@@ -14,13 +14,13 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.WriterAppender;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -29,39 +29,37 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.http.HttpHeaders.ACCEPT;
-import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+import static org.springframework.http.HttpHeaders.*;
 
 public class CorsFilterTests {
+    private List<String> logEvents = new ArrayList<>();
+    private AbstractAppender appender;
 
-    StringWriter writer;
-    Appender appender;
+    @BeforeEach
+    void addLoggerAppender() {
+        appender = new AbstractAppender("", null, null) {
+            @Override
+            public void append(LogEvent event) {
+                logEvents.add(event.getMessage().getFormattedMessage());
+            }
+        };
+        appender.start();
 
-    @Before
-    public void start() {
-        this.writer = new StringWriter();
-        this.appender = new WriterAppender(new PatternLayout("%p, %m%n"), this.writer);
-        this.writer.getBuffer().setLength(0);
-        Logger.getRootLogger().addAppender(this.appender);
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        context.getRootLogger().addAppender(appender);
     }
 
-    @After
-    public void clean() {
-        Logger.getRootLogger().removeAppender(this.appender);
+    @AfterEach
+    void removeAppender() {
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        context.getRootLogger().removeAppender(appender);
     }
 
     @Test
@@ -413,8 +411,7 @@ public class CorsFilterTests {
 
         corsFilter.initialize();
 
-        assertTrue("Did not find expected error message in log.",
-                this.writer.toString().contains("Invalid regular expression pattern in cors.xhr.allowed.uris:"));
+        assertThat(logEvents, hasItem(startsWith("Invalid regular expression pattern in cors.xhr.allowed.uris:")));
     }
 
     @Test
@@ -431,7 +428,8 @@ public class CorsFilterTests {
         corsFilter.initialize();
 
         assertTrue("Did not find expected error message in log.",
-                this.writer.toString().contains("Invalid regular expression pattern in cors.xhr.allowed.origins:"));
+                logEvents.stream().anyMatch(logMsg -> logMsg.contains("Invalid regular expression pattern in cors.xhr.allowed.origins:"))
+        );
     }
 
     private static CorsFilter createConfiguredCorsFilter() {

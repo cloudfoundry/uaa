@@ -128,7 +128,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     @After
     public void clearDb() throws Exception {
         IdentityZoneHolder.clear();
-        TestUtils.deleteFrom(dataSource, "users");
+        TestUtils.deleteFrom(jdbcTemplate, "users");
     }
 
 

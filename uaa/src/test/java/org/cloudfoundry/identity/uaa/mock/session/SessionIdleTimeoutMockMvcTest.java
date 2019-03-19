@@ -1,47 +1,40 @@
 package org.cloudfoundry.identity.uaa.mock.session;
 
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.session.HttpSessionCreatedEvent;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
-public class SessionIdleTimeoutMockMvcTest {
-    @Autowired
-    public WebApplicationContext webApplicationContext;
-
+@DefaultTestContext
+class SessionIdleTimeoutMockMvcTest {
     private int timeout;
     private SessionIdleTimeoutSetter timeoutSetter;
+    private WebApplicationContext webApplicationContext;
 
-    @Before
-    public void setupForSessionIdleTimeout() throws Exception {
+    @BeforeEach
+    void setupForSessionIdleTimeout(
+            @Autowired WebApplicationContext webApplicationContext) {
+        this.webApplicationContext = webApplicationContext;
+
         timeoutSetter = webApplicationContext.getBean(SessionIdleTimeoutSetter.class);
         timeout = timeoutSetter.getTimeout();
     }
 
-    @After
-    public void restoreTimeout() throws Exception {
+    @AfterEach
+    void restoreTimeout() {
         timeoutSetter.setTimeout(timeout);
     }
 
     @Test
-    public void testSessionTimeout() throws Exception {
+    void testSessionTimeout() {
         MockHttpSession session = new MockHttpSession();
         assertEquals(0, session.getMaxInactiveInterval());
 
@@ -50,9 +43,8 @@ public class SessionIdleTimeoutMockMvcTest {
         assertEquals(timeout, session.getMaxInactiveInterval());
     }
 
-
     @Test
-    public void testSessionChangedTimeout() throws Exception {
+    void testSessionChangedTimeout() {
         timeoutSetter.setTimeout(300);
         MockHttpSession session = new MockHttpSession();
         assertEquals(0, session.getMaxInactiveInterval());

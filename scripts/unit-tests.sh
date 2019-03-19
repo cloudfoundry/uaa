@@ -3,11 +3,8 @@ set -xeu
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source $SCRIPT_DIR/start_db_helper.sh
-source $SCRIPT_DIR/start_ldap_helper.sh
 
 TESTENV="$1"
-HONEYCOMB_KEY="$2"
-HONEYCOMB_DATASET="$3"
 
 cat <<EOF >>/etc/hosts
 127.0.0.1 testzone1.localhost
@@ -16,15 +13,16 @@ cat <<EOF >>/etc/hosts
 127.0.0.1 testzone4.localhost
 127.0.0.1 testzonedoesnotexist.localhost
 127.0.0.1 oidcloginit.localhost
+127.0.0.1 testzoneinactive.localhost
 EOF
 
-bootDB "${DB}"
+bootDB "${DB}" # DB is set in the Dockerfile for each image
 
 pushd $(dirname $SCRIPT_DIR)
-  install_ldap_certs
   /etc/init.d/slapd start
-  ./scripts/ldap/configure-manifest.sh
+
   ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
   ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
-  ./gradlew "-Dspring.profiles.active=${TESTENV}" test "-Dhoneycomb.writekey=${HONEYCOMB_KEY}" "-Dhoneycomb.dataset=${HONEYCOMB_DATASET}" --no-daemon --stacktrace --console=plain -x :cloudfoundry-identity-samples:assemble
+
+  ./gradlew "-Dspring.profiles.active=${TESTENV}" test --no-daemon --stacktrace --console=plain -x :cloudfoundry-identity-samples:assemble
 popd

@@ -16,8 +16,10 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.File;
 
@@ -27,19 +29,18 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedMod
 
 public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
     private File existingStatusFile;
-    private File statusFile;
 
-    @Before
-    @Override
-    public void setUpContext() throws Exception {
-        super.setUpContext();
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+    @BeforeEach
+    public void setUpLimitedModeContext(
+            @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
+    ) throws Exception {
+        super.setUpContext(defaultAuthorities);
+        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
     }
 
-
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
+        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 }

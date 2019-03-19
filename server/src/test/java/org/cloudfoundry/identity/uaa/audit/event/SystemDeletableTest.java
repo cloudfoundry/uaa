@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.audit.event;
 
 import org.apache.commons.logging.Log;
@@ -20,14 +5,17 @@ import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -44,26 +32,27 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class SystemDeletableTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class SystemDeletableTest {
 
-    SystemDeletable deletable = mock(SystemDeletable.class);
-    Authentication authentication = mock(Authentication.class);
+    private SystemDeletable deletable = mock(SystemDeletable.class);
+    private Authentication authentication = mock(Authentication.class);
     private IdentityZone zone;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() {
         zone = MultitenancyFixture.identityZone("zone-id", "zone");
         IdentityZoneHolder.set(zone);
         resetDeletable();
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void tearDown() {
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void ignore_unknown_events() throws Exception {
+    void ignore_unknown_events() {
         AbstractUaaEvent event = mock(AbstractUaaEvent.class);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).onApplicationEvent(any(EntityDeletedEvent.class));
@@ -74,7 +63,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void uaa_default_zone_is_ignored() throws Exception {
+    void uaa_default_zone_is_ignored() {
         EntityDeletedEvent event = new EntityDeletedEvent(IdentityZone.getUaa(), authentication);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).deleteByIdentityZone(any());
@@ -84,7 +73,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void zone_event_received() throws Exception {
+    void zone_event_received() {
 
         EntityDeletedEvent event = new EntityDeletedEvent(zone, authentication);
         deletable.onApplicationEvent(event);
@@ -95,7 +84,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void provider_event_received() throws Exception {
+    void provider_event_received() {
         IdentityProvider provider = new IdentityProvider();
         provider.setId("id").setIdentityZoneId("other-zone-id").setOriginKey("origin");
         EntityDeletedEvent event = new EntityDeletedEvent(provider, authentication);
@@ -107,7 +96,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void client_event_received() throws Exception {
+    void client_event_received() {
         BaseClientDetails client = new BaseClientDetails("clientId", "", "", "client_credentials", "uaa.none");
         EntityDeletedEvent<ClientDetails> event = new EntityDeletedEvent(client, authentication);
         for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
@@ -122,7 +111,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void user_event_received() throws Exception {
+    void user_event_received() {
         UaaUser uaaUser = new UaaUser(new UaaUserPrototype()
                                        .withUsername("username")
                                        .withId("uaaUser-id")
@@ -132,7 +121,6 @@ public class SystemDeletableTest {
         ScimUser scimUser = new ScimUser(uaaUser.getId(), uaaUser.getUsername(), uaaUser.getGivenName(), uaaUser.getFamilyName());
         scimUser.setPrimaryEmail(uaaUser.getEmail());
         scimUser.setZoneId(uaaUser.getZoneId());
-
 
         for (Object user : Arrays.asList(uaaUser, scimUser)) {
             for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
@@ -149,7 +137,7 @@ public class SystemDeletableTest {
     }
 
     @Test
-    public void mfa_event_received() throws Exception {
+    void mfa_event_received() {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider<GoogleMfaProviderConfig>().setId("provider1");
         EntityDeletedEvent<MfaProvider> event = new EntityDeletedEvent<>(mfaProvider, authentication);
         deletable.onApplicationEvent(event);
@@ -160,17 +148,11 @@ public class SystemDeletableTest {
         verify(deletable, times(1)).deleteByMfaProvider(eq("provider1"), any());
     }
 
-    public void resetDeletable() {
+    void resetDeletable() {
         reset(deletable);
         doCallRealMethod().when(deletable).onApplicationEvent(any(EntityDeletedEvent.class));
         doCallRealMethod().when(deletable).onApplicationEvent(any(AbstractUaaEvent.class));
         doCallRealMethod().when(deletable).isUaaZone(any());
         when(deletable.getLogger()).thenReturn(mock(Log.class));
     }
-
-    @Test
-    public void onApplicationEvent1() throws Exception {
-
-    }
-
 }

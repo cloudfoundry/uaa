@@ -21,7 +21,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
-import java.util.Timer;
 import java.util.concurrent.ConcurrentMap;
 
 import static junit.framework.Assert.assertEquals;
@@ -30,7 +29,6 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
@@ -42,20 +40,19 @@ public class CachingPasswordEncoderTest  {
     @Before
     public void setUp() throws Exception {
         cachingPasswordEncoder = new CachingPasswordEncoder();
-        cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder());
+        cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder(4)); // 4 mean as fast/weak as possible
         password = new RandomValueStringGenerator().generate();
     }
 
     @Test
-    public void testSetPasswordEncoder() throws Exception {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    public void testSetPasswordEncoder() {
+        PasswordEncoder encoder = new BCryptPasswordEncoder();
         cachingPasswordEncoder.setPasswordEncoder(encoder);
         assertSame(encoder, cachingPasswordEncoder.getPasswordEncoder());
     }
 
-
     @Test
-    public void testEncode() throws Exception {
+    public void testEncode() {
         String encode1 = cachingPasswordEncoder.encode(password);
         String encode2 = cachingPasswordEncoder.getPasswordEncoder().encode(password);
         assertFalse(encode1.equals(encode2));
@@ -66,7 +63,7 @@ public class CachingPasswordEncoderTest  {
     }
 
     @Test
-    public void testMatches() throws Exception {
+    public void testMatches() {
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         int iterations = 5;
@@ -78,22 +75,24 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void testMatches_But_Expires() throws Exception {
-        cachingPasswordEncoder.setExpiryInSeconds(5);
-        cachingPasswordEncoder.encode(password);
-        String cacheKey = cachingPasswordEncoder.cacheEncode(password);
+        cachingPasswordEncoder.setExpiryInSeconds(1);
         String encoded = cachingPasswordEncoder.encode(password);
-        int iterations = 5;
-        for (int i=0; i<iterations; i++) {
-            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
-            assertTrue(cachingPasswordEncoder.matches(password, encoded));
-            assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size()>0);
-        }
-        Thread.sleep(5500);
-        assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size()==0);
+        String cacheKey = cachingPasswordEncoder.cacheEncode(password);
+
+        assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
+        assertTrue(cachingPasswordEncoder.matches(password, encoded));
+
+        assertTrue("Password is no longer cached when we expected it to be cached",
+                cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() > 0);
+
+        Thread.sleep(1001);
+
+        assertTrue("Password is still cached when we expected it to be expired",
+                cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() == 0);
     }
 
     @Test
-    public void testNotMatches() throws Exception {
+    public void testNotMatches() {
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         password = new RandomValueStringGenerator().generate();
@@ -106,6 +105,8 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void cacheIs10XFasterThanNonCached() {
+        cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder());
+
         int iterations = 10;
 
         String password = new RandomValueStringGenerator().generate();

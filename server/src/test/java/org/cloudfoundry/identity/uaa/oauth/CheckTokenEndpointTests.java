@@ -28,12 +28,14 @@ import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -175,7 +177,13 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() throws Exception {
+        TestUtils.resetIdentityZoneHolder(null);
         setUp(useOpaque);
+    }
+
+    @After
+    public void after() {
+        TestUtils.resetIdentityZoneHolder(null);
     }
 
     public void setUp(boolean opaque) throws Exception {

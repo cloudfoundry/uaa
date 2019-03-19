@@ -2,8 +2,8 @@ package org.cloudfoundry.identity.uaa.message;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -11,7 +11,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
@@ -20,12 +19,12 @@ public class EmailService implements MessageService {
     private final Log logger = LogFactory.getLog(getClass());
 
     private JavaMailSender mailSender;
-    private final String loginUrl;
     private final String fromAddress;
+    private final IdentityZoneManager identityZoneManager;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress, IdentityZoneManager identityZoneManager) {
         this.mailSender = mailSender;
-        this.loginUrl = loginUrl;
+        this.identityZoneManager = identityZoneManager;
 
         // if we are provided a from address use that, if not fallback to default based on loginUrl
         if (fromAddress != null && !fromAddress.isEmpty()) {
@@ -34,11 +33,6 @@ public class EmailService implements MessageService {
             String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
             this.fromAddress = "admin@" + host;
         }
-
-    }
-
-    public String getFromAddress() {
-        return fromAddress;
     }
 
     public JavaMailSender getMailSender() {
@@ -49,13 +43,13 @@ public class EmailService implements MessageService {
         this.mailSender = mailSender;
     }
 
-    private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
-        String name = null;
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
+    private Address[] getSenderAddresses() throws UnsupportedEncodingException {
+        String name;
+        if (identityZoneManager.isCurrentZoneUaa()) {
+            String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
-            name = IdentityZoneHolder.get().getName();
+            name = identityZoneManager.getCurrentIdentityZone().getName();
         }
 
         return new Address[]{new InternetAddress(fromAddress, name)};
@@ -69,9 +63,7 @@ public class EmailService implements MessageService {
             message.addRecipients(Message.RecipientType.TO, email);
             message.setSubject(subject);
             message.setContent(htmlContent, "text/html");
-        } catch (MessagingException e) {
-            logger.error("Exception raised while sending message to " + email, e);
-        } catch (UnsupportedEncodingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Exception raised while sending message to " + email, e);
         }
 

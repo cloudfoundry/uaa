@@ -15,240 +15,241 @@
 
 package org.cloudfoundry.identity.uaa.mock.limited;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
+import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
+import static org.springframework.http.HttpStatus.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class LimitedModeNegativeTests extends InjectedMockContextTest {
-
+@DefaultTestContext
+class LimitedModeNegativeTests {
     private String adminToken;
-    private File statusFile;
-    private File existingStatusFile = null;
+    private File existingStatusFile;
 
-    @Before
-    public void setUp() throws Exception {
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+    private MockMvc mockMvc;
 
-        adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(),
-                                                                       "admin",
-                                                                       "adminsecret",
-                                                                       "uaa.admin",
-                                                                       null,
-                                                                       true);
+    @BeforeEach
+    void setUp() throws Exception {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
+
+        adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
+                "admin",
+                "adminsecret",
+                "uaa.admin",
+                null,
+                true);
     }
 
-
-    @After
-    public void tearDown() throws Exception {
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
-    }
-
-
-    @Test
-    public void identity_zone_can_read() throws Exception {
-        validate(
-            get("/identity-zones")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer " + adminToken),
-            OK
-        );
-
-        validate(
-            get("/identity-zones/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer " + adminToken),
-            NOT_FOUND);
+    @AfterEach
+    void tearDown() throws Exception {
+        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 
     @Test
-    public void identity_zone_can_not_write() throws Exception {
-        validate(
-            post("/identity-zones")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(""))
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
+    void identity_zone_can_read() throws Exception {
+        mockMvc.perform(
+                get("/identity-zones")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(OK.value()));
 
-        validate(
-            put("/identity-zones/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(""))
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
+        mockMvc.perform(
+                get("/identity-zones/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(NOT_FOUND.value()));
     }
 
     @Test
-    public void identity_provider_can_read() throws Exception {
-        validate(
-            get("/identity-providers")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            OK
-        );
-
-        validate(
-            get("/identity-providers/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            NOT_FOUND
-        );
-    }
-
-    @Test
-    public void identity_provider_can_not_write() throws Exception {
-        validate(
-            post("/identity-providers")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-
-        validate(
-            put("/identity-providers/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-    }
-
-    @Test
-    public void clients_can_read() throws Exception {
-        validate(
-            get("/oauth/clients")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            OK
-        );
-
-        validate(
-            get("/oauth/clients/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            NOT_FOUND
-        );
-    }
-
-    @Test
-    public void clients_can_not_write() throws Exception {
-        validate(
-            post("/oauth/clients")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-
-        validate(
-            put("/oauth/clients/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-    }
-
-    @Test
-    public void groups_can_read() throws Exception {
-        validate(
-            get("/Groups")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            OK
-        );
-
-        validate(
-            get("/Groups/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            NOT_FOUND
-        );
-    }
-
-    @Test
-    public void groups_can_not_write() throws Exception {
-        validate(
-            post("/Groups")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-
-        validate(
-            put("/Groups/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-    }
-
-    @Test
-    public void users_can_read() throws Exception {
-        validate(
-            get("/Users")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            OK
-        );
-
-        validate(
-            get("/Users/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            NOT_FOUND
-        );
-    }
-
-    @Test
-    public void users_can_not_write() throws Exception {
-        validate(
-            post("/Users")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-
-        validate(
-            put("/Users/{id}", "some-invalid-id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "bearer "+adminToken),
-            SERVICE_UNAVAILABLE
-        );
-    }
-
-    public void validate(MockHttpServletRequestBuilder method, HttpStatus expected) throws Exception {
-        if (SERVICE_UNAVAILABLE.equals(expected)) {
-            getMockMvc().perform(method)
+    void identity_zone_can_not_write() throws Exception {
+        mockMvc.perform(
+                post("/identity-zones")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(""))
+                        .header("Authorization", "bearer " + adminToken))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
                 .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
-        } else {
-            getMockMvc().perform(method)
-                .andExpect(status().is(expected.value()));
-        }
+
+        mockMvc.perform(
+                put("/identity-zones/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(""))
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+    }
+
+    @Test
+    void identity_provider_can_read() throws Exception {
+        mockMvc.perform(
+                get("/identity-providers")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(OK.value()));
+
+        mockMvc.perform(
+                get("/identity-providers/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(NOT_FOUND.value()));
+    }
+
+    @Test
+    void identity_provider_can_not_write() throws Exception {
+        mockMvc.perform(
+                post("/identity-providers")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+
+        mockMvc.perform(
+                put("/identity-providers/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+    }
+
+    @Test
+    void clients_can_read() throws Exception {
+        mockMvc.perform(
+                get("/oauth/clients")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(OK.value()));
+
+        mockMvc.perform(
+                get("/oauth/clients/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(NOT_FOUND.value()));
+    }
+
+    @Test
+    void clients_can_not_write() throws Exception {
+        mockMvc.perform(
+                post("/oauth/clients")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+
+        mockMvc.perform(
+                put("/oauth/clients/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+    }
+
+    @Test
+    void groups_can_read() throws Exception {
+        mockMvc.perform(
+                get("/Groups")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(OK.value()));
+
+        mockMvc.perform(
+                get("/Groups/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(NOT_FOUND.value()));
+    }
+
+    @Test
+    void groups_can_not_write() throws Exception {
+        mockMvc.perform(
+                post("/Groups")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+
+        mockMvc.perform(
+                put("/Groups/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+    }
+
+    @Test
+    void users_can_read() throws Exception {
+        mockMvc.perform(
+                get("/Users")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(OK.value()));
+
+        mockMvc.perform(
+                get("/Users/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().is(NOT_FOUND.value()));
+    }
+
+    @Test
+    void users_can_not_write() throws Exception {
+        mockMvc.perform(
+                post("/Users")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
+
+        mockMvc.perform(
+                put("/Users/{id}", "some-invalid-id")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("error").value(LimitedModeUaaFilter.ERROR_CODE))
+                .andExpect(jsonPath("error_description").value(LimitedModeUaaFilter.ERROR_MESSAGE));
     }
 
 }

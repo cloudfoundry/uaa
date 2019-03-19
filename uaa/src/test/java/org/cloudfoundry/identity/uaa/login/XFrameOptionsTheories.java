@@ -12,9 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.TestSpringContext;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
+import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventListenerRule;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,8 +38,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringJUnit4ClassRunner.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
 public class XFrameOptionsTheories {
+    @Rule
+    public HoneycombAuditEventListenerRule honeycombAuditEventListenerRule = new HoneycombAuditEventListenerRule();
+
     @Autowired
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;

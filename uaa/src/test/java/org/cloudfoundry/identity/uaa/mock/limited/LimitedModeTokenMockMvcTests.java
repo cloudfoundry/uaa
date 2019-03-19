@@ -17,18 +17,20 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.io.File;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,31 +39,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     private File existingStatusFile;
-    private File statusFile;
 
-    @Before
+    @BeforeEach
     @Override
-    public void setUpContext() throws Exception {
-        super.setUpContext();
-        existingStatusFile = getLimitedModeStatusFile(getWebApplicationContext());
-        statusFile = setLimitedModeStatusFile(getWebApplicationContext());
+    public void setUpContext(
+            @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
+    ) throws Exception {
+        super.setUpContext(defaultAuthorities);
+
+        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
+
+        assertTrue(isLimitedMode());
     }
 
-
-    @After
-    public void tearDown() throws Exception {
-        resetLimitedModeStatusFile(getWebApplicationContext(), existingStatusFile);
+    @AfterEach
+    void tearDown() throws Exception {
+        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 
     @Test
-    public void check_token_while_limited() throws Exception {
+    void check_token_while_limited() throws Exception {
         BaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
                                                 "uaa.resource,clients.read",
                                                 "",
                                                 "client_credentials",
                                                 true);
-        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), client.getClientId(), SECRET, null, null, true);
-        getMockMvc().perform(
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, client.getClientId(), SECRET, null, null, true);
+        mockMvc.perform(
             post("/check_token")
                 .param("token", token)
                 .header(AUTHORIZATION,
@@ -71,5 +76,9 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
             .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))
             .andExpect(jsonPath("$.client_id").value(client.getClientId()))
             .andExpect(jsonPath("$.jti").value(token));
+    }
+
+    private boolean isLimitedMode() {
+        return webApplicationContext.getBean(LimitedModeUaaFilter.class).isEnabled();
     }
 }

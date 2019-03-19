@@ -23,6 +23,7 @@ public class HeaderParameters {
     @JsonProperty
     String typ;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String cty;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)

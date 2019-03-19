@@ -29,5 +29,7 @@ public interface IdentityProviderProvisioning {
 
     IdentityProvider retrieveByOrigin(String origin, String zoneId);
 
-
+    default IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
+        return retrieveByOrigin(origin, zoneId);
+    }
 }

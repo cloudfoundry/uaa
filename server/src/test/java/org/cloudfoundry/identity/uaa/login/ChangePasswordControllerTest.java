@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .build();
 
         authentication = new UaaAuthentication(
-            new UaaPrincipal("id", "bob", "bob@bob.bob", UAA, null, getUaa().getId()),
+            new UaaPrincipal("id", "bob", "bob@bob.bob", UAA, null, IdentityZone.getUaaZoneId()),
             asList(UaaAuthority.UAA_USER),
             new UaaAuthenticationDetails(false, null, UAA, "12345")
         );
