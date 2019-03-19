@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.TestSpringContext;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
@@ -38,7 +39,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 
 import java.util.Date;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -49,12 +49,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@ExtendWith(HoneycombJdbcInterceptorExtension.class)
-@ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-@ActiveProfiles("default")
-@WebAppConfiguration
-@ContextConfiguration(classes = TestSpringContext.class)
+@DefaultTestContext
 class ForcePasswordChangeControllerMockMvcTest {
     private ScimUser user;
     private String token;
@@ -92,12 +87,7 @@ class ForcePasswordChangeControllerMockMvcTest {
     }
 
     @Nested
-    @ExtendWith(SpringExtension.class)
-    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-    @ActiveProfiles("default")
-    @WebAppConfiguration
-    @ContextConfiguration(classes = TestSpringContext.class)
+    @DefaultTestContext
     class HappyPath {
         @BeforeEach
         void setup() throws Exception {
@@ -158,12 +148,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         }
 
         @Nested
-        @ExtendWith(SpringExtension.class)
-        @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-        @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-        @ActiveProfiles("default")
-        @WebAppConfiguration
-        @ContextConfiguration(classes = TestSpringContext.class)
+        @DefaultTestContext
         class WithMFA {
             @BeforeEach
             void setup() {
@@ -210,19 +195,14 @@ class ForcePasswordChangeControllerMockMvcTest {
     }
 
     @Nested
-    @ExtendWith(SpringExtension.class)
-    @ExtendWith(HoneycombJdbcInterceptorExtension.class)
-    @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
-    @ActiveProfiles("default")
-    @WebAppConfiguration
-    @ContextConfiguration(classes = TestSpringContext.class)
+    @DefaultTestContext
     class WithPasswordPolicy {
         IdentityProvider identityProvider;
         UaaIdentityProviderDefinition cleanIdpDefinition;
 
         @BeforeEach
         void setup() {
-            identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+            identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
             cleanIdpDefinition = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
         }
 
@@ -355,12 +335,12 @@ class ForcePasswordChangeControllerMockMvcTest {
 
     static Stream<PasswordPolicyWithInvalidPassword> authenticationTestParams() {
         return Stream.of(
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(2, 0, 0, 0, 0, 0, 0), "1", "Password must be at least 2 characters in length."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 0, 0), "12", "Password must be no more than 1 characters in length."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 1, 0, 0, 0, 0), "1", "Password must contain at least 1 uppercase characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 1, 0, 0, 0), "1", "Password must contain at least 1 lowercase characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 1, 0, 0), "a", "Password must contain at least 1 digit characters."),
-              new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 1, 0), "a", "Password must contain at least 1 special characters.")
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(2, 0, 0, 0, 0, 0, 0), "1", "Password must be at least 2 characters in length."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 0, 0), "12", "Password must be no more than 1 characters in length."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 1, 0, 0, 0, 0), "1", "Password must contain at least 1 uppercase characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 1, 0, 0, 0), "1", "Password must contain at least 1 lowercase characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 1, 0, 0), "a", "Password must contain at least 1 digit characters."),
+                new PasswordPolicyWithInvalidPassword(new PasswordPolicy(0, 1, 0, 0, 0, 1, 0), "a", "Password must contain at least 1 special characters.")
         );
 
     }

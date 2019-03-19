@@ -90,7 +90,7 @@ public class IdentityProviderEndpointsTest {
         config.setScopes(requestedScopes);
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
-        identityProvider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        identityProvider.setIdentityZoneId(IdentityZone.getUaaZoneId());
         return identityProvider;
     }
 

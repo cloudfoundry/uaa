@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -59,7 +58,6 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
@@ -137,7 +135,7 @@ public class LoginInfoEndpointTests {
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaProvider = new IdentityProvider();
-        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.UAA), anyString())).thenReturn(uaaProvider);
+        when(identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(uaaProvider);
         when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
         originalConfiguration = IdentityZoneHolder.get().getConfig();
@@ -445,7 +443,7 @@ public class LoginInfoEndpointTests {
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("mfaCode"));
         assertEquals(
-            "MFA Code ( Register at "+addSubdomainToUrl(baseUrl) + " )",
+            "MFA Code ( Register at "+addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()) + " )",
             ((String[])mapPrompts.get("mfaCode"))[1]
         );
     }
@@ -467,13 +465,13 @@ public class LoginInfoEndpointTests {
         String baseUrl = "http://uaa.domain.com";
         endpoint.setBaseUrl(baseUrl);
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
-        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
-        assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login")), ((Map<String, String>) model.asMap().get("links")).get("login"));
+        assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login"), IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         String loginBaseUrl = "http://external-login.domain.com";
         endpoint.setExternalLoginUrl(loginBaseUrl);
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
-        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
         assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
@@ -481,7 +479,7 @@ public class LoginInfoEndpointTests {
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
-        assertEquals("Temporary Authentication Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
+        assertEquals("Temporary Authentication Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA, IdentityZoneHolder.get().getSubdomain()) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
         return baseUrl;
     }
 
@@ -572,7 +570,7 @@ public class LoginInfoEndpointTests {
 
         IdentityProvider uaaIdentityProvider = new IdentityProvider();
         uaaIdentityProvider.setActive(false);
-        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+        when(identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
@@ -653,7 +651,7 @@ public class LoginInfoEndpointTests {
 
         IdentityProvider uaaIdentityProvider = new IdentityProvider();
         uaaIdentityProvider.setActive(false);
-        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+        when(identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
         model.clear();
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
@@ -997,6 +995,41 @@ public class LoginInfoEndpointTests {
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+    }
+
+    @Test
+    public void testLoginHintOriginUaaDirectCall() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        mockHttpServletRequest.setParameter("login_hint", "{\"origin\":\"uaa\"}");
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+
+
+        endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+    }
+
+    @Test
+    public void testLoginHintOriginUaaDoubleEncoded() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        ClientServicesExtension clientDetailsService = mockClientService();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8")});
+
+
+        endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertTrue(model.get("login_hint").equals(URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8")));
     }
 
     @Test

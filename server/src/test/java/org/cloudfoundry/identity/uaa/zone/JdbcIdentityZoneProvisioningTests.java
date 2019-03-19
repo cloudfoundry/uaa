@@ -40,9 +40,9 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void test_cannot_delete_uaa_zone() {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaa().getId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaaZoneId()}, Integer.class), is(1));
         db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaa().getId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaaZoneId()}, Integer.class), is(1));
     }
 
     @Test

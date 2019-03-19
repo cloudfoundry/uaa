@@ -78,7 +78,7 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
     }
 
     default boolean isUaaZone(String zoneId) {
-        return IdentityZone.getUaa().getId().equals(zoneId);
+        return IdentityZone.getUaaZoneId().equals(zoneId);
     }
 
     default int deleteByIdentityZone(String zoneId) {

@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
@@ -20,14 +21,15 @@ import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
 
@@ -38,7 +40,7 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
 
     @Before
     public void setUpForClientTests() {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        PasswordEncoder encoder = new FakePasswordEncoder();
         jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
         jdbcClientDetailsService.setPasswordEncoder(encoder);
         ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);

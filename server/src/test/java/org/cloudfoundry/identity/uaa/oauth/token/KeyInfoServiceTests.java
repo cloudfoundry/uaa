@@ -1,28 +1,18 @@
-/*******************************************************************************
-*     Cloud Foundry
-*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
-*
-*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
-*     You may not use this product except in compliance with the License.
-*
-*     This product includes a number of subcomponents with
-*     separate copyright notices and license terms. Your use of these
-*     subcomponents is subject to the terms and conditions of the
-*     subcomponent's license, as noted in the LICENSE file.
-*******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Collections;
@@ -35,12 +25,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
-*
-* @author Joel D'sa
-*
-*/
-public class KeyInfoServiceTests {
+@ExtendWith(PollutionPreventionExtension.class)
+class KeyInfoServiceTests {
     private static final String SIGNING_KEY = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIICXAIBAAKBgQDErZsZY70QAa7WdDD6eOv3RLBA4I5J0zZOiXMzoFB5yh64q0sm\n" +
       "ESNtV4payOYE5TnHxWjMo0y7gDsGjI1omAG6wgfyp63I9WcLX7FDLyee43fG5+b9\n" +
@@ -60,18 +46,18 @@ public class KeyInfoServiceTests {
 
     private KeyInfoService keyInfoService;
 
-    @BeforeClass
-    public static void setupLegacyKey() {
+    @BeforeAll
+    static void setupLegacyKey() {
         LegacyTokenKey.setLegacySigningKey("testLegacyKey", "https://localhost/uaa");
     }
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         keyInfoService = new KeyInfoService("https://localhost/uaa");
     }
 
     @Test
-    public void testSignedProviderSymmetricKeys() {
+    void testSignedProviderSymmetricKeys() {
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
 
@@ -84,7 +70,7 @@ public class KeyInfoServiceTests {
     }
 
     @Test
-    public void testSignedProviderAsymmetricKeys() {
+    void testSignedProviderAsymmetricKeys() {
         String signingKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIICXAIBAAKBgQDErZsZY70QAa7WdDD6eOv3RLBA4I5J0zZOiXMzoFB5yh64q0sm\n" +
                 "ESNtV4payOYE5TnHxWjMo0y7gDsGjI1omAG6wgfyp63I9WcLX7FDLyee43fG5+b9\n" +
@@ -111,7 +97,7 @@ public class KeyInfoServiceTests {
     }
 
     @Test
-    public void testSignedProviderAsymmetricKeysShouldAddKeyURL() {
+    void testSignedProviderAsymmetricKeysShouldAddKeyURL() {
         String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
@@ -124,7 +110,7 @@ public class KeyInfoServiceTests {
     }
 
     @Test
-    public void testSignedProviderAsymmetricKeysShouldAddKeyURL_ForCorrectZone() {
+    void testSignedProviderAsymmetricKeysShouldAddKeyURL_ForCorrectZone() {
         String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
         IdentityZoneHolder.clear();
@@ -149,7 +135,7 @@ public class KeyInfoServiceTests {
     }
 
     @Test
-    public void testActiveKeyFallsBackToLegacyKey() {
+    void testActiveKeyFallsBackToLegacyKey() {
         configureDefaultZoneKeys(Collections.emptyMap());
 
         assertEquals(keyInfoService.getActiveKey().keyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);

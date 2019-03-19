@@ -52,7 +52,7 @@ public class JdbcTestBase extends TestClassNullifier {
         this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);
-        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.setConfigLocations(getWebApplicationContextConfigFiles());
         webApplicationContext.refresh();
         flyway = webApplicationContext.getBean(Flyway.class);
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
@@ -63,17 +63,17 @@ public class JdbcTestBase extends TestClassNullifier {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
-    public void cleanData() {
-        IdentityZoneHolder.clear();
-        TestUtils.cleanTestDatabaseData(jdbcTemplate);
+    public String[] getWebApplicationContextConfigFiles() {
+        return new String[]{
+                "classpath:spring/env.xml",
+                "classpath:spring/data-source.xml"
+        };
     }
 
     @After
-    public void tearDown() {
-        cleanData();
+    public void tearDown() throws Exception {
+        TestUtils.restoreToDefaults(webApplicationContext);
 
-        IdentityZoneHolder.clear();
-        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close(true);
         webApplicationContext.destroy();
     }

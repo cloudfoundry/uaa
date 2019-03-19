@@ -216,11 +216,11 @@ public abstract class TokenValidation {
 
     protected TokenValidation checkRequestedScopesAreGranted(Collection<String> grantedScopes) {
         List<String> requestedScopes = requestedScopes();
-        Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(grantedScopes);
+        Set<Pattern> grantedScopePatterns = UaaStringUtils.constructWildcards(grantedScopes);
         List<String> missingScopes =
                 requestedScopes.stream().filter(
-                        s -> scopePatterns.stream()
-                                .noneMatch(p -> p.matcher(s).matches())
+                        requestedScope -> grantedScopePatterns.stream()
+                                .noneMatch(grantedScopePattern -> grantedScopePattern.matcher(requestedScope).matches())
                 ).collect(toList());
         if (!missingScopes.isEmpty()) {
             String scopeClaimKey = scopeClaimKey().keyName();

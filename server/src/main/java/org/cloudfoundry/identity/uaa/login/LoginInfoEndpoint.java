@@ -95,7 +95,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -341,7 +340,7 @@ public class LoginInfoEndpoint {
         } catch (EmptyResultDataAccessException e) {
         }
         IdentityProvider uaaIdentityProvider =
-            providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+            providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         // ldap and uaa disabled removes username/password input boxes
         if (!uaaIdentityProvider.isActive()) {
             if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
@@ -360,7 +359,7 @@ public class LoginInfoEndpoint {
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
         idpForRedirect = evaluateLoginHint(model, session, samlIdentityProviders,
-            oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys);
+            oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, request);
 
         boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
         boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
@@ -534,18 +533,20 @@ public class LoginInfoEndpoint {
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
             Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
-            List<String> allowedIdentityProviderKeys
+            List<String> allowedIdentityProviderKeys,
+            HttpServletRequest request
     ) {
 
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
-        Optional<String> loginHintParam =
+        String loginHintParam =
             ofNullable(session)
                 .flatMap(s -> ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
                 .flatMap(sr -> ofNullable(sr.getParameterValues("login_hint")))
-                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst())
+                .orElse(request.getParameter("login_hint"));
 
-        if (loginHintParam.isPresent()) {
-            String loginHint = loginHintParam.get();
+        if (loginHintParam != null) {
+            String loginHint = loginHintParam;
             // parse login_hint in JSON format
             UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
             if (uaaLoginHint != null) {
@@ -743,7 +744,7 @@ public class LoginInfoEndpoint {
                 if (hasText(urlInPasscode)) {
                     String[] newDetails = new String[details.length];
                     System.arraycopy(details, 0, newDetails, 0, details.length);
-                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode, IdentityZoneHolder.get().getSubdomain()));
                     details = newDetails;
                 }
             }
@@ -753,7 +754,7 @@ public class LoginInfoEndpoint {
             Prompt p = new Prompt(
                 MFA_CODE,
                 "password",
-                "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )")
+                "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl()+" )", IdentityZoneHolder.get().getSubdomain())
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
@@ -951,13 +952,13 @@ public class LoginInfoEndpoint {
     protected Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
+        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
         if (getBaseUrl().contains("localhost:")) {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl()));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
         } else if (hasText(getExternalLoginUrl())){
             model.put("login", getExternalLoginUrl());
         } else {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login")));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
         }
         model.putAll(getSelfServiceLinks());
         return model;
@@ -966,7 +967,7 @@ public class LoginInfoEndpoint {
     protected Map<String,String> getSelfServiceLinks() {
         Map<String, String> selfServiceLinks = new HashMap<>();
         IdentityZone zone = IdentityZoneHolder.get();
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
 
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;

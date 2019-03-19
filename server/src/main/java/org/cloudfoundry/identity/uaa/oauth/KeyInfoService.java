@@ -43,7 +43,7 @@ public class KeyInfoService {
 
         Map<String, KeyInfo> keys = new HashMap<>();
         for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
-            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL));
+            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()));
             keys.put(entry.getKey(), keyInfo);
         }
 

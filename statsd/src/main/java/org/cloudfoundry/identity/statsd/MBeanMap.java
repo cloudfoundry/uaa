@@ -12,31 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.statsd;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.management.LazyCompositeData;
 
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.MBeanOperationInfo;
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
+import javax.management.*;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularDataSupport;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @SuppressWarnings("restriction")
 public class MBeanMap extends AbstractMap<String, Object>{
 
-	private static Log logger = LogFactory.getLog(MBeanMap.class);
+	private static Logger logger = LoggerFactory.getLogger(MBeanMap.class);
 
-	private Map<String, Object> map = new HashMap<String, Object>();
+	private Map<String, Object> map = new HashMap<>();
 
 	private boolean initialized = false;
 

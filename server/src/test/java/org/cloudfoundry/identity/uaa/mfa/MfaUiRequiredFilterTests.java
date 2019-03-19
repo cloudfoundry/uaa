@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.mfa;
 
 import javax.servlet.FilterChain;
@@ -25,12 +10,14 @@ import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -64,7 +51,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class MfaUiRequiredFilterTests {
+@ExtendWith(PollutionPreventionExtension.class)
+class MfaUiRequiredFilterTests {
 
     private RequestCache requestCache;
     private MfaUiRequiredFilter spyFilter;
@@ -79,8 +67,8 @@ public class MfaUiRequiredFilterTests {
     private AntPathRequestMatcher logoutMatcher;
     private IdentityZone mfaEnabledZone;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         providerProvisioning = mock(IdentityProviderProvisioning.class);
         requestCache = mock(RequestCache.class);
         logoutMatcher = new AntPathRequestMatcher("/logout.do");
@@ -107,38 +95,37 @@ public class MfaUiRequiredFilterTests {
         mfaEnabledZone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("origin"));
     }
 
-    @After
-    public void teardown() throws Exception {
-        IdentityZoneHolder.clear();
+    @AfterEach
+    void teardown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void authentication_log_info_null() throws Exception {
+    void authentication_log_info_null() {
         assertNull(spyFilter.getAuthenticationLogInfo());
     }
 
     @Test
-    public void authentication_log_info_uaa() throws Exception {
+    void authentication_log_info_uaa() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-id"));
         assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-username"));
     }
 
     @Test
-    public void authentication_log_info_unknown() throws Exception {
+    void authentication_log_info_unknown() {
         SecurityContextHolder.getContext().setAuthentication(usernameAuthentication);
         assertThat(spyFilter.getAuthenticationLogInfo(), containsString("Unknown Auth=org.springframework.security.authentication.UsernamePasswordAuthenticationToken"));
         assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-principal"));
     }
 
     @Test
-    public void next_step_not_authenticated() throws Exception {
+    void next_step_not_authenticated() {
         assertSame(NOT_AUTHENTICATED, spyFilter.getNextStep(request));
     }
 
     @Test
-    public void next_step_mfa_not_needed_when_origin_key_does_not_match_valid_identity_provider() throws Exception {
+    void next_step_mfa_not_needed_when_origin_key_does_not_match_valid_identity_provider() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         IdentityZone zone = new IdentityZone();
         zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("uaa", "ldap"));
@@ -148,7 +135,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_needed_when_origin_key_matches_valid_identity_provider() throws Exception {
+    void next_step_mfa_needed_when_origin_key_matches_valid_identity_provider() {
         UaaAuthentication auth = new UaaAuthentication(
           new UaaPrincipal("fake-id", "fake-username", "email@email.com", "ldap", "", "uaa"),
           emptyList(),
@@ -165,25 +152,25 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_anonymous() throws Exception {
+    void next_step_anonymous() {
         SecurityContextHolder.getContext().setAuthentication(anonymous);
         assertSame(NOT_AUTHENTICATED, spyFilter.getNextStep(request));
     }
 
     @Test
-    public void next_step_unknown_authentication() throws Exception {
+    void next_step_unknown_authentication() {
         SecurityContextHolder.getContext().setAuthentication(usernameAuthentication);
         assertSame(INVALID_AUTH, spyFilter.getNextStep(request));
     }
 
     @Test
-    public void next_step_mfa_not_needed() throws Exception {
+    void next_step_mfa_not_needed() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         assertSame(MFA_NOT_REQUIRED, spyFilter.getNextStep(request));
     }
 
     @Test
-    public void next_step_mfa_required() throws Exception {
+    void next_step_mfa_required() {
         request.setServletPath("/");
         request.setPathInfo("oauth/authorize");
 
@@ -194,7 +181,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_in_progress() throws Exception {
+    void next_step_mfa_in_progress() {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/register");
 
@@ -205,7 +192,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_in_progress_when_completed_invoked() throws Exception {
+    void next_step_mfa_in_progress_when_completed_invoked() {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/completed");
 
@@ -216,7 +203,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_completed() throws Exception {
+    void next_step_mfa_completed() {
         request.setServletPath("/");
         request.setPathInfo("login/mfa/completed");
 
@@ -228,7 +215,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void next_step_mfa_in_play() throws Exception {
+    void next_step_mfa_in_play() {
         request.setServletPath("/");
         request.setPathInfo("oauth/authorize");
 
@@ -240,7 +227,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void send_redirect() throws Exception {
+    void send_redirect() throws Exception {
         request.setServletPath("/");
         request.setContextPath("/uaa");
         spyFilter.sendRedirect("/login/mfa/register", request, response);
@@ -248,14 +235,14 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_invalid_auth() throws Exception {
+    void do_filter_invalid_auth() throws Exception {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(INVALID_AUTH);
         spyFilter.doFilter(request, response, chain);
         verify(response, times(1)).sendError(401, "Invalid authentication object for UI operations.");
     }
 
     @Test
-    public void do_filter_not_authenticated() throws Exception {
+    void do_filter_not_authenticated() throws Exception {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(NOT_AUTHENTICATED);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
@@ -263,7 +250,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_mfa_in_progress() throws Exception {
+    void do_filter_mfa_in_progress() throws Exception {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_IN_PROGRESS);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
@@ -271,7 +258,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_mfa_ok() throws Exception {
+    void do_filter_mfa_ok() throws Exception {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_OK);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
@@ -279,7 +266,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_mfa_completed_no_saved_request() throws Exception {
+    void do_filter_mfa_completed_no_saved_request() throws Exception {
         request.setContextPath("/uaa");
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_COMPLETED);
         spyFilter.doFilter(request, response, chain);
@@ -288,7 +275,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_mfa_completed_with_saved_request() throws Exception {
+    void do_filter_mfa_completed_with_saved_request() throws Exception {
         SavedRequest savedRequest = mock(SavedRequest.class);
         String redirect = "http://localhost:8080/uaa/oauth/authorize";
         when(savedRequest.getRedirectUrl()).thenReturn(redirect);
@@ -302,7 +289,7 @@ public class MfaUiRequiredFilterTests {
     }
 
     @Test
-    public void do_filter_mfa_required() throws Exception {
+    void do_filter_mfa_required() throws Exception {
         request.setContextPath("/uaa");
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_REQUIRED);
         spyFilter.doFilter(request, response, chain);

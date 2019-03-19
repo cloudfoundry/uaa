@@ -192,3 +192,18 @@ UAA Administration Events
 * EntityDeletedEvent
      - Happens: When an identity provider or identity zone is deleted
      - Data Recorded: Principal ID (client or user ID), Deleted entity
+
+Flows
+==============================================================
+
+Below are some example flows for a UAA configured with LDAP as an IDP
+
+* Browser flows
+     - Successful login: UserNotFound -> PrincipalAuthenticationFailure -> UserCreatedEvent -> IdentityProviderAuthenticationSuccess -> UserAuthenticationSuccess
+     - Invalid password: UserNotFound -> PrincipalAuthenticationFailure -> IdentityProviderAuthenticationFailure
+     - Unknown user: UserNotFound -> PrincipalAuthenticationFailure -> IdentityProviderAuthenticationFailure
+
+* Password grant
+     - Successful login: ClientAuthenticationSuccess -> UserNotFound -> PrincipalAuthenticationFailure -> IdentityProviderAuthenticationSuccess -> UserAuthenticationSuccess -> TokenIssuedEvent
+     - Invalid password: ClientAuthenticationSuccess -> UserNotFound -> PrincipalAuthenticationFailure -> IdentityProviderAuthenticationFailure
+     - Unknown user: ClientAuthenticationSuccess -> UserNotFound-> PrincipalAuthenticationFailure -> IdentityProviderAuthenticationFailure

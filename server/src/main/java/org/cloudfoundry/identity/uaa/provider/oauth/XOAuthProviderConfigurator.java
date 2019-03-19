@@ -154,4 +154,13 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         }
         return p;
     }
+
+    @Override
+    public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
+        IdentityProvider p = providerProvisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
+        if (p!=null && p.getType().equals(OIDC10)) {
+            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+        }
+        return p;
+    }
 }

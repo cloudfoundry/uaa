@@ -79,7 +79,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
-        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);

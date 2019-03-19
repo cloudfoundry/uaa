@@ -30,9 +30,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -56,28 +56,26 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static RandomValueStringGenerator generator = new RandomValueStringGenerator(12);
 
+    MockMvcUtils.IdentityZoneCreationResult originZone;
+    BaseClientDetails originClient;
+    ScimUser originUser;
 
-    private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
-    protected MockMvcUtils.IdentityZoneCreationResult originZone;
-    protected BaseClientDetails originClient;
-    protected ScimUser originUser;
-
-    @Before
+    @BeforeEach
     public void setupJwtBearerTests() throws Exception {
         originClient = new BaseClientDetails(generator.generate(), "", "openid", "password", null);
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
-        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), originClient);
+        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient);
         originUser = createUser(originZone.getIdentityZone());
     }
 
-    @After
+    @AfterEach
     public void clearZoneHolder() {
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void default_zone_jwt_grant () throws Exception {
+    void default_zone_jwt_grant() throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
         createProvider(defaultZone, getTokenVerificationKey(originZone.getIdentityZone()));
         perform_grant_in_zone(defaultZone,
@@ -87,11 +85,11 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void non_default_zone_jwt_grant () throws Exception {
+    void non_default_zone_jwt_grant() throws Exception {
         String subdomain = generator.generate().toLowerCase();
         IdentityZone zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
-                                                                                getMockMvc(),
-                                                                                getWebApplicationContext(),
+                                                                                mockMvc,
+                                                                                webApplicationContext,
                                                                                 null,
                                                                                 false).getIdentityZone();
         createProvider(zone, getTokenVerificationKey(originZone.getIdentityZone()));
@@ -101,7 +99,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void defaultZoneJwtGrantWithInternalIdp () throws Exception {
+    void defaultZoneJwtGrantWithInternalIdp() throws Exception {
         BaseClientDetails defaultZoneClient = setUpClients(generator.generate(), "", "openid", "password", true);
         defaultZoneClient.setClientSecret(SECRET);
 
@@ -115,14 +113,14 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void jwtGrantWithInternalIdpWithIdTokenFromDifferentZone () throws Exception {
+    void jwtGrantWithInternalIdpWithIdTokenFromDifferentZone() throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
         perform_grant_in_zone(defaultZone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    public void assertion_missing() throws Exception {
+    void assertion_missing() throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
         createProvider(defaultZone, getTokenVerificationKey(originZone.getIdentityZone()));
         perform_grant_in_zone(defaultZone, null)
@@ -133,7 +131,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void signature_mismatch() throws Exception {
+    void signature_mismatch() throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
         createProvider(defaultZone, "invalid-verification-key");
         perform_grant_in_zone(defaultZone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
@@ -162,18 +160,18 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain()+".localhost");
         }
 
-        return getMockMvc().perform(jwtBearerGrant)
+        return mockMvc.perform(jwtBearerGrant)
             .andDo(print());
     }
 
     void createProvider(IdentityZone theZone, String verificationKey) throws Exception {
-        oidcProvider = createOIDCProvider(theZone,
-            verificationKey,
-            "http://" + originZone.getIdentityZone().getSubdomain() + ".localhost:8080/uaa/oauth/token",
-            originClient.getClientId());
+        createOIDCProvider(theZone,
+                verificationKey,
+                "http://" + originZone.getIdentityZone().getSubdomain() + ".localhost:8080/uaa/oauth/token",
+                originClient.getClientId());
     }
 
-    public String getUaaIdToken(IdentityZone zone, ClientDetails client, ScimUser user) throws Exception {
+    String getUaaIdToken(IdentityZone zone, ClientDetails client, ScimUser user) throws Exception {
         MockHttpServletRequestBuilder passwordGrant = post("/oauth/token")
             .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -188,7 +186,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             passwordGrant = passwordGrant.header("Host", zone.getSubdomain()+".localhost");
         }
 
-        String jsonToken = getMockMvc().perform(passwordGrant)
+        String jsonToken = mockMvc.perform(passwordGrant)
             .andDo(print())
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
@@ -197,19 +195,19 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         return (String) token.get("id_token");
     }
 
-    public ScimUser createUser(IdentityZone zone) throws Exception {
+    public ScimUser createUser(IdentityZone zone) {
         String userName = generator.generate().toLowerCase();
         ScimUser user = new ScimUser(null, userName, "first", "last");
         user.setPrimaryEmail(userName+"@test.org");
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(ScimUserProvisioning.class).createUser(user, SECRET, IdentityZoneHolder.get().getId());
+            return webApplicationContext.getBean(ScimUserProvisioning.class).createUser(user, SECRET, IdentityZoneHolder.get().getId());
         } finally {
             IdentityZoneHolder.clear();
         }
     }
 
-    public ClientDetails createJwtBearerClient(IdentityZone zone) throws Exception {
+    ClientDetails createJwtBearerClient(IdentityZone zone) {
         BaseClientDetails details = new BaseClientDetails(
             generator.generate().toLowerCase(),
             "",
@@ -220,14 +218,14 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         details.setClientSecret(SECRET);
         IdentityZoneHolder.set(zone);
         try {
-            getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(details);
+            webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(details);
         } finally {
             IdentityZoneHolder.clear();
         }
         return details;
     }
 
-    public String getTokenVerificationKey(IdentityZone zone) {
+    String getTokenVerificationKey(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         try {
             return new KeyInfoService("https://someurl").getActiveKey().verifierKey();
@@ -236,7 +234,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         }
     }
 
-    public IdentityProvider<OIDCIdentityProviderDefinition> createOIDCProvider(IdentityZone zone, String tokenKey, String issuer, String relyingPartyId) throws Exception {
+    IdentityProvider<OIDCIdentityProviderDefinition> createOIDCProvider(IdentityZone zone, String tokenKey, String issuer, String relyingPartyId) throws Exception {
         String originKey = generator.generate();
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setIssuer(issuer);
@@ -253,7 +251,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         identityProvider.setConfig(definition);
         IdentityZoneHolder.set(zone);
         try {
-            return getWebApplicationContext().getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider, zone.getId());
+            return webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(identityProvider, zone.getId());
         } finally {
             IdentityZoneHolder.clear();
         }

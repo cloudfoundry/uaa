@@ -349,7 +349,6 @@
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
-
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
@@ -369,7 +368,7 @@
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
       <property name="basenames">
         <list>
-          <value>#{systemEnvironment['CLOUD_FOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUD_FOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
+          <value>#{systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
           <value>classpath:messages</value>
         </list>
       </property>

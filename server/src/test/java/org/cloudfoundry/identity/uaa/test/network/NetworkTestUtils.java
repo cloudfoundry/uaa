@@ -103,9 +103,9 @@ public class NetworkTestUtils {
         return keystore;
     }
 
-    public static HttpServer startHttpServer(int port, HttpHandler handler) throws Exception {
+    public static HttpServer startHttpServer(HttpHandler handler) throws Exception {
         //some stack overflow goodness for testing only
-        InetSocketAddress address = new InetSocketAddress(port);
+        InetSocketAddress address = new InetSocketAddress(0);
         HttpServer httpServer = HttpServer.create(address, 0);
         httpServer.createContext("/", handler);
         httpServer.setExecutor(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
@@ -114,9 +114,9 @@ public class NetworkTestUtils {
     }
 
 
-    public static HttpsServer startHttpsServer(int port, File keystore, String keypass, HttpHandler handler) throws Exception {
+    public static HttpsServer startHttpsServer(File keystore, String keypass, HttpHandler handler) throws Exception {
         //some stack overflow goodness for testing only
-        InetSocketAddress address = new InetSocketAddress(port);
+        InetSocketAddress address = new InetSocketAddress(0);
         HttpsServer httpsServer = HttpsServer.create(address, 0);
         SSLContext sslContext = SSLContext.getInstance("TLS");
 

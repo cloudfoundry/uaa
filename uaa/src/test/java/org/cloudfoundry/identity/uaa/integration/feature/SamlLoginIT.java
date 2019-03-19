@@ -266,7 +266,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
+    public void incorrectResponseFromSamlIDP_showErrorFromSaml() throws Exception {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -755,13 +755,12 @@ public class SamlLoginIT {
 
         List<String> idps = Arrays.asList(provider.getOriginKey());
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", baseUrl);
+        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
-
-        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
         webDriver.get(zoneUrl + "/logout.do");
 
@@ -1046,7 +1045,7 @@ public class SamlLoginIT {
 
         String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
 
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
             .setZoneId(uaaZoneId)
             .setMetaDataLocation(idpMetadata)

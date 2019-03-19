@@ -1,17 +1,3 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
- */
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -21,14 +7,16 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,25 +45,37 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class LdapLoginAuthenticationManagerTests {
+@ExtendWith(PollutionPreventionExtension.class)
+class LdapLoginAuthenticationManagerTests {
 
-    public static final String DN = "cn=marissa,ou=Users,dc=test,dc=com";
-    public static final String LDAP_EMAIL = "test@ldap.org";
-    public static final String TEST_EMAIL = "email@email.org";
-    public static final String USERNAME = "username";
+    private static final String DN = "cn=marissa,ou=Users,dc=test,dc=com";
+    private static final String LDAP_EMAIL = "test@ldap.org";
+    private static final String TEST_EMAIL = "email@email.org";
+    private static final String USERNAME = "username";
     private static final String EMAIL_ATTRIBUTE = "email";
     private final String GIVEN_NAME_ATTRIBUTE = "firstname";
     private final String FAMILY_NAME_ATTRIBUTE = "surname";
     private final String PHONE_NUMBER_ATTTRIBUTE = "digits";
     private static LdapUserDetails userDetails;
 
-    final String DENVER_CO = "Denver,CO";
-    final String COST_CENTER = "costCenter";
-    final String COST_CENTERS = "costCenters";
-    final String JOHN_THE_SLOTH = "John the Sloth";
-    final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
-    final String UAA_MANAGER = "uaaManager";
-    final String MANAGERS = "managers";
+    private final String DENVER_CO = "Denver,CO";
+    private final String COST_CENTER = "costCenter";
+    private final String COST_CENTERS = "costCenters";
+    private final String JOHN_THE_SLOTH = "John the Sloth";
+    private final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+    private final String UAA_MANAGER = "uaaManager";
+    private final String MANAGERS = "managers";
+
+    private LdapLoginAuthenticationManager am;
+    private ApplicationEventPublisher publisher;
+    private String origin = "test";
+    private Map<String, String[]> info = new HashMap<>();
+    private UaaUser dbUser;
+    private Authentication auth;
+    private ExtendedLdapUserImpl authUserDetail;
+    private IdentityProviderProvisioning provisioning;
+    private IdentityProvider provider;
+    private LdapIdentityProviderDefinition definition;
 
     private static LdapUserDetails mockLdapUserDetails() {
         userDetails = mock(LdapUserDetails.class);
@@ -100,19 +100,11 @@ public class LdapLoginAuthenticationManagerTests {
         when(userDetails.isEnabled()).thenReturn(true);
     }
 
-    LdapLoginAuthenticationManager am;
-    ApplicationEventPublisher publisher;
-    String origin = "test";
-    Map<String, String[]> info = new HashMap<>();
-    UaaUser dbUser = getUaaUser();
-    Authentication auth;
-    ExtendedLdapUserImpl authUserDetail;
-    IdentityProviderProvisioning provisioning;
-    IdentityProvider provider;
-    LdapIdentityProviderDefinition definition;
+    @BeforeEach
+    void setUp() {
+        IdentityZoneHolder.setProvisioning(null);
 
-    @Before
-    public void setUp() {
+        dbUser = getUaaUser();
         provisioning = mock(IdentityProviderProvisioning.class);
         am = new LdapLoginAuthenticationManager(provisioning);
         publisher = mock(ApplicationEventPublisher.class);
@@ -153,7 +145,7 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testGetUserWithExtendedLdapInfo() throws Exception {
+    void testGetUserWithExtendedLdapInfo() {
         UaaUser user = am.getUser(auth, null);
         assertEquals(DN, user.getExternalId());
         assertEquals(LDAP_EMAIL, user.getEmail());
@@ -162,7 +154,7 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testGetUserWithNonLdapInfo() throws Exception {
+    void testGetUserWithNonLdapInfo() {
         UserDetails mockNonLdapUserDetails = mockNonLdapUserDetails();
         when(mockNonLdapUserDetails.getUsername()).thenReturn(TEST_EMAIL);
         when(auth.getPrincipal()).thenReturn(mockNonLdapUserDetails);
@@ -173,9 +165,7 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void testUserAuthenticated() throws Exception {
-
-
+    void testUserAuthenticated() {
         UaaUser user = getUaaUser();
         UaaUser userFromRequest = am.getUser(auth, null);
         definition.setAutoAddGroups(true);
@@ -190,13 +180,13 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void shadowUserCreationDisabledWillNotAddShadowUser() throws Exception {
+    void shadowUserCreationDisabledWillNotAddShadowUser() {
         definition.setAddShadowUserOnLogin(false);
         assertFalse(am.isAddNewShadowUser());
     }
 
     @Test
-    public void update_existingUser_if_attributes_different() throws Exception {
+    void update_existingUser_if_attributes_different() {
         ExtendedLdapUserImpl authDetails = getAuthDetails(LDAP_EMAIL, "MarissaChanged", "BloggsChanged", "8675309");
         when(auth.getPrincipal()).thenReturn(authDetails);
 
@@ -212,7 +202,7 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void dontUpdate_existingUser_if_attributes_same() throws Exception {
+    void dontUpdate_existingUser_if_attributes_same() {
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails = getAuthDetails(user.getEmail(), user.getGivenName(), user.getFamilyName(), user.getPhoneNumber());
         when(auth.getPrincipal()).thenReturn(authDetails);
@@ -226,17 +216,17 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void test_authentication_attributes() throws Exception {
+    void test_authentication_attributes() {
         test_authentication_attributes(false);
     }
 
     @Test
-    public void test_authentication_attributes_store_custom_attributes() throws Exception {
+    void test_authentication_attributes_store_custom_attributes() {
         test_authentication_attributes(true);
     }
 
     @Test
-    public void test_group_white_list_with_wildcard() {
+    void test_group_white_list_with_wildcard() {
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
             getAuthDetails(
@@ -297,7 +287,7 @@ public class LdapLoginAuthenticationManagerTests {
         );
     }
 
-    public void test_authentication_attributes(boolean storeUserInfo) throws Exception {
+    void test_authentication_attributes(boolean storeUserInfo) {
 
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
@@ -378,7 +368,7 @@ public class LdapLoginAuthenticationManagerTests {
         return authUserDetail;
     }
 
-    protected UaaUser getUaaUser() {
+    UaaUser getUaaUser() {
         return new UaaUser(new UaaUserPrototype()
                                .withId("id")
                                .withUsername(USERNAME)
@@ -403,7 +393,7 @@ public class LdapLoginAuthenticationManagerTests {
         final String name;
         final String[] values;
 
-        public AttributeInfo(String name, String[] values) {
+        AttributeInfo(String name, String[] values) {
             this.name = name;
             this.values = values;
         }

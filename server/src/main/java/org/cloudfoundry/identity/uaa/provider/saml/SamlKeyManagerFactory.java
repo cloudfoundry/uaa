@@ -33,13 +33,14 @@ public final class SamlKeyManagerFactory {
 
     protected final static Logger logger = LoggerFactory.getLogger(SamlKeyManagerFactory.class);
 
-    private SamlKeyManagerFactory() {}
+    public SamlKeyManagerFactory() {
+    }
 
-    public static KeyManager getKeyManager(SamlConfig config) {
+    public KeyManager getKeyManager(SamlConfig config) {
         return getKeyManager(config.getKeys(), config.getActiveKeyId());
     }
 
-    private static KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
+    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
         SamlKey activeKey = keys.get(activeKeyId);
 
         if (activeKey == null) {
@@ -53,8 +54,8 @@ public final class SamlKeyManagerFactory {
             for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
                 String password = ofNullable(entry.getValue().getPassphrase()).orElse("");
                 KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
-                    new KeyWithCert(entry.getValue().getCertificate()) :
-                    new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+                        new KeyWithCert(entry.getValue().getCertificate()) :
+                        new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
 
                 X509Certificate certificate = keyWithCert.getCertificate();
 
@@ -69,11 +70,6 @@ public final class SamlKeyManagerFactory {
             }
 
             JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
-
-            if (null == keyManager) {
-                throw new IllegalArgumentException(
-                        "Could not load service provider certificate. Check serviceProviderKey and certificate parameters");
-            }
 
             logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
 

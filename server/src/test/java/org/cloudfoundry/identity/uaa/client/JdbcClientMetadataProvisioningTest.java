@@ -55,7 +55,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         String clientId = generator.generate();
         jdbcTemplate.execute(
             String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
-                clientId, IdentityZone.getUaa().getId(), randomGUID)
+                clientId, IdentityZone.getUaaZoneId(), randomGUID)
             );
         ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
         ClientMetadata createdClientMetadata = db.update(clientMetadata, IdentityZoneHolder.get().getId());
@@ -63,7 +63,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         ClientMetadata retrievedClientMetadata = db.retrieve(createdClientMetadata.getClientId(), IdentityZoneHolder.get().getId());
 
         assertThat(retrievedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
-        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
+        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaaZoneId()));
         assertThat(retrievedClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
         assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
         assertThat(retrievedClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
@@ -79,11 +79,11 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     @Test
     public void retrieveAllClientMetadata() throws Exception {
         String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
         ClientMetadata clientMetadata1 = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
         db.update(clientMetadata1, IdentityZoneHolder.get().getId());
         String clientId2 = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaa().getId() + "')");
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaaZoneId() + "')");
         ClientMetadata clientMetadata2 = createTestClientMetadata(clientId2, true, new URL("http://app.launch/url"), base64EncodedImg);
         db.update(clientMetadata2, IdentityZoneHolder.get().getId());
 
@@ -97,13 +97,13 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     @Test
     public void updateClientMetadata() throws Exception {
         String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
         ClientMetadata newClientMetadata = createTestClientMetadata(clientId, false, new URL("http://updated.app/launch/url"), base64EncodedImg);
 
         ClientMetadata updatedClientMetadata = db.update(newClientMetadata, IdentityZoneHolder.get().getId());
 
         assertThat(updatedClientMetadata.getClientId(), is(clientId));
-        assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
+        assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaaZoneId()));
         assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
         assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
         assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));

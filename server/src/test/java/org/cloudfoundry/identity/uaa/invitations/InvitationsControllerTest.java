@@ -210,7 +210,7 @@ public class InvitationsControllerTest {
             .setNameID("test")
             .setLinkText("testsaml")
             .setIconUrl("test.com")
-            .setZoneId(IdentityZone.getUaa().getId());
+            .setZoneId(IdentityZone.getUaaZoneId());
         provider.setConfig(definition);
         provider.setType(OriginKeys.SAML);
         when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);

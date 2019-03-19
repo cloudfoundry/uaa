@@ -15,12 +15,10 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.springframework.security.saml.key.KeyManager;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
-import static java.util.Optional.ofNullable;
-
+/*
+ * @Deprecated Use {@code org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager} instead
+ */
+@Deprecated
 public class IdentityZoneHolder {
 
     private static IdentityZoneProvisioning provisioning;
@@ -29,50 +27,61 @@ public class IdentityZoneHolder {
         IdentityZoneHolder.provisioning = provisioning;
     }
 
-    private static final ThreadLocal<IdentityZoneWithKeyManager> THREADLOCAL = new InheritableThreadLocal<IdentityZoneWithKeyManager>() {
-        @Override
-        protected IdentityZoneWithKeyManager initialValue() {
-            if (provisioning==null) {
-                return new IdentityZoneWithKeyManager(IdentityZone.getUaa(), null);
-            }
-            IdentityZone zone = getUaaZone();
-            return new IdentityZoneWithKeyManager(zone, null);
-        }
-    };
+    private static SamlKeyManagerFactory samlKeyManagerFactory = new SamlKeyManagerFactory();
+
+    private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL = InheritableThreadLocal
+            .withInitial(() -> getUaaZone(provisioning));
 
     public static IdentityZone get() {
-        return THREADLOCAL.get().getZone();
+        return IDENTITY_ZONE_THREAD_LOCAL.get();
     }
 
+    private static final ThreadLocal<KeyManager> KEY_MANAGER_THREAD_LOCAL = InheritableThreadLocal.withInitial(() -> null);
+
     public static KeyManager getSamlSPKeyManager() {
-        IdentityZoneWithKeyManager withKeyManager = THREADLOCAL.get();
-        if (withKeyManager.getManager()==null) {
-            KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(withKeyManager.getZone().getConfig().getSamlConfig());
-            if (keyManager==null) {
-                keyManager = SamlKeyManagerFactory.getKeyManager(getUaaZone().getConfig().getSamlConfig());
-            }
-            withKeyManager.setManager(keyManager);
+        KeyManager keyManager = KEY_MANAGER_THREAD_LOCAL.get();
+        if (keyManager != null) {
+            return keyManager;
         }
-        return withKeyManager.getManager();
+
+        keyManager = samlKeyManagerFactory.getKeyManager(IDENTITY_ZONE_THREAD_LOCAL.get().getConfig().getSamlConfig());
+        if (keyManager != null) {
+            KEY_MANAGER_THREAD_LOCAL.set(keyManager);
+            return keyManager;
+        }
+
+        keyManager = samlKeyManagerFactory.getKeyManager(getUaaZone(provisioning).getConfig().getSamlConfig());
+        KEY_MANAGER_THREAD_LOCAL.set(keyManager);
+        return keyManager;
     }
 
     public static IdentityZone getUaaZone() {
-        if (provisioning==null) {
+        return getUaaZone(provisioning);
+    }
+
+    private static IdentityZone getUaaZone(IdentityZoneProvisioning provisioning) {
+        if (provisioning == null) {
             return IdentityZone.getUaa();
         }
-        return provisioning.retrieve(IdentityZone.getUaa().getId());
+        return provisioning.retrieve(IdentityZone.getUaaZoneId());
     }
 
     public static void set(IdentityZone zone) {
-        THREADLOCAL.set(new IdentityZoneWithKeyManager(zone, null));
+        IDENTITY_ZONE_THREAD_LOCAL.set(zone);
+        KEY_MANAGER_THREAD_LOCAL.set(null);
     }
 
     public static void clear() {
-        THREADLOCAL.remove();
+        IDENTITY_ZONE_THREAD_LOCAL.remove();
+        KEY_MANAGER_THREAD_LOCAL.remove();
     }
 
     public static boolean isUaa() {
-        return THREADLOCAL.get().getZone().getId().equals(IdentityZone.getUaa().getId());
+        return IDENTITY_ZONE_THREAD_LOCAL.get().isUaa();
+    }
+
+    public static String getCurrentZoneId() {
+        return IDENTITY_ZONE_THREAD_LOCAL.get().getId();
     }
 
     public static class Initializer {
@@ -84,77 +93,4 @@ public class IdentityZoneHolder {
             IdentityZoneHolder.setProvisioning(null);
         }
     }
-
-    public static class IdentityZoneWithKeyManager {
-        private IdentityZone zone;
-        private KeyManager manager;
-
-        public IdentityZoneWithKeyManager(IdentityZone zone, KeyManager manager) {
-            this.zone = zone;
-            this.manager = manager;
-        }
-
-        public IdentityZone getZone() {
-            return zone;
-        }
-
-        public KeyManager getManager() {
-            return manager;
-        }
-
-        public void setManager(KeyManager manager) {
-            this.manager = manager;
-        }
-    }
-
-    private static class MergedZoneBrandingInformation implements BrandingInformationSource {
-        @Override
-        public BrandingInformation.Banner getBanner() {
-            return resolve(BrandingInformationSource::getBanner);
-        }
-
-        @Override
-        public String getCompanyName() {
-            return resolve(BrandingInformationSource::getCompanyName);
-        }
-
-        @Override
-        public String getProductLogo() {
-            return tryGet(get(), BrandingInformationSource::getProductLogo).orElse(null);
-        }
-
-        @Override
-        public String getSquareLogo() {
-            return resolve(BrandingInformationSource::getSquareLogo);
-        }
-
-        @Override
-        public String getFooterLegalText() {
-            return resolve(BrandingInformationSource::getFooterLegalText);
-        }
-
-        @Override
-        public Map<String, String> getFooterLinks() {
-            return resolve(BrandingInformationSource::getFooterLinks);
-        }
-
-        private static <T> T resolve(Function<BrandingInformationSource, T> brandingProperty) {
-            return
-              tryGet(get(), brandingProperty)
-                .orElse(tryGet(getUaaZone(), brandingProperty)
-                  .orElse(null));
-        }
-
-        private static <T> Optional<T> tryGet(IdentityZone zone, Function<BrandingInformationSource, T> brandingProperty) {
-            return ofNullable(zone.getConfig())
-              .flatMap(c -> ofNullable(c.getBranding()))
-                .flatMap(b -> ofNullable(brandingProperty.apply(b)));
-        }
-    }
-
-    private static final BrandingInformationSource brandingResolver = new MergedZoneBrandingInformation();
-    public static BrandingInformationSource resolveBranding() {
-        return brandingResolver;
-    }
-
 }

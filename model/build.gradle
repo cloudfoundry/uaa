@@ -6,6 +6,8 @@ dependencies {
 
   compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
 
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
   compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion

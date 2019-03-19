@@ -30,7 +30,7 @@ public class SamlRedirectUtilsTest {
                 .setNameID("nameID")
                 .setMetadataTrustCheck(true)
                 .setLinkText("link text")
-                .setZoneId(IdentityZone.getUaa().getId());
+                .setZoneId(IdentityZone.getUaaZoneId());
 
         String domain = "login.random-made-up-url.com";
         String url = SamlRedirectUtils.getIdpRedirectUrl(definition, domain);

@@ -542,7 +542,7 @@ public class DeprecatedUaaTokenServicesTests {
                 .setScope(OPENID)
                 .setExpiresAt(new Date())
                 .setStatus(ApprovalStatus.APPROVED);
-        tokenSupport.approvalStore.addApproval(approval, IdentityZone.getUaa().getId());
+        tokenSupport.approvalStore.addApproval(approval, IdentityZone.getUaaZoneId());
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
@@ -1144,7 +1144,7 @@ public class DeprecatedUaaTokenServicesTests {
             IdentityZoneConfiguration.class
           )
         );
-        tokenSupport.copyClients(IdentityZone.getUaa().getId(), identityZone.getId());
+        tokenSupport.copyClients(IdentityZone.getUaaZoneId(), identityZone.getId());
         IdentityZoneHolder.set(identityZone);
 
 

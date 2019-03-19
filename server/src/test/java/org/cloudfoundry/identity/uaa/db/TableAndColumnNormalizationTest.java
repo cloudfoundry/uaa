@@ -12,6 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.tomcat.jdbc.pool.DataSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -19,12 +28,6 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
 
 public class TableAndColumnNormalizationTest extends JdbcTestBase {
 
@@ -36,6 +39,15 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
             Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("mysql") ||
             Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("postgresql")
         );
+    }
+
+    @Override
+    public String[] getWebApplicationContextConfigFiles() {
+        return new String[]{
+                "classpath:spring/env.xml",
+                "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
+                "classpath:spring/data-source.xml"
+        };
     }
 
     @Test
@@ -70,8 +82,9 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);
-            int count = 0;
+            boolean hadSomeResults = false;
             while (rs.next()) {
+                hadSomeResults = true;
                 String name = rs.getString("TABLE_NAME");
                 String col = rs.getString("COLUMN_NAME");
                 logger.info("Checking column [" + name + "." + col + "]");
@@ -80,6 +93,7 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                     assertTrue("Column[" + name + "." + col + "] is not lower case.", col.toLowerCase().equals(col));
                 }
             }
+            assertTrue("Getting columns from db metadata should have returned some results", hadSomeResults);
         } finally {
             try {
                 connection.close();
@@ -87,5 +101,4 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
             }
         }
     }
-
 }

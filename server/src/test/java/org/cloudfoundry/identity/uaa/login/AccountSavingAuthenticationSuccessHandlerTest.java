@@ -93,7 +93,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
                 "user-origin",
                 null,
                 true,
-                IdentityZone.getUaa().getId(),
+                IdentityZone.getUaaZoneId(),
                 "salt",
                 yesterday
         );
@@ -151,7 +151,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
                 "user-origin",
                 null,
                 true,
-                IdentityZone.getUaa().getId(),
+                IdentityZone.getUaaZoneId(),
                 "salt",
                 yesterday
         );

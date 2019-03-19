@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -55,6 +56,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
 @ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = EmailInvitationsServiceTests.ContextConfiguration.class)
 @DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
