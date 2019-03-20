@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.impl.config.EnvironmentMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.util.StringUtils;
 
@@ -11,12 +11,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class EnvironmentMapFactoryBeanTests {
+class EnvironmentMapFactoryBeanTests {
 
     @Test
-    public void testDefaultProperties() {
+    void testDefaultProperties() {
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         factory.setDefaultProperties(getProperties("foo=foo"));
         Map<String, ?> properties = factory.getObject();
@@ -24,7 +24,7 @@ public class EnvironmentMapFactoryBeanTests {
     }
 
     @Test
-    public void testRawPlaceholderProperties() {
+    void testRawPlaceholderProperties() {
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         factory.setDefaultProperties(getProperties("foo=${bar}"));
         Map<String, ?> properties = factory.getObject();
@@ -32,7 +32,7 @@ public class EnvironmentMapFactoryBeanTests {
     }
 
     @Test
-    public void testPlaceholderProperties() {
+    void testPlaceholderProperties() {
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addLast(new NestedMapPropertySource("override", getProperties("bar=${spam}")));
@@ -44,7 +44,7 @@ public class EnvironmentMapFactoryBeanTests {
     }
 
     @Test
-    public void testOverrideProperties() {
+    void testOverrideProperties() {
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         factory.setDefaultProperties(getProperties("foo=foo"));
         StandardEnvironment environment = new StandardEnvironment();
