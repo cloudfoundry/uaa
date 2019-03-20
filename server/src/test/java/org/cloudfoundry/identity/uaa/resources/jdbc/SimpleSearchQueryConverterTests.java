@@ -2,44 +2,43 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import com.unboundid.scim.sdk.InvalidResourceException;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class SimpleSearchQueryConverterTests {
+class SimpleSearchQueryConverterTests {
 
     private SimpleSearchQueryConverter converter;
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         converter = new SimpleSearchQueryConverter();
     }
 
     @Test
-    public void testQuery() throws Exception {
-        exception.expect(InvalidResourceException.class);
-        exception.expectMessage(startsWith("Invalid filter attributes"));
-        exception.expectMessage(containsString("an/**/invalid/**/attribute/**/and/**/1"));
-        exception.expectMessage(containsString("1"));
-        exception.expectMessage(containsString("\"1\""));
+    void testQuery() {
         String query = ModelTestUtils.getResourceAsString(this.getClass(), "testQuery.scimFilter");
 
-        converter.scimFilter(query);
+        String message =
+                assertThrows(InvalidResourceException.class, () -> converter.scimFilter(query))
+                        .getMessage();
+
+        assertThat(message, startsWith("Invalid filter attributes"));
+        assertThat(message, containsString("an/**/invalid/**/attribute/**/and/**/1"));
+        assertThat(message, containsString("1"));
+        assertThat(message, containsString("\"1\""));
     }
 
     @Test
-    public void simpleValueExtract() {
+    void simpleValueExtract() {
         for (String query : Arrays.asList(
                 "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
                 "externalGroup eq \"group-value\" and origin eq \"origin-value\""
@@ -59,15 +58,17 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalidFilterAttribute() {
+    void invalidFilterAttribute() {
         String query = "origin eq \"origin-value\" and externalGroup eq \"group-value\"";
-        exception.expect(IllegalArgumentException.class);
-        exception.expectMessage("Invalid filter attributes:externalGroup");
-        converter.getFilterValues(query, Arrays.asList("origin", "externalGroup"));
+
+        String message = assertThrows(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, Arrays.asList("origin", "externalGroup"))).getMessage();
+
+        assertThat(message, is("Invalid filter attributes:externalGroup"));
     }
 
     @Test
-    public void invalidConditionalOr() {
+    void invalidConditionalOr() {
         String query = "origin eq \"origin-value\" or externalGroup eq \"group-value\"";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -78,7 +79,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalidConditionalPr() {
+    void invalidConditionalPr() {
         String query = "origin eq \"origin-value\" and externalGroup pr";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -89,7 +90,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalidOperator() {
+    void invalidOperator() {
         for (String operator : Arrays.asList("co", "sw", "ge", "gt", "lt", "le")) {
             String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
             try {
