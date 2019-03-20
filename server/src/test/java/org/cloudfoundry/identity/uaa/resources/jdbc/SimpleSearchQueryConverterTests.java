@@ -4,13 +4,14 @@ import com.unboundid.scim.sdk.InvalidResourceException;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.util.List;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -37,24 +38,23 @@ class SimpleSearchQueryConverterTests {
         assertThat(message, containsString("\"1\""));
     }
 
-    @Test
-    void simpleValueExtract() {
-        for (String query : Arrays.asList(
-                "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
-                "externalGroup eq \"group-value\" and origin eq \"origin-value\""
-        )) {
-            MultiValueMap<String, Object> result = converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
-            assertNotNull(result);
-            assertEquals(2, result.size());
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
+            "externalGroup eq \"group-value\" and origin eq \"origin-value\""
+    })
+    void simpleValueExtract(final String query) {
+        MultiValueMap<String, Object> result = converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
+        assertNotNull(result);
+        assertEquals(2, result.size());
 
-            assertNotNull(result.get("origin"));
-            assertEquals(1, result.get("origin").size());
-            assertEquals("origin-value", result.get("origin").get(0));
+        assertNotNull(result.get("origin"));
+        assertEquals(1, result.get("origin").size());
+        assertEquals("origin-value", result.get("origin").get(0));
 
-            assertNotNull(result.get("externalGroup"));
-            assertEquals(1, result.get("externalGroup").size());
-            assertEquals("group-value", result.get("externalGroup").get(0));
-        }
+        assertNotNull(result.get("externalGroup"));
+        assertEquals(1, result.get("externalGroup").size());
+        assertEquals("group-value", result.get("externalGroup").get(0));
     }
 
     @Test
@@ -70,35 +70,31 @@ class SimpleSearchQueryConverterTests {
     @Test
     void invalidConditionalOr() {
         String query = "origin eq \"origin-value\" or externalGroup eq \"group-value\"";
-        try {
-            converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
-            fail("[or] is not supported");
-        } catch (IllegalArgumentException e) {
-            assertEquals("[or] operator is not supported.", e.getMessage());
-        }
+        List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
+        String message = assertThrows(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes)).getMessage();
+
+        assertThat(message, is("[or] operator is not supported."));
     }
 
     @Test
     void invalidConditionalPr() {
         String query = "origin eq \"origin-value\" and externalGroup pr";
-        try {
-            converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
-            fail("[pr] is not supported");
-        } catch (IllegalArgumentException e) {
-            assertEquals("[pr] operator is not supported.", e.getMessage());
-        }
+        List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
+        String message = assertThrows(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes)).getMessage();
+
+        assertThat(message, is("[pr] operator is not supported."));
     }
 
-    @Test
-    void invalidOperator() {
-        for (String operator : Arrays.asList("co", "sw", "ge", "gt", "lt", "le")) {
-            String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
-            try {
-                converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
-                fail(operator);
-            } catch (IllegalArgumentException e) {
-                assertEquals("[" + operator + "] operator is not supported.", e.getMessage());
-            }
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {"co", "sw", "ge", "gt", "lt", "le"})
+    void invalidOperator(final String operator) {
+        String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
+        List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
+        String message = assertThrows(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes)).getMessage();
+
+        assertThat(message, is("[" + operator + "] operator is not supported."));
     }
 }
