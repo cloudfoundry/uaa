@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.statsd.integration;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -16,20 +18,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.*;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.*;
 
-@RunWith(Parameterized.class)
-public class UaaMetricsEmitterIT {
+class UaaMetricsEmitterIT {
     private static final int WAIT_FOR_MESSAGE = 5500;
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
 
-    private static List<String> metricFragments = Arrays.asList(
+    private static List<String> METRIC_FRAGMENTS = Arrays.asList(
             "uaa.audit_service.user_authentication_count",
             "uaa.audit_service.principal_not_found_count",
             "uaa.audit_service.client_authentication_failure_count",
@@ -74,33 +76,31 @@ public class UaaMetricsEmitterIT {
     );
     private static Map<String, String> secondBatch;
 
-    @Parameterized.Parameters(name = "{index}: fragment[{0}]")
-    public static Object[] data() {
-        return metricFragments.toArray();
-    }
-
-    private String statsDKey;
-
-    public UaaMetricsEmitterIT(String statsDKey) {
-        this.statsDKey = statsDKey;
-    }
-
-    @BeforeClass
-    public static void setUpOnce() throws IOException {
+    @BeforeAll
+    static void setUpOnce() throws IOException {
         serverSocket = new DatagramSocket(8125);
         serverSocket.setSoTimeout(1000);
         receiveData = new byte[65535];
         receivePacket = new DatagramPacket(receiveData, receiveData.length);
         performSimpleGet();
-        firstBatch = getMessages(metricFragments);
+        firstBatch = getMessages(METRIC_FRAGMENTS);
         performSimpleGet();
         performLogin(TEST_USERNAME);
         performLogin("user-name-not-found");
-        secondBatch = getMessages(metricFragments);
+        secondBatch = getMessages(METRIC_FRAGMENTS);
     }
 
-    @Test
-    public void assertGenericMetrics() {
+    static class MetricFragmentArguments implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return METRIC_FRAGMENTS.stream().map(Arguments::of);
+        }
+    }
+
+    @ParameterizedTest(name = "{index}: fragment[{0}]")
+    @ArgumentsSource(MetricFragmentArguments.class)
+    void assertGenericMetrics(String statsDKey) {
         String data1 = firstBatch.get(statsDKey);
         String data2 = secondBatch.get(statsDKey);
 

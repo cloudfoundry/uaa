@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.statsd;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.jmx.support.MBeanServerFactoryBean;
 
 import javax.management.MBeanServerConnection;
@@ -9,15 +9,15 @@ import javax.management.ObjectName;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class MBeanMapTest {
+class MBeanMapTest {
 
     private MBeanServerConnection server;
 
-    @Before
-    public void start() {
+    @BeforeEach
+    void start() {
         MBeanServerFactoryBean factory = new MBeanServerFactoryBean();
         factory.setLocateExistingServerIfPossible(true);
         factory.afterPropertiesSet();
@@ -25,7 +25,7 @@ public class MBeanMapTest {
     }
 
     @Test
-    public void listDomain() throws Exception {
+    void listDomain() throws Exception {
         Set<ObjectName> names = server.queryNames(ObjectName.getInstance("java.lang:type=Runtime,*"), null);
         System.err.println(names);
         assertEquals(1, names.size());
