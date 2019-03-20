@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertTrue;
 
-class JdbcSqlAdapterTests {
+class SQLServerLimitSqlAdapterTest {
     @Test
     void testSQLServerLimit() {
         SQLServerLimitSqlAdapter sqlServerLimitAdapter = new SQLServerLimitSqlAdapter();
