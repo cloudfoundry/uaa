@@ -32,28 +32,7 @@ import static org.junit.Assert.fail;
 
 public class SimpleSearchQueryConverterTests {
 
-    SimpleSearchQueryConverter converter;
-
-    String query = "user_id eq \"7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890\"" +
-        "and " +
-        "client_id eq \"app\"" +
-        "and " +
-        "meta.lastmodified gt \"some-value\"" +
-        "and " +
-        "(an/**/invalid/**/attribute/**/and/**/1" + //invalid attribute name
-        " pr " + //operator (present)
-        "and "
-        + "1 eq 1)" + //invalid attribute name 1
-        " and " +
-        "\"1\" eq \"1\"";
-
-    String validQuery = "user_id eq \"7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890\"" +
-        "and " +
-        "client_id eq \"app\"" +
-        "and " +
-        "meta.lastmodified gt \"some-value\"" +
-        "and " +
-        "meta.created pr";
+    private SimpleSearchQueryConverter converter;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -70,11 +49,23 @@ public class SimpleSearchQueryConverterTests {
         exception.expectMessage(containsString("an/**/invalid/**/attribute/**/and/**/1"));
         exception.expectMessage(containsString("1"));
         exception.expectMessage(containsString("\"1\""));
+        String query = "user_id eq \"7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890\"" +
+                "and " +
+                "client_id eq \"app\"" +
+                "and " +
+                "meta.lastmodified gt \"some-value\"" +
+                "and " +
+                "(an/**/invalid/**/attribute/**/and/**/1" + //invalid attribute name
+                " pr " + //operator (present)
+                "and "
+                + "1 eq 1)" + //invalid attribute name 1
+                " and " +
+                "\"1\" eq \"1\"";
         converter.scimFilter(query);
     }
 
     @Test
-    public void simple_value_extract() throws Exception {
+    public void simple_value_extract() {
         for (String query : Arrays.asList(
             "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
             "externalGroup eq \"group-value\" and origin eq \"origin-value\""
@@ -94,7 +85,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_filter_attribute() throws Exception {
+    public void invalid_filter_attribute() {
         String query = "origin eq \"origin-value\" and externalGroup eq \"group-value\"";
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Invalid filter attributes:externalGroup");
@@ -102,7 +93,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_conditional_or() throws Exception {
+    public void invalid_conditional_or() {
         String query = "origin eq \"origin-value\" or externalGroup eq \"group-value\"";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -113,7 +104,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_conditional_pr() throws Exception {
+    public void invalid_conditional_pr() {
         String query = "origin eq \"origin-value\" and externalGroup pr";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -124,7 +115,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_operator() throws Exception {
+    public void invalid_operator() {
         for (String operator : Arrays.asList("co","sw","ge","gt","lt","le")) {
             String query = "origin eq \"origin-value\" and externalGroup "+operator+" \"group-value\"";
             try {
