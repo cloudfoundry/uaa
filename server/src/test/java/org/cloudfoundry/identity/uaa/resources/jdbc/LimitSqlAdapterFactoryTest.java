@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.impl.config.SpringProfileCleanupExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,25 +11,11 @@ import java.util.Collections;
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertSame;
 
-public class LimitSqlAdapterFactoryTest {
-
-    private static String defaultProfiles = null;
-
-    @BeforeClass
-    public static void saveProfiles() {
-        defaultProfiles = System.getProperty("spring.profiles.active");
-        System.clearProperty("spring.profiles.active");
-    }
-
-    @AfterClass
-    public static void restoreProfiles() {
-        if (defaultProfiles!=null) {
-            System.setProperty("spring.profiles.active", defaultProfiles);
-        }
-    }
+@ExtendWith(SpringProfileCleanupExtension.class)
+class LimitSqlAdapterFactoryTest {
 
     @Test
-    public void getLimitSqlAdapter_no_args() {
+    void getLimitSqlAdapter_no_args() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "mysql");
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
@@ -50,7 +36,7 @@ public class LimitSqlAdapterFactoryTest {
     }
 
     @Test
-    public void getLimitSqlAdapter_profiles_arg() {
+    void getLimitSqlAdapter_profiles_arg() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((String) null).getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql").getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql,default").getClass());
@@ -64,7 +50,7 @@ public class LimitSqlAdapterFactoryTest {
     }
 
     @Test
-    public void getLimitSqlAdapter_list_args() {
+    void getLimitSqlAdapter_list_args() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((Collection<String>) null).getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Collections.singletonList("mysql")).getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql","default")).getClass());
