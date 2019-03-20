@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import org.junit.AfterClass;
@@ -21,10 +6,10 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertSame;
-
 
 public class LimitSqlAdapterFactoryTest {
 
@@ -44,7 +29,7 @@ public class LimitSqlAdapterFactoryTest {
     }
 
     @Test
-    public void getLimitSqlAdapter_no_args() throws Exception {
+    public void getLimitSqlAdapter_no_args() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
         System.setProperty("spring.profiles.active", "mysql");
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
@@ -65,7 +50,7 @@ public class LimitSqlAdapterFactoryTest {
     }
 
     @Test
-    public void getLimitSqlAdapter_profiles_arg() throws Exception {
+    public void getLimitSqlAdapter_profiles_arg() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((String) null).getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql").getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql,default").getClass());
@@ -79,15 +64,15 @@ public class LimitSqlAdapterFactoryTest {
     }
 
     @Test
-    public void getLimitSqlAdapter_list_args() throws Exception {
+    public void getLimitSqlAdapter_list_args() {
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((Collection<String>) null).getClass());
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql")).getClass());
+        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Collections.singletonList("mysql")).getClass());
         assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql","default")).getClass());
         assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(EMPTY_LIST).getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver")).getClass());
+        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Collections.singletonList("sqlserver")).getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","sqlserver")).getClass());
         assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver","default")).getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql")).getClass());
+        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Collections.singletonList("postgresql")).getClass());
         assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","postgresql")).getClass());
         assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql","default")).getClass());
     }
