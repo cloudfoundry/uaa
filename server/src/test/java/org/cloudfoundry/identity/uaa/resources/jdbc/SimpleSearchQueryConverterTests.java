@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import com.unboundid.scim.sdk.InvalidResourceException;
@@ -26,9 +11,7 @@ import java.util.Arrays;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class SimpleSearchQueryConverterTests {
 
@@ -43,7 +26,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void test_query() throws Exception {
+    public void testQuery() throws Exception {
         exception.expect(InvalidResourceException.class);
         exception.expectMessage(startsWith("Invalid filter attributes"));
         exception.expectMessage(containsString("an/**/invalid/**/attribute/**/and/**/1"));
@@ -65,10 +48,10 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void simple_value_extract() {
+    public void simpleValueExtract() {
         for (String query : Arrays.asList(
-            "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
-            "externalGroup eq \"group-value\" and origin eq \"origin-value\""
+                "origin eq \"origin-value\" and externalGroup eq \"group-value\"",
+                "externalGroup eq \"group-value\" and origin eq \"origin-value\""
         )) {
             MultiValueMap<String, Object> result = converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
             assertNotNull(result);
@@ -85,15 +68,15 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_filter_attribute() {
+    public void invalidFilterAttribute() {
         String query = "origin eq \"origin-value\" and externalGroup eq \"group-value\"";
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Invalid filter attributes:externalGroup");
-        converter.getFilterValues(query, Arrays.asList("origin","externalGroup"));
+        converter.getFilterValues(query, Arrays.asList("origin", "externalGroup"));
     }
 
     @Test
-    public void invalid_conditional_or() {
+    public void invalidConditionalOr() {
         String query = "origin eq \"origin-value\" or externalGroup eq \"group-value\"";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -104,7 +87,7 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_conditional_pr() {
+    public void invalidConditionalPr() {
         String query = "origin eq \"origin-value\" and externalGroup pr";
         try {
             converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
@@ -115,14 +98,14 @@ public class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    public void invalid_operator() {
-        for (String operator : Arrays.asList("co","sw","ge","gt","lt","le")) {
-            String query = "origin eq \"origin-value\" and externalGroup "+operator+" \"group-value\"";
+    public void invalidOperator() {
+        for (String operator : Arrays.asList("co", "sw", "ge", "gt", "lt", "le")) {
+            String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
             try {
                 converter.getFilterValues(query, Arrays.asList("origin", "externalGroup".toLowerCase()));
                 fail(operator);
             } catch (IllegalArgumentException e) {
-                assertEquals("["+operator+"] operator is not supported.", e.getMessage());
+                assertEquals("[" + operator + "] operator is not supported.", e.getMessage());
             }
         }
     }
