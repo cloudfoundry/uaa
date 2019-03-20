@@ -114,12 +114,22 @@ subprojects {
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
 
+        useJUnitPlatform()
+        
         afterSuite { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
         }
 
         afterTest { descriptor, testResult ->
             sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
+        }
+
+        testLogging {
+            events 'skipped', 'failed', 'passed'
+            exceptionFormat 'full'
+
+            // Uncomment the following line to see all standard output from tests (there's a ton of it!)
+            //showStandardStreams = true
         }
     }
 
