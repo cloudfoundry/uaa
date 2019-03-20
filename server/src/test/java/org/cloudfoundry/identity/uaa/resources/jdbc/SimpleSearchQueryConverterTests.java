@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import com.unboundid.scim.sdk.InvalidResourceException;
+import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,18 +33,8 @@ public class SimpleSearchQueryConverterTests {
         exception.expectMessage(containsString("an/**/invalid/**/attribute/**/and/**/1"));
         exception.expectMessage(containsString("1"));
         exception.expectMessage(containsString("\"1\""));
-        String query = "user_id eq \"7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890\"" +
-                "and " +
-                "client_id eq \"app\"" +
-                "and " +
-                "meta.lastmodified gt \"some-value\"" +
-                "and " +
-                "(an/**/invalid/**/attribute/**/and/**/1" + //invalid attribute name
-                " pr " + //operator (present)
-                "and "
-                + "1 eq 1)" + //invalid attribute name 1
-                " and " +
-                "\"1\" eq \"1\"";
+        String query = ModelTestUtils.getResourceAsString(this.getClass(), "testQuery.scimFilter");
+
         converter.scimFilter(query);
     }
 

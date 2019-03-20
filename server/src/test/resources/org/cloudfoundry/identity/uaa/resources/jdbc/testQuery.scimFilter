@@ -1,0 +1,1 @@
+user_id eq "7e2345e8-8bbf-4eaa-9bc3-ae1ba610f890"and client_id eq "app"and meta.lastmodified gt "some-value"and (an/**/invalid/**/attribute/**/and/**/1 pr and 1 eq 1) and "1" eq "1"
