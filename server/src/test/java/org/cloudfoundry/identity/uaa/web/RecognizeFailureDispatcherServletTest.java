@@ -34,12 +34,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class RecognizeFailureDispatcherServletTest {
-
-
     private MockHttpServletRequest request;
     private RecognizeFailureDispatcherServlet servlet;
     private MockHttpServletResponse response;
     private DispatcherServlet delegate;
+    private ServletConfig servletConfig;
 
     @Before
     public void setup() {
@@ -47,13 +46,16 @@ public class RecognizeFailureDispatcherServletTest {
         servlet = new RecognizeFailureDispatcherServlet();
         response = new MockHttpServletResponse();
         delegate = mock(DispatcherServlet.class);
+        servletConfig = mock(ServletConfig.class);
     }
 
     @Test
     public void service_when_failure() throws Exception {
-        Mockito.doThrow(new RuntimeException("some app error", new SQLException("db error"))).when(delegate).init(any());
+        Mockito.doThrow(new RuntimeException("some app error", new SQLException("db error")))
+                .when(delegate).init(any());
+
         servlet.setDelegate(delegate);
-        servlet.init(mock(ServletConfig.class));
+        servlet.init(servletConfig);
         servlet.service(request, response);
         assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.getStatus());
         verify(delegate, times(1)).init(any());
@@ -61,16 +63,15 @@ public class RecognizeFailureDispatcherServletTest {
         assertNotNull(response.getHeader(RecognizeFailureDispatcherServlet.HEADER));
         assertEquals(RecognizeFailureDispatcherServlet.HEADER_MSG, response.getHeader(RecognizeFailureDispatcherServlet.HEADER));
     }
+
     @Test
     public void service_when_ok() throws Exception {
         DispatcherServlet delegate = mock(DispatcherServlet.class);
         Mockito.doNothing().when(delegate).init(any());
         servlet.setDelegate(delegate);
-        servlet.init(mock(ServletConfig.class));
+        servlet.init(servletConfig);
         servlet.service(request, response);
         verify(delegate, times(1)).init(any());
         verify(delegate, times(1)).service(any(), any());
     }
-
-
 }
