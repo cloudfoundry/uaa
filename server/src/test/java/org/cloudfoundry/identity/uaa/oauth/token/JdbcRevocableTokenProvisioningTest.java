@@ -39,7 +39,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     private JdbcRevocableTokenProvisioning jdbcRevocableTokenProvisioning;
     private RevocableToken revocableToken;
-    private String tokenId;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Rule
@@ -89,7 +88,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             IdentityZoneHolder.set(zone);
             jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
             assertEquals(1, getCountOfTokens(jdbcTemplate));
-            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
+            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
             jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
             assertEquals(0, getCountOfTokens(jdbcTemplate));
         }
@@ -109,7 +108,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             );
             jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
             assertEquals(1, getCountOfTokens(jdbcTemplate));;
-            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
+            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
             jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
             assertEquals(0, getCountOfTokens(jdbcTemplate));;
         }
@@ -122,13 +121,13 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     @Test(expected = EmptyResultDataAccessException.class)
     public void tokenNotFound() {
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
     public void getFound() {
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()));
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -142,10 +141,10 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     public void getFoundInZone() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("new-zone", "new-zone"));
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()));
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
         IdentityZoneHolder.clear();
         error.expect(EmptyResultDataAccessException.class);
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -202,7 +201,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         char[] data = new char[200 * 1024];
         Arrays.fill(data, 'Y');
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        RevocableToken toUpdate = jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        RevocableToken toUpdate = jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
         long expiresAt = System.currentTimeMillis() + 1000;
         String scope = "scope1,scope2,scope3";
         toUpdate.setFormat("format")
@@ -215,19 +214,18 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
                 .setZoneId("arbitrary-zone-id")
                 .setResponseType(REFRESH_TOKEN);
 
-        RevocableToken revocableToken = jdbcRevocableTokenProvisioning.update(tokenId, toUpdate, IdentityZoneHolder.get().getId());
+        RevocableToken revocableToken = jdbcRevocableTokenProvisioning.update(toUpdate.getTokenId(), toUpdate, IdentityZoneHolder.get().getId());
         assertTokensAreEqual(toUpdate, revocableToken);
     }
 
     @Test
     public void delete() {
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-        jdbcRevocableTokenProvisioning.delete(tokenId, 8, IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.delete(revocableToken.getTokenId(), 8, IdentityZoneHolder.get().getId());
 
         error.expect(EmptyResultDataAccessException.class);
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -246,27 +244,27 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     @Test
     public void ensureExpiredTokenIsDeleted() {
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
+        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
         try {
-            jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException ignored) {
         }
         assertEquals(0, getCountOfTokens(jdbcTemplate));;
-
     }
 
     @Test
     public void ensureExpiredTokenIsDeletedOnCreate() {
         jdbcTemplate.update("DELETE FROM revocable_tokens");
+        final String originalTokenId = revocableToken.getTokenId();
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
+        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
         revocableToken.setTokenId(generator.generate());
         jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0); //simulate time has passed
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(1, getCountOfTokens(jdbcTemplate));
         assertEquals(1, getCountOfTokensById(jdbcTemplate, revocableToken.getTokenId()));
-        assertEquals(0, getCountOfTokensById(jdbcTemplate, tokenId));
+        assertEquals(0, getCountOfTokensById(jdbcTemplate, originalTokenId));
     }
 
     @Test
@@ -278,7 +276,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
         try {
             jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0);
-            jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException ignored) {
         }
@@ -290,11 +288,11 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test-zone");
         IdentityZoneHolder.set(zone);
         jdbcRevocableTokenProvisioning.create(this.revocableToken, IdentityZoneHolder.get().getId());
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
         EntityDeletedEvent<IdentityZone> zoneDeleted = new EntityDeletedEvent<>(zone, null);
         jdbcRevocableTokenProvisioning.onApplicationEvent(zoneDeleted);
         error.expect(EmptyResultDataAccessException.class);
-        jdbcRevocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -305,7 +303,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     private void createData(String tokenId, String userId, String clientId) {
         char[] value = new char[100 * 1024];
         Arrays.fill(value, 'X');
-        this.tokenId = tokenId;
         long issuedAt = System.currentTimeMillis();
         String scope = "test1,test2";
         String format = "format";
