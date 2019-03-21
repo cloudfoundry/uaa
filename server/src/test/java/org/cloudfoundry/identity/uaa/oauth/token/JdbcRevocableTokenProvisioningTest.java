@@ -14,6 +14,11 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -25,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
@@ -67,51 +73,56 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcTemplate.update("DELETE FROM revocable_tokens");
     }
 
-    @Test
-    void onApplicationEventCallsInternalDeleteMethod() {
-        BaseClientDetails clientDetails = new BaseClientDetails("id", "", "", "", "", "");
-        IdentityZone otherZone = MultitenancyFixture.identityZone("other", "other");
-        for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
-            IdentityZoneHolder.set(zone);
-            reset(jdbcRevocableTokenProvisioning);
-            jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            verify(jdbcRevocableTokenProvisioning, times(2)).deleteByClient(eq("id"), eq(zone.getId()));
-        }
-    }
+    static class IdentityZoneArgumentsProvider implements ArgumentsProvider {
 
-    @Test
-    void revocableTokensDeletedWhenClientIs() {
-        BaseClientDetails clientDetails = new BaseClientDetails(TEST_CLIENT_ID, "", "", "", "", "");
-        IdentityZone otherZone = MultitenancyFixture.identityZone("other", "other");
-        for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
-            IdentityZoneHolder.set(zone);
-            jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
-            assertEquals(1, getCountOfTokens(jdbcTemplate));
-            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
-            jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            assertEquals(0, getCountOfTokens(jdbcTemplate));
-        }
-    }
-
-    @Test
-    void revocableTokensDeletedWhenUserIs() {
-        IdentityZone otherZone = MultitenancyFixture.identityZone("other", "other");
-        for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
-            IdentityZoneHolder.set(zone);
-            UaaUser user = new UaaUser(
-                    new UaaUserPrototype()
-                            .withId(TEST_USER_ID)
-                            .withUsername("username")
-                            .withEmail("test@test.com")
-                            .withZoneId(zone.getId())
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(IdentityZone.getUaa()),
+                    Arguments.of(MultitenancyFixture.identityZone("other", "other"))
             );
-            jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
-            assertEquals(1, getCountOfTokens(jdbcTemplate));
-            assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
-            jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
-            assertEquals(0, getCountOfTokens(jdbcTemplate));
         }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(IdentityZoneArgumentsProvider.class)
+    void onApplicationEventCallsInternalDeleteMethod(IdentityZone zone) {
+        BaseClientDetails clientDetails = new BaseClientDetails("id", "", "", "", "", "");
+        IdentityZoneHolder.set(zone);
+        reset(jdbcRevocableTokenProvisioning);
+        jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+        verify(jdbcRevocableTokenProvisioning, times(2)).deleteByClient(eq("id"), eq(zone.getId()));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(IdentityZoneArgumentsProvider.class)
+    void revocableTokensDeletedWhenClientIs(IdentityZone zone) {
+        BaseClientDetails clientDetails = new BaseClientDetails(TEST_CLIENT_ID, "", "", "", "", "");
+        IdentityZoneHolder.set(zone);
+        jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
+        assertEquals(1, getCountOfTokens(jdbcTemplate));
+        assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+        assertEquals(0, getCountOfTokens(jdbcTemplate));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(IdentityZoneArgumentsProvider.class)
+    void revocableTokensDeletedWhenUserIs(IdentityZone zone) {
+        IdentityZoneHolder.set(zone);
+        UaaUser user = new UaaUser(
+                new UaaUserPrototype()
+                        .withId(TEST_USER_ID)
+                        .withUsername("username")
+                        .withEmail("test@test.com")
+                        .withZoneId(zone.getId())
+        );
+        jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
+        assertEquals(1, getCountOfTokens(jdbcTemplate));
+        assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
+        assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
     @Test
@@ -173,13 +184,11 @@ class JdbcRevocableTokenProvisioningTest {
 
     @Test
     void listUserTokenForClient() {
-        String clientId = TEST_CLIENT_ID;
-        String userId = TEST_USER_ID;
         List<RevocableToken> expectedTokens = new ArrayList<>();
         int count = 37;
         RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
         for (int i = 0; i < count; i++) {
-            RevocableToken revocableToken = createRevocableToken(generator.generate(), userId, clientId, random);
+            RevocableToken revocableToken = createRevocableToken(generator.generate(), TEST_USER_ID, TEST_CLIENT_ID, random);
             jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
             expectedTokens.add(revocableToken);
         }
@@ -190,7 +199,7 @@ class JdbcRevocableTokenProvisioningTest {
             jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         }
 
-        List<RevocableToken> actualTokens = jdbcRevocableTokenProvisioning.getUserTokens(userId, clientId, IdentityZoneHolder.get().getId());
+        List<RevocableToken> actualTokens = jdbcRevocableTokenProvisioning.getUserTokens(TEST_USER_ID, TEST_CLIENT_ID, IdentityZoneHolder.get().getId());
         assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
     }
 
