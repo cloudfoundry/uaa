@@ -22,9 +22,11 @@ dependencies {
   compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-  compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
+  //compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
-  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion
+  compile (group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
+
+  }
 
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
@@ -82,6 +84,7 @@ dependencies {
   testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
   testRuntime("org.junit.vintage:junit-vintage-engine:5.2.0")
 
+  testCompile('org.apache.directory.studio:org.apache.commons.io:2.4')
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }
