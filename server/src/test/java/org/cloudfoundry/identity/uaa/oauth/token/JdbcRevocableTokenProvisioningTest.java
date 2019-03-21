@@ -74,14 +74,8 @@ class JdbcRevocableTokenProvisioningTest {
         for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
             IdentityZoneHolder.set(zone);
             reset(jdbcRevocableTokenProvisioning);
-            try {
-                jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            } catch (Exception ignored) {
-            }
-            try {
-                jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            } catch (Exception ignored) {
-            }
+            jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+            jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
             verify(jdbcRevocableTokenProvisioning, times(2)).deleteByClient(eq("id"), eq(zone.getId()));
         }
     }
@@ -250,11 +244,7 @@ class JdbcRevocableTokenProvisioningTest {
     void ensureExpiredTokenIsDeleted() {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
-        try {
-            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
-            fail("Token should have been deleted prior to retrieval");
-        } catch (EmptyResultDataAccessException ignored) {
-        }
+        assertThrows(EmptyResultDataAccessException.class, () -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
         assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
@@ -279,12 +269,8 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(2, getCountOfTokens(jdbcTemplate));
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
-        try {
-            jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0);
-            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
-            fail("Token should have been deleted prior to retrieval");
-        } catch (EmptyResultDataAccessException ignored) {
-        }
+        jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0);
+        assertThrows(EmptyResultDataAccessException.class, () -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
         assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
