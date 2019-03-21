@@ -24,7 +24,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
 
     private final static String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
     private final static String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
-    private static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
+    private final static String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
     private final static String TABLE = "revocable_tokens";
     private final static String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
     private final static String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
@@ -37,14 +37,15 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private final static String DELETE_BY_USER_QUERY = "DELETE FROM " + TABLE + " WHERE user_id = ? AND identity_zone_id=?";
     private final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
-    private static final Log logger = LogFactory.getLog(JdbcRevocableTokenProvisioning.class);
+    private final static Log logger = LogFactory.getLog(JdbcRevocableTokenProvisioning.class);
     private final RowMapper<RevocableToken> rowMapper;
     private final JdbcTemplate template;
     private final LimitSqlAdapter limitSqlAdapter;
     private TimeService timeService;
 
     private AtomicLong lastExpiredCheck = new AtomicLong(0);
-    private long maxExpirationRuntime = 2500L;
+    private Duration maxExpirationRuntime = Duration.ofMillis(2500L);
+    private final static Duration EXPIRATION_CHECK_INTERVAL = Duration.ofSeconds(30);
 
     public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate,
                                           LimitSqlAdapter limitSqlAdapter,
@@ -160,15 +161,10 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return template.query(GET_BY_CLIENT_QUERY, rowMapper, clientId, zoneId);
     }
 
-    private long getExpirationCheckInterval() {
-        //30 seconds
-        return 30_000L;
-    }
-
     private void checkExpired() {
         long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastExpiredCheck.get();
-        if ((now - lastCheck) > getExpirationCheckInterval() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
+        if ((now - lastCheck) > EXPIRATION_CHECK_INTERVAL.toMillis() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
             if (runDeleteExpired(now)) {
                 resetLastExpiredCheck();
             }
@@ -192,12 +188,12 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         do {
             removed = template.update(sql, now);
             logger.info("Removed " + removed + " expired revocable tokens.");
-        } while (removed > 0 && (timeService.getCurrentTimeMillis() - now) < maxExpirationRuntime);
+        } while (removed > 0 && (timeService.getCurrentTimeMillis() - now) < maxExpirationRuntime.toMillis());
         return removed >= maxRows;
     }
 
     public void setMaxExpirationRuntime(long maxExpirationRuntime) {
-        this.maxExpirationRuntime = maxExpirationRuntime;
+        this.maxExpirationRuntime = Duration.ofMillis(maxExpirationRuntime);
     }
 
     protected static final class RevocableTokenRowMapper implements RowMapper<RevocableToken> {
