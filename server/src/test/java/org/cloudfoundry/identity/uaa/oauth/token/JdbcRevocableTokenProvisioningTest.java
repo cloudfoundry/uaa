@@ -51,29 +51,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         createData("test-token-id", "test-user-id", "test-client-id");
     }
 
-    private void createData(String tokenId, String userId, String clientId) {
-        char[] value = new char[100 * 1024];
-        Arrays.fill(value, 'X');
-        this.tokenId = tokenId;
-        this.clientId = clientId;
-        this.userId = userId;
-        long issuedAt = System.currentTimeMillis();
-        String scope = "test1,test2";
-        String format = "format";
-        expected = new RevocableToken()
-                .setTokenId(tokenId)
-                .setClientId(clientId)
-                .setResponseType(ACCESS_TOKEN)
-                .setIssuedAt(issuedAt)
-                .setExpiresAt(issuedAt + 10000)
-                .setValue(new String(value))
-                .setScope(scope)
-                .setFormat(format)
-                .setUserId(userId)
-                .setZoneId(IdentityZoneHolder.get().getId());
-
-    }
-
     @After
     public void clear() {
         IdentityZoneHolder.clear();
@@ -143,7 +120,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         dao.retrieve(tokenId, IdentityZoneHolder.get().getId());
     }
 
-    @Test()
+    @Test
     public void testGetFound() {
         insertToken();
         assertNotNull(dao.retrieve(tokenId, IdentityZoneHolder.get().getId()));
@@ -156,7 +133,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         insertToken();
     }
 
-    @Test()
+    @Test
     public void testGetFound_In_Zone() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("new-zone", "new-zone"));
         insertToken();
@@ -170,21 +147,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     public void insertToken() {
         RevocableToken actual = dao.create(expected, IdentityZoneHolder.get().getId());
         evaluateToken(expected, actual);
-    }
-
-    private void evaluateToken(RevocableToken expected, RevocableToken actual) {
-        assertNotNull(actual);
-        assertNotNull(actual.getTokenId());
-        assertEquals(expected.getTokenId(), actual.getTokenId());
-        assertEquals(expected.getClientId(), actual.getClientId());
-        assertEquals(expected.getExpiresAt(), actual.getExpiresAt());
-        assertEquals(expected.getIssuedAt(), actual.getIssuedAt());
-        assertEquals(expected.getFormat(), actual.getFormat());
-        assertEquals(expected.getScope(), actual.getScope());
-        assertEquals(expected.getValue(), actual.getValue());
-        assertEquals(expected.getTokenId(), actual.getTokenId());
-        assertEquals(expected.getResponseType(), actual.getResponseType());
-        assertEquals(IdentityZoneHolder.get().getId(), actual.getZoneId());
     }
 
     @Test
@@ -228,31 +190,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     @Test
     public void listClientTokens() {
         listTokens(true);
-    }
-
-    private void listTokens(boolean client) {
-        String clientId = "test-client-id";
-        String userId = "test-user-id";
-        List<RevocableToken> expectedTokens = new ArrayList<>();
-        int count = 37;
-        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
-        for (int i = 0; i < count; i++) {
-            if (client) {
-                userId = generator.generate();
-            } else {
-                clientId = generator.generate();
-            }
-            createData(generator.generate(), userId, clientId);
-            insertToken();
-            expectedTokens.add(this.expected);
-        }
-
-        //create a random record that should not show up
-        createData(generator.generate(), generator.generate(), generator.generate());
-        insertToken();
-
-        List<RevocableToken> actualTokens = client ? dao.getClientTokens(clientId, IdentityZoneHolder.get().getId()) : dao.getUserTokens(userId, IdentityZoneHolder.get().getId());
-        assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
     }
 
     @Test
@@ -314,14 +251,6 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
 
     }
 
-    private void countTokens(int expected) {
-        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
-    }
-
-    private void countTokens(int expected, String tokenId) {
-        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
-    }
-
     @Test
     public void ensure_expired_token_is_deleted_on_create() {
         jdbcTemplate.update("DELETE FROM revocable_tokens");
@@ -366,6 +295,76 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     @Test
     public void testDeleteByOrigin() {
         //no op - doesn't affect tokens
+    }
+
+    private void createData(String tokenId, String userId, String clientId) {
+        char[] value = new char[100 * 1024];
+        Arrays.fill(value, 'X');
+        this.tokenId = tokenId;
+        this.clientId = clientId;
+        this.userId = userId;
+        long issuedAt = System.currentTimeMillis();
+        String scope = "test1,test2";
+        String format = "format";
+        expected = new RevocableToken()
+                .setTokenId(tokenId)
+                .setClientId(clientId)
+                .setResponseType(ACCESS_TOKEN)
+                .setIssuedAt(issuedAt)
+                .setExpiresAt(issuedAt + 10000)
+                .setValue(new String(value))
+                .setScope(scope)
+                .setFormat(format)
+                .setUserId(userId)
+                .setZoneId(IdentityZoneHolder.get().getId());
+    }
+
+    private void evaluateToken(RevocableToken expected, RevocableToken actual) {
+        assertNotNull(actual);
+        assertNotNull(actual.getTokenId());
+        assertEquals(expected.getTokenId(), actual.getTokenId());
+        assertEquals(expected.getClientId(), actual.getClientId());
+        assertEquals(expected.getExpiresAt(), actual.getExpiresAt());
+        assertEquals(expected.getIssuedAt(), actual.getIssuedAt());
+        assertEquals(expected.getFormat(), actual.getFormat());
+        assertEquals(expected.getScope(), actual.getScope());
+        assertEquals(expected.getValue(), actual.getValue());
+        assertEquals(expected.getTokenId(), actual.getTokenId());
+        assertEquals(expected.getResponseType(), actual.getResponseType());
+        assertEquals(IdentityZoneHolder.get().getId(), actual.getZoneId());
+    }
+
+    private void listTokens(boolean client) {
+        String clientId = "test-client-id";
+        String userId = "test-user-id";
+        List<RevocableToken> expectedTokens = new ArrayList<>();
+        int count = 37;
+        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
+        for (int i = 0; i < count; i++) {
+            if (client) {
+                userId = generator.generate();
+            } else {
+                clientId = generator.generate();
+            }
+            createData(generator.generate(), userId, clientId);
+            insertToken();
+            expectedTokens.add(this.expected);
+        }
+
+        //create a random record that should not show up
+        createData(generator.generate(), generator.generate(), generator.generate());
+        insertToken();
+
+        List<RevocableToken> actualTokens = client ? dao.getClientTokens(clientId, IdentityZoneHolder.get().getId()) : dao.getUserTokens(userId, IdentityZoneHolder.get().getId());
+        assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
+    }
+
+    private void countTokens(int expected) {
+        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
+    }
+
+    private void countTokens(int expected, String tokenId) {
+        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
     }
 
 }
