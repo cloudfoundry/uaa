@@ -83,10 +83,10 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
             IdentityZoneHolder.set(zone);
             dao.create(this.expected, IdentityZoneHolder.get().getId());
-            countTokens(1);
+            assertEquals(1, getCountOfTokens(jdbcTemplate));
             assertEquals(zone.getId(), dao.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
             dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-            countTokens(0);
+            assertEquals(0, getCountOfTokens(jdbcTemplate));
         }
     }
 
@@ -103,10 +103,10 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
                             .withZoneId(zone.getId())
             );
             dao.create(this.expected, IdentityZoneHolder.get().getId());
-            countTokens(1);
+            assertEquals(1, getCountOfTokens(jdbcTemplate));;
             assertEquals(zone.getId(), dao.retrieve(tokenId, IdentityZoneHolder.get().getId()).getZoneId());
             dao.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
-            countTokens(0);
+            assertEquals(0, getCountOfTokens(jdbcTemplate));;
         }
     }
 
@@ -247,7 +247,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException ignored) {
         }
-        countTokens(0);
+        assertEquals(0, getCountOfTokens(jdbcTemplate));;
 
     }
 
@@ -259,9 +259,9 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         expected.setTokenId(generator.generate());
         dao.lastExpiredCheck.set(0); //simulate time has passed
         dao.create(expected, IdentityZoneHolder.get().getId());
-        countTokens(1);
-        countTokens(1, expected.getTokenId());
-        countTokens(0, tokenId);
+        assertEquals(1, getCountOfTokens(jdbcTemplate));
+        assertEquals(1, getCountOfTokensById(jdbcTemplate, expected.getTokenId()));
+        assertEquals(0, getCountOfTokensById(jdbcTemplate, tokenId));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         dao.create(this.expected, IdentityZoneHolder.get().getId());
         expected.setTokenId(new RandomValueStringGenerator().generate());
         dao.create(this.expected, IdentityZoneHolder.get().getId());
-        countTokens(2);
+        assertEquals(2, getCountOfTokens(jdbcTemplate));
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
         try {
             dao.lastExpiredCheck.set(0);
@@ -277,7 +277,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             fail("Token should have been deleted prior to retrieval");
         } catch (EmptyResultDataAccessException ignored) {
         }
-        countTokens(0);
+        assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
     @Test
@@ -360,12 +360,12 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
     }
 
-    private void countTokens(int expected) {
-        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
+    private static int getCountOfTokens(JdbcTemplate jdbcTemplate) {
+        return jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class);
     }
 
-    private void countTokens(int expected, String tokenId) {
-        assertEquals(expected, (int) jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
+    private static int getCountOfTokensById(JdbcTemplate jdbcTemplate, String tokenId) {
+        return jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId);
     }
 
 }
