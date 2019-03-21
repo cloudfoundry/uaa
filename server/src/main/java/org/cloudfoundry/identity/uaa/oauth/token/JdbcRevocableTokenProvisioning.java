@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private final LimitSqlAdapter limitSqlAdapter;
     private TimeService timeService;
 
-    AtomicLong lastExpiredCheck = new AtomicLong(0);
+    private AtomicLong lastExpiredCheck = new AtomicLong(0);
     private long maxExpirationRuntime = 2500L;
 
     public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate,
@@ -169,9 +170,13 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         long lastCheck = lastExpiredCheck.get();
         if ((now - lastCheck) > getExpirationCheckInterval() && lastExpiredCheck.compareAndSet(lastCheck, now)) {
             if (runDeleteExpired(now)) {
-                lastExpiredCheck.set(0);
+                resetLastExpiredCheck();
             }
         }
+    }
+
+    void resetLastExpiredCheck() {
+        lastExpiredCheck.set(0);
     }
 
     /**

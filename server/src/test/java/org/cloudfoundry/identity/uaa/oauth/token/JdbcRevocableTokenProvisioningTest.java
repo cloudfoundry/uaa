@@ -264,7 +264,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
         revocableToken.setTokenId(generator.generate());
-        jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0); //simulate time has passed
+        jdbcRevocableTokenProvisioning.resetLastExpiredCheck(); //simulate time has passed
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(1, getCountOfTokens(jdbcTemplate));
         assertEquals(1, getCountOfTokensById(jdbcTemplate, revocableToken.getTokenId()));
@@ -278,7 +278,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(2, getCountOfTokens(jdbcTemplate));
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
-        jdbcRevocableTokenProvisioning.lastExpiredCheck.set(0);
+        jdbcRevocableTokenProvisioning.resetLastExpiredCheck();
         assertThrows(EmptyResultDataAccessException.class, () -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
         assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
