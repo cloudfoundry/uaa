@@ -1,10 +1,6 @@
 package org.cloudfoundry.identity.uaa.annotations;
 
-import org.cloudfoundry.identity.uaa.FakePasswordEncoderConfig;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
-import org.cloudfoundry.identity.uaa.test.TestWebAppContext;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
