@@ -61,13 +61,13 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     public void simpleAddClient() throws Exception {
-        testSimpleAddClient("foo");
+        simpleAddClient("foo", bootstrap, clientRegistrationService);
     }
 
     @Test
     public void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
         String autoApproveId = "autoapprove-" + new RandomValueStringGenerator().generate().toLowerCase();
-        testSimpleAddClient(autoApproveId);
+        simpleAddClient(autoApproveId, bootstrap, clientRegistrationService);
         reset(clientRegistrationService);
         bootstrap = spy(bootstrap);
         String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
@@ -85,7 +85,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     public void deleteFromYamlExistingClient() throws Exception {
         bootstrap = spy(bootstrap);
         String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
-        testSimpleAddClient(clientId);
+        simpleAddClient(clientId, bootstrap, clientRegistrationService);
         verify(bootstrap, never()).publish(any());
         bootstrap.setClientsToDelete(Collections.singletonList(clientId));
         bootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
@@ -120,7 +120,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
-        doSimpleTest(map);
+        doSimpleTest(map, bootstrap, clientRegistrationService);
     }
 
     @Test(expected = InvalidClientDetailsException.class)
@@ -131,7 +131,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("scope", "openid");
         map.put("authorized-grant-types", GRANT_TYPE_IMPLICIT);
         map.put("authorities", "uaa.none");
-        doSimpleTest(map);
+        doSimpleTest(map, bootstrap, clientRegistrationService);
     }
 
     @Test
@@ -143,7 +143,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorities", "uaa.none");
         for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN)) {
             map.put("authorized-grant-types", grantType);
-            doSimpleTest(map);
+            doSimpleTest(map, bootstrap, clientRegistrationService);
         }
 
     }
@@ -157,7 +157,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
-        ClientDetails clientDetails = doSimpleTest(map);
+        ClientDetails clientDetails = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertTrue(clientDetails.getRegisteredRedirectUri().contains("callback_url"));
     }
 
@@ -192,7 +192,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("signup_redirect_url", "callback_url");
         map.put("change_email_redirect_url", "change_email_url");
         map.put(ClientConstants.ALLOWED_PROVIDERS, idps);
-        ClientDetails created = doSimpleTest(map);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertEquals(idps, created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
         assertTrue(created.getRegisteredRedirectUri().contains("callback_url"));
         assertTrue(created.getRegisteredRedirectUri().contains("change_email_url"));
@@ -207,7 +207,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("change_email_redirect_url", "change_email_callback_url");
-        ClientDetails created = doSimpleTest(map);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertTrue(created.getRegisteredRedirectUri().contains("change_email_callback_url"));
     }
 
@@ -358,12 +358,12 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @Test
     public void changePasswordDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
-        ClientDetails created = doSimpleTest(map);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
         assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
         map.put("secret", "bar1");
-        created = doSimpleTest(map);
+        created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = clientRegistrationService.loadClientByClientId("foo");
         assertTrue("Password should match bar1:", bootstrap.getPasswordEncoder().matches("bar1", details.getClientSecret()));
@@ -373,12 +373,12 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @Test
     public void passwordHashDidNotChangeDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
-        ClientDetails created = doSimpleTest(map);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
         assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
         String hash = details.getClientSecret();
-        created = doSimpleTest(map);
+        created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = clientRegistrationService.loadClientByClientId("foo");
         assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
@@ -398,7 +398,10 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
     }
 
-    private ClientDetails doSimpleTest(Map<String, Object> map) throws Exception {
+    private static ClientDetails doSimpleTest(
+            final Map<String, Object> map,
+            final ClientAdminBootstrap bootstrap,
+            final MultitenantJdbcClientDetailsService clientRegistrationService) throws Exception {
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
         bootstrap.afterPropertiesSet();
 
@@ -449,9 +452,12 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         assertEquals(assertScopes, actualValue);
     }
 
-    private void testSimpleAddClient(String clientId) throws Exception {
+    private static void simpleAddClient(
+            final String clientId,
+            final ClientAdminBootstrap bootstrap,
+            final MultitenantJdbcClientDetailsService clientRegistrationService) throws Exception {
         Map<String, Object> map = createClientMap(clientId);
-        ClientDetails created = doSimpleTest(map);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
     }
 
