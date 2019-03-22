@@ -60,29 +60,12 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testSimpleAddClient() throws Exception {
+    public void simpleAddClient() throws Exception {
         testSimpleAddClient("foo");
     }
 
-    private void testSimpleAddClient(String clientId) throws Exception {
-        Map<String, Object> map = createClientMap(clientId);
-        ClientDetails created = doSimpleTest(map);
-        assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
-    }
-
-    private Map<String, Object> createClientMap(String clientId) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", clientId);
-        map.put("secret", "bar");
-        map.put("scope", "openid");
-        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
-        map.put("authorities", "uaa.none");
-        map.put("redirect-uri", "http://localhost/callback");
-        return map;
-    }
-
     @Test
-    public void client_slated_for_deletion_does_not_get_inserted() throws Exception {
+    public void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
         String autoApproveId = "autoapprove-" + new RandomValueStringGenerator().generate().toLowerCase();
         testSimpleAddClient(autoApproveId);
         reset(clientRegistrationService);
@@ -99,7 +82,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_delete_from_yaml_existing_client() throws Exception {
+    public void deleteFromYamlExistingClient() throws Exception {
         bootstrap = spy(bootstrap);
         String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
         testSimpleAddClient(clientId);
@@ -117,7 +100,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_delete_from_yaml_non_existing_client() {
+    public void deleteFromYamlNonExistingClient() {
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
         bootstrap = spy(bootstrap);
         bootstrap.setApplicationEventPublisher(publisher);
@@ -130,7 +113,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test(expected = InvalidClientDetailsException.class)
-    public void no_registered_redirect_url_for_auth_code() throws Exception {
+    public void noRegisteredRedirectUrlForAuthCode() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -141,7 +124,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test(expected = InvalidClientDetailsException.class)
-    public void no_registered_redirect_url_for_implicit() throws Exception {
+    public void noRegisteredRedirectUrlForImplicit() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -152,7 +135,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void redirect_url_not_required() throws Exception {
+    public void redirectUrlNotRequired() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -166,7 +149,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testSimpleAddClientWithSignupSuccessRedirectUrl() throws Exception {
+    public void simpleAddClientWithSignupSuccessRedirectUrl() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -198,7 +181,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testAdditionalInformation() throws Exception {
+    public void additionalInformation() throws Exception {
         List<String> idps = Arrays.asList("idp1", "idp1");
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
@@ -216,7 +199,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testSimpleAddClientWithChangeEmailRedirectUrl() throws Exception {
+    public void simpleAddClientWithChangeEmailRedirectUrl() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -229,7 +212,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testSimpleAddClientWithAutoApprove() throws Exception {
+    public void simpleAddClientWithAutoApprove() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
@@ -252,7 +235,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testOverrideClient() throws Exception {
+    public void overrideClient() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
@@ -278,7 +261,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testOverrideClientWithEmptySecret() throws Exception {
+    public void overrideClientWithEmptySecret() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
@@ -306,7 +289,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testOverrideClientByDefault() throws Exception {
+    public void overrideClientByDefault() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         BaseClientDetails foo = new BaseClientDetails("foo", "", "openid", "client_credentials,password", "uaa.none");
@@ -333,7 +316,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testOverrideClientWithYaml() throws Exception {
+    public void overrideClientWithYaml() throws Exception {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
@@ -373,7 +356,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testChangePasswordDuringBootstrap() throws Exception {
+    public void changePasswordDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
@@ -388,7 +371,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testPasswordHashDidNotChangeDuringBootstrap() throws Exception {
+    public void passwordHashDidNotChangeDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
@@ -403,7 +386,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testClientWithoutGrantTypeFails() throws Exception {
+    public void clientWithoutGrantTypeFails() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -452,10 +435,9 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         }
 
         return created;
-
     }
 
-    private void assertSet(String expectedValue, Collection defaultValueIfNull, Collection actualValue, Class<?> type) {
+    private static void assertSet(String expectedValue, Collection defaultValueIfNull, Collection actualValue, Class<?> type) {
         Collection assertScopes = defaultValueIfNull;
         if (expectedValue != null) {
             if (String.class.equals(type)) {
@@ -465,6 +447,23 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
             }
         }
         assertEquals(assertScopes, actualValue);
+    }
+
+    private void testSimpleAddClient(String clientId) throws Exception {
+        Map<String, Object> map = createClientMap(clientId);
+        ClientDetails created = doSimpleTest(map);
+        assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
+    }
+
+    private static Map<String, Object> createClientMap(String clientId) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", clientId);
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        return map;
     }
 
 }
