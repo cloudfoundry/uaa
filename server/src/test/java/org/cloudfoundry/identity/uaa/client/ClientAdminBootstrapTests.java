@@ -35,7 +35,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.same;
 
 @WithDatabaseContext
 class ClientAdminBootstrapTests {
@@ -52,6 +51,7 @@ class ClientAdminBootstrapTests {
     private JdbcTemplate jdbcTemplate;
 
     private String autoApproveId;
+    private Map<String, Map<String, Object>> clients;
 
     @BeforeEach
     void setUpClientAdminTests() {
@@ -64,12 +64,14 @@ class ClientAdminBootstrapTests {
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
         autoApproveId = "autoapprove-" + randomValueStringGenerator.generate().toLowerCase();
+        clients = new HashMap<>();
 
         clientAdminBootstrap = new ClientAdminBootstrap(
                 fakePasswordEncoder,
                 multitenantJdbcClientDetailsService,
                 clientMetadataProvisioning,
                 true,
+                clients,
                 Collections.singleton(autoApproveId),
                 Collections.emptySet());
 
@@ -79,7 +81,7 @@ class ClientAdminBootstrapTests {
 
     @Test
     void simpleAddClient() throws Exception {
-        simpleAddClient("foo", clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        simpleAddClient("foo", clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
     }
 
     @Nested
@@ -97,6 +99,7 @@ class ClientAdminBootstrapTests {
                     multitenantJdbcClientDetailsService,
                     clientMetadataProvisioning,
                     true,
+                    clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete));
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -114,7 +117,7 @@ class ClientAdminBootstrapTests {
         @Test
         void deleteFromYamlExistingClient() throws Exception {
             createClientInDb(clientIdToDelete, multitenantJdbcClientDetailsService);
-            simpleAddClient(clientIdToDelete, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+            simpleAddClient(clientIdToDelete, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
             verifyZeroInteractions(mockApplicationEventPublisher);
 
             clientAdminBootstrap.onApplicationEvent(null);
@@ -146,7 +149,7 @@ class ClientAdminBootstrapTests {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         assertThrows(InvalidClientDetailsException.class, () ->
-                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService));
+                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
     }
 
     @Test
@@ -158,7 +161,7 @@ class ClientAdminBootstrapTests {
         map.put("authorized-grant-types", GRANT_TYPE_IMPLICIT);
         map.put("authorities", "uaa.none");
         assertThrows(InvalidClientDetailsException.class, () ->
-                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService));
+                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
     }
 
     @Test
@@ -170,7 +173,7 @@ class ClientAdminBootstrapTests {
         map.put("authorities", "uaa.none");
         for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN)) {
             map.put("authorized-grant-types", grantType);
-            doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+            doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         }
     }
 
@@ -183,7 +186,7 @@ class ClientAdminBootstrapTests {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
-        ClientDetails clientDetails = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        ClientDetails clientDetails = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertTrue(clientDetails.getRegisteredRedirectUri().contains("callback_url"));
     }
 
@@ -197,7 +200,8 @@ class ClientAdminBootstrapTests {
         map.put("app-icon", "bAsE64encODEd/iMAgE=");
         map.put("redirect-uri", "http://localhost/callback");
         map.put("authorized-grant-types", "client_credentials");
-        clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+        clients.put("foo", map);
+
         clientAdminBootstrap.afterPropertiesSet();
 
         ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo", IdentityZoneHolder.get().getId());
@@ -218,7 +222,7 @@ class ClientAdminBootstrapTests {
         map.put("signup_redirect_url", "callback_url");
         map.put("change_email_redirect_url", "change_email_url");
         map.put(ClientConstants.ALLOWED_PROVIDERS, idps);
-        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertEquals(idps, created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
         assertTrue(created.getRegisteredRedirectUri().contains("callback_url"));
         assertTrue(created.getRegisteredRedirectUri().contains("change_email_url"));
@@ -233,7 +237,7 @@ class ClientAdminBootstrapTests {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("change_email_redirect_url", "change_email_callback_url");
-        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertTrue(created.getRegisteredRedirectUri().contains("change_email_callback_url"));
     }
 
@@ -251,6 +255,7 @@ class ClientAdminBootstrapTests {
                     multitenantJdbcClientDetailsService,
                     mockClientMetadataProvisioning,
                     true,
+                    clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet());
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
@@ -263,7 +268,7 @@ class ClientAdminBootstrapTests {
             output.setClientSecret("bar");
 
             doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(autoApproveId), anyString());
-            clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+            clients.put((String) map.get("id"), map);
 
             BaseClientDetails expectedAdd = new BaseClientDetails(output);
 
@@ -285,7 +290,7 @@ class ClientAdminBootstrapTests {
             map.put("secret", "bar");
             map.put("override", true);
             map.put("authorized-grant-types", "client_credentials");
-            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+            clients.put(clientId, map);
 
             doThrow(new ClientAlreadyExistsException("Planned"))
                     .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
@@ -308,6 +313,7 @@ class ClientAdminBootstrapTests {
                         multitenantJdbcClientDetailsService,
                         mockClientMetadataProvisioning,
                         false,
+                        clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet()
                 );
@@ -324,7 +330,7 @@ class ClientAdminBootstrapTests {
                 map.put("secret", "bar");
                 map.put("override", null);
                 map.put("authorized-grant-types", "client_credentials");
-                clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+                clients.put(clientId, map);
 
                 doThrow(new ClientAlreadyExistsException("Planned"))
                         .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
@@ -348,7 +354,7 @@ class ClientAdminBootstrapTests {
             map.put("secret", null);
             map.put("override", true);
             map.put("authorized-grant-types", "client_credentials");
-            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+            clients.put(clientId, map);
 
             doThrow(new ClientAlreadyExistsException("Planned"))
                     .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
@@ -372,7 +378,8 @@ class ClientAdminBootstrapTests {
             map.put("secret", "bar");
             map.put("redirect-uri", "http://localhost/callback");
             map.put("authorized-grant-types", "client_credentials");
-            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+
+            clients.put(clientId, map);
             doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService)
                     .addClientDetails(
                             any(ClientDetails.class),
@@ -395,21 +402,16 @@ class ClientAdminBootstrapTests {
             Map barBeforeClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: somevalue\n"
                     + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
                     + "authorized-grant-types: client_credentials", Map.class);
-            @SuppressWarnings("rawtypes")
-            Map clients = new HashMap();
             clients.put("foo", fooBeforeClient);
             clients.put("bar", barBeforeClient);
-            clientAdminBootstrap.setClients(clients);
             clientAdminBootstrap.afterPropertiesSet();
 
             Map fooUpdateClient = new HashMap(fooBeforeClient);
             fooUpdateClient.put("secret", "bar");
             Map barUpdateClient = new HashMap(fooBeforeClient);
             barUpdateClient.put("secret", "bar");
-            clients = new HashMap();
             clients.put("foo", fooUpdateClient);
             clients.put("bar", barUpdateClient);
-            clientAdminBootstrap.setClients(clients);
 
             reset(multitenantJdbcClientDetailsService);
             doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService).addClientDetails(
@@ -425,12 +427,12 @@ class ClientAdminBootstrapTests {
     @Test
     void changePasswordDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
-        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
         assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         map.put("secret", "bar1");
-        created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
         assertTrue(fakePasswordEncoder.matches("bar1", details.getClientSecret()), "Password should match bar1:");
@@ -440,12 +442,12 @@ class ClientAdminBootstrapTests {
     @Test
     void passwordHashDidNotChangeDuringBootstrap() throws Exception {
         Map<String, Object> map = createClientMap("foo");
-        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
         assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         String hash = details.getClientSecret();
-        created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+        created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
         assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
@@ -459,7 +461,8 @@ class ClientAdminBootstrapTests {
         map.put("secret", "bar");
         map.put("scope", "openid");
         map.put("authorities", "uaa.none");
-        clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+        clients.put((String) map.get("id"), map);
+
         InvalidClientDetailsException exception = assertThrows(InvalidClientDetailsException.class,
                 () -> clientAdminBootstrap.afterPropertiesSet());
 
@@ -468,10 +471,11 @@ class ClientAdminBootstrapTests {
 
     private static ClientDetails doSimpleTest(
             final Map<String, Object> map,
-            final ClientAdminBootstrap bootstrap,
-            final MultitenantJdbcClientDetailsService clientRegistrationService) throws Exception {
-        bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
-        bootstrap.afterPropertiesSet();
+            final ClientAdminBootstrap clientAdminBootstrap,
+            final MultitenantJdbcClientDetailsService clientRegistrationService,
+            final Map<String, Map<String, Object>> clients) throws Exception {
+        clients.put((String) map.get("id"), map);
+        clientAdminBootstrap.afterPropertiesSet();
 
         ClientDetails created = clientRegistrationService.loadClientByClientId((String) map.get("id"));
         assertNotNull(created);
@@ -508,7 +512,11 @@ class ClientAdminBootstrapTests {
         return created;
     }
 
-    private static void assertSet(String expectedValue, Collection defaultValueIfNull, Collection actualValue, Class<?> type) {
+    private static void assertSet(
+            final String expectedValue,
+            final Collection defaultValueIfNull,
+            final Collection actualValue,
+            final Class<?> type) {
         Collection assertScopes = defaultValueIfNull;
         if (expectedValue != null) {
             if (String.class.equals(type)) {
@@ -523,13 +531,14 @@ class ClientAdminBootstrapTests {
     private static void simpleAddClient(
             final String clientId,
             final ClientAdminBootstrap bootstrap,
-            final MultitenantJdbcClientDetailsService clientRegistrationService) throws Exception {
+            final MultitenantJdbcClientDetailsService clientRegistrationService,
+            final Map<String, Map<String, Object>> clients) throws Exception {
         Map<String, Object> map = createClientMap(clientId);
-        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService);
+        ClientDetails created = doSimpleTest(map, bootstrap, clientRegistrationService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
     }
 
-    private static Map<String, Object> createClientMap(String clientId) {
+    private static Map<String, Object> createClientMap(final String clientId) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", clientId);
         map.put("secret", "bar");
@@ -541,8 +550,8 @@ class ClientAdminBootstrapTests {
     }
 
     private static void createClientInDb(
-            String clientId,
-            MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService) {
+            final String clientId,
+            final MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService) {
         BaseClientDetails foo = new BaseClientDetails(clientId, "none", "openid", "authorization_code,refresh_token", "uaa.none");
         foo.setClientSecret("secret");
         foo.setRegisteredRedirectUri(Collections.singleton("http://localhost/callback"));

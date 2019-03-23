@@ -36,7 +36,7 @@
         <constructor-arg ref="passwdEncoder"/>
         <constructor-arg name="defaultOverride" value="${oauth.client.override:true}" />
         <constructor-arg name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
-        <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
+        <constructor-arg name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <constructor-arg name="autoApproveClients"
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}" />
     </bean>
@@ -46,7 +46,7 @@
             <constructor-arg ref="passwdEncoder"/>
             <constructor-arg name="defaultOverride" value="${oauth.client.override:true}" />
             <constructor-arg name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
-            <property name="clients">
+            <constructor-arg name="clients">
                 <map>
                     <entry key="admin">
                         <map>
@@ -181,7 +181,7 @@
                         </map>
                     </entry>
                 </map>
-            </property>
+            </constructor-arg>
         </bean>
     </beans>
 </beans>

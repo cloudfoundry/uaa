@@ -28,7 +28,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
-import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 
@@ -44,7 +43,7 @@ public class ClientAdminBootstrap implements
     private final ClientMetadataProvisioning clientMetadataProvisioning;
     private ApplicationEventPublisher publisher;
 
-    private Map<String, Map<String, Object>> clients = new HashMap<>();
+    private final Map<String, Map<String, Object>> clients;
     private final Set<String> clientsToDelete;
     private final Set<String> autoApproveClients;
     private final boolean defaultOverride;
@@ -55,6 +54,7 @@ public class ClientAdminBootstrap implements
      *                           by default. If true and the override flag is not
      *                           set in the client details input then the details
      *                           will override any existing details with the same id.
+     * @param clients            the clients to set
      * @param autoApproveClients A set of client ids that are unconditionally to be
      *                           autoapproved (independent of the settings in the
      *                           client details map). These clients will have
@@ -66,25 +66,16 @@ public class ClientAdminBootstrap implements
             final ClientServicesExtension clientRegistrationService,
             final ClientMetadataProvisioning clientMetadataProvisioning,
             final boolean defaultOverride,
+            final Map<String, Map<String, Object>> clients,
             final Collection<String> autoApproveClients,
             final Collection<String> clientsToDelete) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.defaultOverride = defaultOverride;
+        this.clients = ofNullable(clients).orElse(Collections.unmodifiableMap(Collections.emptyMap()));
         this.autoApproveClients = new HashSet<>(ofNullable(autoApproveClients).orElse(Collections.emptySet()));
         this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
-    }
-
-    /**
-     * @param clients the clients to set
-     */
-    public void setClients(Map<String, Map<String, Object>> clients) {
-        if (clients == null) {
-            this.clients = Collections.emptyMap();
-        } else {
-            this.clients = new HashMap<>(clients);
-        }
     }
 
     @Override
