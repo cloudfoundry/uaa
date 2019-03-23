@@ -47,28 +47,23 @@ public class ClientAdminBootstrap implements
     private Map<String, Map<String, Object>> clients = new HashMap<>();
     private List<String> clientsToDelete = null;
     private Collection<String> autoApproveClients = Collections.emptySet();
-    private boolean defaultOverride = true;
+    private final boolean defaultOverride;
 
+    /**
+     * @param defaultOverride the default override flag to set. Flag to indicate
+     *                        that client details should override existing values
+     *                        by default. If true and the override flag is not
+     *                        set in the client details input then the details
+     *                        will override any existing details with the same id.
+     */
     ClientAdminBootstrap(
             final PasswordEncoder passwordEncoder,
             final ClientServicesExtension clientRegistrationService,
-            final ClientMetadataProvisioning clientMetadataProvisioning) {
+            final ClientMetadataProvisioning clientMetadataProvisioning,
+            final boolean defaultOverride) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
-    }
-
-    /**
-     * Flag to indicate that client details should override existing values by
-     * default. If true and the override flag is
-     * not set in the client details input then the details will override any
-     * existing details with the same id.
-     *
-     * @param defaultOverride the default override flag to set (default true, so
-     *                        flag does not have to be provided
-     *                        explicitly)
-     */
-    public void setDefaultOverride(boolean defaultOverride) {
         this.defaultOverride = defaultOverride;
     }
 

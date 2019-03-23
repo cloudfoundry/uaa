@@ -63,7 +63,8 @@ class ClientAdminBootstrapTests {
         clientAdminBootstrap = new ClientAdminBootstrap(
                 fakePasswordEncoder,
                 multitenantJdbcClientDetailsService,
-                clientMetadataProvisioning);
+                clientMetadataProvisioning,
+                true);
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -236,8 +237,8 @@ class ClientAdminBootstrapTests {
             clientAdminBootstrap = new ClientAdminBootstrap(
                     fakePasswordEncoder,
                     multitenantJdbcClientDetailsService,
-                    mockClientMetadataProvisioning
-            );
+                    mockClientMetadataProvisioning,
+                    true);
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -281,6 +282,42 @@ class ClientAdminBootstrapTests {
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
             assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+        }
+
+        @Nested
+        @WithDatabaseContext
+        class WithFalseDefaultOverride {
+
+            @BeforeEach
+            void setUp() {
+                clientAdminBootstrap = new ClientAdminBootstrap(
+                        fakePasswordEncoder,
+                        multitenantJdbcClientDetailsService,
+                        mockClientMetadataProvisioning,
+                        false
+                );
+            }
+
+            @Test
+            void overrideClient_usingDefaultOverride() throws Exception {
+                String clientId = randomValueStringGenerator.generate();
+                BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+                foo.setClientSecret("secret");
+                multitenantJdbcClientDetailsService.addClientDetails(foo);
+                reset(multitenantJdbcClientDetailsService);
+                Map<String, Object> map = new HashMap<>();
+                map.put("secret", "bar");
+                map.put("override", null);
+                map.put("authorized-grant-types", "client_credentials");
+                clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+
+                doThrow(new ClientAlreadyExistsException("Planned"))
+                        .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
+                clientAdminBootstrap.afterPropertiesSet();
+                verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+                verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(any(), any());
+                verify(multitenantJdbcClientDetailsService, never()).updateClientSecret(any(), any(), any());
+            }
         }
 
         @Test
