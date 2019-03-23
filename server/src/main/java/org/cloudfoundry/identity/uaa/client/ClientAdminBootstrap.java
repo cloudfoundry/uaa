@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import org.slf4j.Logger;
@@ -58,7 +46,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     private static Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
 
-    private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
+    private Map<String, Map<String, Object>> clients = new HashMap<>();
 
     private List<String> clientsToDelete = null;
 
@@ -74,7 +62,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     private ApplicationEventPublisher publisher;
 
-    public ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
+    ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -171,7 +159,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[] {}));
     }
 
-    private void addNewClients() throws Exception {
+    private void addNewClients() {
         List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
         Set<Map.Entry<String, Map<String, Object>>> entries = clients.entrySet();
         entries.removeIf(entry -> slatedForDeletion.contains(entry.getKey()));
@@ -193,7 +181,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             if (override == null) {
                 override = defaultOverride;
             }
-            Map<String, Object> info = new HashMap<String, Object>(map);
+            Map<String, Object> info = new HashMap<>(map);
             if (validity != null) {
                 client.setAccessTokenValiditySeconds(validity);
             }
@@ -222,7 +210,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             try {
                 clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
             } catch (ClientAlreadyExistsException e) {
-                if (override == null || override) {
+                if (override) {
                     logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
                     if ( didPasswordChange(clientId, client.getClientSecret())) {
@@ -269,7 +257,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         return clientMetadata;
     }
 
-    protected boolean didPasswordChange(String clientId, String rawPassword) {
+    private boolean didPasswordChange(String clientId, String rawPassword) {
         if (getPasswordEncoder()!=null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             String existingPasswordHash = existing.getClientSecret();
@@ -277,10 +265,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         } else {
             return true;
         }
-    }
-
-    public ClientMetadataProvisioning getClientMetadataProvisioning() {
-        return clientMetadataProvisioning;
     }
 
     public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
