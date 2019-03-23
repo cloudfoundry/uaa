@@ -72,10 +72,6 @@ public class ClientAdminBootstrap implements
         this.defaultOverride = defaultOverride;
     }
 
-    public PasswordEncoder getPasswordEncoder() {
-        return passwordEncoder;
-    }
-
     /**
      * @param clients the clients to set
      */
@@ -243,10 +239,10 @@ public class ClientAdminBootstrap implements
     }
 
     private boolean didPasswordChange(String clientId, String rawPassword) {
-        if (getPasswordEncoder() != null) {
+        if (passwordEncoder != null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             String existingPasswordHash = existing.getClientSecret();
-            return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
+            return !passwordEncoder.matches(rawPassword, existingPasswordHash);
         } else {
             return true;
         }

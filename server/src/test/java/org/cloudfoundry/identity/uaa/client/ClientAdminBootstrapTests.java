@@ -376,13 +376,13 @@ class ClientAdminBootstrapTests {
         ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(clientAdminBootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         map.put("secret", "bar1");
         created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(clientAdminBootstrap.getPasswordEncoder().matches("bar1", details.getClientSecret()), "Password should match bar1:");
-        assertFalse(clientAdminBootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()), "Password should not match bar:");
+        assertTrue(fakePasswordEncoder.matches("bar1", details.getClientSecret()), "Password should match bar1:");
+        assertFalse(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should not match bar:");
     }
 
     @Test
@@ -391,12 +391,12 @@ class ClientAdminBootstrapTests {
         ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(clientAdminBootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         String hash = details.getClientSecret();
         created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(clientAdminBootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         assertEquals(hash, details.getClientSecret(), "Password hash must not change on an update:");
     }
 
