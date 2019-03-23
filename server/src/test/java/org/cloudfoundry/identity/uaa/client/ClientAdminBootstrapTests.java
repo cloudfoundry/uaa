@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -160,7 +159,7 @@ class ClientAdminBootstrapTests {
         void deleteFromYamlNonExistingClient() {
             clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
 
-            verify(multitenantJdbcClientDetailsService, times(1)).loadClientByClientId(clientIdToDelete, IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).loadClientByClientId(clientIdToDelete, "uaa");
             verifyZeroInteractions(mockApplicationEventPublisher);
         }
     }
@@ -229,7 +228,7 @@ class ClientAdminBootstrapTests {
 
         clientAdminBootstrap.afterPropertiesSet();
 
-        ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo", IdentityZoneHolder.get().getId());
+        ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo", "uaa");
         assertTrue(clientMetadata.isShowOnHomePage());
         assertEquals("http://takemetothispage.com", clientMetadata.getAppLaunchUrl().toString());
         assertEquals("bAsE64encODEd/iMAgE=", clientMetadata.getAppIcon());
@@ -298,7 +297,7 @@ class ClientAdminBootstrapTests {
             BaseClientDetails expectedAdd = new BaseClientDetails(output);
 
             clientAdminBootstrap.afterPropertiesSet();
-            verify(multitenantJdbcClientDetailsService).addClientDetails(expectedAdd, IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService).addClientDetails(expectedAdd, "uaa");
             BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
             expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
             verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
@@ -323,7 +322,7 @@ class ClientAdminBootstrapTests {
             verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
             ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", "uaa");
             assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
         }
 
@@ -387,7 +386,7 @@ class ClientAdminBootstrapTests {
             verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
             ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", "uaa");
             assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
         }
 
@@ -413,7 +412,7 @@ class ClientAdminBootstrapTests {
             clientAdminBootstrap.afterPropertiesSet();
             verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(any(ClientDetails.class), anyString());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", "uaa");
         }
 
         @Test
@@ -444,8 +443,8 @@ class ClientAdminBootstrapTests {
             clientAdminBootstrap.afterPropertiesSet();
             verify(multitenantJdbcClientDetailsService, times(2)).addClientDetails(any(ClientDetails.class), anyString());
             verify(multitenantJdbcClientDetailsService, times(2)).updateClientDetails(any(ClientDetails.class), anyString());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("bar", "bar", IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("foo", "bar", "uaa");
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("bar", "bar", "uaa");
         }
     }
 

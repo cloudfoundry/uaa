@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -185,7 +184,7 @@ public class ClientAdminBootstrap implements
             }
 
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
-            clientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
+            clientMetadataProvisioning.update(clientMetadata, IdentityZone.getUaaZoneId());
         }
     }
 
@@ -215,7 +214,7 @@ public class ClientAdminBootstrap implements
 
     private boolean didPasswordChange(String clientId, String rawPassword) {
         if (passwordEncoder != null) {
-            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
             String existingPasswordHash = existing.getClientSecret();
             return !passwordEncoder.matches(rawPassword, existingPasswordHash);
         } else {
@@ -228,7 +227,7 @@ public class ClientAdminBootstrap implements
         Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
         for (String clientId : clientsToDelete) {
             try {
-                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+                ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 logger.debug("Deleting client from manifest:" + clientId);
                 EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
                 publish(delete);
