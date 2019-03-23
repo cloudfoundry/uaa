@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -153,6 +153,6 @@ class SystemDeletableTest {
         doCallRealMethod().when(deletable).onApplicationEvent(any(EntityDeletedEvent.class));
         doCallRealMethod().when(deletable).onApplicationEvent(any(AbstractUaaEvent.class));
         doCallRealMethod().when(deletable).isUaaZone(any());
-        when(deletable.getLogger()).thenReturn(mock(Log.class));
+        when(deletable.getLogger()).thenReturn(mock(Logger.class));
     }
 }

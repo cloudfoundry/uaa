@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -58,7 +58,7 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 
 public class IdentityProviderBootstrap
     implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
-    private static Log logger = LogFactory.getLog(IdentityProviderBootstrap.class);
+    private static Logger logger = LoggerFactory.getLogger(IdentityProviderBootstrap.class);
 
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProviderWrapper> providers = new LinkedList<>();

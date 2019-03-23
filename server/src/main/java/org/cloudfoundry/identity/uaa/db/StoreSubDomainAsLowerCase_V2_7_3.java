@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
@@ -45,7 +45,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
     static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
     static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
-    Log logger = LogFactory.getLog(StoreSubDomainAsLowerCase_V2_7_3.class);
+    Logger logger = LoggerFactory.getLogger(StoreSubDomainAsLowerCase_V2_7_3.class);
 
     @Override
     public synchronized void migrate(JdbcTemplate jdbcTemplate) throws Exception {

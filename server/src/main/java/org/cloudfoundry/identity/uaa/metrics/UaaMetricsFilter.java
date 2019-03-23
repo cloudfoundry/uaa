@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -55,7 +55,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         .setLimit(MAX_TIME)
         .setPattern("/**");
 
-    private static Log logger = LogFactory.getLog(UaaMetricsFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(UaaMetricsFilter.class);
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();

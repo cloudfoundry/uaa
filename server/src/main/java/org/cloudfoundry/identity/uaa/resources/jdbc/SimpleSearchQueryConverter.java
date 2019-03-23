@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -79,7 +79,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             )
     );
 
-    private static Log logger = LogFactory.getLog(SimpleSearchQueryConverter.class);
+    private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
     private boolean dbCaseInsensitive = false;

@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -36,7 +36,7 @@ import java.util.Date;
 
 public class SessionResetFilter extends OncePerRequestFilter {
 
-    private static Log logger = LogFactory.getLog(SessionResetFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(SessionResetFilter.class);
 
     private final RedirectStrategy strategy;
     private final String redirectUrl;

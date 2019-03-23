@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.core.LdapTemplate;
@@ -93,7 +93,7 @@ import java.util.Set;
 public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator {
     //~ Static fields/initializers =====================================================================================
 
-    private static final Log logger = LogFactory.getLog(DefaultLdapAuthoritiesPopulator.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultLdapAuthoritiesPopulator.class);
 
     //~ Instance fields ================================================================================================
 

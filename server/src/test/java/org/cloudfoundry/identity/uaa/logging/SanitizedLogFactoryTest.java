@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.logging;
 
-import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -9,11 +9,11 @@ import static org.mockito.Mockito.verify;
 
 public class SanitizedLogFactoryTest {
 
-    Log mockLog;
+    Logger mockLog;
 
     @Before
     public void setUp() {
-        mockLog = mock(Log.class);
+        mockLog = mock(Logger.class);
     }
 
     @Test

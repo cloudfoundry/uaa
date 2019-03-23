@@ -27,8 +27,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaRequiredException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +36,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.GenericFilterBean;
 
 public class MfaRequiredFilter extends GenericFilterBean {
-    private static Log logger = LogFactory.getLog(MfaRequiredFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(MfaRequiredFilter.class);
 
     private final MfaChecker checker;
     private final AuthenticationEntryPoint entryPoint;

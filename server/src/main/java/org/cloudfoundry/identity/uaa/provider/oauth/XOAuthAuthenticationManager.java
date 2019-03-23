@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -106,7 +106,7 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
-    public static Log logger = LogFactory.getLog(XOAuthAuthenticationManager.class);
+    public static Logger logger = LoggerFactory.getLogger(XOAuthAuthenticationManager.class);
 
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
@@ -494,10 +494,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
                 return jsonData;
             } catch (UnsupportedEncodingException e) {
-                logger.error(e);
+                logger.error("Unsupported encoding", e);
                 return null;
             } catch (Exception e) {
-                logger.error(e);
+                logger.error("Exception", e);
                 return null;
             }
         } else {

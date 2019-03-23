@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.springframework.security.core.Authentication;
@@ -34,7 +34,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 public class Saml2TokenGranter extends AbstractTokenGranter {
 
-    private static final Log logger = LogFactory.getLog(Saml2TokenGranter.class);
+    private static final Logger logger = LoggerFactory.getLogger(Saml2TokenGranter.class);
 
 
     public Saml2TokenGranter(AuthorizationServerTokenServices tokenServices,

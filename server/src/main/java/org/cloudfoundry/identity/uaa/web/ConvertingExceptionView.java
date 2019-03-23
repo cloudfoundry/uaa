@@ -21,8 +21,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -40,7 +40,7 @@ import org.springframework.web.servlet.View;
  */
 public class ConvertingExceptionView implements View {
 
-    private static final Log logger = LogFactory.getLog(ConvertingExceptionView.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConvertingExceptionView.class);
 
     private ResponseEntity<? extends ExceptionReport> responseEntity;
 

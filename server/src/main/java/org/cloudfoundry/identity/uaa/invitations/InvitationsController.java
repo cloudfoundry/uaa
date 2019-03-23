@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -75,7 +75,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RequestMapping("/invitations")
 public class InvitationsController {
 
-    private static Log logger = LogFactory.getLog(InvitationsController.class);
+    private static Logger logger = LoggerFactory.getLogger(InvitationsController.class);
 
     private final InvitationsService invitationsService;
 

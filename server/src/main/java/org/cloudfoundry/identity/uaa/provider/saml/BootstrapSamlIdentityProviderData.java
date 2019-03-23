@@ -28,8 +28,8 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.Ext
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
 import static java.util.Collections.emptyList;
@@ -42,7 +42,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.springframework.util.StringUtils.hasText;
 
 public class BootstrapSamlIdentityProviderData implements InitializingBean {
-    private static Log logger = LogFactory.getLog(BootstrapSamlIdentityProviderData.class);
+    private static Logger logger = LoggerFactory.getLogger(BootstrapSamlIdentityProviderData.class);
     private String legacyIdpIdentityAlias;
     private volatile String legacyIdpMetaData;
     private String legacyNameId;

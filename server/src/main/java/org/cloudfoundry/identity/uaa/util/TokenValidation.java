@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -54,7 +54,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_T
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
 public abstract class TokenValidation {
-    private static final Log logger = LogFactory.getLog(TokenValidation.class);
+    private static final Logger logger = LoggerFactory.getLogger(TokenValidation.class);
     private final Map<String, Object> claims;
     private final Jwt tokenJwt;
     private final String token;

@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -36,7 +36,7 @@ public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
 
     public static final String ID_TOKEN = "id_token";
 
-    protected static Log logger = LogFactory.getLog(DisableIdTokenResponseTypeFilter.class);
+    protected static Logger logger = LoggerFactory.getLogger(DisableIdTokenResponseTypeFilter.class);
 
     private boolean active;
     private final List<String> paths;

@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -49,7 +49,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableToken
 
 public class IdTokenCreator {
     private final String ROLES_SCOPE = "roles";
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
     private TokenValidityResolver tokenValidityResolver;

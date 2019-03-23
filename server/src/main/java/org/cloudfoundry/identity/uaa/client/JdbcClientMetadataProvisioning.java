@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -38,7 +38,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcClientMetadataProvisioning implements ClientMetadataProvisioning {
 
-    private static final Log logger = LogFactory.getLog(JdbcClientMetadataProvisioning.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcClientMetadataProvisioning.class);
 
 
     private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, additional_information, created_by";

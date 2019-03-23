@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -230,7 +230,7 @@ class ScimUserEndpointsTests {
         expectedAuthorities.addAll(asList(gnm));
         expectedAuthorities.add("uaa.user");
         assertNotNull(user.getGroups());
-        Log logger = LogFactory.getLog(getClass());
+        Logger logger = LoggerFactory.getLogger(getClass());
         logger.debug("user's groups: " + user.getGroups() + ", expecting: " + expectedAuthorities);
         assertEquals(expectedAuthorities.size(), user.getGroups().size());
         for (ScimUser.Group g : user.getGroups()) {

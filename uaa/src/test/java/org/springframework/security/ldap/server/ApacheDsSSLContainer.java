@@ -15,8 +15,8 @@
 package org.springframework.security.ldap.server;
 
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.directory.server.core.DefaultDirectoryService;
 import org.apache.directory.server.core.authn.AuthenticationInterceptor;
 import org.apache.directory.server.core.interceptor.Interceptor;
@@ -51,7 +51,7 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.util.SocketUtils.getSelfCertificate;
 
 public class ApacheDsSSLContainer implements InitializingBean, DisposableBean, Lifecycle, ApplicationContextAware {
-    private static final Log logger = LogFactory.getLog(ApacheDsSSLContainer.class);
+    private static final Logger logger = LoggerFactory.getLogger(ApacheDsSSLContainer.class);
 
 
     final DefaultDirectoryService service;

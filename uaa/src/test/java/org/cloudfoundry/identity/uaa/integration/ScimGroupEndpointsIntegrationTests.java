@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -88,8 +86,6 @@ public class ScimGroupEndpointsIntegrationTests {
     private final String userEndpoint = "/Users";
 
     private List<String> groupIds = new ArrayList<String>();
-
-    private final Log logger = LogFactory.getLog(getClass());
 
     private static final List<String> defaultGroups = Arrays.asList("openid", "scim.me", "cloud_controller.read",
         "cloud_controller.write", "password.write", "scim.userids", "uaa.user", "approvals.me",
@@ -180,7 +176,6 @@ public class ScimGroupEndpointsIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
             new HttpEntity<>(g, headers), Map.class, id);
-        logger.warn(r.getBody());
         ScimGroup g1 = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
             new HttpEntity<>(g, headers), ScimGroup.class, id).getBody();
         assertEquals(name, g1.getDisplayName());

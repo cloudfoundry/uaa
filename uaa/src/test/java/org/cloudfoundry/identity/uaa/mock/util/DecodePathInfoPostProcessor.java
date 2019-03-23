@@ -4,8 +4,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.util.UriUtils;
@@ -18,7 +18,7 @@ import org.springframework.web.util.WebUtils;
 
 public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
 
-    private static Log logger = LogFactory.getLog(DecodePathInfoPostProcessor.class);
+    private static Logger logger = LoggerFactory.getLogger(DecodePathInfoPostProcessor.class);
 
     @Override
     public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {

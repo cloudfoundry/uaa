@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -43,7 +43,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     private static final String SCOPE_PREFIX = "scope.";
 
-    private static Log logger = LogFactory.getLog(UserManagedAuthzApprovalHandler.class);
+    private static Logger logger = LoggerFactory.getLogger(UserManagedAuthzApprovalHandler.class);
 
     private final String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
 

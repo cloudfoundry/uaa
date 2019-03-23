@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
@@ -33,7 +33,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.provider.ldap.extension.SpringSecurityLdapTemplate.DN_KEY;
 
 public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
-    private static final Log logger = LogFactory.getLog(ExtendedLdapUserMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExtendedLdapUserMapper.class);
     public static final String SUBSTITUTE_MAIL_ATTR_NAME = "substitute-mail-attribute";
     private String mailAttributeName = "mail";
     private String givenNameAttributeName;

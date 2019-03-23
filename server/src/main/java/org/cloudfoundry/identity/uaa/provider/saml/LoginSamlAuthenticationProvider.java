@@ -35,8 +35,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -95,7 +95,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches
 import static java.util.Optional.of;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
-    private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
+    private final static Logger logger = LoggerFactory.getLogger(LoginSamlAuthenticationProvider.class);
     private UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private IdentityProviderProvisioning identityProviderProvisioning;

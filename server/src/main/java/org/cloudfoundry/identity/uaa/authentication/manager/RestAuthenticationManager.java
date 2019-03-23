@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.springframework.http.HttpEntity;
@@ -53,7 +53,7 @@ import java.util.Map;
  */
 public class RestAuthenticationManager implements AuthenticationManager {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private RestOperations restTemplate = new RestTemplate();
 

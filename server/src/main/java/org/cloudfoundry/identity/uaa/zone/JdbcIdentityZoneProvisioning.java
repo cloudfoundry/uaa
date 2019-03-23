@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -51,7 +51,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     public static final String IDENTITY_ZONE_BY_SUBDOMAIN_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where subdomain=? and active = ?";
 
-    public static final Log logger = LogFactory.getLog(JdbcIdentityZoneProvisioning.class);
+    public static final Logger logger = LoggerFactory.getLogger(JdbcIdentityZoneProvisioning.class);
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -159,7 +159,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

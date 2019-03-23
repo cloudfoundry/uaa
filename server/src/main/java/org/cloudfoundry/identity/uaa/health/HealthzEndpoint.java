@@ -13,8 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.health;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -29,7 +29,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Controller
 public class HealthzEndpoint {
-    private static Log logger = LogFactory.getLog(HealthzEndpoint.class);
+    private static Logger logger = LoggerFactory.getLogger(HealthzEndpoint.class);
     private volatile boolean stopping = false;
     private final Thread shutdownhook;
     private final long sleepTime;

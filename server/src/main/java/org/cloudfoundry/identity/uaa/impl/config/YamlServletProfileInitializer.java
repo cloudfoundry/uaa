@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.log4j.MDC;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -178,7 +178,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
         }
 
-        MDC.put("context", servletContext.getContextPath()); //TODO: why? should we still be using this?
+        MDC.put("context", servletContext.getContextPath()); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
     void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {

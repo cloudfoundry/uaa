@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -20,7 +20,7 @@ import java.util.UUID;
 
 public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, SystemDeletable {
 
-    private static Log logger = LogFactory.getLog(JdbcMfaProviderProvisioning.class);
+    private static Logger logger = LoggerFactory.getLogger(JdbcMfaProviderProvisioning.class);
     public static final String TABLE_NAME = "mfa_providers";
     public static final String MFA_PROVIDER_FIELDS = "id,name,type,config,identity_zone_id,created,lastmodified";
     public static final String CREATE_PROVIDER_SQL = "insert into " + TABLE_NAME + "(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?)";
@@ -127,7 +127,7 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

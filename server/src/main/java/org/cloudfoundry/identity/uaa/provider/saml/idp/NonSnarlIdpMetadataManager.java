@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.common.xml.SAMLConstants;
@@ -50,7 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
-    private static final Log logger = LogFactory.getLog(NonSnarlIdpMetadataManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(NonSnarlIdpMetadataManager.class);
 
     private SamlServiceProviderConfigurator configurator;
 

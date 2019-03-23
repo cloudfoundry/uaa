@@ -25,8 +25,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
@@ -34,7 +34,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 
 public class RecognizeFailureDispatcherServlet extends GenericServlet {
 
-    private static Log logger = LogFactory.getLog(RecognizeFailureDispatcherServlet.class);
+    private static Logger logger = LoggerFactory.getLogger(RecognizeFailureDispatcherServlet.class);
     protected static final String HEADER = "X-Cf-Uaa-Error";
     protected static final String HEADER_MSG = "Server failed to start. Possible configuration error.";
 
@@ -51,11 +51,11 @@ public class RecognizeFailureDispatcherServlet extends GenericServlet {
 
 
     @Override
-    public void init(ServletConfig config) throws ServletException {
+    public void init(ServletConfig config) {
         try {
             delegate.init(config);
         } catch (Exception e) {
-            logger.fatal("Unable to start UAA application.", e);
+            logger.error("Fatal error: Unable to start UAA application.", e);
             failed = true;
         }
     }

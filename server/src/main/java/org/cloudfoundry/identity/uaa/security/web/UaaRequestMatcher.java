@@ -21,8 +21,8 @@ import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -42,7 +42,7 @@ import org.springframework.util.Assert;
  */
 public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
-    private static final Log logger = LogFactory.getLog(UaaRequestMatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaRequestMatcher.class);
 
     private final String path;
 

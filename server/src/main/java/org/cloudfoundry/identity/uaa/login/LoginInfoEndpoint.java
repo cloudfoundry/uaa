@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -120,7 +120,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 public class LoginInfoEndpoint {
 
     public static final String MFA_CODE = "mfaCode";
-    private static Log logger = LogFactory.getLog(LoginInfoEndpoint.class);
+    private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
 
     public static final String NotANumber = OriginKeys.NotANumber;
     public static final String CREATE_ACCOUNT_LINK = "createAccountLink";

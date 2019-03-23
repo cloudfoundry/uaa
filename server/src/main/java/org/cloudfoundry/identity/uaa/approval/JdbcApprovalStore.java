@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -44,7 +44,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     private final JdbcTemplate jdbcTemplate;
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final RowMapper<Approval> rowMapper = new AuthorizationRowMapper();
 
@@ -304,7 +304,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

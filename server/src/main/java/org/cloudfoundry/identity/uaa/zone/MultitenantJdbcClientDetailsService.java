@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -62,7 +62,7 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     ResourceMonitor<ClientDetails>,
     SystemDeletable {
 
-    protected static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
+    protected static final Logger logger = LoggerFactory.getLogger(MultitenantJdbcClientDetailsService.class);
 
     private static final String GET_CREATED_BY_SQL =
         "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
@@ -250,7 +250,7 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

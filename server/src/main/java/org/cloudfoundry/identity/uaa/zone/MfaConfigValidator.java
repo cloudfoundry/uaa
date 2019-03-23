@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.util.StringUtils;
 
 public class MfaConfigValidator {
-    private static Log logger = LogFactory.getLog(MfaConfigValidator.class);
+    private static Logger logger = LoggerFactory.getLogger(MfaConfigValidator.class);
     private MfaProviderProvisioning mfaProviderProvisioning;
 
     public MfaProviderProvisioning getMfaProviderProvisioning() {

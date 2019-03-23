@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -20,7 +20,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirec
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
-    private static final Log logger = LogFactory.getLog(WhitelistLogoutHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(WhitelistLogoutHandler.class);
 
     private List<String> whitelist = null;
 

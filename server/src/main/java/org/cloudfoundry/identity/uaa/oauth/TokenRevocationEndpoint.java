@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -55,7 +55,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 @Controller
 public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
     private final ScimUserProvisioning userProvisioning;
     private final MultitenantJdbcClientDetailsService clientDetailsService;

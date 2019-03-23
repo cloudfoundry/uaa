@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -47,7 +47,7 @@ import static org.springframework.util.StringUtils.hasText;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    private static Log logger = LogFactory.getLog(JdbcUaaUserDatabase.class);
+    private static Logger logger = LoggerFactory.getLogger(JdbcUaaUserDatabase.class);
 
     public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required,last_logon_success_time,previous_logon_success_time ";
 

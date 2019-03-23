@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.core.support.BaseLdapPathContextSource;
@@ -42,7 +42,7 @@ import java.util.Arrays;
  */
 
 public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
-    private static final Log logger = LogFactory.getLog(PasswordComparisonAuthenticator.class);
+    private static final Logger logger = LoggerFactory.getLogger(PasswordComparisonAuthenticator.class);
 
     private boolean localCompare;
     private String passwordAttributeName;

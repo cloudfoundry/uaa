@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.saml.storage.SAMLMessageStorage;
 import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
@@ -26,7 +26,7 @@ import javax.servlet.http.HttpSession;
 
 public class SamlSessionStorageFactory implements SAMLMessageStorageFactory {
 
-    private static Log logger = LogFactory.getLog(SamlSessionStorageFactory.class);
+    private static Logger logger = LoggerFactory.getLogger(SamlSessionStorageFactory.class);
 
     public static final String SAML_REQUEST_DATA = SamlMessageStorage.class.getName() + ".saml.requests";
 

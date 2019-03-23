@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -62,7 +62,7 @@ public class ScimGroupBootstrap implements InitializingBean {
 
     private static final String USER_BY_NAME_FILTER = "username eq \"%s\"";
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private PropertySource messageSource;
     private String messagePropertyNameTemplate = "scope.%s";
     private final MapCollector<String, String, String> collector = new MapCollector<>(

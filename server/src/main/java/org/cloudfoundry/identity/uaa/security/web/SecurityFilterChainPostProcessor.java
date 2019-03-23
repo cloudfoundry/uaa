@@ -13,8 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.http.HttpStatus;
@@ -86,7 +86,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         }
     }
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private boolean requireHttps = false;
     private List<String> redirectToHttps = Collections.emptyList();
     private List<String> ignore = Collections.emptyList();
@@ -230,7 +230,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     class UaaLoggingFilter implements Filter {
-        final Log logger = LogFactory.getLog(getClass());
+        final Logger logger = LoggerFactory.getLogger(getClass());
         protected final String name;
 
         UaaLoggingFilter(String name) {

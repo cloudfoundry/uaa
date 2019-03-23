@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
@@ -30,7 +30,7 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
 
     public static final String FORM_REDIRECT_PARAMETER = "form_redirect_uri";
 
-    private static Log logger = LogFactory.getLog(UaaSavedRequestAwareAuthenticationSuccessHandler.class);
+    private static Logger logger = LoggerFactory.getLogger(UaaSavedRequestAwareAuthenticationSuccessHandler.class);
 
     @Override
     public String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {

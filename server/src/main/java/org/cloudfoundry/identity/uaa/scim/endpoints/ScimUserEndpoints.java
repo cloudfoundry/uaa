@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -95,7 +95,7 @@ import static org.springframework.util.StringUtils.isEmpty;
 public class ScimUserEndpoints implements InitializingBean, ApplicationEventPublisherAware {
     private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq \"%s\"";
 
-    private static Log logger = LogFactory.getLog(ScimUserEndpoints.class);
+    private static Logger logger = LoggerFactory.getLogger(ScimUserEndpoints.class);
 
     public static final String E_TAG = "ETag";
 

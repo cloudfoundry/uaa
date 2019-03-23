@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
@@ -35,7 +35,7 @@ import java.util.Map;
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
 
-    private static final Log logger = LogFactory.getLog(JdbcQueryableClientDetailsService.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcQueryableClientDetailsService.class);
 
     private MultitenantJdbcClientDetailsService delegate;
 

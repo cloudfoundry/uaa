@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.xml.XMLObject;
 import org.springframework.security.saml.storage.SAMLMessageStorage;
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class SamlMessageStorage implements SAMLMessageStorage {
 
-    private static Log logger = LogFactory.getLog(SamlMessageStorage.class);
+    private static Logger logger = LoggerFactory.getLogger(SamlMessageStorage.class);
     private ConcurrentMap<String, XMLObject> messages = new ConcurrentHashMap<>();
 
     @Override

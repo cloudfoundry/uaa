@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
@@ -78,7 +78,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper {
 
-    private static Log logger = LogFactory.getLog(ServerRunning.class);
+    private static Logger logger = LoggerFactory.getLogger(ServerRunning.class);
 
     private Environment environment;
 

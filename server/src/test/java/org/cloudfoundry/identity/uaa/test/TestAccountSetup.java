@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -60,7 +60,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class TestAccountSetup extends TestWatchman {
 
-    private static Log logger = LogFactory.getLog(TestAccountSetup.class);
+    private static Logger logger = LoggerFactory.getLogger(TestAccountSetup.class);
 
     private final UrlHelper serverRunning;
 

@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -101,5 +101,5 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
         return 0;
     }
 
-    Log getLogger();
+    Logger getLogger();
 }

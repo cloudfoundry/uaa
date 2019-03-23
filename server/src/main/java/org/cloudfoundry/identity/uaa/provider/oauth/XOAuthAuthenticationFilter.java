@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.httpclient.util.URIUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.springframework.security.core.Authentication;
@@ -36,7 +36,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class XOAuthAuthenticationFilter implements Filter {
 
-    private static Log logger = LogFactory.getLog(XOAuthAuthenticationFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(XOAuthAuthenticationFilter.class);
 
     private final XOAuthAuthenticationManager xOAuthAuthenticationManager;
     private final AccountSavingAuthenticationSuccessHandler successHandler;

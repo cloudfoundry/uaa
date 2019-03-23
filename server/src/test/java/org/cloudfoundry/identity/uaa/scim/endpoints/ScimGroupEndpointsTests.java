@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -84,7 +84,7 @@ import static org.mockito.Mockito.when;
 
 public class ScimGroupEndpointsTests extends JdbcTestBase {
 
-    Log logger = LogFactory.getLog(getClass());
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     private volatile JdbcScimGroupProvisioning dao;
 

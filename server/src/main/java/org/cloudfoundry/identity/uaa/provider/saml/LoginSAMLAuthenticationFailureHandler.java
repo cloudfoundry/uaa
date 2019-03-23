@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
@@ -25,7 +25,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
  *
  */
 public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
-    private static final Log LOG = LogFactory.getLog(LoginSAMLAuthenticationFailureHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LoginSAMLAuthenticationFailureHandler.class);
 
     @Override
     public void onAuthenticationFailure(final HttpServletRequest request, final HttpServletResponse response,

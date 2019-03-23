@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.*;
@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, EnvironmentAware {
 
-    private static Log logger = LogFactory.getLog(EnvironmentMapFactoryBean.class);
+    private static Logger logger = LoggerFactory.getLogger(EnvironmentMapFactoryBean.class);
 
     private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
             StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,

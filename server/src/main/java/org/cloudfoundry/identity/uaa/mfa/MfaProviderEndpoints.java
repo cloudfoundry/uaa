@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
@@ -29,7 +29,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.*;
 @RequestMapping("/mfa-providers")
 @RestController
 public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
-    protected static Log logger = LogFactory.getLog(MfaProviderEndpoints.class);
+    protected static Logger logger = LoggerFactory.getLogger(MfaProviderEndpoints.class);
     private ApplicationEventPublisher publisher;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private MfaProviderValidator mfaProviderValidator;

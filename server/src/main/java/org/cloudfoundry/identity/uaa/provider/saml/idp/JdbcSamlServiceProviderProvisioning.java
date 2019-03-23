@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,7 +37,7 @@ import java.util.UUID;
  */
 public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderProvisioning, SamlServiceProviderDeletable {
 
-    private static final Log LOGGER = LogFactory.getLog(JdbcIdentityProviderProvisioning.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcIdentityProviderProvisioning.class);
 
     public static final String SERVICE_PROVIDER_FIELDS = "id,version,created,lastmodified,name,entity_id,config,identity_zone_id,active";
 
@@ -198,7 +198,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
 
         return LOGGER;
     }

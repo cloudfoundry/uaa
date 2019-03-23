@@ -14,8 +14,8 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -46,7 +46,7 @@ import java.util.Map;
  */
 public class AutologinAuthenticationManager implements AuthenticationManager {
 
-    private Log logger = LogFactory.getLog(getClass());
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private ExpiringCodeStore codeStore;
     private ClientServicesExtension clientDetailsService;

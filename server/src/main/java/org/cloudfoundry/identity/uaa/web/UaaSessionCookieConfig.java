@@ -19,15 +19,15 @@ import javax.servlet.SessionCookieConfig;
 import javax.servlet.SessionTrackingMode;
 import java.util.HashSet;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ServletContextAware;
 
 import static org.springframework.util.StringUtils.hasText;
 
 public class UaaSessionCookieConfig implements SessionCookieConfig, ServletContextAware {
 
-    protected static Log logger = LogFactory.getLog(UaaSessionCookieConfig.class);
+    protected static Logger logger = LoggerFactory.getLogger(UaaSessionCookieConfig.class);
 
     private String comment;
     private String domain;

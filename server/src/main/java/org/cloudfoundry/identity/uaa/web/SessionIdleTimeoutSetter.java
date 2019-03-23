@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.web.session.HttpSessionCreatedEvent;
 
 public class SessionIdleTimeoutSetter implements ApplicationListener<HttpSessionCreatedEvent> {
 
-    private static Log logger = LogFactory.getLog(SessionIdleTimeoutSetter.class);
+    private static Logger logger = LoggerFactory.getLogger(SessionIdleTimeoutSetter.class);
 
     private int timeout = 30 * 60;
 

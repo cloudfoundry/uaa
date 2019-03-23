@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -37,7 +37,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private final static String DELETE_BY_USER_QUERY = "DELETE FROM " + TABLE + " WHERE user_id = ? AND identity_zone_id=?";
     private final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
-    private final static Log logger = LogFactory.getLog(JdbcRevocableTokenProvisioning.class);
+    private final static Logger logger = LoggerFactory.getLogger(JdbcRevocableTokenProvisioning.class);
     private final RowMapper<RevocableToken> rowMapper;
     private final JdbcTemplate template;
     private final LimitSqlAdapter limitSqlAdapter;
@@ -139,7 +139,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

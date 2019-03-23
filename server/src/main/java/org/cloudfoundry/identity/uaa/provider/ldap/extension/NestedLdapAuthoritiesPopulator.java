@@ -15,8 +15,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,7 +64,7 @@ import static java.util.Collections.EMPTY_LIST;
 
 public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
     public static final String MEMBER_OF = "memberOf";
-    private static final Log logger = LogFactory.getLog(NestedLdapAuthoritiesPopulator.class);
+    private static final Logger logger = LoggerFactory.getLogger(NestedLdapAuthoritiesPopulator.class);
 
     private Set<String> attributeNames;
 

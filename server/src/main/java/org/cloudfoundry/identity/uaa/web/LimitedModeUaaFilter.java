@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -48,7 +48,7 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     public static final String ERROR_CODE = "uaa_unavailable";
     public static final String ERROR_MESSAGE = "UAA intentionally in limited mode, operation not permitted. Please try later.";
     public static final long STATUS_INTERVAL_MS = 5000;
-    private static Log logger = LogFactory.getLog(LimitedModeUaaFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(LimitedModeUaaFilter.class);
 
     private Set<String> permittedEndpoints = emptySet();
     private Set<String> permittedMethods = emptySet();

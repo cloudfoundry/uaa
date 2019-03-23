@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -56,7 +56,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
 
-    private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
+    private static Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
 
     private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
 
@@ -262,7 +262,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             try {
                 clientMetadata.setAppLaunchUrl(new URL(appLaunchUrl));
             } catch (MalformedURLException e) {
-                logger.info(new ClientMetadataException("Invalid app-launch-url for client " + clientId, e, HttpStatus.INTERNAL_SERVER_ERROR));
+                logger.info("Client metadata exception", new ClientMetadataException("Invalid app-launch-url for client " + clientId, e, HttpStatus.INTERNAL_SERVER_ERROR));
             }
         }
 

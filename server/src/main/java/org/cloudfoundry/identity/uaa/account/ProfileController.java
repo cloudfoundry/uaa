@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
@@ -51,7 +51,7 @@ import static org.springframework.util.StringUtils.hasText;
 @Controller
 public class ProfileController {
 
-    protected static Log logger = LogFactory.getLog(ProfileController.class);
+    protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);
 
     private final ApprovalStore approvalsService;
     private final ClientServicesExtension clientDetailsService;

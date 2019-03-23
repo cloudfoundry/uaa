@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 
 public class TokenEndpointBuilder {
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private String issuer;
 
     public TokenEndpointBuilder(String issuerUrlBase) throws Exception {

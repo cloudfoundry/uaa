@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Assume;
@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TableAndColumnNormalizationTest extends JdbcTestBase {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Before
     public void checkMysqlOrPostgresqlProfile() {

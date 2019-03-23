@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -41,7 +41,7 @@ public class ClientMetadataAdminEndpoints {
     private ClientMetadataProvisioning clientMetadataProvisioning;
     private HttpMessageConverter<?>[] messageConverters;
 
-    private static Log logger = LogFactory.getLog(ClientMetadataAdminEndpoints.class);
+    private static Logger logger = LoggerFactory.getLogger(ClientMetadataAdminEndpoints.class);
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)

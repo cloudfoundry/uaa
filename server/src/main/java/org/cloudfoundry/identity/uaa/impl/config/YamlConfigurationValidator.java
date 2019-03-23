@@ -13,8 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.EnvironmentAware;
@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean, EnvironmentAware {
 
-    private static Log logger = LogFactory.getLog(YamlConfigurationValidator.class);
+    private static Logger logger = LoggerFactory.getLogger(YamlConfigurationValidator.class);
 
     private Constructor constructor;
 

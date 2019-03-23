@@ -32,8 +32,8 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -72,7 +72,7 @@ import static java.util.Optional.ofNullable;
 public class ScimUserBootstrap implements
     InitializingBean, ApplicationListener<ApplicationEvent>, ApplicationEventPublisherAware {
 
-    private static final Log logger = LogFactory.getLog(ScimUserBootstrap.class);
+    private static final Logger logger = LoggerFactory.getLogger(ScimUserBootstrap.class);
 
     private final ScimUserProvisioning scimUserProvisioning;
 
