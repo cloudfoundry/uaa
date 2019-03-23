@@ -62,8 +62,13 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     private ApplicationEventPublisher publisher;
 
-    ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
+    ClientAdminBootstrap(
+            final PasswordEncoder passwordEncoder,
+            final ClientServicesExtension clientRegistrationService,
+            final ClientMetadataProvisioning clientMetadataProvisioning) {
         this.passwordEncoder = passwordEncoder;
+        this.clientRegistrationService = clientRegistrationService;
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
     }
 
     /**

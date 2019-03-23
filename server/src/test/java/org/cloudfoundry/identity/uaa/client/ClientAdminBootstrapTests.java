@@ -45,7 +45,7 @@ class ClientAdminBootstrapTests {
 
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
     private ClientMetadataProvisioning clientMetadataProvisioning;
-    private ApplicationEventPublisher applicationEventPublisher;
+    private ApplicationEventPublisher mockApplicationEventPublisher;
     private RandomValueStringGenerator randomValueStringGenerator;
 
     @Autowired
@@ -54,14 +54,19 @@ class ClientAdminBootstrapTests {
     @BeforeEach
     void setUpClientAdminTests() {
         PasswordEncoder encoder = new FakePasswordEncoder();
-        clientAdminBootstrap = new ClientAdminBootstrap(encoder);
         multitenantJdbcClientDetailsService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
-        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
-        clientAdminBootstrap.setClientRegistrationService(multitenantJdbcClientDetailsService);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         multitenantJdbcClientDetailsService.setPasswordEncoder(encoder);
-        applicationEventPublisher = mock(ApplicationEventPublisher.class);
-        clientAdminBootstrap.setApplicationEventPublisher(applicationEventPublisher);
+
+        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
+
+        clientAdminBootstrap = new ClientAdminBootstrap(
+                encoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning);
+
+        mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
+        clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
+
         randomValueStringGenerator = new RandomValueStringGenerator();
     }
 
@@ -98,7 +103,7 @@ class ClientAdminBootstrapTests {
         ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
         verify(clientAdminBootstrap, times(1)).publish(captor.capture());
         assertNotNull(captor.getValue());
-        verify(applicationEventPublisher, times(1)).publishEvent(same(captor.getValue()));
+        verify(mockApplicationEventPublisher, times(1)).publishEvent(same(captor.getValue()));
         assertEquals(clientId, captor.getValue().getObjectId());
         assertEquals(clientId, ((ClientDetails) captor.getValue().getDeleted()).getClientId());
         assertSame(SystemAuthentication.SYSTEM_AUTHENTICATION, captor.getValue().getAuthentication());
