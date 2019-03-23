@@ -37,8 +37,8 @@
         <constructor-arg name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
-        <property name="autoApproveClients"
-            value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
+        <constructor-arg name="autoApproveClients"
+            value="#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}" />
     </bean>
 
     <beans profile="default">

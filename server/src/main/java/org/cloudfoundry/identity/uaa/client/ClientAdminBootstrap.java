@@ -46,25 +46,32 @@ public class ClientAdminBootstrap implements
 
     private Map<String, Map<String, Object>> clients = new HashMap<>();
     private List<String> clientsToDelete = null;
-    private Collection<String> autoApproveClients = Collections.emptySet();
+    private final Set<String> autoApproveClients;
     private final boolean defaultOverride;
 
     /**
-     * @param defaultOverride the default override flag to set. Flag to indicate
-     *                        that client details should override existing values
-     *                        by default. If true and the override flag is not
-     *                        set in the client details input then the details
-     *                        will override any existing details with the same id.
+     * @param defaultOverride    the default override flag to set. Flag to indicate
+     *                           that client details should override existing values
+     *                           by default. If true and the override flag is not
+     *                           set in the client details input then the details
+     *                           will override any existing details with the same id.
+     * @param autoApproveClients A set of client ids that are unconditionally to be
+     *                           autoapproved (independent of the settings in the
+     *                           client details map). These clients will have
+     *                           <code>autoapprove=true</code> when they are inserted
+     *                           into the client details store.
      */
     ClientAdminBootstrap(
             final PasswordEncoder passwordEncoder,
             final ClientServicesExtension clientRegistrationService,
             final ClientMetadataProvisioning clientMetadataProvisioning,
-            final boolean defaultOverride) {
+            final boolean defaultOverride,
+            final Collection<String> autoApproveClients) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.defaultOverride = defaultOverride;
+        this.autoApproveClients = new HashSet<>(autoApproveClients);
     }
 
     /**
@@ -82,19 +89,6 @@ public class ClientAdminBootstrap implements
         this.clientsToDelete = clientsToDelete;
     }
 
-    /**
-     * A set of client ids that are unconditionally to be autoapproved
-     * (independent of the settings in the client
-     * details map). These clients will have <code>autoapprove=true</code> when
-     * they are inserted into the client
-     * details store.
-     *
-     * @param autoApproveClients the auto approve clients
-     */
-    public void setAutoApproveClients(Collection<String> autoApproveClients) {
-        this.autoApproveClients = autoApproveClients;
-    }
-
     @Override
     public void afterPropertiesSet() throws Exception {
         addNewClients();
@@ -107,9 +101,8 @@ public class ClientAdminBootstrap implements
      */
     private void updateAutoApproveClients() {
         List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
-        Collection<String> autoApproveList = new LinkedList(ofNullable(autoApproveClients).orElse(emptyList()));
-        autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
-        for (String clientId : autoApproveList) {
+        autoApproveClients.removeAll(slatedForDeletion);
+        for (String clientId : autoApproveClients) {
             try {
                 BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);

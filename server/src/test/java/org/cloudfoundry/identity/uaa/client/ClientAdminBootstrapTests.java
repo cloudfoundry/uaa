@@ -27,7 +27,6 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.util.*;
 
-import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -52,24 +51,29 @@ class ClientAdminBootstrapTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private String autoApproveId;
+
     @BeforeEach
     void setUpClientAdminTests() {
+        randomValueStringGenerator = new RandomValueStringGenerator();
+
         fakePasswordEncoder = new FakePasswordEncoder();
         multitenantJdbcClientDetailsService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
         multitenantJdbcClientDetailsService.setPasswordEncoder(fakePasswordEncoder);
 
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
+        autoApproveId = "autoapprove-" + randomValueStringGenerator.generate().toLowerCase();
+
         clientAdminBootstrap = new ClientAdminBootstrap(
                 fakePasswordEncoder,
                 multitenantJdbcClientDetailsService,
                 clientMetadataProvisioning,
-                true);
+                true,
+                Collections.singleton(autoApproveId));
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
-
-        randomValueStringGenerator = new RandomValueStringGenerator();
     }
 
     @Test
@@ -79,14 +83,12 @@ class ClientAdminBootstrapTests {
 
     @Test
     void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
-        String autoApproveId = "autoapprove-" + new RandomValueStringGenerator().generate().toLowerCase();
         simpleAddClient(autoApproveId, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         reset(multitenantJdbcClientDetailsService);
         clientAdminBootstrap = spy(clientAdminBootstrap);
-        String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
+        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
         Map<String, Map<String, Object>> clients = Collections.singletonMap(clientId, createClientMap(clientId));
         clientAdminBootstrap.setClients(clients);
-        clientAdminBootstrap.setAutoApproveClients(singletonList(autoApproveId));
         clientAdminBootstrap.setClientsToDelete(Arrays.asList(clientId, autoApproveId));
         clientAdminBootstrap.afterPropertiesSet();
         verify(multitenantJdbcClientDetailsService, never()).addClientDetails(any(), anyString());
@@ -97,7 +99,7 @@ class ClientAdminBootstrapTests {
     @Test
     void deleteFromYamlExistingClient() throws Exception {
         clientAdminBootstrap = spy(clientAdminBootstrap);
-        String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
+        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
         simpleAddClient(clientId, clientAdminBootstrap, multitenantJdbcClientDetailsService);
         verify(clientAdminBootstrap, never()).publish(any());
         clientAdminBootstrap.setClientsToDelete(Collections.singletonList(clientId));
@@ -117,7 +119,7 @@ class ClientAdminBootstrapTests {
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap = spy(clientAdminBootstrap);
         clientAdminBootstrap.setApplicationEventPublisher(publisher);
-        String clientId = "client-" + new RandomValueStringGenerator().generate().toLowerCase();
+        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
         verify(clientAdminBootstrap, never()).publish(any());
         clientAdminBootstrap.setClientsToDelete(Collections.singletonList(clientId));
         clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
@@ -238,18 +240,18 @@ class ClientAdminBootstrapTests {
                     fakePasswordEncoder,
                     multitenantJdbcClientDetailsService,
                     mockClientMetadataProvisioning,
-                    true);
+                    true,
+                    Collections.singleton(autoApproveId));
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
         @Test
         void simpleAddClientWithAutoApprove() throws Exception {
-            Map<String, Object> map = createClientMap("foo");
-            BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            Map<String, Object> map = createClientMap(autoApproveId);
+            BaseClientDetails output = new BaseClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
-            clientAdminBootstrap.setAutoApproveClients(Arrays.asList("foo", "non-existent-client"));
 
-            doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq("foo"), anyString());
+            doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(autoApproveId), anyString());
             clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
 
             BaseClientDetails expectedAdd = new BaseClientDetails(output);
@@ -294,7 +296,8 @@ class ClientAdminBootstrapTests {
                         fakePasswordEncoder,
                         multitenantJdbcClientDetailsService,
                         mockClientMetadataProvisioning,
-                        false
+                        false,
+                        Collections.singleton(autoApproveId)
                 );
             }
 
