@@ -26,41 +26,28 @@ import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 
-public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
+public class ClientAdminBootstrap implements
+        InitializingBean,
+        ApplicationListener<ContextRefreshedEvent>,
+        ApplicationEventPublisherAware {
 
     private static Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
 
-    private Map<String, Map<String, Object>> clients = new HashMap<>();
-
-    private List<String> clientsToDelete = null;
-
-    private Collection<String> autoApproveClients = Collections.emptySet();
-
-    private final ClientServicesExtension clientRegistrationService;
-
-    private final ClientMetadataProvisioning clientMetadataProvisioning;
-
-    private boolean defaultOverride = true;
-
     private final PasswordEncoder passwordEncoder;
-
+    private final ClientServicesExtension clientRegistrationService;
+    private final ClientMetadataProvisioning clientMetadataProvisioning;
     private ApplicationEventPublisher publisher;
+
+    private Map<String, Map<String, Object>> clients = new HashMap<>();
+    private List<String> clientsToDelete = null;
+    private Collection<String> autoApproveClients = Collections.emptySet();
+    private boolean defaultOverride = true;
 
     ClientAdminBootstrap(
             final PasswordEncoder passwordEncoder,
@@ -78,8 +65,8 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
      * existing details with the same id.
      *
      * @param defaultOverride the default override flag to set (default true, so
-     *            flag does not have to be provided
-     *            explicitly)
+     *                        flag does not have to be provided
+     *                        explicitly)
      */
     public void setDefaultOverride(boolean defaultOverride) {
         this.defaultOverride = defaultOverride;
@@ -154,7 +141,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         if (map.get("change_email_redirect_url") != null) {
             redirectUris.add((String) map.get("change_email_redirect_url"));
         }
-        return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[] {}));
+        return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[]{}));
     }
 
     private void addNewClients() {
@@ -165,12 +152,12 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             String clientId = entry.getKey();
 
             Map<String, Object> map = entry.getValue();
-            if(map.get("authorized-grant-types") == null) {
+            if (map.get("authorized-grant-types") == null) {
                 throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
             }
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
-                (String) map.get("scope"), (String) map.get("authorized-grant-types"),
-                (String) map.get("authorities"), getRedirectUris(map));
+                    (String) map.get("scope"), (String) map.get("authorized-grant-types"),
+                    (String) map.get("authorities"), getRedirectUris(map));
 
             client.setClientSecret(map.get("secret") == null ? "" : (String) map.get("secret"));
 
@@ -199,8 +186,8 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
                 client.getAuthorizedGrantTypes().add(GRANT_TYPE_REFRESH_TOKEN);
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
-                            "redirect-uri", "secret", "id", "override", "access-token-validity",
-                            "refresh-token-validity","show-on-homepage","app-launch-url","app-icon")) {
+                    "redirect-uri", "secret", "id", "override", "access-token-validity",
+                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon")) {
                 info.remove(key);
             }
 
@@ -211,7 +198,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
                 if (override) {
                     logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
-                    if ( didPasswordChange(clientId, client.getClientSecret())) {
+                    if (didPasswordChange(clientId, client.getClientSecret())) {
                         clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaaZoneId());
                     }
                 } else {
@@ -244,7 +231,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
         clientMetadata.setAppIcon(appIcon);
         clientMetadata.setShowOnHomePage(showOnHomepage != null && showOnHomepage);
-        if(StringUtils.hasText(appLaunchUrl)) {
+        if (StringUtils.hasText(appLaunchUrl)) {
             try {
                 clientMetadata.setAppLaunchUrl(new URL(appLaunchUrl));
             } catch (MalformedURLException e) {
@@ -256,7 +243,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
     }
 
     private boolean didPasswordChange(String clientId, String rawPassword) {
-        if (getPasswordEncoder()!=null) {
+        if (getPasswordEncoder() != null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             String existingPasswordHash = existing.getClientSecret();
             return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
@@ -271,11 +258,11 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         for (String clientId : ofNullable(clientsToDelete).orElse(emptyList())) {
             try {
                 ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-                logger.debug("Deleting client from manifest:"+clientId);
+                logger.debug("Deleting client from manifest:" + clientId);
                 EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
                 publish(delete);
             } catch (NoSuchClientException e) {
-                logger.debug("Ignoring delete for non existent client:"+clientId);
+                logger.debug("Ignoring delete for non existent client:" + clientId);
             }
         }
     }
@@ -286,7 +273,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
     }
 
     public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }
