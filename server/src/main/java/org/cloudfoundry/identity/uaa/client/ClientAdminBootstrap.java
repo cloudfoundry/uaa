@@ -52,9 +52,9 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
     private Collection<String> autoApproveClients = Collections.emptySet();
 
-    private ClientServicesExtension clientRegistrationService;
+    private final ClientServicesExtension clientRegistrationService;
 
-    private ClientMetadataProvisioning clientMetadataProvisioning;
+    private final ClientMetadataProvisioning clientMetadataProvisioning;
 
     private boolean defaultOverride = true;
 
@@ -115,13 +115,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
      */
     public void setAutoApproveClients(Collection<String> autoApproveClients) {
         this.autoApproveClients = autoApproveClients;
-    }
-
-    /**
-     * @param clientRegistrationService the clientRegistrationService to set
-     */
-    public void setClientRegistrationService(ClientServicesExtension clientRegistrationService) {
-        this.clientRegistrationService = clientRegistrationService;
     }
 
     @Override
@@ -270,10 +263,6 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         } else {
             return true;
         }
-    }
-
-    public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
-        this.clientMetadataProvisioning = clientMetadataProvisioning;
     }
 
     @Override

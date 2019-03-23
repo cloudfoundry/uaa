@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -47,20 +47,21 @@ class ClientAdminBootstrapTests {
     private ClientMetadataProvisioning clientMetadataProvisioning;
     private ApplicationEventPublisher mockApplicationEventPublisher;
     private RandomValueStringGenerator randomValueStringGenerator;
+    private FakePasswordEncoder fakePasswordEncoder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUpClientAdminTests() {
-        PasswordEncoder encoder = new FakePasswordEncoder();
+        fakePasswordEncoder = new FakePasswordEncoder();
         multitenantJdbcClientDetailsService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
-        multitenantJdbcClientDetailsService.setPasswordEncoder(encoder);
+        multitenantJdbcClientDetailsService.setPasswordEncoder(fakePasswordEncoder);
 
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
         clientAdminBootstrap = new ClientAdminBootstrap(
-                encoder,
+                fakePasswordEncoder,
                 multitenantJdbcClientDetailsService,
                 clientMetadataProvisioning);
 
@@ -223,152 +224,150 @@ class ClientAdminBootstrapTests {
         assertTrue(created.getRegisteredRedirectUri().contains("change_email_callback_url"));
     }
 
-    @Test
-    void simpleAddClientWithAutoApprove() throws Exception {
-        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+    @Nested
+    @WithDatabaseContext
+    class WithMockClientMetadataProvisioning {
 
-        Map<String, Object> map = createClientMap("foo");
-        BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
-        output.setClientSecret("bar");
-        clientAdminBootstrap.setAutoApproveClients(Arrays.asList("foo", "non-existent-client"));
+        private ClientMetadataProvisioning mockClientMetadataProvisioning;
 
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
-        doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq("foo"), anyString());
-        clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+        @BeforeEach
+        void setUp() {
+            mockClientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
+            clientAdminBootstrap = new ClientAdminBootstrap(
+                    fakePasswordEncoder,
+                    multitenantJdbcClientDetailsService,
+                    mockClientMetadataProvisioning
+            );
+            when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+        }
 
-        BaseClientDetails expectedAdd = new BaseClientDetails(output);
+        @Test
+        void simpleAddClientWithAutoApprove() throws Exception {
+            Map<String, Object> map = createClientMap("foo");
+            BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            output.setClientSecret("bar");
+            clientAdminBootstrap.setAutoApproveClients(Arrays.asList("foo", "non-existent-client"));
 
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService).addClientDetails(expectedAdd, IdentityZoneHolder.get().getId());
-        BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
-        expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
-        verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
-    }
+            doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq("foo"), anyString());
+            clientAdminBootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
 
-    @Test
-    void overrideClient() throws Exception {
-        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+            BaseClientDetails expectedAdd = new BaseClientDetails(output);
 
-        String clientId = randomValueStringGenerator.generate();
-        BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
-        foo.setClientSecret("secret");
-        multitenantJdbcClientDetailsService.addClientDetails(foo);
-        reset(multitenantJdbcClientDetailsService);
-        Map<String, Object> map = new HashMap<>();
-        map.put("secret", "bar");
-        map.put("override", true);
-        map.put("authorized-grant-types", "client_credentials");
-        clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService).addClientDetails(expectedAdd, IdentityZoneHolder.get().getId());
+            BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
+            expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
+            verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
+        }
 
-        doThrow(new ClientAlreadyExistsException("Planned"))
-                .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
-        ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
-        assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
-    }
+        @Test
+        void overrideClient() throws Exception {
+            String clientId = randomValueStringGenerator.generate();
+            BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            foo.setClientSecret("secret");
+            multitenantJdbcClientDetailsService.addClientDetails(foo);
+            reset(multitenantJdbcClientDetailsService);
+            Map<String, Object> map = new HashMap<>();
+            map.put("secret", "bar");
+            map.put("override", true);
+            map.put("authorized-grant-types", "client_credentials");
+            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
 
-    @Test
-    void overrideClientWithEmptySecret() throws Exception {
-        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+            doThrow(new ClientAlreadyExistsException("Planned"))
+                    .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+            ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
+            assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+        }
 
-        String clientId = randomValueStringGenerator.generate();
-        BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
-        foo.setClientSecret("secret");
-        multitenantJdbcClientDetailsService.addClientDetails(foo);
+        @Test
+        void overrideClientWithEmptySecret() throws Exception {
+            String clientId = randomValueStringGenerator.generate();
+            BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            foo.setClientSecret("secret");
+            multitenantJdbcClientDetailsService.addClientDetails(foo);
 
-        reset(multitenantJdbcClientDetailsService);
+            reset(multitenantJdbcClientDetailsService);
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("secret", null);
-        map.put("override", true);
-        map.put("authorized-grant-types", "client_credentials");
-        clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
+            Map<String, Object> map = new HashMap<>();
+            map.put("secret", null);
+            map.put("override", true);
+            map.put("authorized-grant-types", "client_credentials");
+            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
 
-        doThrow(new ClientAlreadyExistsException("Planned"))
-                .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
-        ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", IdentityZoneHolder.get().getId());
-        assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
-    }
+            doThrow(new ClientAlreadyExistsException("Planned"))
+                    .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+            ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", IdentityZoneHolder.get().getId());
+            assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+        }
 
-    @Test
-    void overrideClientByDefault() throws Exception {
-        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+        @Test
+        void overrideClientByDefault() throws Exception {
+            String clientId = randomValueStringGenerator.generate();
+            BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            foo.setClientSecret("secret");
+            multitenantJdbcClientDetailsService.addClientDetails(foo);
+            reset(multitenantJdbcClientDetailsService);
 
-        String clientId = randomValueStringGenerator.generate();
-        BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
-        foo.setClientSecret("secret");
-        multitenantJdbcClientDetailsService.addClientDetails(foo);
-        reset(multitenantJdbcClientDetailsService);
+            Map<String, Object> map = new HashMap<>();
+            map.put("secret", "bar");
+            map.put("redirect-uri", "http://localhost/callback");
+            map.put("authorized-grant-types", "client_credentials");
+            clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
+            doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService)
+                    .addClientDetails(
+                            any(ClientDetails.class),
+                            anyString()
+                    );
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(any(ClientDetails.class), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
+        }
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("secret", "bar");
-        map.put("redirect-uri", "http://localhost/callback");
-        map.put("authorized-grant-types", "client_credentials");
-        clientAdminBootstrap.setClients(Collections.singletonMap(clientId, map));
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
-        doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService)
-                .addClientDetails(
-                        any(ClientDetails.class),
-                        anyString()
-                );
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(any(ClientDetails.class), anyString());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "bar", IdentityZoneHolder.get().getId());
-    }
+        @Test
+        @SuppressWarnings("unchecked")
+        void overrideClientWithYaml() throws Exception {
+            @SuppressWarnings("rawtypes")
+            Map fooBeforeClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: somevalue\n"
+                    + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
+                    + "authorized-grant-types: client_credentials", Map.class);
+            @SuppressWarnings("rawtypes")
+            Map barBeforeClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: somevalue\n"
+                    + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
+                    + "authorized-grant-types: client_credentials", Map.class);
+            @SuppressWarnings("rawtypes")
+            Map clients = new HashMap();
+            clients.put("foo", fooBeforeClient);
+            clients.put("bar", barBeforeClient);
+            clientAdminBootstrap.setClients(clients);
+            clientAdminBootstrap.afterPropertiesSet();
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void overrideClientWithYaml() throws Exception {
-        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
-        clientAdminBootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+            Map fooUpdateClient = new HashMap(fooBeforeClient);
+            fooUpdateClient.put("secret", "bar");
+            Map barUpdateClient = new HashMap(fooBeforeClient);
+            barUpdateClient.put("secret", "bar");
+            clients = new HashMap();
+            clients.put("foo", fooUpdateClient);
+            clients.put("bar", barUpdateClient);
+            clientAdminBootstrap.setClients(clients);
 
-        @SuppressWarnings("rawtypes")
-        Map fooBeforeClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: somevalue\n"
-                + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
-                + "authorized-grant-types: client_credentials", Map.class);
-        @SuppressWarnings("rawtypes")
-        Map barBeforeClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: somevalue\n"
-                + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
-                + "authorized-grant-types: client_credentials", Map.class);
-        @SuppressWarnings("rawtypes")
-        Map clients = new HashMap();
-        clients.put("foo", fooBeforeClient);
-        clients.put("bar", barBeforeClient);
-        clientAdminBootstrap.setClients(clients);
-        clientAdminBootstrap.afterPropertiesSet();
-
-        Map fooUpdateClient = new HashMap(fooBeforeClient);
-        fooUpdateClient.put("secret", "bar");
-        Map barUpdateClient = new HashMap(fooBeforeClient);
-        barUpdateClient.put("secret", "bar");
-        clients = new HashMap();
-        clients.put("foo", fooUpdateClient);
-        clients.put("bar", barUpdateClient);
-        clientAdminBootstrap.setClients(clients);
-
-        reset(multitenantJdbcClientDetailsService);
-        when(clientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
-        doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService).addClientDetails(
-                any(ClientDetails.class), anyString());
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService, times(2)).addClientDetails(any(ClientDetails.class), anyString());
-        verify(multitenantJdbcClientDetailsService, times(2)).updateClientDetails(any(ClientDetails.class), anyString());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
-        verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("bar", "bar", IdentityZoneHolder.get().getId());
+            reset(multitenantJdbcClientDetailsService);
+            doThrow(new ClientAlreadyExistsException("Planned")).when(multitenantJdbcClientDetailsService).addClientDetails(
+                    any(ClientDetails.class), anyString());
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, times(2)).addClientDetails(any(ClientDetails.class), anyString());
+            verify(multitenantJdbcClientDetailsService, times(2)).updateClientDetails(any(ClientDetails.class), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("foo", "bar", IdentityZoneHolder.get().getId());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret("bar", "bar", IdentityZoneHolder.get().getId());
+        }
     }
 
     @Test
