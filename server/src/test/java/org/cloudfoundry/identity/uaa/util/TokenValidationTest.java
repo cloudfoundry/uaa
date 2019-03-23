@@ -668,13 +668,16 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage(expectedErrorMessage);
 
+        TokenValidation tokenValidation = buildAccessTokenValidator(
+                refreshToken,
+                new KeyInfoService("https://localhost")
+        );
+
         try {
-            buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
-                    .checkRequestedScopesAreGranted(grantedScopes);
-        } catch (Throwable t) {
-            assertThat(
-                    logEvents, hasItem("ERROR -- " + expectedErrorMessage));
-            throw t;
+            tokenValidation.checkRequestedScopesAreGranted(grantedScopes);
+        } catch (InvalidTokenException e) {
+            assertThat(logEvents, hasItem("ERROR -- " + expectedErrorMessage));
+            throw e; // rethrow so that expectedException can see the exception
         }
     }
 

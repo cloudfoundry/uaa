@@ -468,8 +468,6 @@
     <bean id="successRedirectHandler"
           class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
 
-    <bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.account.OpenIdUserDetailsService"/>
-
     <context:annotation-config/>
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
