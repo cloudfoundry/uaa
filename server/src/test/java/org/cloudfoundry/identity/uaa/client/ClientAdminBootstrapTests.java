@@ -79,6 +79,31 @@ class ClientAdminBootstrapTests {
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
     }
 
+    @Nested
+    @WithDatabaseContext
+    class WithNullClients {
+        @BeforeEach
+        void setUp() {
+            clientAdminBootstrap = new ClientAdminBootstrap(
+                    fakePasswordEncoder,
+                    multitenantJdbcClientDetailsService,
+                    clientMetadataProvisioning,
+                    true,
+                    null,
+                    Collections.emptySet(),
+                    Collections.emptySet());
+        }
+
+        @Test
+        void doesNotAddClients() throws Exception {
+            reset(multitenantJdbcClientDetailsService);
+
+            clientAdminBootstrap.afterPropertiesSet();
+
+            verifyZeroInteractions(multitenantJdbcClientDetailsService);
+        }
+    }
+
     @Test
     void simpleAddClient() throws Exception {
         simpleAddClient("foo", clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);

@@ -73,7 +73,7 @@ public class ClientAdminBootstrap implements
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.defaultOverride = defaultOverride;
-        this.clients = ofNullable(clients).orElse(Collections.unmodifiableMap(Collections.emptyMap()));
+        this.clients = ofNullable(clients).orElse(Collections.emptyMap());
         this.autoApproveClients = new HashSet<>(ofNullable(autoApproveClients).orElse(Collections.emptySet()));
         this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
     }
