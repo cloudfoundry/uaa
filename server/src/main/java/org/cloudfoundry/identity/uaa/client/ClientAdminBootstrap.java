@@ -45,7 +45,7 @@ public class ClientAdminBootstrap implements
     private ApplicationEventPublisher publisher;
 
     private Map<String, Map<String, Object>> clients = new HashMap<>();
-    private List<String> clientsToDelete = null;
+    private final Set<String> clientsToDelete;
     private final Set<String> autoApproveClients;
     private final boolean defaultOverride;
 
@@ -66,12 +66,14 @@ public class ClientAdminBootstrap implements
             final ClientServicesExtension clientRegistrationService,
             final ClientMetadataProvisioning clientMetadataProvisioning,
             final boolean defaultOverride,
-            final Collection<String> autoApproveClients) {
+            final Collection<String> autoApproveClients,
+            final Collection<String> clientsToDelete) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.defaultOverride = defaultOverride;
-        this.autoApproveClients = new HashSet<>(autoApproveClients);
+        this.autoApproveClients = new HashSet<>(ofNullable(autoApproveClients).orElse(Collections.emptySet()));
+        this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
     }
 
     /**
@@ -85,10 +87,6 @@ public class ClientAdminBootstrap implements
         }
     }
 
-    public void setClientsToDelete(List<String> clientsToDelete) {
-        this.clientsToDelete = clientsToDelete;
-    }
-
     @Override
     public void afterPropertiesSet() throws Exception {
         addNewClients();
@@ -100,8 +98,7 @@ public class ClientAdminBootstrap implements
      * whitelist.
      */
     private void updateAutoApproveClients() {
-        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
-        autoApproveClients.removeAll(slatedForDeletion);
+        autoApproveClients.removeAll(clientsToDelete);
         for (String clientId : autoApproveClients) {
             try {
                 BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
@@ -129,9 +126,8 @@ public class ClientAdminBootstrap implements
     }
 
     private void addNewClients() {
-        List<String> slatedForDeletion = ofNullable(clientsToDelete).orElse(emptyList());
         Set<Map.Entry<String, Map<String, Object>>> entries = clients.entrySet();
-        entries.removeIf(entry -> slatedForDeletion.contains(entry.getKey()));
+        entries.removeIf(entry -> clientsToDelete.contains(entry.getKey()));
         for (Map.Entry<String, Map<String, Object>> entry : entries) {
             String clientId = entry.getKey();
 
@@ -237,9 +233,9 @@ public class ClientAdminBootstrap implements
     }
 
     @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
+    public void onApplicationEvent(ContextRefreshedEvent ignored) {
         Authentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
-        for (String clientId : ofNullable(clientsToDelete).orElse(emptyList())) {
+        for (String clientId : clientsToDelete) {
             try {
                 ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 logger.debug("Deleting client from manifest:" + clientId);

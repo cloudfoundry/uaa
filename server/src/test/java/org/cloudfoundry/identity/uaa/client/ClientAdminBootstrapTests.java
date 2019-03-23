@@ -70,7 +70,8 @@ class ClientAdminBootstrapTests {
                 multitenantJdbcClientDetailsService,
                 clientMetadataProvisioning,
                 true,
-                Collections.singleton(autoApproveId));
+                Collections.singleton(autoApproveId),
+                Collections.emptySet());
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -81,50 +82,59 @@ class ClientAdminBootstrapTests {
         simpleAddClient("foo", clientAdminBootstrap, multitenantJdbcClientDetailsService);
     }
 
-    @Test
-    void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
-        simpleAddClient(autoApproveId, clientAdminBootstrap, multitenantJdbcClientDetailsService);
-        reset(multitenantJdbcClientDetailsService);
-        clientAdminBootstrap = spy(clientAdminBootstrap);
-        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
-        Map<String, Map<String, Object>> clients = Collections.singletonMap(clientId, createClientMap(clientId));
-        clientAdminBootstrap.setClients(clients);
-        clientAdminBootstrap.setClientsToDelete(Arrays.asList(clientId, autoApproveId));
-        clientAdminBootstrap.afterPropertiesSet();
-        verify(multitenantJdbcClientDetailsService, never()).addClientDetails(any(), anyString());
-        verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(any(), anyString());
-        verify(multitenantJdbcClientDetailsService, never()).updateClientSecret(any(), any(), anyString());
-    }
+    @Nested
+    @WithDatabaseContext
+    class WithClientsToDelete {
 
-    @Test
-    void deleteFromYamlExistingClient() throws Exception {
-        clientAdminBootstrap = spy(clientAdminBootstrap);
-        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
-        simpleAddClient(clientId, clientAdminBootstrap, multitenantJdbcClientDetailsService);
-        verify(clientAdminBootstrap, never()).publish(any());
-        clientAdminBootstrap.setClientsToDelete(Collections.singletonList(clientId));
-        clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
-        ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
-        verify(clientAdminBootstrap, times(1)).publish(captor.capture());
-        assertNotNull(captor.getValue());
-        verify(mockApplicationEventPublisher, times(1)).publishEvent(same(captor.getValue()));
-        assertEquals(clientId, captor.getValue().getObjectId());
-        assertEquals(clientId, ((ClientDetails) captor.getValue().getDeleted()).getClientId());
-        assertSame(SystemAuthentication.SYSTEM_AUTHENTICATION, captor.getValue().getAuthentication());
-        assertNotNull(captor.getValue().getAuditEvent());
-    }
+        private String clientIdToDelete;
 
-    @Test
-    void deleteFromYamlNonExistingClient() {
-        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
-        clientAdminBootstrap = spy(clientAdminBootstrap);
-        clientAdminBootstrap.setApplicationEventPublisher(publisher);
-        String clientId = "client-" + randomValueStringGenerator.generate().toLowerCase();
-        verify(clientAdminBootstrap, never()).publish(any());
-        clientAdminBootstrap.setClientsToDelete(Collections.singletonList(clientId));
-        clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
-        verify(clientAdminBootstrap, never()).publish(any());
-        verify(publisher, never()).publishEvent(any());
+        @BeforeEach
+        void setUp() {
+            clientIdToDelete = "clientIdToDelete" + randomValueStringGenerator.generate();
+
+            clientAdminBootstrap = new ClientAdminBootstrap(
+                    fakePasswordEncoder,
+                    multitenantJdbcClientDetailsService,
+                    clientMetadataProvisioning,
+                    true,
+                    Collections.singleton(clientIdToDelete),
+                    Collections.singleton(clientIdToDelete));
+            clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
+        }
+
+        @Test
+        void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
+            clientAdminBootstrap.afterPropertiesSet();
+
+            verify(multitenantJdbcClientDetailsService, never()).addClientDetails(any(), anyString());
+            verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(any(), anyString());
+            verify(multitenantJdbcClientDetailsService, never()).updateClientSecret(any(), any(), anyString());
+        }
+
+        @Test
+        void deleteFromYamlExistingClient() throws Exception {
+            createClientInDb(clientIdToDelete, multitenantJdbcClientDetailsService);
+            simpleAddClient(clientIdToDelete, clientAdminBootstrap, multitenantJdbcClientDetailsService);
+            verifyZeroInteractions(mockApplicationEventPublisher);
+
+            clientAdminBootstrap.onApplicationEvent(null);
+
+            ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+            verify(mockApplicationEventPublisher, times(1)).publishEvent(captor.capture());
+            assertNotNull(captor.getValue());
+            assertEquals(clientIdToDelete, captor.getValue().getObjectId());
+            assertEquals(clientIdToDelete, ((ClientDetails) captor.getValue().getDeleted()).getClientId());
+            assertSame(SystemAuthentication.SYSTEM_AUTHENTICATION, captor.getValue().getAuthentication());
+            assertNotNull(captor.getValue().getAuditEvent());
+        }
+
+        @Test
+        void deleteFromYamlNonExistingClient() {
+            clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
+
+            verify(multitenantJdbcClientDetailsService, times(1)).loadClientByClientId(clientIdToDelete, IdentityZoneHolder.get().getId());
+            verifyZeroInteractions(mockApplicationEventPublisher);
+        }
     }
 
     @Test
@@ -241,7 +251,8 @@ class ClientAdminBootstrapTests {
                     multitenantJdbcClientDetailsService,
                     mockClientMetadataProvisioning,
                     true,
-                    Collections.singleton(autoApproveId));
+                    Collections.singleton(autoApproveId),
+                    Collections.emptySet());
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -297,7 +308,8 @@ class ClientAdminBootstrapTests {
                         multitenantJdbcClientDetailsService,
                         mockClientMetadataProvisioning,
                         false,
-                        Collections.singleton(autoApproveId)
+                        Collections.singleton(autoApproveId),
+                        Collections.emptySet()
                 );
             }
 
@@ -527,5 +539,15 @@ class ClientAdminBootstrapTests {
         map.put("redirect-uri", "http://localhost/callback");
         return map;
     }
+
+    private static void createClientInDb(
+            String clientId,
+            MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService) {
+        BaseClientDetails foo = new BaseClientDetails(clientId, "none", "openid", "authorization_code,refresh_token", "uaa.none");
+        foo.setClientSecret("secret");
+        foo.setRegisteredRedirectUri(Collections.singleton("http://localhost/callback"));
+        multitenantJdbcClientDetailsService.addClientDetails(foo);
+    }
+
 
 }
