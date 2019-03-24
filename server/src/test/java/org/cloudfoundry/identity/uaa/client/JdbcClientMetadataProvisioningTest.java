@@ -14,16 +14,20 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.net.URL;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithDatabaseContext
 class JdbcClientMetadataProvisioningTest {
+
+    private static final String base64EncodedImg = getResourceAsString(
+            JdbcClientMetadataProvisioningTest.class,
+            "base64EncodedImg");
 
     private String createdBy;
     private RandomValueStringGenerator randomValueStringGenerator;
@@ -58,12 +62,7 @@ class JdbcClientMetadataProvisioningTest {
     @Test
     void createdByPadsTo36Chars() {
         String clientId = randomValueStringGenerator.generate();
-        jdbcTemplate.execute(
-                String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
-                        clientId,
-                        IdentityZone.getUaaZoneId(),
-                        "abcdef")
-        );
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, IdentityZone.getUaaZoneId(), "abcdef"));
 
         ClientMetadata retrievedClientMetadata = jdbcClientMetadataProvisioning.retrieve(
                 clientId,
@@ -75,12 +74,7 @@ class JdbcClientMetadataProvisioningTest {
     @Test
     void retrieveClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
-        jdbcTemplate.execute(
-                String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
-                        clientId,
-                        IdentityZone.getUaaZoneId(),
-                        createdBy)
-        );
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, IdentityZone.getUaaZoneId(), createdBy));
         ClientMetadata clientMetadata = createTestClientMetadata(
                 clientId,
                 true,
@@ -109,7 +103,7 @@ class JdbcClientMetadataProvisioningTest {
     @Test
     void retrieveAllClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, IdentityZoneHolder.get().getId()));
         ClientMetadata clientMetadata1 = createTestClientMetadata(
                 clientId,
                 true,
@@ -118,7 +112,7 @@ class JdbcClientMetadataProvisioningTest {
                 createdBy);
         jdbcClientMetadataProvisioning.update(clientMetadata1, IdentityZoneHolder.get().getId());
         String clientId2 = randomValueStringGenerator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaaZoneId() + "')");
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId2, IdentityZoneHolder.get().getId()));
         ClientMetadata clientMetadata2 = createTestClientMetadata(
                 clientId2,
                 true,
@@ -127,17 +121,20 @@ class JdbcClientMetadataProvisioningTest {
                 createdBy);
         jdbcClientMetadataProvisioning.update(clientMetadata2, IdentityZoneHolder.get().getId());
 
-        List<ClientMetadata> clientMetadatas = jdbcClientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
+        List<String> clientIds = jdbcClientMetadataProvisioning
+                .retrieveAll(IdentityZoneHolder.get().getId())
+                .stream()
+                .map(ClientMetadata::getClientId)
+                .collect(Collectors.toList());
 
-
-        assertThat(clientMetadatas, PredicateMatcher.has(m -> m.getClientId().equals(clientId)));
-        assertThat(clientMetadatas, PredicateMatcher.has(m -> m.getClientId().equals(clientId2)));
+        assertThat(clientIds, hasItem(clientId));
+        assertThat(clientIds, hasItem(clientId2));
     }
 
     @Test
     void updateClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, IdentityZoneHolder.get().getId()));
         ClientMetadata newClientMetadata = createTestClientMetadata(
                 clientId,
                 false,
@@ -157,7 +154,7 @@ class JdbcClientMetadataProvisioningTest {
     @Test
     void setAndGetClientName() {
         String clientId = randomValueStringGenerator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZoneHolder.get().getId() + "')");
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, IdentityZoneHolder.get().getId()));
         ClientMetadata data = createTestClientMetadata(
                 clientId,
                 false,
@@ -186,8 +183,24 @@ class JdbcClientMetadataProvisioningTest {
         return clientMetadata;
     }
 
-    private static final String base64EncodedImg = getResourceAsString(
-            JdbcClientMetadataProvisioningTest.class,
-            "base64EncodedImg");
+    private static String insertIntoOauthClientDetails(
+            final String clientId,
+            final String identityZoneId
+    ) {
+        return String.format("insert into oauth_client_details(client_id, identity_zone_id) values ('%s', '%s')",
+                clientId,
+                identityZoneId);
+    }
+
+    private static String insertIntoOauthClientDetails(
+            final String clientId,
+            final String identityZoneId,
+            final String createdBy
+    ) {
+        return String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
+                clientId,
+                identityZoneId,
+                createdBy);
+    }
 
 }
