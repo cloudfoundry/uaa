@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -79,7 +78,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     public ClientMetadata update(ClientMetadata resource, String zoneId) {
         logger.debug("Updating metadata for client: " + resource.getClientId());
 
-        updateClientNameIfNotEmpty(resource, IdentityZoneHolder.get().getId());
+        updateClientNameIfNotEmpty(resource, zoneId);
         int updated = template.update(CLIENT_METADATA_UPDATE, ps -> {
             int pos = 1;
             ps.setBoolean(pos++, resource.isShowOnHomePage());
