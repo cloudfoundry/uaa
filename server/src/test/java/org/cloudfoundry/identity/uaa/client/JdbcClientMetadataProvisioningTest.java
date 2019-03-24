@@ -1,13 +1,15 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.URL;
@@ -18,16 +20,21 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
+@WithDatabaseContext
+class JdbcClientMetadataProvisioningTest {
 
     private String createdBy;
     private RandomValueStringGenerator randomValueStringGenerator;
 
     private JdbcClientMetadataProvisioning jdbcClientMetadataProvisioning;
 
-    @Before
-    public void createDatasource() {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void createDatasource() {
         randomValueStringGenerator = new RandomValueStringGenerator(8);
         createdBy = "createdBy-" + randomValueStringGenerator.generate();
 
@@ -35,19 +42,21 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
-    public void constraintViolation_WhenNoMatchingClientFound() throws Exception {
+    @Test
+    void constraintViolation_WhenNoMatchingClientFound() throws Exception {
         ClientMetadata clientMetadata = createTestClientMetadata(
                 randomValueStringGenerator.generate(),
                 true,
                 new URL("http://app.launch/url"),
                 base64EncodedImg,
                 createdBy);
-        jdbcClientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
+
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcClientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void createdByPadsTo36Chars() {
+    void createdByPadsTo36Chars() {
         String clientId = randomValueStringGenerator.generate();
         jdbcTemplate.execute(
                 String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
@@ -64,7 +73,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void retrieveClientMetadata() throws Exception {
+    void retrieveClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
         jdbcTemplate.execute(
                 String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
@@ -90,14 +99,15 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(retrievedClientMetadata.getCreatedBy(), containsString(clientMetadata.getCreatedBy()));
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
-    public void retrieveClientMetadata_ThatDoesNotExist() {
+    @Test
+    void retrieveClientMetadata_ThatDoesNotExist() {
         String clientId = randomValueStringGenerator.generate();
-        jdbcClientMetadataProvisioning.retrieve(clientId, IdentityZoneHolder.get().getId());
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcClientMetadataProvisioning.retrieve(clientId, IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void retrieveAllClientMetadata() throws Exception {
+    void retrieveAllClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
         ClientMetadata clientMetadata1 = createTestClientMetadata(
@@ -125,7 +135,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void updateClientMetadata() throws Exception {
+    void updateClientMetadata() throws Exception {
         String clientId = randomValueStringGenerator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
         ClientMetadata newClientMetadata = createTestClientMetadata(
@@ -145,7 +155,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testSetAndGetClientName() {
+    void setAndGetClientName() {
         String clientId = randomValueStringGenerator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZoneHolder.get().getId() + "')");
         ClientMetadata data = createTestClientMetadata(
