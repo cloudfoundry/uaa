@@ -73,7 +73,7 @@ public class CheckTokenEndpointTests {
     private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
     private OAuth2Authentication authentication;
     private UaaTokenServices tokenServices;
-    private InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
+    private InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
     private String userId = "12345";

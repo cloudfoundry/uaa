@@ -44,7 +44,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
+import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.mockito.stubbing.Answer;
 import org.opensaml.saml2.core.AuthnContext;
@@ -151,7 +151,7 @@ public class TokenTestSupport {
 
     Authentication defaultUserAuthentication;
 
-    InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
+    InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
 
     ApprovalStore approvalStore = new InMemoryApprovalStore();
     ApprovalService approvalService;
@@ -333,7 +333,7 @@ public class TokenTestSupport {
         return idToken;
     }
 
-    public InMemoryClientServicesExtentions getClientDetailsService() {
+    public InMemoryClientServicesExtension getClientDetailsService() {
         return clientDetailsService;
     }
 

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-public class InMemoryClientServicesExtentions extends ClientServicesExtension {
+public class InMemoryClientServicesExtension extends ClientServicesExtension {
 
     public ConcurrentMap<String, Map<String, BaseClientDetails>> services = new ConcurrentHashMap<>();
 

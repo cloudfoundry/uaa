@@ -31,7 +31,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
+import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtension;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,8 +52,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -90,7 +88,7 @@ public class TokenValidationTest {
     private Map<String, Object> content;
     private Signer signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
-    private InMemoryClientServicesExtentions clientDetailsService;
+    private InMemoryClientServicesExtension clientDetailsService;
     private UaaUserDatabase userDb;
     private UaaUser uaaUser;
     private BaseClientDetails uaaClient;
@@ -177,7 +175,7 @@ public class TokenValidationTest {
 
         signer = new MacSigner(macSigningKeySecret);
 
-        clientDetailsService = new InMemoryClientServicesExtentions();
+        clientDetailsService = new InMemoryClientServicesExtension();
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
         clientDetailsService.setClientDetailsStore(IdentityZone.getUaaZoneId(),
