@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -36,7 +36,7 @@ public class WhitelistLogoutHandlerTest {
     private MockHttpServletRequest request = new MockHttpServletRequest();
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
-    private ClientServicesExtension clientDetailsService =  mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
 
     @Before
     public void setUp() {

@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -54,19 +54,19 @@ public class IdTokenCreator {
     private TimeService timeService;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
-    private ClientServicesExtension clientServicesExtension;
+    private MultitenantClientServices multitenantClientServices;
     private Set<String> excludedClaims;
 
     public IdTokenCreator(TokenEndpointBuilder tokenEndpointBuilder,
                           TimeService timeService,
                           TokenValidityResolver tokenValidityResolver,
                           UaaUserDatabase uaaUserDatabase,
-                          ClientServicesExtension clientServicesExtension,
+                          MultitenantClientServices multitenantClientServices,
                           Set<String> excludedClaims) {
         this.timeService = timeService;
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
-        this.clientServicesExtension = clientServicesExtension;
+        this.multitenantClientServices = multitenantClientServices;
         this.excludedClaims = excludedClaims;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
@@ -95,7 +95,7 @@ public class IdTokenCreator {
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData, uaaUser);
         Set<String> roles = buildRoles(userAuthenticationData, uaaUser);
 
-        ClientDetails clientDetails = clientServicesExtension.loadClientByClientId(clientId, identityZoneId);
+        ClientDetails clientDetails = multitenantClientServices.loadClientByClientId(clientId, identityZoneId);
         String clientTokenSalt = (String) clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
         String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientId, clientDetails.getClientSecret());
         return new IdToken(

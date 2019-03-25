@@ -58,7 +58,7 @@ import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
-public class MultitenantJdbcClientDetailsService extends ClientServicesExtension implements
+public class MultitenantJdbcClientDetailsService extends MultitenantClientServices implements
     ResourceMonitor<ClientDetails>,
     SystemDeletable {
 

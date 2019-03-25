@@ -10,7 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,13 +52,13 @@ public class InvitationsEndpoint {
 
     private ScimUserProvisioning users;
     private IdentityProviderProvisioning providers;
-    private ClientServicesExtension clients;
+    private MultitenantClientServices clients;
     private ExpiringCodeStore expiringCodeStore;
     private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
-                               ClientServicesExtension clients,
+                               MultitenantClientServices clients,
                                ExpiringCodeStore expiringCodeStore) {
         this.users = users;
         this.providers = providers;

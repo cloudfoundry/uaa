@@ -28,10 +28,7 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -88,7 +85,7 @@ public class TokenValidationTest {
     private Map<String, Object> content;
     private Signer signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
-    private InMemoryClientServicesExtension clientDetailsService;
+    private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
     private UaaUser uaaUser;
     private BaseClientDetails uaaClient;
@@ -175,10 +172,10 @@ public class TokenValidationTest {
 
         signer = new MacSigner(macSigningKeySecret);
 
-        clientDetailsService = new InMemoryClientServicesExtension();
+        inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices();
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
-        clientDetailsService.setClientDetailsStore(IdentityZone.getUaaZoneId(),
+        inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
@@ -221,7 +218,7 @@ public class TokenValidationTest {
 
 
         ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
-                .getClientDetails(clientDetailsService);
+                .getClientDetails(inMemoryMultitenantClientServices);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
     }
@@ -235,7 +232,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID " + invalidClientId);
 
-        TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(clientDetailsService);
+        TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(inMemoryMultitenantClientServices);
     }
 
     @Test
@@ -338,7 +335,7 @@ public class TokenValidationTest {
     public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")
@@ -384,7 +381,7 @@ public class TokenValidationTest {
                 getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")

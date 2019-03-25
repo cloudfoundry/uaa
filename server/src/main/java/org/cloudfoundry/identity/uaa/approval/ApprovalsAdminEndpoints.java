@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
@@ -58,7 +58,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     private ApprovalStore approvalStore = null;
 
-    private ClientServicesExtension clientDetailsService = null;
+    private MultitenantClientServices clientDetailsService = null;
 
     private UaaUserDatabase userDatabase;
 
@@ -239,7 +239,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         Assert.notNull(userDatabase, "Please supply a user database");
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

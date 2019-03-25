@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +60,7 @@ public class UserTokenGranterTest {
 
     private UserTokenGranter granter;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -73,7 +73,7 @@ public class UserTokenGranterTest {
     @Before
     public void setup() {
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         tokenStore = mock(RevocableTokenProvisioning.class);

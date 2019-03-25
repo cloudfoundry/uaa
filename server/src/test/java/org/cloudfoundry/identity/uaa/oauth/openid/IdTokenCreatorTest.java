@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTimeUtils;
@@ -161,7 +161,7 @@ public class IdTokenCreatorTest {
             jti);
         excludedClaims = new HashSet<>();
 
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);

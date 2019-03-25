@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -804,12 +804,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     }
 
-    protected ClientServicesExtension getClientServiceExtention() {
-        return (ClientServicesExtension) super.getClientDetailsService();
+    protected MultitenantClientServices getClientServiceExtention() {
+        return (MultitenantClientServices) super.getClientDetailsService();
     }
 
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         super.setClientDetailsService(clientDetailsService);
     }
 

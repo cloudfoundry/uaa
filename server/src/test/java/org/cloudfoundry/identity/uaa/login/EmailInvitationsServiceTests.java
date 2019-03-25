@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +78,7 @@ public class EmailInvitationsServiceTests {
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
-    ClientServicesExtension clientDetailsService;
+    MultitenantClientServices clientDetailsService;
 
 
     @BeforeEach
@@ -258,8 +258,8 @@ public class EmailInvitationsServiceTests {
         }
 
         @Bean
-        ClientServicesExtension clientDetailsService() {
-            return mock(ClientServicesExtension.class);
+        MultitenantClientServices clientDetailsService() {
+            return mock(MultitenantClientServices.class);
         }
 
         @Bean

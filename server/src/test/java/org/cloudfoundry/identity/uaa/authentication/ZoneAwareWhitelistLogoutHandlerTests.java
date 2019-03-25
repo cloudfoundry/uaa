@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -39,7 +39,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     private MockHttpServletRequest request = new MockHttpServletRequest();
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
-    private ClientServicesExtension clientDetailsService =  mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
     private ZoneAwareWhitelistLogoutHandler handler;
     IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
     IdentityZoneConfiguration original;

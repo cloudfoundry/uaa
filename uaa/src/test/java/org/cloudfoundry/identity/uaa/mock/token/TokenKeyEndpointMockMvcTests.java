@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -170,7 +170,7 @@ class TokenKeyEndpointMockMvcTests {
           "client_credentials,password",
           "uaa.none");
         client.setClientSecret("secret");
-        webApplicationContext.getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
+        webApplicationContext.getBean(MultitenantClientServices.class).addClientDetails(client, testZone.getSubdomain());
 
         MvcResult result = mockMvc.perform(
           get("/token_key")
@@ -193,7 +193,7 @@ class TokenKeyEndpointMockMvcTests {
           "client_credentials,password",
           "uaa.none");
         client.setClientSecret("secret");
-        webApplicationContext.getBean(ClientServicesExtension.class).addClientDetails(client, testZone.getSubdomain());
+        webApplicationContext.getBean(MultitenantClientServices.class).addClientDetails(client, testZone.getSubdomain());
 
         mockMvc
           .perform(

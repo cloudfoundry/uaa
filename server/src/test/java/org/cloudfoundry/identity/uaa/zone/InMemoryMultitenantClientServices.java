@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-public class InMemoryClientServicesExtension extends ClientServicesExtension {
+public class InMemoryMultitenantClientServices extends MultitenantClientServices {
 
     private ConcurrentMap<String, Map<String, BaseClientDetails>> services = new ConcurrentHashMap<>();
 

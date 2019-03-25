@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.client.event;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -36,14 +36,14 @@ import org.springframework.security.oauth2.provider.ClientDetails;
  */
 public class ClientAdminEventPublisher implements ApplicationEventPublisherAware {
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
     private ApplicationEventPublisher publisher;
 
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
-    public ClientAdminEventPublisher(ClientServicesExtension clientDetailsService) {
+    public ClientAdminEventPublisher(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

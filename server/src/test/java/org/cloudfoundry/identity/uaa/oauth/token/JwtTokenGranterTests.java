@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -66,14 +66,14 @@ public class JwtTokenGranterTests {
     private UaaOauth2Authentication authentication;
     private UaaAuthentication uaaAuthentication;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private Map<String, String> requestParameters;
 
     @Before
     public void setUp() throws Exception {
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         granter = spy(new JwtTokenGranter(tokenServices, clientDetailsService, requestFactory));
         tokenRequest = new TokenRequest(Collections.emptyMap(), "client_ID", Collections.emptySet(), GRANT_TYPE_JWT_BEARER);

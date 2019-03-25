@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(UaaAuthorizationRequestManager.class);
 
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
 
     private Map<String, String> scopeToResource = Collections.singletonMap("openid", "openid");
 
@@ -91,7 +91,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private IdentityProviderProvisioning providerProvisioning;
 
-    public UaaAuthorizationRequestManager(ClientServicesExtension clientDetailsService,
+    public UaaAuthorizationRequestManager(MultitenantClientServices clientDetailsService,
                                           UaaUserDatabase userDatabase,
                                           IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;

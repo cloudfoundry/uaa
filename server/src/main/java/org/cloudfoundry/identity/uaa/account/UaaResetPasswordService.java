@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -59,14 +59,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private ResourcePropertySource resourcePropertySource;
     private ApplicationEventPublisher publisher;
 
     public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning,
                                    ExpiringCodeStore expiringCodeStore,
                                    PasswordValidator passwordValidator,
-                                   ClientServicesExtension clientDetailsService,
+                                   MultitenantClientServices clientDetailsService,
                                    ResourcePropertySource resourcePropertySource) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;

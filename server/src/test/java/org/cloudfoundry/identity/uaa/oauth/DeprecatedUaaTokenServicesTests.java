@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -86,7 +85,6 @@ import static org.hamcrest.text.IsEmptyString.isEmptyString;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 
 @RunWith(Parameterized.class)
 public class DeprecatedUaaTokenServicesTests {
@@ -213,8 +211,8 @@ public class DeprecatedUaaTokenServicesTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setScope(Sets.newHashSet("openid"));
 
-        ClientServicesExtension clientServicesExtension = mock(ClientServicesExtension.class);
-        when(clientServicesExtension.loadClientByClientId(eq(TokenTestSupport.CLIENT_ID)))
+        MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        when(mockMultitenantClientServices.loadClientByClientId(eq(TokenTestSupport.CLIENT_ID)))
           .thenReturn(clientDetails);
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
@@ -254,7 +252,7 @@ public class DeprecatedUaaTokenServicesTests {
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
           idTokenCreator,
           mock(TokenEndpointBuilder.class),
-          clientServicesExtension,
+          mockMultitenantClientServices,
           mock(RevocableTokenProvisioning.class),
           tokenValidationService,
           mock(RefreshTokenCreator.class),

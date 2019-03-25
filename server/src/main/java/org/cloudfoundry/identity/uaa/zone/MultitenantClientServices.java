@@ -4,7 +4,7 @@ import org.springframework.security.oauth2.provider.*;
 
 import java.util.List;
 
-public abstract class ClientServicesExtension implements ClientRegistrationService, ClientDetailsService {
+public abstract class MultitenantClientServices implements ClientRegistrationService, ClientDetailsService {
 
     public abstract void addClientSecret(String clientId, String newSecret, String zoneId) throws NoSuchClientException;
 

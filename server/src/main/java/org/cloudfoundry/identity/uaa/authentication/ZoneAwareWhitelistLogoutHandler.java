@@ -15,7 +15,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
@@ -28,9 +28,9 @@ import java.io.IOException;
 
 public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
 
-    public ZoneAwareWhitelistLogoutHandler(ClientServicesExtension clientDetailsService) {
+    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

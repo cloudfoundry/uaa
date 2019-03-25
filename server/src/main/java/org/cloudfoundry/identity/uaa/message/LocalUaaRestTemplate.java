@@ -6,7 +6,7 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,13 +39,13 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     private final AuthorizationServerTokenServices authorizationServerTokenServices;
     private final String clientId;
-    private final ClientServicesExtension clientServicesExtension;
+    private final MultitenantClientServices multitenantClientServices;
     private final IdentityZoneManager identityZoneManager;
 
     LocalUaaRestTemplate(
             @Qualifier("uaa") final OAuth2ProtectedResourceDetails resource,
             final AuthorizationServerTokenServices authorizationServerTokenServices,
-            final ClientServicesExtension clientServicesExtension,
+            final MultitenantClientServices multitenantClientServices,
             @Value("${notifications.verify_ssl:false}") final boolean verifySsl,
             final IdentityZoneManager identityZoneManager)
             throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
@@ -53,7 +53,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
 
         this.authorizationServerTokenServices = authorizationServerTokenServices;
         this.clientId = "login";
-        this.clientServicesExtension = clientServicesExtension;
+        this.multitenantClientServices = multitenantClientServices;
         this.identityZoneManager = identityZoneManager;
 
         if (!verifySsl) {
@@ -80,7 +80,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     }
 
     private Set<String> buildScopes() {
-        ClientDetails client = clientServicesExtension.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
+        ClientDetails client = multitenantClientServices.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
 
         return client.getAuthorities()
                 .stream()

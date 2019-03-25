@@ -7,7 +7,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -37,7 +37,7 @@ public class AccessControllerTests {
 
     @Test
     public void testSunnyDay() throws Exception {
-        InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
         controller.setApprovalStore(mock(ApprovalStore.class));
@@ -50,7 +50,7 @@ public class AccessControllerTests {
     @SuppressWarnings("unchecked")
     @Test
     public void testSchemePreserved() throws Exception {
-        InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
         controller.setApprovalStore(mock(ApprovalStore.class));
@@ -68,7 +68,7 @@ public class AccessControllerTests {
 
     @Test
     public void testClientDisplayName() throws Exception {
-        InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
@@ -97,7 +97,7 @@ public class AccessControllerTests {
     }
 
     private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) throws Exception {
-        InMemoryClientServicesExtension clientDetailsService = new InMemoryClientServicesExtension();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
         client.setAutoApproveScopes(autoApprovedScopes);

@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -43,7 +43,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final MessageService messageService;
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final PasswordValidator passwordValidator;
     private final IdentityZoneManager identityZoneManager;
 
@@ -52,7 +52,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             MessageService messageService,
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
-            ClientServicesExtension clientDetailsService,
+            MultitenantClientServices clientDetailsService,
             PasswordValidator passwordValidator,
             IdentityZoneManager identityZoneManager) {
 

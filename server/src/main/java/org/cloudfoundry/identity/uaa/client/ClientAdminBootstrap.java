@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEvent;
@@ -38,7 +38,7 @@ public class ClientAdminBootstrap implements
     private static Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
 
     private final PasswordEncoder passwordEncoder;
-    private final ClientServicesExtension clientRegistrationService;
+    private final MultitenantClientServices clientRegistrationService;
     private final ClientMetadataProvisioning clientMetadataProvisioning;
     private ApplicationEventPublisher publisher;
 
@@ -62,7 +62,7 @@ public class ClientAdminBootstrap implements
      */
     ClientAdminBootstrap(
             final PasswordEncoder passwordEncoder,
-            final ClientServicesExtension clientRegistrationService,
+            final MultitenantClientServices clientRegistrationService,
             final ClientMetadataProvisioning clientMetadataProvisioning,
             final boolean defaultOverride,
             final Map<String, Map<String, Object>> clients,

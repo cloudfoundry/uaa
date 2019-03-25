@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +43,7 @@ import java.util.Arrays;
  */
 public class ClientAdminEventPublisherTests {
 
-    private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService = Mockito.mock(MultitenantClientServices.class);
 
     private ClientAdminEventPublisher subject = new ClientAdminEventPublisher(clientDetailsService);
 

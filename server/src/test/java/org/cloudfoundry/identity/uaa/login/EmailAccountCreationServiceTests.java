@@ -64,7 +64,7 @@ class EmailAccountCreationServiceTests {
     private MessageService mockMessageService;
     private ExpiringCodeStore mockCodeStore;
     private ScimUserProvisioning mockScimUserProvisioning;
-    private ClientServicesExtension mockClientDetailsService;
+    private MultitenantClientServices mockClientDetailsService;
     private ClientDetails mockClientDetails;
     private PasswordValidator mockPasswordValidator;
     private IdentityZoneManager mockIdentityZoneManager;
@@ -83,7 +83,7 @@ class EmailAccountCreationServiceTests {
         mockMessageService = mock(MessageService.class);
         mockCodeStore = mock(ExpiringCodeStore.class);
         mockScimUserProvisioning = mock(ScimUserProvisioning.class);
-        mockClientDetailsService = mock(ClientServicesExtension.class);
+        mockClientDetailsService = mock(MultitenantClientServices.class);
         mockClientDetails = mock(ClientDetails.class);
         mockPasswordValidator = mock(PasswordValidator.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);

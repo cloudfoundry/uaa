@@ -71,7 +71,7 @@ public class EmailChangeEmailServiceTest {
     private ExpiringCodeStore codeStore;
     private MessageService messageService;
     private MockHttpServletRequest request;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private String companyName;
 
 
@@ -90,7 +90,7 @@ public class EmailChangeEmailServiceTest {
         SecurityContextHolder.clearContext();
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         messageService = mock(EmailService.class);
         emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
 

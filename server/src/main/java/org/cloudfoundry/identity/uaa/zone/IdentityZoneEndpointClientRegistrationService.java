@@ -7,12 +7,12 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 
 public class IdentityZoneEndpointClientRegistrationService {
 
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final ClientDetailsValidator clientDetailsValidator;
     private final ApprovalStore approvalStore;
 
 
-    public IdentityZoneEndpointClientRegistrationService(ClientServicesExtension clientDetailsService,
+    public IdentityZoneEndpointClientRegistrationService(MultitenantClientServices clientDetailsService,
                                                          ClientDetailsValidator clientDetailsValidator,
                                                          ApprovalStore approvalStore) {
         super();
