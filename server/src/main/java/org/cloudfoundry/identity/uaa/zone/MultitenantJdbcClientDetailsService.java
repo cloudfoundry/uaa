@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -111,7 +112,10 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private JdbcListFactory listFactory;
 
-    public MultitenantJdbcClientDetailsService(JdbcTemplate jdbcTemplate) {
+    public MultitenantJdbcClientDetailsService(
+            final JdbcTemplate jdbcTemplate,
+            final IdentityZoneManager identityZoneManager) {
+        super(identityZoneManager);
         Assert.notNull(jdbcTemplate, "JDbcTemplate required");
         this.jdbcTemplate = jdbcTemplate;
         this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
@@ -150,7 +154,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     public void updateClientDetails(ClientDetails clientDetails, String zoneId) throws NoSuchClientException {
         int count = jdbcTemplate.update(DEFAULT_UPDATE_STATEMENT, getFieldsForUpdate(clientDetails, zoneId));
         if (count != 1) {
-            throw new NoSuchClientException("No client found with id = " + clientDetails.getClientId() + " in identity zone "+IdentityZoneHolder.get().getName());
+            throw new NoSuchClientException("No client found with id = " + clientDetails.getClientId() + " in identity zone id=" + zoneId);
         }
     }
 

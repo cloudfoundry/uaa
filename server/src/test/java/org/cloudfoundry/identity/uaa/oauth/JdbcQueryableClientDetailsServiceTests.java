@@ -35,7 +35,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     @Before
     public void initJdbcScimClientDetailsServiceTests() {
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        delegate = new MultitenantJdbcClientDetailsService(jdbcTemplate);
+        delegate = new MultitenantJdbcClientDetailsService(jdbcTemplate, null);
         service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate,
                 limitSqlAdapter));
 

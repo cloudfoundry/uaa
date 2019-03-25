@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
@@ -18,6 +19,10 @@ import static java.util.Optional.ofNullable;
 public class InMemoryMultitenantClientServices extends MultitenantClientServices {
 
     private ConcurrentMap<String, Map<String, BaseClientDetails>> services = new ConcurrentHashMap<>();
+
+    public InMemoryMultitenantClientServices(IdentityZoneManager identityZoneManager) {
+        super(identityZoneManager);
+    }
 
     public void setClientDetailsStore(String zoneId, Map<String, BaseClientDetails> store) {
         services.put(zoneId, store);

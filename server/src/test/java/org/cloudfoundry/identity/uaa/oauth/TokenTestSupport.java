@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.mockito.stubbing.Answer;
 import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -151,7 +152,7 @@ public class TokenTestSupport {
 
     Authentication defaultUserAuthentication;
 
-    InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+    InMemoryMultitenantClientServices clientDetailsService;
 
     ApprovalStore approvalStore = new InMemoryApprovalStore();
     ApprovalService approvalService;
@@ -229,6 +230,10 @@ public class TokenTestSupport {
         clientDetailsMap.put(CLIENT_ID, defaultClient);
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+
+        clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsMap);
 
         tokenProvisioning = mock(RevocableTokenProvisioning.class);

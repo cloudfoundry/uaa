@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +74,7 @@ public class CheckTokenEndpointTests {
     private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
     private OAuth2Authentication authentication;
     private UaaTokenServices tokenServices;
-    private InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+    private InMemoryMultitenantClientServices clientDetailsService;
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
     private String userId = "12345";
@@ -177,6 +178,10 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() throws Exception {
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+        clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
+
         TestUtils.resetIdentityZoneHolder(null);
         setUp(useOpaque);
     }

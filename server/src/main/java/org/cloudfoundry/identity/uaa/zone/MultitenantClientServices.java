@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.security.oauth2.provider.*;
 
 import java.util.List;
@@ -36,33 +37,39 @@ public abstract class MultitenantClientServices implements
         MultitenantClientDetailsService,
         MultitenantClientSecretService {
 
+    private final IdentityZoneManager identityZoneManager;
+
+    protected MultitenantClientServices(final IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
+
     @Override
     public final void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
-        addClientDetails(clientDetails, IdentityZoneHolder.get().getId());
+        addClientDetails(clientDetails, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @Override
     public final void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException {
-        updateClientDetails(clientDetails, IdentityZoneHolder.get().getId());
+        updateClientDetails(clientDetails, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @Override
     public final void updateClientSecret(String clientId, String secret) throws NoSuchClientException {
-        updateClientSecret(clientId, secret, IdentityZoneHolder.get().getId());
+        updateClientSecret(clientId, secret, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @Override
     public final void removeClientDetails(String clientId) throws NoSuchClientException {
-        removeClientDetails(clientId, IdentityZoneHolder.get().getId());
+        removeClientDetails(clientId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @Override
     public final List<ClientDetails> listClientDetails() {
-        return listClientDetails(IdentityZoneHolder.get().getId());
+        return listClientDetails(identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @Override
     public final ClientDetails loadClientByClientId(String clientId) throws ClientRegistrationException {
-        return loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        return loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
     }
 }

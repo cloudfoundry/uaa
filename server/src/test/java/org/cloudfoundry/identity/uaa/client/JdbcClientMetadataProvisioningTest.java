@@ -44,7 +44,7 @@ class JdbcClientMetadataProvisioningTest {
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null);
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 

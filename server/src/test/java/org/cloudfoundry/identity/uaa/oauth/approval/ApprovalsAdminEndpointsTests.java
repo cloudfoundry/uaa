@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -94,7 +96,11 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);
-        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
+
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+
+        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager);
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                         "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Arrays.asList("true"));

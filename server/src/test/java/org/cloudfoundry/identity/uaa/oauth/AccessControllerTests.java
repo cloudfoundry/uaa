@@ -37,7 +37,7 @@ public class AccessControllerTests {
 
     @Test
     public void testSunnyDay() throws Exception {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
         controller.setApprovalStore(mock(ApprovalStore.class));
@@ -50,7 +50,7 @@ public class AccessControllerTests {
     @SuppressWarnings("unchecked")
     @Test
     public void testSchemePreserved() throws Exception {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
         controller.setApprovalStore(mock(ApprovalStore.class));
@@ -68,7 +68,7 @@ public class AccessControllerTests {
 
     @Test
     public void testClientDisplayName() throws Exception {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
@@ -97,7 +97,7 @@ public class AccessControllerTests {
     }
 
     private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) throws Exception {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices();
+        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
         client.setAutoApproveScopes(autoApprovedScopes);
