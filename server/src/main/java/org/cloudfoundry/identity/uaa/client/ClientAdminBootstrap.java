@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -229,7 +230,7 @@ public class ClientAdminBootstrap implements
             try {
                 ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 logger.debug("Deleting client from manifest:" + clientId);
-                EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth);
+                EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth, IdentityZoneHolder.getCurrentZoneId());
                 publish(delete);
             } catch (NoSuchClientException e) {
                 logger.debug("Ignoring delete for non existent client:" + clientId);

@@ -445,7 +445,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
-            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication()));
+            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
             clientDeletes.incrementAndGet();
             result[i] = removeSecret(details[i]);
             result[i].setApprovalsDeleted(true);

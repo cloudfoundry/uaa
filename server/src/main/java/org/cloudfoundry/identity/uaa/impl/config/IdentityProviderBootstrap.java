@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -257,7 +258,7 @@ public class IdentityProviderBootstrap
                 IdentityProvider provider = getProviderByOriginIgnoreActiveFlag(origin, zoneId);
                 //delete provider
                 if (provider != null) {
-                    EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION);
+                    EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION, IdentityZoneHolder.getCurrentZoneId());
                     if (this.publisher != null) {
                         publisher.publishEvent(event);
                         logger.debug("Identity provider deactivated:" + origin);

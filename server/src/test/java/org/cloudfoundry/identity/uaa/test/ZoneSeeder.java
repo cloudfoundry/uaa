@@ -242,7 +242,7 @@ public class ZoneSeeder {
         UaaAuthentication justEnoughAuthentication = new UaaAuthentication(
                 justEnoughPrincipal, Lists.newArrayList(), null
         );
-        applicationContext.publishEvent(new EntityDeletedEvent<>(identityZone, justEnoughAuthentication));
+        applicationContext.publishEvent(new EntityDeletedEvent<>(identityZone, justEnoughAuthentication, IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public ScimUser createUser() {

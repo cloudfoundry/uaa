@@ -212,7 +212,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
     }
@@ -229,7 +229,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
     }

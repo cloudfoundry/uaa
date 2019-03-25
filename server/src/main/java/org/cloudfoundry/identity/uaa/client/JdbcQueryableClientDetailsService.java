@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -87,7 +88,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     @Override
     public ClientDetails delete(String id, int version, String zoneId) {
         ClientDetails client = delegate.loadClientByClientId(id, zoneId);
-        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication()));
+        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
         return client;
     }
 

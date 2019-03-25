@@ -275,8 +275,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             publisher.publishEvent(
                 new EntityDeletedEvent<>(
                     user,
-                    SecurityContextHolder.getContext().getAuthentication()
-                )
+                    SecurityContextHolder.getContext().getAuthentication(),
+                        IdentityZoneHolder.getCurrentZoneId())
             );
             logger.debug("User delete event sent[" + userId + "]");
         }

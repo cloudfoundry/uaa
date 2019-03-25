@@ -292,7 +292,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             addMembers(OriginKeys.LDAP);
             validateCount(4);
             IdentityZoneHolder.clear();
-            gdao.onApplicationEvent(new EntityDeletedEvent<>(user, mock(Authentication.class)));
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(user, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
             IdentityZoneHolder.set(zone);
             validateCount(2, "ZoneID: "+zone.getId());
         }
@@ -305,7 +305,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             addMembers(OriginKeys.LDAP);
             validateCount(4);
             IdentityZoneHolder.clear();
-            gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, mock(Authentication.class)));
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
             validateCount(Objects.equals(zone, IdentityZone.getUaa()) ? 4 : 0, "ZoneID: "+zone.getId());
         }
     }
@@ -321,7 +321,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
                 .setId("ldap-id")
                 .setOriginKey(LDAP)
                 .setIdentityZoneId(zone.getId());
-            gdao.onApplicationEvent(new EntityDeletedEvent<>(provider, mock(Authentication.class)));
+            gdao.onApplicationEvent(new EntityDeletedEvent<>(provider, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
             IdentityZoneHolder.set(zone);
             validateCount(0, "ZoneID: "+zone.getId());
         }
@@ -340,7 +340,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(3));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=? and displayName like ?)", new Object[]{IdentityZone.getUaaZoneId(), "zones." + IdentityZoneHolder.get().getId() + ".%"}, Integer.class), is(1));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=? and displayName like ?", new Object[]{IdentityZone.getUaaZoneId(), "zones." + IdentityZoneHolder.get().getId() + ".%"}, Integer.class), is(1));
-        gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, null));
+        gdao.onApplicationEvent(new EntityDeletedEvent<>(zone, null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
@@ -362,7 +362,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
                 .setIdentityZoneId(zone.getId());
-        EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(loginServer, null);
+        EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(loginServer, null, IdentityZoneHolder.getCurrentZoneId());
         gdao.onApplicationEvent(event);
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?) and origin=?", new Object[] {IdentityZoneHolder.get().getId(), LOGIN_SERVER}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(3));
@@ -374,7 +374,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMembers();
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
-        gdao.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null));
+        gdao.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
     }
@@ -389,7 +389,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(UAA)
                 .setIdentityZoneId(zone.getId());
-        gdao.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
+        gdao.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(3));
 
