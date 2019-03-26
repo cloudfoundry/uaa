@@ -242,12 +242,6 @@ task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
-task mockAssertion(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
-    args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
-    classpath = files(subprojects.sourceSets.test.runtimeClasspath)
-}
-
 task encrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Encryptor'
     args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
