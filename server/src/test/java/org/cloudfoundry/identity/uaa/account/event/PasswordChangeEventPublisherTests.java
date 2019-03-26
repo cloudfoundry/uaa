@@ -20,20 +20,26 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PasswordChangeEventPublisherTests {
 
-    private ScimUserProvisioning scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
+    private ScimUserProvisioning mockScimUserProvisioning;
+    private ApplicationEventPublisher mockApplicationEventPublisher;
 
-    private PasswordChangeEventPublisher subject = new PasswordChangeEventPublisher(scimUserProvisioning);
+    private PasswordChangeEventPublisher subject;
 
-    private ApplicationEventPublisher publisher = Mockito.mock(ApplicationEventPublisher.class);
     private Authentication authentication;
 
     @BeforeEach
-    void init() {
-        subject.setApplicationEventPublisher(publisher);
+    void setUp() {
+        mockScimUserProvisioning = mock(ScimUserProvisioning.class);
+        mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
+
+        subject = new PasswordChangeEventPublisher(mockScimUserProvisioning);
+
+        subject.setApplicationEventPublisher(mockApplicationEventPublisher);
         authentication = new OAuth2Authentication(
                 new AuthorizationRequest(
                         "client",
@@ -44,39 +50,39 @@ class PasswordChangeEventPublisherTests {
     }
 
     @AfterEach
-    void destroy() {
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
     void passwordChange() {
-        when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockScimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordChange("foo");
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(PasswordChangeEvent.class));
+        Mockito.verify(mockApplicationEventPublisher).publishEvent(ArgumentMatchers.isA(PasswordChangeEvent.class));
     }
 
     @Test
     void passwordChangeNoEmail() {
-        when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockScimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", null, "Joe", "Schmo"));
         subject.passwordChange("foo");
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(PasswordChangeEvent.class));
+        Mockito.verify(mockApplicationEventPublisher).publishEvent(ArgumentMatchers.isA(PasswordChangeEvent.class));
     }
 
     @Test
     void passwordFailure() {
-        when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockScimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(PasswordChangeFailureEvent.class));
+        Mockito.verify(mockApplicationEventPublisher).publishEvent(ArgumentMatchers.isA(PasswordChangeFailureEvent.class));
     }
 
     @Test
     void passwordFailureNoUser() {
-        when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenThrow(new ScimResourceNotFoundException("Not found"));
+        when(mockScimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenThrow(new ScimResourceNotFoundException("Not found"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.any(PasswordChangeFailureEvent.class));
+        Mockito.verify(mockApplicationEventPublisher).publishEvent(ArgumentMatchers.any(PasswordChangeFailureEvent.class));
     }
 
     @Test
