@@ -16,10 +16,13 @@ package org.cloudfoundry.identity.uaa.mfa;
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
@@ -32,42 +35,48 @@ import static org.mockito.Mockito.mock;
 
 public class MfaCheckerTests {
 
-    private IdentityZone zone;
-    private MfaChecker checker;
-    private IdentityProviderProvisioning providerProvisioning;
+    private IdentityZone identityZone;
+    private MfaChecker mfaChecker;
+    private IdentityProviderProvisioning identityProviderProvisioning;
 
     @Before
     public void setUp() throws Exception {
-        providerProvisioning = mock(IdentityProviderProvisioning.class);
-        zone = MultitenancyFixture.identityZone("id", "domain");
-        checker = new MfaChecker(providerProvisioning);
+        identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
+        identityZone = MultitenancyFixture.identityZone("id", "domain");
+        mfaChecker = new MfaChecker(identityProviderProvisioning);
     }
 
     @Test
-    public void mfa_zone_enabled() {
-        zone.getConfig().getMfaConfig().setEnabled(true);
-        assertTrue(checker.isMfaEnabled(zone, UAA));
+    public void isMfaEnabled_WhenEnabled() {
+        identityZone.getConfig().getMfaConfig().setEnabled(true);
+        assertTrue(mfaChecker.isMfaEnabled(identityZone, UAA));
     }
 
     @Test
-    public void mfa_zone_disabled() {
-        zone.getConfig().getMfaConfig().setEnabled(false);
-        assertFalse(checker.isMfaEnabled(zone, UAA));
+    public void isMfaEnabled_WhenDisabled() {
+        identityZone.getConfig().getMfaConfig().setEnabled(false);
+        assertFalse(mfaChecker.isMfaEnabled(identityZone, UAA));
     }
 
     @Test
-    public void mfa_is_required_when_correct_origins_are_configured() {
-        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("uaa", "ldap"));
+    public void mfaIsRequiredWhenCorrectOriginsAreConfigured() {
+        identityZone.getConfig().getMfaConfig().setIdentityProviders(
+                Lists.newArrayList("uaa", "ldap"));
 
-        assertThat(checker.isRequired(zone, UAA), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, UAA), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, "other"), is(false));
     }
 
     @Test
-    public void when_no_origins_are_configured_checker_should_use_default_providers() {
-        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList());
+    public void mfaConfig_getIdentityProviders_returnsUaaAndLdap() {
+        assertThat(MfaConfig.DEFAULT_MFA_IDENTITY_PROVIDERS, is(Arrays.asList(UAA, LDAP)));
 
-        assertThat(checker.isRequired(zone, UAA), is(true));
-        assertThat(checker.isRequired(zone, LDAP), is(true));
-        assertThat(checker.isRequired(zone, SAML), is(false));
+        identityZone.getConfig().getMfaConfig().setIdentityProviders(
+                Lists.newArrayList());
+
+        assertThat(mfaChecker.isRequired(identityZone, UAA), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, LDAP), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, SAML), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, "other"), is(false));
     }
 }

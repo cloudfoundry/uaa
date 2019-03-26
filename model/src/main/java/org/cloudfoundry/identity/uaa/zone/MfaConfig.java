@@ -14,7 +14,7 @@ public class MfaConfig {
     private boolean enabled = false;
     private String providerName;
     private List<String> identityProviders = new ArrayList<>();
-    private List<String> DEFAULT_MFA_IDENTITY_PROVIDERS = Arrays.asList("uaa", "ldap");
+    public static final List<String> DEFAULT_MFA_IDENTITY_PROVIDERS = Arrays.asList("uaa", "ldap");
 
 
     @Override
