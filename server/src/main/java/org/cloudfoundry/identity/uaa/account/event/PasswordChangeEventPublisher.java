@@ -40,6 +40,7 @@ import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
+    static final String DEFAULT_EMAIL_DOMAIN = "this-default-was-not-configured.invalid";
     private ScimUserProvisioning dao;
 
     private ApplicationEventPublisher publisher;
@@ -62,11 +63,11 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         publish(new PasswordChangeEvent("Password changed", getUser(userId), getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
     }
 
-    private UaaUser getUser(String userId) {
+    UaaUser getUser(String userId) {
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the username
-            ScimUser scimUser = dao.retrieve(userId, IdentityZoneHolder.get().getId());
+            ScimUser scimUser = dao.retrieve(userId, IdentityZoneHolder.getCurrentZoneId());
             Date today = new Date();
             if (scimUser != null) {
                 return new UaaUser(
@@ -92,11 +93,11 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return null;
     }
 
-    private String getEmail(ScimUser scimUser) {
+    String getEmail(ScimUser scimUser) {
         List<Email> emails = scimUser.getEmails();
         if (emails == null || emails.isEmpty()) {
             return scimUser.getUserName().contains("@") ? scimUser.getUserName() : scimUser.getUserName()
-                            + "@this-default-was-not-configured.invalid";
+                            + "@" + DEFAULT_EMAIL_DOMAIN;
         }
         for (Email email : emails) {
             if (email.isPrimary()) {
@@ -106,7 +107,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return scimUser.getEmails().get(0).getValue();
     }
 
-    protected Authentication getPrincipal() {
+    Authentication getPrincipal() {
         return ofNullable(SecurityContextHolder.getContext().getAuthentication())
             .orElse(SYSTEM_AUTHENTICATION);
     }
