@@ -332,7 +332,7 @@ public class StatelessMfaAuthenticationFilterTests {
         long fixedTime = 1L;
         when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
 
-        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue(), IdentityZoneHolder.getCurrentZoneId());
         when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
 
         LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 1, 5);
@@ -354,7 +354,7 @@ public class StatelessMfaAuthenticationFilterTests {
         long fixedTime = 1L;
         when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
 
-        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue(), IdentityZoneHolder.getCurrentZoneId());
         when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
 
         LockoutPolicy lockoutPolicy = new LockoutPolicy(0, 1, 5);
@@ -370,7 +370,7 @@ public class StatelessMfaAuthenticationFilterTests {
         long fixedTime = 1L;
         when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
 
-        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue());
+        MfaAuthenticationFailureEvent event = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue(), IdentityZoneHolder.getCurrentZoneId());
         when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(Lists.newArrayList(event.getAuditEvent()));
 
         LockoutPolicy lockoutPolicy = new LockoutPolicy(1, 2, 5);
@@ -387,8 +387,8 @@ public class StatelessMfaAuthenticationFilterTests {
         when(timeService.getCurrentTimeMillis()).thenReturn(fixedTime);
 
 
-        AuditEvent failedMfaEvent = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue()).getAuditEvent();
-        AuditEvent successfulMfaEvent = new MfaAuthenticationSuccessEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue()).getAuditEvent();
+        AuditEvent failedMfaEvent = new MfaAuthenticationFailureEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue(), IdentityZoneHolder.getCurrentZoneId()).getAuditEvent();
+        AuditEvent successfulMfaEvent = new MfaAuthenticationSuccessEvent(user, authentication, GOOGLE_AUTHENTICATOR.toValue(), IdentityZoneHolder.getCurrentZoneId()).getAuditEvent();
         ArrayList<AuditEvent> events = Lists.newArrayList(failedMfaEvent, failedMfaEvent, successfulMfaEvent, failedMfaEvent);
         when(jdbcAuditServiceMock.find(user.getId(), fixedTime, zone.getId())).thenReturn(events);
 

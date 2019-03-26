@@ -29,8 +29,8 @@ import org.springframework.security.crypto.codec.Utf8;
  */
 public class UserNotFoundEvent extends AbstractUaaAuthenticationEvent {
 
-    public UserNotFoundEvent(Authentication authentication) {
-        super(authentication);
+    public UserNotFoundEvent(Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
     }
 
     @Override

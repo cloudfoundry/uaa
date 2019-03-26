@@ -22,8 +22,8 @@ public class ClientAuthenticationFailureEvent extends AbstractUaaAuthenticationE
     private String clientId;
     private AuthenticationException ex;
 
-    public ClientAuthenticationFailureEvent(Authentication authentication, AuthenticationException ex) {
-        super(authentication);
+    public ClientAuthenticationFailureEvent(Authentication authentication, AuthenticationException ex, String zoneId) {
+        super(authentication, zoneId);
         clientId = getAuthenticationDetails().getClientId();
         this.ex = ex;
     }

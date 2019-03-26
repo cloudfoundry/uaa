@@ -37,39 +37,42 @@ public class GroupModifiedEvent extends AbstractUaaEvent {
     private String[] members;
     private AuditEventType eventType;
 
-    protected GroupModifiedEvent(String groupId, String name, String[] members, AuditEventType type, Authentication authentication) {
-        super(authentication);
+    protected GroupModifiedEvent(String groupId, String name, String[] members, AuditEventType type, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.groupId = groupId;
         this.groupName = name;
         this.members = members;
         this.eventType = type;
     }
 
-    public static GroupModifiedEvent groupCreated(String group, String name, String[] members) {
+    public static GroupModifiedEvent groupCreated(String group, String name, String[] members, String zoneId) {
         return new GroupModifiedEvent(
             group,
             name,
             members,
             AuditEventType.GroupCreatedEvent,
-            getContextAuthentication());
+            getContextAuthentication(),
+            zoneId);
     }
 
-    public static GroupModifiedEvent groupModified(String group, String name, String[] members) {
+    public static GroupModifiedEvent groupModified(String group, String name, String[] members, String zoneId) {
         return new GroupModifiedEvent(
             group,
             name,
             members,
             AuditEventType.GroupModifiedEvent,
-            getContextAuthentication());
+            getContextAuthentication(),
+            zoneId);
     }
 
-    public static GroupModifiedEvent groupDeleted(String group, String name, String[] members) {
+    public static GroupModifiedEvent groupDeleted(String group, String name, String[] members, String zoneId) {
         return new GroupModifiedEvent(
             group,
             name,
             members,
             AuditEventType.GroupDeletedEvent,
-            getContextAuthentication());
+            getContextAuthentication(),
+            zoneId);
     }
 
     @Override

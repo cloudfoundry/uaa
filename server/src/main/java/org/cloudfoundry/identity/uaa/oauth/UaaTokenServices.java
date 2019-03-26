@@ -455,7 +455,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
-        publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication()));
+        publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
 
         return compositeToken;
     }

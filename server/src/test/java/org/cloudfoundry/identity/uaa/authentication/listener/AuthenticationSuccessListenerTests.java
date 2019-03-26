@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -103,7 +104,7 @@ class AuthenticationSuccessListenerTests {
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
                 user,
                 mockUaaAuthentication,
-                OriginKeys.UAA
+                OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
         verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
@@ -115,7 +116,7 @@ class AuthenticationSuccessListenerTests {
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
                 user,
                 mockUaaAuthentication,
-                OriginKeys.UAA
+                OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
         verifyZeroInteractions(mockApplicationEventPublisher);
@@ -126,7 +127,7 @@ class AuthenticationSuccessListenerTests {
         MfaAuthenticationSuccessEvent event = new MfaAuthenticationSuccessEvent(
                 user,
                 mockUaaAuthentication,
-                "mfa-type"
+                "mfa-type", IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
         verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
@@ -134,7 +135,7 @@ class AuthenticationSuccessListenerTests {
 
     private UserAuthenticationSuccessEvent getEvent() {
         user = new UaaUser(userPrototype);
-        return new UserAuthenticationSuccessEvent(user, mockUaaAuthentication);
+        return new UserAuthenticationSuccessEvent(user, mockUaaAuthentication, IdentityZoneHolder.getCurrentZoneId());
     }
 
 }

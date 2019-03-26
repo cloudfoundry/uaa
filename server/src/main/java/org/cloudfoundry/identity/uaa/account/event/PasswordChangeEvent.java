@@ -24,8 +24,8 @@ import org.springframework.security.core.Authentication;
  */
 public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
 
-    public PasswordChangeEvent(String message, UaaUser user, Authentication principal) {
-        super(message, user, principal);
+    public PasswordChangeEvent(String message, UaaUser user, Authentication principal, String zoneId) {
+        super(message, user, principal, zoneId);
     }
 
     @Override

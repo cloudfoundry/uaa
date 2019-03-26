@@ -27,19 +27,13 @@ import static java.util.Optional.ofNullable;
 public class EntityDeletedEvent<T> extends AbstractUaaEvent {
 
     private static final String dataFormat = "Class:%s; ID:%s";
-    private final String zoneId;
 
     public EntityDeletedEvent(T deleted, Authentication authentication, String zoneId) {
-        super(deleted, authentication);
-        this.zoneId = zoneId;
+        super(deleted, authentication, zoneId);
     }
 
     public T getDeleted() {
         return (T) source;
-    }
-
-    public String getZoneId() {
-        return zoneId;
     }
 
     @Override

@@ -27,8 +27,8 @@ abstract class AbstractPasswordChangeEvent extends AbstractUaaEvent {
 
     private String message;
 
-    public AbstractPasswordChangeEvent(String message, UaaUser user, Authentication authentication) {
-        super(authentication);
+    public AbstractPasswordChangeEvent(String message, UaaUser user, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.message = message;
         this.user = user;
     }

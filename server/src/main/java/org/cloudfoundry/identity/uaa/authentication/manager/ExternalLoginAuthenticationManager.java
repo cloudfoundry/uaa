@@ -171,7 +171,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         populateAuthenticationAttributes(success, request, authenticationData);
-        publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
+        publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
         return success;
     }
 

@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication.event;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
@@ -36,7 +37,7 @@ public class UserAuthenticationSuccessEventTests {
         request.setRemoteAddr("127.10.10.10");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "client-id");
 
-        UserAuthenticationSuccessEvent event = new UserAuthenticationSuccessEvent(mock(UaaUser.class), mock(Authentication.class));
+        UserAuthenticationSuccessEvent event = new UserAuthenticationSuccessEvent(mock(UaaUser.class), mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId());
         String origin = event.getOrigin(details);
 
         assertThat(origin, containsString("remoteAddress=127.10.10.10"));

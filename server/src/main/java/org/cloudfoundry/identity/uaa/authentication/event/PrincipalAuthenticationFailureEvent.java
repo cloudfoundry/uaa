@@ -26,8 +26,8 @@ public class PrincipalAuthenticationFailureEvent extends AbstractUaaPrincipalEve
 
     private String name;
 
-    public PrincipalAuthenticationFailureEvent(String name, UaaAuthenticationDetails details) {
-        super(details==null?UaaAuthenticationDetails.UNKNOWN:details);
+    public PrincipalAuthenticationFailureEvent(String name, UaaAuthenticationDetails details, String zoneId) {
+        super(details==null?UaaAuthenticationDetails.UNKNOWN:details, zoneId);
         this.name = name;
     }
 

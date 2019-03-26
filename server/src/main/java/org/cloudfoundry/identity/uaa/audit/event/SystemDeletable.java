@@ -51,7 +51,7 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
             deleteByOrigin(origin, zoneId);
         } else if (event.getDeleted() instanceof ClientDetails) {
             String clientId = ((ClientDetails) event.getDeleted()).getClientId();
-            String zoneId = event.getZoneId();
+            String zoneId = event.getIdentityZoneId();
             getLogger().debug(String.format("Received client deletion event for zone_id:%s and client:%s", zoneId, clientId));
             deleteByClient(clientId, zoneId);
         } else if (event.getDeleted() instanceof UaaUser) {

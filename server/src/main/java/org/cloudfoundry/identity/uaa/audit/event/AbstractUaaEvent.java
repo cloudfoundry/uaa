@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
@@ -48,20 +47,22 @@ import static org.springframework.util.StringUtils.hasText;
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = -7639844193401892160L;
-    private transient final String zoneId = IdentityZoneHolder.getCurrentZoneId();
+    private transient final String zoneId;
 
     private Authentication authentication;
 
-    protected AbstractUaaEvent(Object source) {
+    protected AbstractUaaEvent(Object source, String zoneId) {
         super(source);
         if (source instanceof Authentication) {
             this.authentication = (Authentication)source;
         }
+        this.zoneId = zoneId;
     }
 
-    protected AbstractUaaEvent(Object source, Authentication authentication) {
+    protected AbstractUaaEvent(Object source, Authentication authentication, String zoneId) {
         super(source);
         this.authentication = authentication;
+        this.zoneId = zoneId;
     }
 
     public void process(UaaAuditService auditor) {

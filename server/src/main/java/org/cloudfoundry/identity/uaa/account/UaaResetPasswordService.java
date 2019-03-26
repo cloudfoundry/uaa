@@ -142,7 +142,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             return new ResetPasswordResponse(user, redirectLocation, clientId);
         } catch (Exception e) {
 
-            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication));
+            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
             throw e;
         }
     }
@@ -171,7 +171,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             email = scimUser.getUserName();
         }
 
-        publish(new ResetPasswordRequestEvent(username, email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
+        publish(new ResetPasswordRequestEvent(username, email, code.getCode(), SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
         return new ForgotPasswordInfo(scimUser.getId(), email, code);
     }
 
@@ -213,6 +213,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
         scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId());
         scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false, IdentityZoneHolder.get().getId());
-        publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+        publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
     }
 }

@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationEvent;
@@ -106,7 +107,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             try {
                 return manager.authenticate(authentication);
             } catch (BadCredentialsException e) {
-                publish(new IdentityProviderAuthenticationFailureEvent(authentication, authentication.getName(), OriginKeys.LDAP));
+                publish(new IdentityProviderAuthenticationFailureEvent(authentication, authentication.getName(), OriginKeys.LDAP, IdentityZoneHolder.getCurrentZoneId()));
                 throw e;
             }
         }

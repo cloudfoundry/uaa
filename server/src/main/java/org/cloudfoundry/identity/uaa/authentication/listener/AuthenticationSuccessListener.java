@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -48,7 +49,7 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
             IdentityProviderAuthenticationSuccessEvent passwordAuthEvent = (IdentityProviderAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
                 passwordAuthEvent.getUser(),
-                (Authentication) passwordAuthEvent.getSource()
+                (Authentication) passwordAuthEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
             );
             if (!checker.isMfaEnabledForZoneId(userEvent.getIdentityZoneId())) {
                 publisher.publishEvent(userEvent);
@@ -57,7 +58,7 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
             MfaAuthenticationSuccessEvent mfaEvent = (MfaAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
                 mfaEvent.getUser(),
-                (Authentication) mfaEvent.getSource()
+                (Authentication) mfaEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
             );
             publisher.publishEvent(userEvent);
         }

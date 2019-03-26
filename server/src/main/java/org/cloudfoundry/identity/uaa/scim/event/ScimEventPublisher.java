@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim.event;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -46,15 +47,15 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
     }
 
     public void groupCreated(ScimGroup group) {
-        publish(GroupModifiedEvent.groupCreated(group.getId(), group.getDisplayName(), getMembers(group)));
+        publish(GroupModifiedEvent.groupCreated(group.getId(), group.getDisplayName(), getMembers(group), IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public void groupModified(ScimGroup group) {
-        publish(GroupModifiedEvent.groupModified(group.getId(), group.getDisplayName(), getMembers(group)));
+        publish(GroupModifiedEvent.groupModified(group.getId(), group.getDisplayName(), getMembers(group), IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public void groupDeleted(ScimGroup group) {
-        publish(GroupModifiedEvent.groupDeleted(group.getId(), group.getDisplayName(), getMembers(group)));
+        publish(GroupModifiedEvent.groupDeleted(group.getId(), group.getDisplayName(), getMembers(group), IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public static String[] getMembers(ScimGroup group) {

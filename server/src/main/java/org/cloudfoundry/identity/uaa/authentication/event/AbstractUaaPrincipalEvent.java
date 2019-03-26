@@ -20,8 +20,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
  */
 abstract class AbstractUaaPrincipalEvent extends AbstractUaaEvent {
 
-    AbstractUaaPrincipalEvent(UaaAuthenticationDetails details) {
-        super(details);
+    AbstractUaaPrincipalEvent(UaaAuthenticationDetails details, String zoneId) {
+        super(details, zoneId);
     }
 
     protected String getOrigin(UaaAuthenticationDetails details) {

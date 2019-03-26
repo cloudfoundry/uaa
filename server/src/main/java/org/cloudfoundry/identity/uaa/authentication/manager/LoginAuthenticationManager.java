@@ -107,7 +107,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
                 return success;
             }
         }

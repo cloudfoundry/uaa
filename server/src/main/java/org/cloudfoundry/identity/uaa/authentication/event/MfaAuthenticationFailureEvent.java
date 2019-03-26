@@ -10,8 +10,8 @@ public class MfaAuthenticationFailureEvent extends AbstractUaaAuthenticationEven
     private final UaaUser user;
     private final String type;
 
-    public MfaAuthenticationFailureEvent(UaaUser user, Authentication authentication, String type) {
-        super(authentication);
+    public MfaAuthenticationFailureEvent(UaaUser user, Authentication authentication, String type, String zoneId) {
+        super(authentication, zoneId);
         this.user = user;
         this.type = type;
     }
