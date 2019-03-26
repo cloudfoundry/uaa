@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -44,7 +43,7 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
     @Override
     public void onApplicationEvent(AbstractUaaAuthenticationEvent event) {
         if (event instanceof UserAuthenticationSuccessEvent) {
-            onApplicationEvent((UserAuthenticationSuccessEvent) event);
+            onApplicationEvent((UserAuthenticationSuccessEvent) event, event.getIdentityZone().getId());
         } else if (event instanceof IdentityProviderAuthenticationSuccessEvent) {
             IdentityProviderAuthenticationSuccessEvent passwordAuthEvent = (IdentityProviderAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
@@ -64,14 +63,14 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
         }
     }
 
-    protected void onApplicationEvent(UserAuthenticationSuccessEvent event) {
+    protected void onApplicationEvent(UserAuthenticationSuccessEvent event, String zoneId) {
         UaaUser user = event.getUser();
         if (user.isLegacyVerificationBehavior() && !user.isVerified()) {
-            scimUserProvisioning.verifyUser(user.getId(), -1, IdentityZoneHolder.get().getId());
+            scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
         }
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         authentication.setLastLoginSuccessTime(user.getLastLogonTime());
-        scimUserProvisioning.updateLastLogonTime(user.getId(), IdentityZoneHolder.get().getId());
+        scimUserProvisioning.updateLastLogonTime(user.getId(), zoneId);
     }
 
 
