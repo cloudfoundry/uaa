@@ -48,7 +48,7 @@ import static org.springframework.util.StringUtils.hasText;
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = -7639844193401892160L;
-    private transient final IdentityZone identityZone = IdentityZoneHolder.get();
+    private transient final String zoneId = IdentityZoneHolder.getCurrentZoneId();
 
     private Authentication authentication;
 
@@ -69,15 +69,15 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin) {
-        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), identityZone.getId(), null, null);
+        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), zoneId, null, null);
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), null, null);
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, null, null);
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data, String authenticationType, String message) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), authenticationType, message);
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, authenticationType, message);
     }
 
     public Authentication getAuthentication() {
@@ -202,8 +202,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         return a;
     }
 
-    public IdentityZone getIdentityZone() {
-        return identityZone;
+    public String getIdentityZoneId() {
+        return zoneId;
     }
 
 }

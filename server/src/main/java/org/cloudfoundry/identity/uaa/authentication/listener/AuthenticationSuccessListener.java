@@ -43,14 +43,14 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
     @Override
     public void onApplicationEvent(AbstractUaaAuthenticationEvent event) {
         if (event instanceof UserAuthenticationSuccessEvent) {
-            onApplicationEvent((UserAuthenticationSuccessEvent) event, event.getIdentityZone().getId());
+            onApplicationEvent((UserAuthenticationSuccessEvent) event, event.getIdentityZoneId());
         } else if (event instanceof IdentityProviderAuthenticationSuccessEvent) {
             IdentityProviderAuthenticationSuccessEvent passwordAuthEvent = (IdentityProviderAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
                 passwordAuthEvent.getUser(),
                 (Authentication) passwordAuthEvent.getSource()
             );
-            if (!checker.isMfaEnabled(userEvent.getIdentityZone())) {
+            if (!checker.isMfaEnabledForZoneId(userEvent.getIdentityZoneId())) {
                 publisher.publishEvent(userEvent);
             }
         } else if (event instanceof MfaAuthenticationSuccessEvent) {
