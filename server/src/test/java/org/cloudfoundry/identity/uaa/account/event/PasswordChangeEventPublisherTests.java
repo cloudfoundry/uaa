@@ -6,9 +6,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUserTestFactory;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,10 +19,10 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.when;
 
-public class PasswordChangeEventPublisherTests {
+class PasswordChangeEventPublisherTests {
 
     private ScimUserProvisioning scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
 
@@ -31,8 +31,8 @@ public class PasswordChangeEventPublisherTests {
     private ApplicationEventPublisher publisher = Mockito.mock(ApplicationEventPublisher.class);
     private Authentication authentication;
 
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         subject.setApplicationEventPublisher(publisher);
         authentication = new OAuth2Authentication(
                 new AuthorizationRequest(
@@ -43,13 +43,13 @@ public class PasswordChangeEventPublisherTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    @After
-    public void destroy() {
+    @AfterEach
+    void destroy() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testPasswordChange() {
+    void passwordChange() {
         when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordChange("foo");
@@ -57,7 +57,7 @@ public class PasswordChangeEventPublisherTests {
     }
 
     @Test
-    public void testPasswordChangeNoEmail() {
+    void passwordChangeNoEmail() {
         when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", null, "Joe", "Schmo"));
         subject.passwordChange("foo");
@@ -65,7 +65,7 @@ public class PasswordChangeEventPublisherTests {
     }
 
     @Test
-    public void testPasswordFailure() {
+    void passwordFailure() {
         when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(
                 ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
@@ -73,14 +73,14 @@ public class PasswordChangeEventPublisherTests {
     }
 
     @Test
-    public void testPasswordFailureNoUser() {
+    void passwordFailureNoUser() {
         when(scimUserProvisioning.retrieve("foo", IdentityZoneHolder.get().getId())).thenThrow(new ScimResourceNotFoundException("Not found"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
         Mockito.verify(publisher).publishEvent(ArgumentMatchers.any(PasswordChangeFailureEvent.class));
     }
 
     @Test
-    public void notAuthenticatedReturnsSystemAuth() {
+    void notAuthenticatedReturnsSystemAuth() {
         assertSame(authentication, subject.getPrincipal());
         SecurityContextHolder.clearContext();
         assertSame(SystemAuthentication.SYSTEM_AUTHENTICATION, subject.getPrincipal());
