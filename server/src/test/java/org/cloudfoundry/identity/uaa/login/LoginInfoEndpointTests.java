@@ -33,12 +33,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.Links;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,7 +137,7 @@ public class LoginInfoEndpointTests {
         oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher);
-        mfaChecker = spy(new MfaChecker(mock(IdentityProviderProvisioning.class)));
+        mfaChecker = spy(new MfaChecker(mock(IdentityZoneProvisioning.class)));
         model = new ExtendedModelMap();
     }
 
@@ -925,7 +920,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testGenerateAutologinCodeFailsWhenMfaRequired() throws Exception {
-        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class));
 
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
@@ -938,7 +933,7 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void testPerformAutologinFailsWhenMfaRequired() throws Exception {
-        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class), anyString());
+        doReturn(true).when(mfaChecker).isMfaEnabled(any(IdentityZone.class));
         LoginInfoEndpoint endpoint = getEndpoint();
         try {
             endpoint.performAutologin(new MockHttpSession());

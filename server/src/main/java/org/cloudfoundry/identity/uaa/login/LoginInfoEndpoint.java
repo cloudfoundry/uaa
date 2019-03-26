@@ -750,7 +750,7 @@ public class LoginInfoEndpoint {
             }
             map.put(prompt.getName(), details);
         }
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), OriginKeys.UAA)) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             Prompt p = new Prompt(
                 MFA_CODE,
                 "password",
@@ -830,7 +830,7 @@ public class LoginInfoEndpoint {
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
                                                    @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             throw new BadCredentialsException("MFA is required");
         }
 
@@ -876,7 +876,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             throw new BadCredentialsException("MFA is required");
         }
         String redirectLocation = "home";

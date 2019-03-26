@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,13 +64,11 @@ class MfaUiRequiredFilterTests {
     private HttpServletResponse response;
     private FilterChain chain;
     private MfaUiRequiredFilter filter;
-    private IdentityProviderProvisioning providerProvisioning;
     private AntPathRequestMatcher logoutMatcher;
     private IdentityZone mfaEnabledZone;
 
     @BeforeEach
     void setup() throws Exception {
-        providerProvisioning = mock(IdentityProviderProvisioning.class);
         requestCache = mock(RequestCache.class);
         logoutMatcher = new AntPathRequestMatcher("/logout.do");
         filter = new MfaUiRequiredFilter("/login/mfa/**",
@@ -77,7 +76,7 @@ class MfaUiRequiredFilterTests {
                                          requestCache,
                                          "/login/mfa/completed",
                                          logoutMatcher,
-                                         new MfaChecker(providerProvisioning));
+                                         new MfaChecker(mock(IdentityZoneProvisioning.class)));
         spyFilter = spy(filter);
         request = new MockHttpServletRequest();
         usernameAuthentication = new UsernamePasswordAuthenticationToken("fake-principal","fake-credentials");

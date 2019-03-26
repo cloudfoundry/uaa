@@ -212,7 +212,6 @@
     </bean>
 
     <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">

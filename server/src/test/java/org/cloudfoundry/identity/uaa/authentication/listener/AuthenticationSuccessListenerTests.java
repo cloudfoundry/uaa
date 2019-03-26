@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -125,7 +126,7 @@ public class AuthenticationSuccessListenerTests {
 
     @Test
     public void provider_authentication_success_triggers_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(false);
+        when(checker.isMfaEnabled(any(IdentityZone.class))).thenReturn(false);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
             user,
             mockAuth,
@@ -137,7 +138,7 @@ public class AuthenticationSuccessListenerTests {
 
     @Test
     public void provider_authentication_success_does_not_trigger_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(true);
+        when(checker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
             user,
             mockAuth,
@@ -149,7 +150,7 @@ public class AuthenticationSuccessListenerTests {
 
     @Test
     public void mfa_authentication_success_triggers_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(true);
+        when(checker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         MfaAuthenticationSuccessEvent event = new MfaAuthenticationSuccessEvent(
             user,
             mockAuth,

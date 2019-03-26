@@ -51,7 +51,7 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
                 passwordAuthEvent.getUser(),
                 (Authentication) passwordAuthEvent.getSource()
             );
-            if (!checker.isMfaEnabled(userEvent.getIdentityZone(), userEvent.getUser().getOrigin())) {
+            if (!checker.isMfaEnabled(userEvent.getIdentityZone())) {
                 publisher.publishEvent(userEvent);
             }
         } else if (event instanceof MfaAuthenticationSuccessEvent) {
