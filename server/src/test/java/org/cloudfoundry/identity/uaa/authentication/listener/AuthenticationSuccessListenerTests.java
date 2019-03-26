@@ -12,8 +12,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
-public class AuthenticationSuccessListenerTests {
+class AuthenticationSuccessListenerTests {
 
     private AuthenticationSuccessListener listener;
     private ScimUserProvisioning mockScimUserProvisioning;
@@ -34,8 +34,8 @@ public class AuthenticationSuccessListenerTests {
     private UaaUserPrototype userPrototype;
     private UaaUser user;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         mockUaaAuthentication = mock(UaaAuthentication.class);
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         mockMfaChecker = mock(MfaChecker.class);
@@ -57,7 +57,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void unverifiedUserBecomesVerifiedIfTheyHaveLegacyFlag() {
+    void unverifiedUserBecomesVerifiedIfTheyHaveLegacyFlag() {
         userPrototype
                 .withVerified(false)
                 .withLegacyVerificationBehavior(true);
@@ -69,7 +69,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void unverifiedUserDoesNotBecomeVerifiedIfTheyHaveNoLegacyFlag() {
+    void unverifiedUserDoesNotBecomeVerifiedIfTheyHaveNoLegacyFlag() {
         userPrototype.withVerified(false);
         UserAuthenticationSuccessEvent event = getEvent();
         String zoneId = IdentityZoneHolder.get().getId();
@@ -79,7 +79,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void userLastUpdatedGetsCalledOnEvent() {
+    void userLastUpdatedGetsCalledOnEvent() {
 
         UserAuthenticationSuccessEvent event = getEvent();
         when(mockScimUserProvisioning.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
@@ -88,7 +88,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void previousLoginIsSetOnTheAuthentication() {
+    void previousLoginIsSetOnTheAuthentication() {
         userPrototype
                 .withLastLogonSuccess(123456789L);
         UserAuthenticationSuccessEvent event = getEvent();
@@ -100,7 +100,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void provider_authentication_success_triggers_user_authentication_success() throws Exception {
+    void provider_authentication_success_triggers_user_authentication_success() throws Exception {
         when(mockMfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(false);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
                 user,
@@ -112,7 +112,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void provider_authentication_success_does_not_trigger_user_authentication_success() throws Exception {
+    void provider_authentication_success_does_not_trigger_user_authentication_success() throws Exception {
         when(mockMfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
                 user,
@@ -124,7 +124,7 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void mfa_authentication_success_triggers_user_authentication_success() throws Exception {
+    void mfa_authentication_success_triggers_user_authentication_success() throws Exception {
         when(mockMfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         MfaAuthenticationSuccessEvent event = new MfaAuthenticationSuccessEvent(
                 user,
