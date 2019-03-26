@@ -1435,10 +1435,6 @@ public class SamlLoginIT {
         return createSimplePHPSamlIDP(alias, "testzone1");
     }
 
-    public SamlIdentityProviderDefinition createTestZone3IDP(String alias) {
-        return createSimplePHPSamlIDP(alias, "testzone3");
-    }
-
     public SamlIdentityProviderDefinition createTestZoneIDP(String alias, String zoneSubdomain) {
         return createSimplePHPSamlIDP(alias, zoneSubdomain);
     }
@@ -1484,22 +1480,6 @@ public class SamlLoginIT {
         def.setShowSamlLink(true);
         def.setIdpEntityAlias(alias);
         def.setLinkText("Login with Simple SAML PHP("+alias+")");
-        return def;
-    }
-
-    public SamlIdentityProviderDefinition getTestURLDefinition() {
-        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setZoneId("uaa");
-        def.setMetaDataLocation("https://branding.login.oms.identity.team/saml/metadata?random="+new RandomValueStringGenerator().generate());
-        //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
-        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
-        def.setAssertionConsumerIndex(0);
-        def.setMetadataTrustCheck(false);
-        def.setShowSamlLink(true);
-        //def.setSocketFactoryClassName(DEFAULT_HTTPS_SOCKET_FACTORY);
-        String urlAlias = "Test URL Create - "+new RandomValueStringGenerator().generate();
-        def.setIdpEntityAlias(urlAlias);
-        def.setLinkText("Login with Simple SAML PHP("+ urlAlias +")");
         return def;
     }
 

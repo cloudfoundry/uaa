@@ -13,7 +13,7 @@ public class TestUaaUrlBuilder {
 
     public String build() {
         if (systemDomain == null || "".equals(systemDomain)) {
-            throw new RuntimeException("TARGET_CF_SYSTEM_DOMAIN environment variable must be set for tests to run. Example value: oms.identity.team");
+            throw new RuntimeException("TARGET_CF_SYSTEM_DOMAIN environment variable must be set for tests to run. Example value: uaa-acceptance.cf-app.com");
         }
 
         systemDomain = systemDomain.replaceAll("/$","");
