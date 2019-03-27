@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUserTestFactory;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class PasswordChangeEventPublisherTests {
 
     private ScimUserProvisioning mockScimUserProvisioning;
     private ApplicationEventPublisher mockApplicationEventPublisher;
+    private IdentityZoneManager mockIdentityZoneManager;
     private String currentZoneId;
 
     private PasswordChangeEventPublisher subject;
@@ -44,10 +46,11 @@ class PasswordChangeEventPublisherTests {
     void setUp() {
         mockScimUserProvisioning = mock(ScimUserProvisioning.class);
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
 
         currentZoneId = "currentZoneId-" + RandomStringUtils.random(8);
 
-        subject = new PasswordChangeEventPublisher(mockScimUserProvisioning);
+        subject = new PasswordChangeEventPublisher(mockScimUserProvisioning, mockIdentityZoneManager);
 
         subject.setApplicationEventPublisher(mockApplicationEventPublisher);
         authentication = new OAuth2Authentication(
