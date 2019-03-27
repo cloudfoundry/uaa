@@ -96,7 +96,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         List<Email> emails = scimUser.getEmails();
         if (emails == null || emails.isEmpty()) {
             return scimUser.getUserName().contains("@") ? scimUser.getUserName() : scimUser.getUserName()
-                            + "@unknown.org";
+                            + "@this-default-was-not-configured.invalid";
         }
         for (Email email : emails) {
             if (email.isPrimary()) {

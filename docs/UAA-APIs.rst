@@ -1381,7 +1381,7 @@ Fields            *Available Fields* ::
                     groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.
                     groupSearchFilter           String                  Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
                     mailAttributeName           String                  Required the name of the attribute that contains the user's email address. In most cases this is "mail"
-                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
+                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@this-default-was-not-configured.invalid" where
                     mailSubstituteOverridesLdap boolean                 Optional Set to true only if you always wish to override the LDAP supplied user email address
                     autoAddGroups               boolean                 Required Currently not used
                     groupSearchSubTree          boolean                 Required Should the sub tree be searched for user groups

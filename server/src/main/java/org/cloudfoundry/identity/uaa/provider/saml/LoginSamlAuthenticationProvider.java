@@ -416,11 +416,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replaceAll("@", "") + "@unknown.org";
+                    email = name.replaceAll("@", "") + "@this-default-was-not-configured.invalid";
                 }
             }
             else {
-                email = name + "@unknown.org";
+                email = name + "@this-default-was-not-configured.invalid";
             }
         }
         if (givenName == null) {
