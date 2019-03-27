@@ -59,6 +59,38 @@ class LoginAuthenticationManagerTests {
     }
 
     @Test
+    void emailIsNullNameDoesNotContainCommercialAtReturnsNamePlusDefaultDomain() {
+        Map<String, String> attributes = new HashMap<>();
+        AuthzAuthenticationRequest request = UaaAuthenticationTestFactory.getAuthenticationRequest("user", true);
+        UaaUser user = manager.getUser(request, attributes);
+        assertEquals("user@this-default-was-not-configured.invalid", user.getEmail());
+    }
+
+    @Test
+    void emailIsNullNameContainsLeadingCommericalAtReturnsNamePlusDefaultDomain() {
+        Map<String, String> attributes = new HashMap<>();
+        AuthzAuthenticationRequest request = UaaAuthenticationTestFactory.getAuthenticationRequest("@user", true);
+        UaaUser user = manager.getUser(request, attributes);
+        assertEquals("user@this-default-was-not-configured.invalid", user.getEmail());
+    }
+
+    @Test
+    void emailIsNullNameContainsTrailingCommericalAtReturnsNamePlusDefaultDomain() {
+        Map<String, String> attributes = new HashMap<>();
+        AuthzAuthenticationRequest request = UaaAuthenticationTestFactory.getAuthenticationRequest("user@", true);
+        UaaUser user = manager.getUser(request, attributes);
+        assertEquals("user@this-default-was-not-configured.invalid", user.getEmail());
+    }
+
+    @Test
+    void emailIsNullNameContainsMiddleCommericalAtReturnsNamePlusDefaultDomain() {
+        Map<String, String> attributes = new HashMap<>();
+        AuthzAuthenticationRequest request = UaaAuthenticationTestFactory.getAuthenticationRequest("user@more-stuff", true);
+        UaaUser user = manager.getUser(request, attributes);
+        assertEquals("user@more-stuff", user.getEmail());
+    }
+
+    @Test
     void testNotProcessingWrongType() {
         Authentication authentication = manager.authenticate(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertNull(authentication);
