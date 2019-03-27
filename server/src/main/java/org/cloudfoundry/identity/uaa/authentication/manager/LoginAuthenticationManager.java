@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
@@ -44,12 +45,17 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     public static final String NotANumber = OriginKeys.NotANumber;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher eventPublisher;
 
     private UaaUserDatabase userDatabase;
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+    public LoginAuthenticationManager(IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
@@ -107,7 +113,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
                 return success;
             }
         }
@@ -174,7 +180,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             origin,
             name,
             false,
-            IdentityZoneHolder.get().getId(),
+            identityZoneManager.getCurrentIdentityZoneId(),
             null,
             null);
 

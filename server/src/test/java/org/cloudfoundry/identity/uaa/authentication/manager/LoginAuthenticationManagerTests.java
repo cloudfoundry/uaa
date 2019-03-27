@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,11 +39,13 @@ class LoginAuthenticationManagerTests {
     private LoginAuthenticationManager manager;
     private UaaUserDatabase userDatabase;
     private TestApplicationEventPublisher<IdentityProviderAuthenticationSuccessEvent> publisher;
+    private IdentityZoneManager mockIdentityZoneManager;
 
     @BeforeEach
     void setUp() {
         publisher = TestApplicationEventPublisher.forEventClass(IdentityProviderAuthenticationSuccessEvent.class);
-        manager = new LoginAuthenticationManager();
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        manager = new LoginAuthenticationManager(mockIdentityZoneManager);
         manager.setApplicationEventPublisher(publisher);
         userDatabase = mock(UaaUserDatabase.class);
         manager.setUserDatabase(userDatabase);
