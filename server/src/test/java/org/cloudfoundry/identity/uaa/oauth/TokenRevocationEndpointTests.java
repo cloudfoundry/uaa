@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +46,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class TokenRevocationEndpointTests extends JdbcTestBase {
 
@@ -61,7 +63,11 @@ public class TokenRevocationEndpointTests extends JdbcTestBase {
         String clientId = generator.generate().toLowerCase();
         client = new BaseClientDetails(clientId, "", "some.scopes", "client_credentials", "authorities");
         client.addAdditionalInformation(TOKEN_SALT, "pre-salt");
-        clientService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
+
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+
+        clientService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager));
         clientService.addClientDetails(client, zoneId);
 
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(

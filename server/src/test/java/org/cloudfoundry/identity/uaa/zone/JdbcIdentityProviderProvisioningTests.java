@@ -57,7 +57,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider createdIdp = db.create(idp, zoneId);
         assertNotNull(createdIdp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
+        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(0));
     }
 
@@ -69,7 +69,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider createdIdp = db.create(idp, zoneId);
         assertNotNull(createdIdp);
         int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class);
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp, null));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp, null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(count-1));
     }
 
@@ -79,7 +79,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         //should not do anything
         int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class);
         IdentityProvider uaa = db.retrieveByOrigin(UAA, IdentityZoneHolder.get().getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(uaa, null));
+        db.onApplicationEvent(new EntityDeletedEvent<>(uaa, null, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(count));
     }
 

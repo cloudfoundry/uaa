@@ -166,7 +166,7 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
     }
 
     protected boolean mfaRequired(String origin) {
-        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin) && checker.isRequired(IdentityZoneHolder.get(), origin);
+        return checker.isMfaEnabled(IdentityZoneHolder.get()) && checker.isRequired(IdentityZoneHolder.get(), origin);
     }
 
     private boolean logoutInProgress(HttpServletRequest request) {

@@ -134,7 +134,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, IdentityZoneHolder.get().getId());
         if (publisher!=null && existing!=null) {
             existing.setSerializeConfigRaw(rawConfig);
-            publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
+            publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
             return new ResponseEntity<>(existing, OK);
         } else {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);

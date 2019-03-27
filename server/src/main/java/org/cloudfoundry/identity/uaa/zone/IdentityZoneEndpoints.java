@@ -335,7 +335,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
-                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
+                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(removeKeys(zone), OK);
             } else {

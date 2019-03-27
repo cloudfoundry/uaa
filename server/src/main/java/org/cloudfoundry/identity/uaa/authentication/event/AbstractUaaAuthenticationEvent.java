@@ -21,8 +21,8 @@ import org.springframework.security.core.Authentication;
  */
 public abstract class AbstractUaaAuthenticationEvent extends AbstractUaaEvent {
 
-    AbstractUaaAuthenticationEvent(Authentication authentication) {
-        super(authentication);
+    AbstractUaaAuthenticationEvent(Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
     }
 
     protected String getOrigin(UaaAuthenticationDetails details) {

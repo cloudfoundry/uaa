@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -24,7 +24,7 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
 
     private List<String> whitelist = null;
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
     public WhitelistLogoutHandler(List<String> whitelist) {
         this.whitelist = whitelist;
@@ -39,11 +39,11 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         this.whitelist = whitelist;
     }
 
-    public ClientServicesExtension getClientDetailsService() {
+    public MultitenantClientServices getClientDetailsService() {
         return clientDetailsService;
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

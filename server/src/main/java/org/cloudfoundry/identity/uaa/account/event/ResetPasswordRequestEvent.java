@@ -25,8 +25,8 @@ public class ResetPasswordRequestEvent extends AbstractUaaEvent {
     private String code;
     private String email;
 
-    public ResetPasswordRequestEvent(String username, String email, String code, Authentication authentication) {
-        super(username, authentication);
+    public ResetPasswordRequestEvent(String username, String email, String code, Authentication authentication, String zoneId) {
+        super(username, authentication, zoneId);
         this.code = code;
         this.email = email;
     }

@@ -21,8 +21,8 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -44,34 +44,34 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
     @Override
     public void onApplicationEvent(AbstractUaaAuthenticationEvent event) {
         if (event instanceof UserAuthenticationSuccessEvent) {
-            onApplicationEvent((UserAuthenticationSuccessEvent) event);
+            onApplicationEvent((UserAuthenticationSuccessEvent) event, event.getIdentityZoneId());
         } else if (event instanceof IdentityProviderAuthenticationSuccessEvent) {
             IdentityProviderAuthenticationSuccessEvent passwordAuthEvent = (IdentityProviderAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
                 passwordAuthEvent.getUser(),
-                (Authentication) passwordAuthEvent.getSource()
+                (Authentication) passwordAuthEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
             );
-            if (!checker.isMfaEnabled(userEvent.getIdentityZone(), userEvent.getUser().getOrigin())) {
+            if (!checker.isMfaEnabledForZoneId(userEvent.getIdentityZoneId())) {
                 publisher.publishEvent(userEvent);
             }
         } else if (event instanceof MfaAuthenticationSuccessEvent) {
             MfaAuthenticationSuccessEvent mfaEvent = (MfaAuthenticationSuccessEvent) event;
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
                 mfaEvent.getUser(),
-                (Authentication) mfaEvent.getSource()
+                (Authentication) mfaEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
             );
             publisher.publishEvent(userEvent);
         }
     }
 
-    protected void onApplicationEvent(UserAuthenticationSuccessEvent event) {
+    protected void onApplicationEvent(UserAuthenticationSuccessEvent event, String zoneId) {
         UaaUser user = event.getUser();
         if (user.isLegacyVerificationBehavior() && !user.isVerified()) {
-            scimUserProvisioning.verifyUser(user.getId(), -1, IdentityZoneHolder.get().getId());
+            scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
         }
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         authentication.setLastLoginSuccessTime(user.getLastLogonTime());
-        scimUserProvisioning.updateLastLogonTime(user.getId(), IdentityZoneHolder.get().getId());
+        scimUserProvisioning.updateLastLogonTime(user.getId(), zoneId);
     }
 
 

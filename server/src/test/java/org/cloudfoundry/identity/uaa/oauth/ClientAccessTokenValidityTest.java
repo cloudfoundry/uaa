@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
@@ -24,12 +24,12 @@ public class ClientAccessTokenValidityTest {
 
     ClientAccessTokenValidity clientAccessTokenValidity;
     ClientDetails clientDetails;
-    ClientServicesExtension clientServicesExtension;
+    MultitenantClientServices mockMultitenantClientServices;
     private IdentityZone defaultZone;
 
     @Before
     public void setUp() {
-        clientServicesExtension = mock(ClientServicesExtension.class);
+        mockMultitenantClientServices = mock(MultitenantClientServices.class);
 
         clientDetails = mock(ClientDetails.class);
         when(clientDetails.getAccessTokenValiditySeconds()).thenReturn(42);
@@ -38,8 +38,8 @@ public class ClientAccessTokenValidityTest {
         PowerMockito.mockStatic(IdentityZoneHolder.class);
         when(IdentityZoneHolder.get()).thenReturn(defaultZone);
 
-        when(clientServicesExtension.loadClientByClientId("clientId", "uaa")).thenReturn(clientDetails);
-        clientAccessTokenValidity = new ClientAccessTokenValidity(clientServicesExtension);
+        when(mockMultitenantClientServices.loadClientByClientId("clientId", "uaa")).thenReturn(clientDetails);
+        clientAccessTokenValidity = new ClientAccessTokenValidity(mockMultitenantClientServices);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class ClientAccessTokenValidityTest {
         clientDetails = mock(ClientDetails.class);
         when(IdentityZoneHolder.get()).thenReturn(notUaa);
         when(clientDetails.getAccessTokenValiditySeconds()).thenReturn(24);
-        when(clientServicesExtension.loadClientByClientId("clientId", "not_uaa")).thenReturn(clientDetails);
+        when(mockMultitenantClientServices.loadClientByClientId("clientId", "not_uaa")).thenReturn(clientDetails);
 
         Integer validitySeconds = clientAccessTokenValidity.getValiditySeconds("clientId");
 
@@ -69,13 +69,13 @@ public class ClientAccessTokenValidityTest {
 
     @Test
     public void testAccessClientValidity_whenNoClientPresent_ReturnsNull() {
-        when(clientServicesExtension.loadClientByClientId("notExistingClientId", "uaa")).thenThrow(ClientRegistrationException.class);
+        when(mockMultitenantClientServices.loadClientByClientId("notExistingClientId", "uaa")).thenThrow(ClientRegistrationException.class);
         assertThat(clientAccessTokenValidity.getValiditySeconds("notExistingClientId"), is(nullValue()));
     }
 
     @Test(expected = RuntimeException.class)
     public void testAccessClientValidity_whenClientPresent_ButUnableToRetrieveTheClient() {
-        when(clientServicesExtension.loadClientByClientId("clientId", "uaa")).thenThrow(RuntimeException.class);
+        when(mockMultitenantClientServices.loadClientByClientId("clientId", "uaa")).thenThrow(RuntimeException.class);
         clientAccessTokenValidity.getValiditySeconds("clientId");
     }
 

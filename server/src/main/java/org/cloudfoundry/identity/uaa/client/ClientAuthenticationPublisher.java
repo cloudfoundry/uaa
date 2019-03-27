@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -30,11 +31,11 @@ public class ClientAuthenticationPublisher implements ApplicationEventPublisherA
     }
 
     public void clientAuthenticationSuccess(Authentication authentication) {
-        publish(new ClientAuthenticationSuccessEvent(authentication));
+        publish(new ClientAuthenticationSuccessEvent(authentication, IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public void clientAuthenticationFailure(Authentication authentication, AuthenticationException ex) {
-        publish(new ClientAuthenticationFailureEvent(authentication, ex));
+        publish(new ClientAuthenticationFailureEvent(authentication, ex, IdentityZoneHolder.getCurrentZoneId()));
     }
 
     public void publish(ApplicationEvent event) {

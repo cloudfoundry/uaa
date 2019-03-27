@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -28,10 +29,8 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.InMemoryClientServicesExtentions;
+import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,8 +51,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -90,7 +87,7 @@ public class TokenValidationTest {
     private Map<String, Object> content;
     private Signer signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
-    private InMemoryClientServicesExtentions clientDetailsService;
+    private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
     private UaaUser uaaUser;
     private BaseClientDetails uaaClient;
@@ -177,10 +174,13 @@ public class TokenValidationTest {
 
         signer = new MacSigner(macSigningKeySecret);
 
-        clientDetailsService = new InMemoryClientServicesExtentions();
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+
+        inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
-        clientDetailsService.setClientDetailsStore(IdentityZone.getUaaZoneId(),
+        inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
@@ -223,7 +223,7 @@ public class TokenValidationTest {
 
 
         ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
-                .getClientDetails(clientDetailsService);
+                .getClientDetails(inMemoryMultitenantClientServices);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
     }
@@ -237,7 +237,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID " + invalidClientId);
 
-        TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(clientDetailsService);
+        TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(inMemoryMultitenantClientServices);
     }
 
     @Test
@@ -340,7 +340,7 @@ public class TokenValidationTest {
     public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")
@@ -386,7 +386,7 @@ public class TokenValidationTest {
                 getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> clientDetailsService.loadClientByClientId(clientId))
+                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")

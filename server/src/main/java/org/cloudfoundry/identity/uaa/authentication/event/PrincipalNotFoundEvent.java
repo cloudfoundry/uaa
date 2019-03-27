@@ -26,8 +26,8 @@ public class PrincipalNotFoundEvent extends AbstractUaaPrincipalEvent {
 
     private String name;
 
-    public PrincipalNotFoundEvent(String name, UaaAuthenticationDetails details) {
-        super(details);
+    public PrincipalNotFoundEvent(String name, UaaAuthenticationDetails details, String zoneId) {
+        super(details, zoneId);
         this.name = name;
     }
 

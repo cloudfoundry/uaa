@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
@@ -458,7 +458,7 @@ public abstract class TokenValidation {
 
     protected abstract void validateJtiValue(String jtiValue);
 
-    public ClientDetails getClientDetails(ClientServicesExtension clientDetailsService) {
+    public ClientDetails getClientDetails(MultitenantClientServices clientDetailsService) {
         String clientId = (String) claims.get(CID);
         try {
             return clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());

@@ -145,7 +145,7 @@ public class ScimUserBootstrap implements
         }
         List<ScimUser> list = scimUserProvisioning.query("origin eq \"uaa\" and (" + filter.toString() + ")", IdentityZoneHolder.get().getId());
         for (ScimUser delete : list) {
-            publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION));
+            publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION, IdentityZoneHolder.getCurrentZoneId()));
         }
     }
 

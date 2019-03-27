@@ -20,8 +20,8 @@ public class ClientAuthenticationSuccessEvent extends AbstractUaaAuthenticationE
 
     private String clientId;
 
-    public ClientAuthenticationSuccessEvent(Authentication authentication) {
-        super(authentication);
+    public ClientAuthenticationSuccessEvent(Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         clientId = getAuthenticationDetails().getClientId();
     }
 

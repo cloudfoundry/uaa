@@ -68,7 +68,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
             return false;
         }
         UaaAuthentication uaaAuth = (UaaAuthentication) a;
-        if (!mfaRequired(uaaAuth.getPrincipal().getOrigin())) {
+        if (!mfaRequired()) {
             return false;
         }
 
@@ -80,7 +80,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
         }
     }
 
-    protected boolean mfaRequired(String origin) {
-        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin);
+    protected boolean mfaRequired() {
+        return checker.isMfaEnabled(IdentityZoneHolder.get());
     }
 }

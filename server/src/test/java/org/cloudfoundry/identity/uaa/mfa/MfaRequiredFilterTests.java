@@ -69,7 +69,7 @@ public class MfaRequiredFilterTests {
             mfaChecker,
             entryPoint
         );
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -116,7 +116,7 @@ public class MfaRequiredFilterTests {
 
     @Test
     public void mfa_not_enabled() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(false);
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(false);
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 

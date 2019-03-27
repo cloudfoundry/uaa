@@ -14,7 +14,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,7 +39,7 @@ public class UaaUserApprovalHandlerTests {
 
     private UaaUserApprovalHandler handler = new UaaUserApprovalHandler();
 
-    private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService = Mockito.mock(MultitenantClientServices.class);
 
     private AuthorizationServerTokenServices tokenServices = Mockito.mock(AuthorizationServerTokenServices.class);
 

@@ -33,8 +33,8 @@ public abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
 
     private ClientDetails client;
 
-    public AbstractClientAdminEvent(ClientDetails client, Authentication principal) {
-        super(principal);
+    public AbstractClientAdminEvent(ClientDetails client, Authentication principal, String zoneId) {
+        super(principal, zoneId);
         this.client = client;
     }
 

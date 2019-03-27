@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -54,7 +54,7 @@ class UaaAuthorizationRequestManagerTests {
 
     private UaaAuthorizationRequestManager factory;
 
-    private ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
 
     private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
 

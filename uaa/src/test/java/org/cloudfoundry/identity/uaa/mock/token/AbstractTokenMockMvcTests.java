@@ -52,7 +52,7 @@ public abstract class AbstractTokenMockMvcTests {
     protected WebApplicationContext webApplicationContext;
     @Autowired
     @Qualifier("jdbcClientDetailsService")
-    protected ClientServicesExtension clientDetailsService;
+    protected MultitenantClientServices clientDetailsService;
     @Autowired
     @Qualifier("scimGroupProvisioning")
     protected JdbcScimGroupProvisioning groupProvisioning;

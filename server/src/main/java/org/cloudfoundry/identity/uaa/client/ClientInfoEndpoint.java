@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -33,12 +33,12 @@ import java.util.Collections;
 @Controller
 public class ClientInfoEndpoint implements InitializingBean {
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

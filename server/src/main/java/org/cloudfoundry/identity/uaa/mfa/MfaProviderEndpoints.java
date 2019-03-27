@@ -78,7 +78,7 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         if(currentMfaConfig.isEnabled() && currentMfaConfig.getProviderName().equals(existing.getName())) {
             throw new MfaAlreadyExistsException("MFA provider is currently active on zone: " + IdentityZoneHolder.get().getId() + ". Please deactivate it from the zone or set another MFA provider");
         }
-        publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
+        publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
         return new ResponseEntity<>(existing, HttpStatus.OK);
     }
 

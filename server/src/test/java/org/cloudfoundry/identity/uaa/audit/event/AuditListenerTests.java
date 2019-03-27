@@ -53,20 +53,20 @@ public class AuditListenerTests {
     @Test
     public void userNotFoundIsAudited() throws Exception {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("breakin", "password", details);
-        listener.onApplicationEvent(new UserNotFoundEvent(req));
+        listener.onApplicationEvent(new UserNotFoundEvent(req, IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test
     public void successfulUserAuthenticationIsAudited() throws Exception {
-        listener.onApplicationEvent(new UserAuthenticationSuccessEvent(user, mock(Authentication.class)));
+        listener.onApplicationEvent(new UserAuthenticationSuccessEvent(user, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test
     public void unsuccessfulUserAuthenticationIsAudited() throws Exception {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("auser", "password", details);
-        listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req));
+        listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req, IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
     }
 

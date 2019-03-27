@@ -26,8 +26,8 @@ import java.util.Map;
 public class TokenIssuedEvent extends AbstractUaaEvent {
 
 
-    public TokenIssuedEvent(OAuth2AccessToken source, Authentication principal) {
-        super(source, principal);
+    public TokenIssuedEvent(OAuth2AccessToken source, Authentication principal, String zoneId) {
+        super(source, principal, zoneId);
         if (!OAuth2AccessToken.class.isAssignableFrom(source.getClass())) {
             throw new IllegalArgumentException();
         }

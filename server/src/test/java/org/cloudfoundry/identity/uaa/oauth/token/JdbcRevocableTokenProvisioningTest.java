@@ -90,8 +90,8 @@ class JdbcRevocableTokenProvisioningTest {
         BaseClientDetails clientDetails = new BaseClientDetails("id", "", "", "", "", "");
         IdentityZoneHolder.set(zone);
         reset(jdbcRevocableTokenProvisioning);
-        jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
-        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+        jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class), IdentityZoneHolder.getCurrentZoneId()));
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class), IdentityZoneHolder.getCurrentZoneId()));
         verify(jdbcRevocableTokenProvisioning, times(2)).deleteByClient(eq("id"), eq(zone.getId()));
     }
 
@@ -103,7 +103,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(1, getCountOfTokens(jdbcTemplate));
         assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
-        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class)));
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class), IdentityZoneHolder.getCurrentZoneId()));
         assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
@@ -121,7 +121,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(1, getCountOfTokens(jdbcTemplate));
         assertEquals(zone.getId(), jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()).getZoneId());
-        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class)));
+        jdbcRevocableTokenProvisioning.onApplicationEvent((AbstractUaaEvent) new EntityDeletedEvent<>(user, mock(UaaAuthentication.class), IdentityZoneHolder.getCurrentZoneId()));
         assertEquals(0, getCountOfTokens(jdbcTemplate));
     }
 
@@ -289,7 +289,7 @@ class JdbcRevocableTokenProvisioningTest {
         IdentityZoneHolder.set(zone);
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
-        EntityDeletedEvent<IdentityZone> zoneDeleted = new EntityDeletedEvent<>(zone, null);
+        EntityDeletedEvent<IdentityZone> zoneDeleted = new EntityDeletedEvent<>(zone, null, IdentityZoneHolder.getCurrentZoneId());
         jdbcRevocableTokenProvisioning.onApplicationEvent(zoneDeleted);
         assertThrows(EmptyResultDataAccessException.class,
                 () -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));

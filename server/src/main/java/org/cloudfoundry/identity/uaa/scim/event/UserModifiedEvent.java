@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 
 public class UserModifiedEvent extends AbstractUaaEvent {
@@ -30,15 +31,15 @@ public class UserModifiedEvent extends AbstractUaaEvent {
     private AuditEventType eventType;
 
 
-    protected UserModifiedEvent(String userId, String username, AuditEventType type, Authentication authentication) {
-        super(authentication);
+    protected UserModifiedEvent(String userId, String username, AuditEventType type, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.userId = userId;
         this.username = username;
         this.eventType = type;
     }
 
-    protected UserModifiedEvent(String userId, String username, String email, AuditEventType type, Authentication authentication) {
-        super(authentication);
+    protected UserModifiedEvent(String userId, String username, String email, AuditEventType type, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.userId = userId;
         this.username = username;
         this.eventType = type;
@@ -50,7 +51,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             userId,
             username,
             AuditEventType.UserCreatedEvent,
-            getContextAuthentication());
+            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
     }
 
     public static UserModifiedEvent userModified(String userId, String username) {
@@ -58,7 +59,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             userId,
             username,
             AuditEventType.UserModifiedEvent,
-            getContextAuthentication());
+            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
     }
 
     public static UserModifiedEvent userDeleted(String userId, String username) {
@@ -66,7 +67,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             userId,
             username,
             AuditEventType.UserDeletedEvent,
-            getContextAuthentication());
+            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
     }
 
     public static UserModifiedEvent userVerified(String userId, String username) {
@@ -74,7 +75,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             userId,
             username,
             AuditEventType.UserVerifiedEvent,
-            getContextAuthentication());
+            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
     }
 
     public static UserModifiedEvent emailChanged(String userId, String username, String email) {
@@ -83,7 +84,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             username,
             email,
             AuditEventType.EmailChangedEvent,
-            getContextAuthentication());
+            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
     }
 
     @Override

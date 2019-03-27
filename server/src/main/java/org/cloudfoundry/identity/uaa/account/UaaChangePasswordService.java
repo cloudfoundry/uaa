@@ -64,9 +64,9 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
-            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
         } catch (Exception e) {
-            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication));
+            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
             throw e;
         }
     }

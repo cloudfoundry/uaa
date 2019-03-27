@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,7 +86,7 @@ public class Saml2TokenGranterTest {
     private Saml2TokenGranter granter;
     private Saml2TokenGranter mockedgranter;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -104,7 +104,7 @@ public class Saml2TokenGranterTest {
         try { DefaultBootstrap.bootstrap();
         } catch (ConfigurationException e) { }
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         samlcontext = mock(SAMLMessageContext.class);

@@ -66,7 +66,7 @@ class ClientAdminEndpointsTests {
 
     private SecurityContextAccessor securityContextAccessor = null;
 
-    private ClientServicesExtension clientRegistrationService = null;
+    private MultitenantClientServices clientRegistrationService = null;
 
     private AuthenticationManager authenticationManager = null;
 
@@ -98,7 +98,7 @@ class ClientAdminEndpointsTests {
         when(clientDetailsService.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         ResourceMonitor clientDetailsResourceMonitor = mock(ResourceMonitor.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        clientRegistrationService = Mockito.mock(ClientServicesExtension.class, withSettings().extraInterfaces(SystemDeletable.class));
+        clientRegistrationService = Mockito.mock(MultitenantClientServices.class, withSettings().extraInterfaces(SystemDeletable.class));
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         ApprovalStore approvalStore = mock(ApprovalStore.class);
         clientDetailsValidator = new ClientAdminEndpointsValidator();

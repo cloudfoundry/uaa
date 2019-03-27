@@ -15,7 +15,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
@@ -38,11 +38,11 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 
 public class UserTokenGranter  extends AbstractTokenGranter {
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private RevocableTokenProvisioning tokenStore;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
-                            ClientServicesExtension clientDetailsService,
+                            MultitenantClientServices clientDetailsService,
                             OAuth2RequestFactory requestFactory,
                             RevocableTokenProvisioning tokenStore) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);

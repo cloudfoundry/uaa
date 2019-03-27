@@ -43,7 +43,7 @@ import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -159,7 +159,7 @@ public class LoginInfoEndpoint {
     private AuthenticationManager authenticationManager;
 
     private ExpiringCodeStore expiringCodeStore;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
     private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
@@ -750,7 +750,7 @@ public class LoginInfoEndpoint {
             }
             map.put(prompt.getName(), details);
         }
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), OriginKeys.UAA)) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             Prompt p = new Prompt(
                 MFA_CODE,
                 "password",
@@ -830,7 +830,7 @@ public class LoginInfoEndpoint {
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
                                                    @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             throw new BadCredentialsException("MFA is required");
         }
 
@@ -876,7 +876,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get(), "uaa")) {
+        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
             throw new BadCredentialsException("MFA is required");
         }
         String redirectLocation = "home";
@@ -1068,7 +1068,7 @@ public class LoginInfoEndpoint {
         return path;
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

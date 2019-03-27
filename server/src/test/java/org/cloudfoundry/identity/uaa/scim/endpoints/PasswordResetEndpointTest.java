@@ -28,7 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.json.JSONObject;
 import org.junit.Before;
@@ -67,7 +67,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     private ExpiringCodeStore expiringCodeStore;
     private PasswordValidator passwordValidator;
     private ResetPasswordService resetPasswordService;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private ResourcePropertySource resourcePropertySource;
     Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 
@@ -76,7 +76,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         expiringCodeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         resourcePropertySource = mock(ResourcePropertySource.class);
         resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);

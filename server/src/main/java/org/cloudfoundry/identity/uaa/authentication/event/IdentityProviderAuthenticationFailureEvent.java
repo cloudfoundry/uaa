@@ -18,8 +18,8 @@ public class IdentityProviderAuthenticationFailureEvent extends AbstractUaaAuthe
         return authenticationType;
     }
 
-    public IdentityProviderAuthenticationFailureEvent(Authentication authentication, String username, String authenticationType) {
-        super(authentication);
+    public IdentityProviderAuthenticationFailureEvent(Authentication authentication, String username, String authenticationType, String zoneId) {
+        super(authentication, zoneId);
         this.username = username;
         this.authenticationType = authenticationType;
     }

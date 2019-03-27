@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -54,16 +54,16 @@ public class ProfileController {
     protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);
 
     private final ApprovalStore approvalsService;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final SecurityContextAccessor securityContextAccessor;
 
     public ProfileController(ApprovalStore approvalsService,
-                             ClientServicesExtension clientDetailsService) {
+                             MultitenantClientServices clientDetailsService) {
         this(approvalsService, clientDetailsService, new DefaultSecurityContextAccessor());
     }
 
     public ProfileController(ApprovalStore approvalsService,
-                             ClientServicesExtension clientDetailsService,
+                             MultitenantClientServices clientDetailsService,
                              SecurityContextAccessor securityContextAccessor) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;

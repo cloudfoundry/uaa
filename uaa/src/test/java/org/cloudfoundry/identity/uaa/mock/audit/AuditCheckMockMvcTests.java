@@ -34,7 +34,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +93,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuditCheckMockMvcTests {
 
     @Autowired
-    private ClientServicesExtension clientRegistrationService;
+    private MultitenantClientServices clientRegistrationService;
     private UaaTestAccounts testAccounts;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;

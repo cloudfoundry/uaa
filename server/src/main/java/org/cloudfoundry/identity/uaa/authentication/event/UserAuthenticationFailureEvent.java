@@ -27,8 +27,8 @@ import org.springframework.security.core.Authentication;
 public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
     private final UaaUser user;
 
-    public UserAuthenticationFailureEvent(UaaUser user, Authentication authentication) {
-        super(authentication);
+    public UserAuthenticationFailureEvent(UaaUser user, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.user = user;
     }
 

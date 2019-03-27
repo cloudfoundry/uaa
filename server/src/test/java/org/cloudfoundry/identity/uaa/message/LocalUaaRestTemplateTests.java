@@ -5,7 +5,7 @@ import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(PollutionPreventionExtension.class)
 class LocalUaaRestTemplateTests {
     private LocalUaaRestTemplate localUaaRestTemplate;
-    private ClientServicesExtension mockClientServicesExtension;
+    private MultitenantClientServices mockMultitenantClientServices;
     private AuthorizationServerTokenServices mockAuthorizationServerTokenServices;
     private IdentityZoneManager mockIdentityZoneManager;
 
@@ -43,13 +43,13 @@ class LocalUaaRestTemplateTests {
     void setUp() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         OAuth2ProtectedResourceDetails mockOAuth2ProtectedResourceDetails = mock(OAuth2ProtectedResourceDetails.class);
         mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
-        mockClientServicesExtension = mock(ClientServicesExtension.class);
+        mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
 
         localUaaRestTemplate = new LocalUaaRestTemplate(
                 mockOAuth2ProtectedResourceDetails,
                 mockAuthorizationServerTokenServices,
-                mockClientServicesExtension,
+                mockMultitenantClientServices,
                 true,
                 mockIdentityZoneManager);
 
@@ -59,7 +59,7 @@ class LocalUaaRestTemplateTests {
                 UaaAuthority.authority("else")
         ));
 
-        when(mockClientServicesExtension.loadClientByClientId(any(), any())).thenReturn(mockClientDetails);
+        when(mockMultitenantClientServices.loadClientByClientId(any(), any())).thenReturn(mockClientDetails);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("currentIdentityZoneId");
     }
 
@@ -90,7 +90,7 @@ class LocalUaaRestTemplateTests {
         OAuth2Authentication authentication = new OAuth2Authentication(request, null);
 
         verify(mockIdentityZoneManager).getCurrentIdentityZoneId();
-        verify(mockClientServicesExtension).loadClientByClientId("login", "currentIdentityZoneId");
+        verify(mockMultitenantClientServices).loadClientByClientId("login", "currentIdentityZoneId");
         verify(mockOAuth2ClientContext).setAccessToken(mockOAuth2AccessToken);
         verify(mockAuthorizationServerTokenServices).createAccessToken(authentication);
     }

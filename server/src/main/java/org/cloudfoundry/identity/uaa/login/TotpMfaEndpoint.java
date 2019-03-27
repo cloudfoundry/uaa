@@ -152,16 +152,16 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
                 Set<String> authMethods = new HashSet<>(uaaAuth.getAuthenticationMethods());
                 authMethods.addAll(Arrays.asList("otp", "mfa"));
                 uaaAuth.setAuthenticationMethods(authMethods);
-                publish(new MfaAuthenticationSuccessEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue()));
+                publish(new MfaAuthenticationSuccessEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue(), IdentityZoneHolder.getCurrentZoneId()));
                 sessionStatus.setComplete();
                 return new ModelAndView(new RedirectView(mfaCompleteUrl, true));
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
-            publish(new MfaAuthenticationFailureEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue()));
+            publish(new MfaAuthenticationFailureEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue(), IdentityZoneHolder.getCurrentZoneId()));
             model.addAttribute("error", "Incorrect code, please try again.");
         } catch (NumberFormatException | GoogleAuthenticatorException e) {
             logger.debug("Error validating the code for user: " + uaaPrincipal.getId() + ". Error: " + e.getMessage());
-            publish(new MfaAuthenticationFailureEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue()));
+            publish(new MfaAuthenticationFailureEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue(), IdentityZoneHolder.getCurrentZoneId()));
             model.addAttribute("error", "Incorrect code, please try again.");
         }
         return renderEnterCodePage(model, uaaPrincipal);

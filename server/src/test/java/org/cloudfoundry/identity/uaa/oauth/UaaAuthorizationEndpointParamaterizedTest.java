@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
     private BaseClientDetails client;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private RedirectResolver redirectResolver;
     private OpenIdSessionStateCalculator calculator;
 
@@ -80,7 +80,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
     @Before
     public void setup() {
         client = new BaseClientDetails("id", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUrl);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         redirectResolver = mock(RedirectResolver.class);
         calculator = mock(OpenIdSessionStateCalculator.class);
 

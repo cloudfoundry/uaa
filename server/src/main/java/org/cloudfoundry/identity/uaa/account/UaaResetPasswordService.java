@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -59,14 +59,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private ResourcePropertySource resourcePropertySource;
     private ApplicationEventPublisher publisher;
 
     public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning,
                                    ExpiringCodeStore expiringCodeStore,
                                    PasswordValidator passwordValidator,
-                                   ClientServicesExtension clientDetailsService,
+                                   MultitenantClientServices clientDetailsService,
                                    ResourcePropertySource resourcePropertySource) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
@@ -142,7 +142,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             return new ResetPasswordResponse(user, redirectLocation, clientId);
         } catch (Exception e) {
 
-            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication));
+            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
             throw e;
         }
     }
@@ -171,7 +171,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             email = scimUser.getUserName();
         }
 
-        publish(new ResetPasswordRequestEvent(username, email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
+        publish(new ResetPasswordRequestEvent(username, email, code.getCode(), SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
         return new ForgotPasswordInfo(scimUser.getId(), email, code);
     }
 
@@ -213,6 +213,6 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
         scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId());
         scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false, IdentityZoneHolder.get().getId());
-        publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+        publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
     }
 }

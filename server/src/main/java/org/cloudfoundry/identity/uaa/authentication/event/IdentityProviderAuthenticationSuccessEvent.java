@@ -23,8 +23,8 @@ public class IdentityProviderAuthenticationSuccessEvent extends AbstractUaaAuthe
     private final UaaUser user;
     private final String authenticationType;
 
-    public IdentityProviderAuthenticationSuccessEvent(UaaUser user, Authentication authentication, String authenticationType) {
-        super(authentication);
+    public IdentityProviderAuthenticationSuccessEvent(UaaUser user, Authentication authentication, String authenticationType, String zoneId) {
+        super(authentication, zoneId);
         this.user = user;
         this.authenticationType = authenticationType;
     }

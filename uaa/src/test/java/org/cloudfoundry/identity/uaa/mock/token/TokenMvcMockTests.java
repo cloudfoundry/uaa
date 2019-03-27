@@ -35,7 +35,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.opensaml.xml.ConfigurationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -4012,7 +4011,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "openid";
         BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         client.setRegisteredRedirectUri(redirectUris);
-        webApplicationContext.getBean(ClientServicesExtension.class).updateClientDetails(client);
+        webApplicationContext.getBean(MultitenantClientServices.class).updateClientDetails(client);
 
         String username = "authuser" + generator.generate();
         String userScopes = "openid";

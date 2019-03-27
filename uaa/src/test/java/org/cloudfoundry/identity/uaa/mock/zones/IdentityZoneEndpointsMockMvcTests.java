@@ -1703,7 +1703,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
-        assertThat(deletedEvent.getIdentityZone().getId(), is(id));
+        assertThat(deletedEvent.getIdentityZoneId(), is(id));
         String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
         assertThat(auditedIdentityZone, containsString(id));
     }

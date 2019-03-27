@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class AutologinAuthenticationManagerTest {
     private ExpiringCodeStore codeStore;
     private Authentication authenticationToken;
     private UaaUserDatabase userDatabase;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private String clientId;
 
     @BeforeEach
@@ -57,7 +57,7 @@ class AutologinAuthenticationManagerTest {
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         manager.setExpiringCodeStore(codeStore);
         manager.setClientDetailsService(clientDetailsService);
         manager.setUserDatabase(userDatabase);

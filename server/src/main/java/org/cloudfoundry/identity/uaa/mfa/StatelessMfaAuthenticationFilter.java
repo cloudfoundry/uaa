@@ -86,7 +86,7 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
                 provider = checkMfaCode(request);
                 UaaUser user = getUaaUser();
                 if (provider != null) {
-                    publishEvent(new MfaAuthenticationSuccessEvent(user, getAuthentication(), provider.getType().toValue()));
+                    publishEvent(new MfaAuthenticationSuccessEvent(user, getAuthentication(), provider.getType().toValue(), IdentityZoneHolder.getCurrentZoneId()));
                 }
             }
             filterChain.doFilter(request, response);
@@ -94,11 +94,11 @@ public class StatelessMfaAuthenticationFilter extends OncePerRequestFilter imple
             handleException(new JsonError(400, "invalid_request", x.getMessage()), response);
         } catch (MissingMfaCodeException | UserMfaConfigDoesNotExistException e) {
             UaaUser user = getUaaUser();
-            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null"));
+            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null", IdentityZoneHolder.getCurrentZoneId()));
             handleException(new JsonError(400, "invalid_request", e.getMessage()), response);
         } catch (InvalidMfaCodeException e) {
             UaaUser user = getUaaUser();
-            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null"));
+            publishEvent(new MfaAuthenticationFailureEvent(user, getAuthentication(), provider != null ? provider.getType().toValue() : "null", IdentityZoneHolder.getCurrentZoneId()));
             handleException(new JsonError(401, "unauthorized", "Bad credentials"), response);
         }
     }
