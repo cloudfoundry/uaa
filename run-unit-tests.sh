@@ -26,8 +26,13 @@ case "$1" in
         ;;
 
     *)
-        echo $"$1 is not a known database type. Supported types are: hsqldb, percona, postgresql, sqlserver, mysql"
+        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, sqlserver, mysql"
         exit 1
 esac
 
-docker run --privileged -t -i --shm-size=1G --env DB=${DB} -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" -v "${GRADLE_LOCK_DIR}" "cfidentity/uaa-${DB_IMAGE_NAME}" /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
+docker run --privileged -t -i --shm-size=1G \
+  -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
+  -v "${GRADLE_LOCK_DIR}" \
+  --env DB=${DB} \
+  "cfidentity/uaa-${DB_IMAGE_NAME}" \
+  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
