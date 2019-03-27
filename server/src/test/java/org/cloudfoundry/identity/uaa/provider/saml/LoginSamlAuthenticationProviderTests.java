@@ -658,6 +658,41 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
+    public void emailIsNullNameDoesNotContainCommercialAtReturnsNamePlusDefaultDomain() {
+        String somethingReasonable = "something-reasonable";
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-uaa-principal", null, OriginKeys.SAML, somethingReasonable, IdentityZoneHolder.get().getId());
+        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
+        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
+    }
+
+    @Test
+    public void emailIsNullNameContainsLeadingCommericalAtReturnsNamePlusDefaultDomain() {
+        String somethingReasonable = "something-reasonable";
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "@new-uaa-principal", null, OriginKeys.SAML, somethingReasonable, IdentityZoneHolder.get().getId());
+        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
+        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
+    }
+
+    @Test
+    public void emailIsNullNameContainsTrailingCommericalAtReturnsNamePlusDefaultDomain() {
+        String somethingReasonable = "something-reasonable";
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-uaa-principal@", null, OriginKeys.SAML, somethingReasonable, IdentityZoneHolder.get().getId());
+        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
+        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
+    }
+    @Test
+    public void emailIsNullNameContainsMiddleCommericalAtReturnsNamePlusDefaultDomain() {
+        String somethingReasonable = "something-reasonable";
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-u@a-principal", null, OriginKeys.SAML, somethingReasonable, IdentityZoneHolder.get().getId());
+        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
+        assertEquals("new-u@a-principal", user.getEmail());
+    }
+
+    @Test
     public void dont_update_existingUser_if_attributes_areTheSame() {
         getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
