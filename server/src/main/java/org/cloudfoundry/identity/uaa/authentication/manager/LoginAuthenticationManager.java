@@ -41,17 +41,15 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import java.util.Date;
 import java.util.Map;
 
-public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-    public static final String NotANumber = OriginKeys.NotANumber;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 
+public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher eventPublisher;
 
     private UaaUserDatabase userDatabase;
-
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     public LoginAuthenticationManager(IdentityZoneManager identityZoneManager) {
         this.identityZoneManager = identityZoneManager;
@@ -133,10 +131,10 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         String email = info.get("email");
         String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
 
-        if(info.get(OriginKeys.ORIGIN)!=null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)){
+        if(info.get(ORIGIN)!=null && info.get(ORIGIN).equals(UAA)){
             throw new BadCredentialsException("uaa origin not allowed for external login server");
         }
-        String origin = info.get(OriginKeys.ORIGIN)!=null?info.get(OriginKeys.ORIGIN): OriginKeys.LOGIN_SERVER;
+        String origin = info.get(ORIGIN)!=null?info.get(ORIGIN): LOGIN_SERVER;
 
         if (name == null && email != null) {
             name = email;

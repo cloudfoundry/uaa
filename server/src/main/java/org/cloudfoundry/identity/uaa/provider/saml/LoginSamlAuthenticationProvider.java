@@ -83,6 +83,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -154,7 +155,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
 
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
-        UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
+        UaaPrincipal samlPrincipal = new UaaPrincipal(NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
         logger.debug(
             String.format(
                 "Mapped SAML authentication to IDP with origin '%s' and username '%s'",
@@ -403,17 +404,14 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         String familyName = userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME);
         String phoneNumber = userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME);
         String emailVerified = userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME);
-        String userId = OriginKeys.NotANumber;
+        String userId = NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin(): OriginKeys.LOGIN_SERVER;
         String zoneId = principal.getZoneId();
         if (name == null && email != null) {
             name = email;
         }
-        if (name == null && OriginKeys.NotANumber.equals(userId)) {
+        if (name == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
-        } else if (name==null) {
-            //we have user_id, name is irrelevant
-            name="unknown";
         }
         if (email == null) {
             if (name.contains("@")) {
