@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
@@ -32,11 +33,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
@@ -50,6 +47,8 @@ import org.opensaml.xml.schema.XSInteger;
 import org.opensaml.xml.schema.XSQName;
 import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.schema.XSURI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -72,6 +71,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import javax.xml.namespace.QName;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -81,8 +81,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.xml.namespace.QName;
 
+import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -92,7 +92,6 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
-import static java.util.Optional.of;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
     private final static Logger logger = LoggerFactory.getLogger(LoginSamlAuthenticationProvider.class);
@@ -100,6 +99,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     private ApplicationEventPublisher eventPublisher;
     private IdentityProviderProvisioning identityProviderProvisioning;
     private ScimGroupExternalMembershipManager externalMembershipManager;
+    private IdentityZoneManager identityZoneManager;
+
+    public LoginSamlAuthenticationProvider(IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
 
     public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -129,7 +133,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             throw new IllegalArgumentException("Only SAMLAuthenticationToken is supported, " + authentication.getClass() + " was attempted");
         }
 
-        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
         logger.debug(String.format("Initiating SAML authentication in zone '%s' domain '%s'", zone.getId(), zone.getSubdomain()));
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
@@ -139,7 +143,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
         try {
-            idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
+            idp = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
             samlConfig = idp.getConfig();
             addNew = samlConfig.isAddShadowUserOnLogin();
             if (!idp.isActive()) {
@@ -184,7 +188,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
         UaaAuthentication resultUaaAuthentication = new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
-        publish(new IdentityProviderAuthenticationSuccessEvent(user, resultUaaAuthentication, OriginKeys.SAML, IdentityZoneHolder.getCurrentZoneId()));
+        publish(new IdentityProviderAuthenticationSuccessEvent(user, resultUaaAuthentication, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId()));
         if (samlConfig.isStoreCustomAttributes()) {
             userDatabase.storeUserInfo(user.getId(),
                                        new UserInfo()
@@ -233,7 +237,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         for (GrantedAuthority authority : authorities ) {
             String externalGroup = authority.getAuthority();
             logger.debug("Attempting to map external group: "+externalGroup);
-            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
+            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, identityZoneManager.getCurrentIdentityZoneId())) {
                 String internalName = internalGroup.getDisplayName();
                 logger.debug(String.format("Mapped external: '%s' to internal: '%s'", externalGroup, internalName));
                 result.add(new SimpleGrantedAuthority(internalName));
