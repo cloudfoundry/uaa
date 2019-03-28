@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -91,7 +92,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         JdbcTemplate template = new JdbcTemplate(dataSource);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        udao = new JdbcScimUserProvisioning(template, pagingListFactory);
+        udao = new JdbcScimUserProvisioning(template, pagingListFactory, new FakePasswordEncoder());
         gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
 
         dao = new JdbcScimGroupMembershipManager(template);

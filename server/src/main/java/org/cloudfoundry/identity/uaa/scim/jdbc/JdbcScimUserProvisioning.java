@@ -31,7 +31,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.PasswordEncoderFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.dao.DuplicateKeyException;
@@ -42,7 +41,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 
@@ -110,7 +108,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     protected final JdbcTemplate jdbcTemplate;
 
-    private PasswordEncoder passwordEncoder = new PasswordEncoderFactory().get();
+    private final PasswordEncoder passwordEncoder;
 
     private boolean deactivateOnDelete = true;
 
@@ -120,11 +118,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private TimeService timeService = new TimeServiceImpl();
 
-    public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+    public JdbcScimUserProvisioning(
+            JdbcTemplate jdbcTemplate,
+            JdbcPagingListFactory pagingListFactory,
+            final PasswordEncoder passwordEncoder) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new SimpleSearchQueryConverter());
+        this.passwordEncoder = passwordEncoder;
     }
 
     public void setTimeService(TimeService timeService) {
@@ -414,16 +416,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
-    }
-
-    /**
-     * The encoder used to hash passwords before storing them in the database.
-     *
-     * Defaults to a {@link BCryptPasswordEncoder}.
-     */
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
-        this.passwordEncoder = passwordEncoder;
     }
 
     /**

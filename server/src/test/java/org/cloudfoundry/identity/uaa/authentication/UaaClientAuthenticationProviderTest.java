@@ -49,8 +49,7 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
 
-        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager);
-        jdbcClientDetailsService.setPasswordEncoder(encoder);
+        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, encoder);
         ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();
         authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, encoder);

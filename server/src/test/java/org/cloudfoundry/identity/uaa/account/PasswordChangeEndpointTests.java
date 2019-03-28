@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -33,7 +34,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -67,9 +67,10 @@ public class PasswordChangeEndpointTests {
     @Before
     public void setup() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
-        JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate,
-                        new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
-        dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
+        JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(
+                jdbcTemplate,
+                new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
+                new FakePasswordEncoder());
 
         endpoints = new PasswordChangeEndpoint();
         endpoints.setScimUserProvisioning(dao);

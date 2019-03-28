@@ -16,11 +16,13 @@
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
-        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
 
     <bean id="oauth2RequestValidator" class="org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator">
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
@@ -703,7 +705,7 @@
     <bean id="uaaUserDatabaseAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="passwdEncoder"/>
+        <constructor-arg ref="nonCachingPasswordEncoder"/>
         <constructor-arg ref="identityProviderProvisioning"/>
         <property name="accountLoginPolicy" ref="globalPeriodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
@@ -734,10 +736,9 @@
         <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator" />
     </bean>
 
-    <bean id="passwdEncoderFactory" class="org.cloudfoundry.identity.uaa.util.PasswordEncoderFactory"/>
-    <bean id="passwdEncoder" factory-bean="passwdEncoderFactory" factory-method="get"/>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.util.beans"/>
+
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
-        <property name="passwordEncoder" ref="passwdEncoder"/>
         <property name="maxKeys" value="1000"/>
         <property name="maxEncodedPasswords" value="5"/>
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>

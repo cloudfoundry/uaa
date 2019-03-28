@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
     @Before
     public void initJdbcScimClientDetailsServiceTests() {
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        delegate = new MultitenantJdbcClientDetailsService(jdbcTemplate, null);
+        delegate = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, new FakePasswordEncoder());
         service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate,
                 limitSqlAdapter));
 

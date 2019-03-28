@@ -1,11 +1,8 @@
 package org.cloudfoundry.identity.uaa.annotations;
 
-import org.cloudfoundry.identity.uaa.FakePasswordEncoderConfig;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
 import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.test.TestWebAppContext;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,8 +22,7 @@ import java.lang.annotation.Target;
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-        TestWebAppContext.class,
-        FakePasswordEncoderConfig.class
+        TestWebAppContext.class
 })
 public @interface WithSpring {
 }

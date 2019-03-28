@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -41,9 +42,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.bcrypt.BCrypt;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
@@ -100,14 +98,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private JdbcPagingListFactory pagingListFactory;
+    private FakePasswordEncoder fakePasswordEncoder;
 
     @Before
     public void initJdbcScimUserProvisioningTests() {
         pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
 
-        db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        PasswordEncoder encoder = new BCryptPasswordEncoder(4); // 4 mean as fast/weak as possible
-        db.setPasswordEncoder(encoder);
+        fakePasswordEncoder = new FakePasswordEncoder();
+        db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, fakePasswordEncoder);
 
         zoneDb = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         providerDb = new JdbcIdentityProviderProvisioning(jdbcTemplate);
@@ -123,8 +121,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
         defaultIdentityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, OriginKeys.UAA, "uaa");
 
-        addUser(JOE_ID, "joe", encoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
-        addUser(MABEL_ID, "mabel", encoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
+        addUser(JOE_ID, "joe", fakePasswordEncoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
+        addUser(MABEL_ID, "mabel", fakePasswordEncoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
     }
 
     private String createUserForDelete() {
@@ -440,7 +438,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, new FakePasswordEncoder()) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
@@ -553,14 +551,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void canChangePasswordWithoutOldPassword() throws Exception {
         db.changePassword(JOE_ID, null, "koala123$marissa", IdentityZoneHolder.get().getId());
         String storedPassword = jdbcTemplate.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
-        assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
+        assertTrue(fakePasswordEncoder.matches("koala123$marissa", storedPassword));
     }
 
     @Test
     public void canChangePasswordWithCorrectOldPassword() throws Exception {
         db.changePassword(JOE_ID, "joespassword", "koala123$marissa", IdentityZoneHolder.get().getId());
         String storedPassword = jdbcTemplate.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
-        assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
+        assertTrue(fakePasswordEncoder.matches("koala123$marissa", storedPassword));
     }
 
     @Test(expected = BadCredentialsException.class)

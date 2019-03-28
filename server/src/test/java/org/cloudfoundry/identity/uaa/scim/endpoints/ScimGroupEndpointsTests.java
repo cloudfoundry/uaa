@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -115,7 +116,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         JdbcTemplate template = jdbcTemplate;
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
-        udao = new JdbcScimUserProvisioning(template, pagingListFactory);
+        udao = new JdbcScimUserProvisioning(template, pagingListFactory, new FakePasswordEncoder());
         mm = new JdbcScimGroupMembershipManager(template);
         mm.setScimGroupProvisioning(dao);
         mm.setScimUserProvisioning(udao);

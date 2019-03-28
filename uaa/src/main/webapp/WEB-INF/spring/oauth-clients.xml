@@ -17,7 +17,7 @@
 
     <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
         <constructor-arg ref="jdbcTemplate" />
-        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
+        <constructor-arg ref="cachingPasswordEncoder" />
     </bean>
 
     <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">
@@ -33,7 +33,7 @@
     </bean>
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-        <constructor-arg ref="passwdEncoder"/>
+        <constructor-arg ref="nonCachingPasswordEncoder"/>
         <constructor-arg name="defaultOverride" value="${oauth.client.override:true}" />
         <constructor-arg name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
         <constructor-arg name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
@@ -43,7 +43,7 @@
 
     <beans profile="default">
         <bean id="defaultClientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-            <constructor-arg ref="passwdEncoder"/>
+            <constructor-arg ref="nonCachingPasswordEncoder"/>
             <constructor-arg name="defaultOverride" value="${oauth.client.override:true}" />
             <constructor-arg name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
             <constructor-arg name="clients">

@@ -106,7 +106,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -114,18 +114,12 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     public MultitenantJdbcClientDetailsService(
             final JdbcTemplate jdbcTemplate,
-            final IdentityZoneManager identityZoneManager) {
+            final IdentityZoneManager identityZoneManager,
+            final PasswordEncoder passwordEncoder) {
         super(identityZoneManager);
         Assert.notNull(jdbcTemplate, "JDbcTemplate required");
         this.jdbcTemplate = jdbcTemplate;
         this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
-    }
-
-    /**
-     * @param passwordEncoder
-     *            the password encoder to set
-     */
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 

@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.Matchers;
@@ -17,8 +18,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -55,6 +54,7 @@ class MultitenantJdbcClientDetailsServiceTests {
     private JdbcTemplate spyJdbcTemplate;
     private IdentityZoneManager mockIdentityZoneManager;
     private String currentZoneId;
+    private FakePasswordEncoder fakePasswordEncoder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -68,8 +68,8 @@ class MultitenantJdbcClientDetailsServiceTests {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         currentZoneId = "currentZoneId-" + randomValueStringGenerator.generate();
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentZoneId);
-        service = spy(new MultitenantJdbcClientDetailsService(spyJdbcTemplate, mockIdentityZoneManager));
-        service.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
+        fakePasswordEncoder = new FakePasswordEncoder();
+        service = spy(new MultitenantJdbcClientDetailsService(spyJdbcTemplate, mockIdentityZoneManager, fakePasswordEncoder));
 
         baseClientDetails = new BaseClientDetails();
         String clientId = "client-with-id-" + new RandomValueStringGenerator(36).generate();
@@ -466,30 +466,18 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     void updateClientSecret() {
-
+        final String newClientSecret = "newClientSecret-" + randomValueStringGenerator.generate();
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("newClientIdWithNoDetails");
-
-        service.setPasswordEncoder(new PasswordEncoder() {
-
-            public boolean matches(CharSequence rawPassword,
-                                   String encodedPassword) {
-                return true;
-            }
-
-            public String encode(CharSequence rawPassword) {
-                return "BAR";
-            }
-        });
         service.addClientDetails(clientDetails);
-        service.updateClientSecret(clientDetails.getClientId(), "foo");
+        service.updateClientSecret(clientDetails.getClientId(), newClientSecret);
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
                 "newClientIdWithNoDetails");
 
         assertEquals("newClientIdWithNoDetails", map.get("client_id"));
         assertTrue(map.containsKey("client_secret"));
-        assertEquals("BAR", map.get("client_secret"));
+        assertTrue(fakePasswordEncoder.matches(newClientSecret, (String) map.get("client_secret")));
     }
 
     @Test

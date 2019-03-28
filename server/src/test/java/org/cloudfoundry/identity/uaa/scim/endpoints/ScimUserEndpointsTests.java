@@ -1,36 +1,19 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
-import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.exception.*;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -38,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -45,16 +29,13 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
-import org.hamcrest.Matcher;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -66,45 +47,22 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ScimUserEndpointsTests {
@@ -134,6 +92,7 @@ class ScimUserEndpointsTests {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private JdbcTemplate jdbcTemplate;
+    private FakePasswordEncoder fakePasswordEncoder;
 
     @BeforeAll
     static void setUpDatabase() {
@@ -154,8 +113,8 @@ class ScimUserEndpointsTests {
         IdentityZoneHolder.clear();
         jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
+        fakePasswordEncoder = new FakePasswordEncoder();
+        dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, fakePasswordEncoder);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<String, String>();
@@ -240,20 +199,20 @@ class ScimUserEndpointsTests {
 
     @Test
     void validate_password_for_uaa_only() {
-        validate_password_for_uaa_origin_only(times(1), OriginKeys.UAA, equalTo("password"));
+        validate_password_for_uaa_origin_only(times(1), OriginKeys.UAA, "password");
     }
 
     @Test
     void validate_password_not_called_for_non_uaa() {
-        validate_password_for_uaa_origin_only(never(), OriginKeys.LOGIN_SERVER, equalTo(""));
+        validate_password_for_uaa_origin_only(never(), OriginKeys.LOGIN_SERVER, "");
     }
 
     @Test
     void password_validation_defaults_to_uaa() {
-        validate_password_for_uaa_origin_only(times(1), "", equalTo("password"));
+        validate_password_for_uaa_origin_only(times(1), "", "password");
     }
 
-    void validate_password_for_uaa_origin_only(VerificationMode verificationMode, String origin, Matcher<String> expectedPassword) {
+    void validate_password_for_uaa_origin_only(VerificationMode verificationMode, String origin, String expectedPassword) {
         ScimUser user = new ScimUser(null, generator.generate(), "GivenName", "FamilyName");
         user.setOrigin(origin);
         user.setPassword("password");
@@ -264,12 +223,12 @@ class ScimUserEndpointsTests {
         checkCreatedPassword(created, expectedPassword);
     }
 
-    void checkCreatedPassword(ScimUser created, Matcher<String> expectedPassword) {
+    void checkCreatedPassword(ScimUser created, String expectedPassword) {
         jdbcTemplate.query("select password from users where id=?",
-                           rs -> {
-                               assertThat("Passwords should match", rs.getString(1), expectedPassword);
-                           },
-                           created.getId());
+                rs -> {
+                    assertTrue(fakePasswordEncoder.matches(expectedPassword, rs.getString(1)));
+                },
+                created.getId());
     }
 
     @Test
@@ -505,7 +464,7 @@ class ScimUserEndpointsTests {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
                 created.getId());
-        assertEquals("foo", password);
+        assertTrue(fakePasswordEncoder.matches("foo", password));
     }
 
     @Test

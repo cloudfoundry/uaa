@@ -16,6 +16,8 @@ package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
@@ -61,9 +63,10 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private volatile Cache<CharSequence, Set<String>> cache = null;
 
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    public CachingPasswordEncoder() throws NoSuchAlgorithmException {
+    public CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
+        this.passwordEncoder = passwordEncoder;
         messageDigest = MessageDigest.getInstance("SHA-256");
         this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
         this.salt = KeyGenerators.secureRandom().generateKey();
@@ -71,18 +74,10 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         buildCache();
     }
 
-    public PasswordEncoder getPasswordEncoder() {
-        return passwordEncoder;
-    }
-
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
-
     @Override
     public String encode(CharSequence rawPassword) throws AuthenticationException {
         //we always use the Bcrypt mechanism, we never store repeated information
-        return getPasswordEncoder().encode(rawPassword);
+        return passwordEncoder.encode(rawPassword);
     }
 
     @Override
@@ -91,7 +86,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
             String cacheKey = cacheEncode(rawPassword);
             return internalMatches(cacheKey, rawPassword, encodedPassword);
         } else {
-            return getPasswordEncoder().matches(rawPassword, encodedPassword);
+            return passwordEncoder.matches(rawPassword, encodedPassword);
         }
     }
 
@@ -116,7 +111,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
             }
         }
         if (!result) {
-            if (getPasswordEncoder().matches(rawPassword, encodedPassword)) {
+            if (passwordEncoder.matches(rawPassword, encodedPassword)) {
                 result = true;
                 cacheValue = getOrCreateHashList(cacheKey);
                 if (cacheValue!=null) {
