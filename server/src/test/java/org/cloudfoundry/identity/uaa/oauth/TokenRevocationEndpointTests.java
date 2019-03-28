@@ -59,7 +59,7 @@ public class TokenRevocationEndpointTests extends JdbcTestBase {
     private MultitenantJdbcClientDetailsService clientService;
 
     @Before
-    public void setupForTokenRevocation() throws Exception {
+    public void setupForTokenRevocation() {
         String zoneId = IdentityZoneHolder.get().getId();
         generator = new RandomValueStringGenerator();
         String clientId = generator.generate().toLowerCase();
@@ -108,13 +108,13 @@ public class TokenRevocationEndpointTests extends JdbcTestBase {
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void revokeTokensForClient() throws Exception {
+    public void revokeTokensForClient() {
         assertEquals("pre-salt", getClient().getAdditionalInformation().get(TOKEN_SALT));
         assertEquals(1, clientTokenCount());
         endpoint.revokeTokensForClient(client.getClientId());

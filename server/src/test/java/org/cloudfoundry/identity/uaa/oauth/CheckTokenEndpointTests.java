@@ -244,7 +244,7 @@ public class CheckTokenEndpointTests {
 
         configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
         IdentityZoneHolder.set(defaultZone);
-        when(zoneProvisioning.retrieve("uaa")).thenReturn(defaultZone);
+        when(zoneProvisioning.retrieve(IdentityZone.getUaaZoneId())).thenReturn(defaultZone);
         Date oneSecondAgo = new Date(nowMillis - 1000);
         Date thirtySecondsAhead = new Date(nowMillis + 30000);
 
