@@ -175,7 +175,7 @@ public class TokenValidationTest {
         signer = new MacSigner(macSigningKeySecret);
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");

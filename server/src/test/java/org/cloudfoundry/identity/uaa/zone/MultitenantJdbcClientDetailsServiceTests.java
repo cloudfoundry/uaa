@@ -598,7 +598,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("clientInOtherZone");
         service.addClientDetails(clientDetails);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         assertThrows(NoSuchClientException.class,
                 () -> service.loadClientByClientId("clientInOtherZone"));
     }

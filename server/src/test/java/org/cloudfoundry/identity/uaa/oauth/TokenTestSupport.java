@@ -231,7 +231,7 @@ public class TokenTestSupport {
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsMap);

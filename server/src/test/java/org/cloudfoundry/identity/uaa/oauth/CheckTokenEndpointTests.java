@@ -179,7 +179,7 @@ public class CheckTokenEndpointTests {
     @Before
     public void setUp() throws Exception {
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(OriginKeys.UAA);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
 
         TestUtils.resetIdentityZoneHolder(null);
