@@ -30,9 +30,13 @@ case "$1" in
         exit 1
 esac
 
+if [[ -z "${DOCKER_IMAGE+x}" ]]; then
+    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
+fi
+
 docker run --privileged -t -i --shm-size=1G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
-  "cfidentity/uaa-${DB_IMAGE_NAME}" \
+  "${DOCKER_IMAGE}" \
   /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
