@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -226,7 +227,7 @@ public class OIDCLoginIT {
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
-        IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver);
+        IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver, IdentityZoneHolder.get());
     }
 
     private void login(String zoneUrl, String userName, String password) {

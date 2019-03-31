@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -109,7 +110,7 @@ public class LdapLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver);
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver, IdentityZoneHolder.get());
     }
 
     @Test
