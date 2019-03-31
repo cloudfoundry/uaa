@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.xml.parse.BasicParserPool;
@@ -21,6 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PollutionPreventionExtension.class)
 class NonSnarlIdpMetadataManagerTest {
     private SamlTestUtils samlTestUtils;
     private SamlServiceProviderConfigurator samlServiceProviderConfigurator;
@@ -29,7 +31,6 @@ class NonSnarlIdpMetadataManagerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        IdentityZoneHolder.clear();
         samlTestUtils = new SamlTestUtils();
         samlTestUtils.initialize();
         IdpMetadataGenerator generator = samlTestUtils.mockIdpMetadataGenerator();
@@ -43,11 +44,6 @@ class NonSnarlIdpMetadataManagerTest {
         nonSnarlIdpMetadataManager = new NonSnarlIdpMetadataManager(samlServiceProviderConfigurator);
         nonSnarlIdpMetadataManager.setGenerator(generator);
         nonSnarlIdpMetadataManager.setKeyManager(new ZoneAwareKeyManager());
-    }
-
-    @AfterEach
-    void tearDown() {
-        IdentityZoneHolder.clear();
     }
 
     @Test
