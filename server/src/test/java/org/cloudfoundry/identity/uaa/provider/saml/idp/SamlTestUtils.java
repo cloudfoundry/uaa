@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
@@ -260,12 +259,6 @@ public class SamlTestUtils {
         AddBcProvider.noop();
         DefaultBootstrap.bootstrap();
         initializeSimple();
-    }
-
-    IdentityZone getUaaZoneWithSamlConfig() {
-        IdentityZone uaa = IdentityZoneHolder.getUaaZone();
-        setupZoneWithSamlConfig(uaa);
-        return uaa;
     }
 
     void setupZoneWithSamlConfig(IdentityZone zone) {

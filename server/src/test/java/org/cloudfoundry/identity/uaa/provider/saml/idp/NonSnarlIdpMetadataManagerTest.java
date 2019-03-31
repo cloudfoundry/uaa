@@ -1,17 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager;
@@ -66,10 +52,9 @@ class NonSnarlIdpMetadataManagerTest {
 
     @Test
     void getAvailableProvidersAlwaysGetsLocalIdp() throws Exception {
-        IdentityZone defaultZone = samlTestUtils.getUaaZoneWithSamlConfig();
-        IdentityZoneHolder.set(defaultZone);
+        samlTestUtils.setupZoneWithSamlConfig(IdentityZoneHolder.get());
 
-        when(mockSamlServiceProviderProvisioning.retrieveActive(defaultZone.getId())).thenReturn(Collections.emptyList());
+        when(mockSamlServiceProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId())).thenReturn(Collections.emptyList());
 
         List<ExtendedMetadataDelegate> providers = this.nonSnarlIdpMetadataManager.getAvailableProviders();
         assertEquals(1, providers.size());
@@ -78,17 +63,18 @@ class NonSnarlIdpMetadataManagerTest {
 
     @Test
     void getAvailableProvidersForDefaultZone() throws Exception {
-        IdentityZone defaultZone = samlTestUtils.getUaaZoneWithSamlConfig();
-        IdentityZoneHolder.set(defaultZone);
-        when(mockSamlServiceProviderProvisioning.retrieveActive(defaultZone.getId()))
+        IdentityZone uaaZone = IdentityZoneHolder.getUaaZone();
+        samlTestUtils.setupZoneWithSamlConfig(uaaZone);
+        IdentityZoneHolder.set(uaaZone);
+        when(mockSamlServiceProviderProvisioning.retrieveActive(IdentityZone.getUaaZoneId()))
                 .thenReturn(Collections.singletonList(
-                        mockSamlServiceProviderForZone(defaultZone.getId())));
+                        mockSamlServiceProviderForZone(IdentityZone.getUaaZoneId())));
 
-        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(uaaZone).size());
         //NonSnarlIdpMetadataManager also returns local idp as entity, needs 2
         assertEquals(2, this.nonSnarlIdpMetadataManager.getAvailableProviders().size());
 
-        SamlServiceProvider confProvider = samlServiceProviderConfigurator.getSamlServiceProvidersForZone(defaultZone).get(0)
+        SamlServiceProvider confProvider = samlServiceProviderConfigurator.getSamlServiceProvidersForZone(uaaZone).get(0)
                 .getSamlServiceProvider();
         ExtendedMetadataDelegate metadataProvider = this.nonSnarlIdpMetadataManager.getAvailableProviders().get(1);
         metadataProvider.initialize();
@@ -99,18 +85,19 @@ class NonSnarlIdpMetadataManagerTest {
 
     @Test
     void getAvailableProvidersForDefaultAndNonDefaultZone() {
-        IdentityZone defaultZone = samlTestUtils.getUaaZoneWithSamlConfig();
+        IdentityZone uaaZone = IdentityZoneHolder.getUaaZone();
+        samlTestUtils.setupZoneWithSamlConfig(uaaZone);
         IdentityZone testZone = new IdentityZone();
         testZone.setName("non-default-zone");
         testZone.setId(testZone.getName());
         samlTestUtils.setupZoneWithSamlConfig(testZone);
 
-        when(mockSamlServiceProviderProvisioning.retrieveActive(defaultZone.getId())).thenReturn(Collections.singletonList(
-                mockSamlServiceProviderForZone(defaultZone.getId())));
+        when(mockSamlServiceProviderProvisioning.retrieveActive(IdentityZone.getUaaZoneId())).thenReturn(Collections.singletonList(
+                mockSamlServiceProviderForZone(IdentityZone.getUaaZoneId())));
         when(mockSamlServiceProviderProvisioning.retrieveActive(testZone.getId())).thenReturn(Collections.singletonList(
                 mockSamlServiceProviderForZone(testZone.getId())));
-        IdentityZoneHolder.set(defaultZone);
-        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(defaultZone).size());
+        IdentityZoneHolder.set(uaaZone);
+        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(uaaZone).size());
         assertEquals(2, this.nonSnarlIdpMetadataManager.getAvailableProviders().size());
         IdentityZoneHolder.set(testZone);
         assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(testZone).size());
@@ -119,17 +106,18 @@ class NonSnarlIdpMetadataManagerTest {
 
     @Test
     void getAvailableProvidersRemovesNonPersistedProvidersInConfigurator() throws Exception {
-        IdentityZone defaultZone = samlTestUtils.getUaaZoneWithSamlConfig();
-        samlServiceProviderConfigurator.validateSamlServiceProvider(mockSamlServiceProviderForZone(defaultZone.getId()));
-        samlServiceProviderConfigurator.validateSamlServiceProvider(mockSamlServiceProvider("non-persisted-saml-sp"));
-        when(mockSamlServiceProviderProvisioning.retrieveActive(defaultZone.getId()))
-                .thenReturn(Collections.singletonList(mockSamlServiceProviderForZone(defaultZone.getId())));
+        IdentityZone uaaZone = IdentityZoneHolder.getUaaZone();
+        samlTestUtils.setupZoneWithSamlConfig(uaaZone);
+        IdentityZoneHolder.set(uaaZone);
 
-        IdentityZoneHolder.set(defaultZone);
-        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(defaultZone).size());
+        samlServiceProviderConfigurator.validateSamlServiceProvider(mockSamlServiceProviderForZone(uaaZone.getId()));
+        samlServiceProviderConfigurator.validateSamlServiceProvider(mockSamlServiceProvider("non-persisted-saml-sp"));
+        when(mockSamlServiceProviderProvisioning.retrieveActive(IdentityZone.getUaaZoneId()))
+                .thenReturn(Collections.singletonList(mockSamlServiceProviderForZone(IdentityZone.getUaaZoneId())));
+        assertEquals(1, samlServiceProviderConfigurator.getSamlServiceProvidersForZone(uaaZone).size());
         assertEquals(2, this.nonSnarlIdpMetadataManager.getAvailableProviders().size());
 
-        SamlServiceProvider confProvider = samlServiceProviderConfigurator.getSamlServiceProvidersForZone(defaultZone).get(0)
+        SamlServiceProvider confProvider = samlServiceProviderConfigurator.getSamlServiceProvidersForZone(uaaZone).get(0)
                 .getSamlServiceProvider();
         ExtendedMetadataDelegate metadataProvider = this.nonSnarlIdpMetadataManager.getAvailableProviders().get(1);
         metadataProvider.initialize();
