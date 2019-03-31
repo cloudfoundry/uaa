@@ -1,26 +1,28 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class UaaStringUtilsTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class UaaStringUtilsTest {
 
     private Map<String, Object> map;
     private Properties properties;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         map = new HashMap<>();
         map.put("test.password", "password");
         map.put("test.signing-key", "signing-key");
@@ -38,13 +40,8 @@ public class UaaStringUtilsTest {
         map.put("submap", submap);
     }
 
-    @After
-    public void clear() {
-        IdentityZoneHolder.clear();
-    }
-
     @Test
-    public void nonNull() {
+    void nonNull() {
         assertNull(UaaStringUtils.nonNull());
         assertNull(UaaStringUtils.nonNull((String) null));
         assertNull(UaaStringUtils.nonNull(null, null));
@@ -56,14 +53,14 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void replace_zone_variables() {
+    void replace_zone_variables() {
         replaceZoneVariables(IdentityZone.getUaa());
         IdentityZone zone = MultitenancyFixture.identityZone("otherId", "otherDomain");
         replaceZoneVariables(zone);
     }
 
     @Test
-    public void camelToUnderscore() {
+    void camelToUnderscore() {
         assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("testCamelCase"));
         assertEquals("testcamelcase", UaaStringUtils.camelToUnderscore("testcamelcase"));
         assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("test_camel_case"));
@@ -71,13 +68,13 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void getErrorName() {
+    void getErrorName() {
         assertEquals("illegal_argument", UaaStringUtils.getErrorName(new IllegalArgumentException()));
         assertEquals("null_pointer", UaaStringUtils.getErrorName(new NullPointerException()));
     }
 
     @Test
-    public void hidePasswords() {
+    void hidePasswords() {
         Map<String, ?> result = UaaStringUtils.hidePasswords(map);
         checkPasswords(result);
 
@@ -86,7 +83,7 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void escapeRegExCharacters() {
+    void escapeRegExCharacters() {
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".*"));
         assertFalse(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string"));
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x"), "x"));
@@ -96,13 +93,13 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void constructSimpleWildcardPattern() {
+    void constructSimpleWildcardPattern() {
         assertEquals("space\\.[^\\\\.]+\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.*.developer"));
         assertEquals("space\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.developer"));
     }
 
     @Test
-    public void containsWildcard() {
+    void containsWildcard() {
         assertTrue(UaaStringUtils.containsWildcard("space.*.developer"));
         assertTrue(UaaStringUtils.containsWildcard("*.developer"));
         assertTrue(UaaStringUtils.containsWildcard("space.*"));
@@ -112,7 +109,7 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void constructSimpleWildcardPattern_matches() {
+    void constructSimpleWildcardPattern_matches() {
         String s1 = "space.*.developer";
         String p1 = UaaStringUtils.constructSimpleWildcardPattern(s1);
         String[] matching = new String[]{
@@ -133,16 +130,16 @@ public class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(msg, matches(p1, m));
+            assertTrue(matches(p1, m), msg);
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(msg, matches(p1, n));
+            assertFalse(matches(p1, n), msg);
         }
     }
 
     @Test
-    public void constructSimpleWildcardPattern_includeRegExInWildcardPattern() {
+    void constructSimpleWildcardPattern_includeRegExInWildcardPattern() {
         String s1 = "space.*.deve.*loper";
         String p1 = UaaStringUtils.constructSimpleWildcardPattern(s1);
         String[] notmatching = new String[]{
@@ -161,12 +158,12 @@ public class UaaStringUtilsTest {
         };
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(msg, matches(p1, n));
+            assertFalse(matches(p1, n), msg);
         }
     }
 
     @Test
-    public void constructSimpleWildcardPattern_beginningWildcardPattern() {
+    void constructSimpleWildcardPattern_beginningWildcardPattern() {
         String s1 = "*.*.developer";
         String p1 = UaaStringUtils.constructSimpleWildcardPattern(s1);
         String[] matching = new String[]{
@@ -186,16 +183,16 @@ public class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(msg, matches(p1, m));
+            assertTrue(matches(p1, m), msg);
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(msg, matches(p1, n));
+            assertFalse(matches(p1, n), msg);
         }
     }
 
     @Test
-    public void constructSimpleWildcardPattern_allWildcardPattern() {
+    void constructSimpleWildcardPattern_allWildcardPattern() {
         String s1 = "*.*.*";
         String p1 = UaaStringUtils.constructSimpleWildcardPattern(s1);
         String[] matching = new String[]{
@@ -215,16 +212,16 @@ public class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(msg, matches(p1, m));
+            assertTrue(matches(p1, m), msg);
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(msg, matches(p1, n));
+            assertFalse(matches(p1, n), msg);
         }
     }
 
     @Test
-    public void convertISO8859_1_to_UTF_8() {
+    void convertISO8859_1_to_UTF_8() {
         String s = new String(new char[]{'a', '\u0000'});
         String a = UaaStringUtils.convertISO8859_1_to_UTF_8(s);
         assertEquals(s, a);
@@ -232,7 +229,7 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void retainAllMatches() {
+    void retainAllMatches() {
         assertThat(
                 UaaStringUtils.retainAllMatches(
                         Arrays.asList("saml.group.1",
@@ -338,7 +335,7 @@ public class UaaStringUtilsTest {
     }
 
     @Test
-    public void toJsonString() {
+    void toJsonString() {
         assertEquals("Y1sPgF\\\"Yj4xYZ\\\"", UaaStringUtils.toJsonString("Y1sPgF\"Yj4xYZ\""));
         assertNull(UaaStringUtils.toJsonString(null));
         assertEquals("", UaaStringUtils.toJsonString(""));
