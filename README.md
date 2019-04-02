@@ -117,9 +117,7 @@ For complex requests it is more convenient to interact with UAA using
 
 You can run the integration tests with docker
 
-    $ ~/workspace/uaa/run-integration-tests.sh mysql
-    $ ~/workspace/uaa/run-integration-tests.sh postgresql
-    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
+    $ run-integration-tests.sh <dbtype>
   
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
@@ -129,9 +127,7 @@ The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
 To run the unit tests with docker:
 
-    $ ~/workspace/uaa/run-unit-tests.sh mysql
-    $ ~/workspace/uaa/run-unit-tests.sh postgresql
-    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
+    $ run-unit-tests.sh <dbtype>
 
 ## Inventory
 

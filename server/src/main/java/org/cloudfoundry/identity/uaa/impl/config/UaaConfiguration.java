@@ -48,7 +48,7 @@ public class UaaConfiguration {
     public boolean disableInternalAuth;
 
     public String name;
-    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle|sqlserver)")
+    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
     public String spring_profiles;
 

@@ -19,14 +19,14 @@ case "$1" in
         PROFILE_NAME=mysql
         ;;
 
-    postgresql|sqlserver|mysql)
+    postgresql|mysql)
         DB_IMAGE_NAME=$1
         DB=$1
         PROFILE_NAME=$1
         ;;
 
     *)
-        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, sqlserver, mysql"
+        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
         exit 1
 esac
 

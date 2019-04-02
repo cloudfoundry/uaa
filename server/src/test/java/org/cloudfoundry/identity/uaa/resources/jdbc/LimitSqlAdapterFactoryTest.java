@@ -40,11 +40,6 @@ class LimitSqlAdapterFactoryTest {
                     Arguments.of(Arrays.asList("mysql", "default"), MySqlLimitSqlAdapter.class),
                     Arguments.of(Arrays.asList("default", "mysql"), MySqlLimitSqlAdapter.class),
 
-                    Arguments.of(Collections.singletonList("sqlserver"), SQLServerLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("sqlserver", "default"), SQLServerLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("default", "sqlserver"), SQLServerLimitSqlAdapter.class),
-
-                    Arguments.of(Arrays.asList("hsqldb", "mysql", "postgresql", "sqlserver", "default"), SQLServerLimitSqlAdapter.class),
                     Arguments.of(Arrays.asList("hsqldb", "mysql", "postgresql", "default"), PostgresLimitSqlAdapter.class),
                     Arguments.of(Arrays.asList("hsqldb", "mysql", "default"), MySqlLimitSqlAdapter.class),
                     Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),

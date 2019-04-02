@@ -5,8 +5,6 @@ import java.util.Collection;
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.apache.commons.lang3.StringUtils.join;
 
-@Deprecated
-// This class does not appear to be used anywhere in the production code.
 public class LimitSqlAdapterFactory {
 
     public static LimitSqlAdapter getLimitSqlAdapter() {
@@ -14,10 +12,6 @@ public class LimitSqlAdapterFactory {
     }
 
     static LimitSqlAdapter getLimitSqlAdapter(String profiles) {
-        if(contains(profiles, "sqlserver")) {
-            return new SQLServerLimitSqlAdapter();
-        }
-
         if(contains(profiles, "postgresql")) {
             return new PostgresLimitSqlAdapter();
         }

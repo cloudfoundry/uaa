@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -102,7 +101,6 @@ class AuditCheckMockMvcTests {
     @Autowired
     @Qualifier("uaaUserDatabaseAuthenticationManager")
     private AuthzAuthenticationManager mgr;
-    private String dbTrueString;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private String adminToken;
     private UaaAuditService mockAuditService;
@@ -161,7 +159,6 @@ class AuditCheckMockMvcTests {
         configurableApplicationContext.addApplicationListener(authSuccessListener);
 
         mgr.setAllowUnverifiedUsers(false);
-        dbTrueString = LimitSqlAdapterFactory.getLimitSqlAdapter().getClass().equals(SQLServerLimitSqlAdapter.class) ? "1" : "true";
     }
 
     @AfterEach
@@ -330,7 +327,7 @@ class AuditCheckMockMvcTests {
                 "uaa.admin,scim.write");
 
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
-        jdbcTemplates.forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = " + dbTrueString + " where origin='uaa' and username = '" + molly.getUserName() + "'"));
+        jdbcTemplates.forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = true where origin='uaa' and username = '" + molly.getUserName() + "'"));
 
         resetAuditTestReceivers();
 

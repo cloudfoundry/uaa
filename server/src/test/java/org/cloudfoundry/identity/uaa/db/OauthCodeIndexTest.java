@@ -47,8 +47,6 @@ public class OauthCodeIndexTest extends JdbcTestBase {
         return Arrays.asList(new Object[][]{
             {null, "oauth_code", "oauth_code_uq_idx", true},
             {null, "oauth_code", "oauth_code_expiresat_idx", false},
-//            {"sqlserver, "oauth_code", "oauth_code_uq_idx", true},
-//            {"sqlserver, "oauth_code", "oauth_code_expiresat_idx", false},
         });
     }
 

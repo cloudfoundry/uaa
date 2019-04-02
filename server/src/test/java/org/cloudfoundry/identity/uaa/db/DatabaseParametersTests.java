@@ -71,10 +71,6 @@ public class DatabaseParametersTests extends JdbcTestBase {
                 assertEquals("5", getUrlParameter("connectTimeout"));
                 break;
             }
-            case sqlserver : {
-                assertEquals("5", getUrlParameter("loginTimeout"));
-                break;
-            }
             case hsqldb : {break;}
             default : throw new IllegalStateException("Unrecognized database: "+ vendor);
         }

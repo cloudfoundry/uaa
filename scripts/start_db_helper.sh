@@ -52,16 +52,6 @@ function bootDB {
         mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci";
     }
 
-  elif [ "$db" = "sqlserver" ]; then
-    launchDB="(/opt/mssql/bin/sqlservr &> /var/log/sqlserver-boot.log) &"
-    testConnection="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'changemeCHANGEME1234!' -d master -Q \"select 'hello'\""
-    initDB="pushd $script_dir/..; ./gradlew -b mssql.gradle createDatabase -PdatabaseName=uaa; popd"
-
-    function createDB() {
-        DATABASE_NAME="uaa_${1}"
-        pushd $script_dir/..; ./gradlew -b mssql.gradle createDatabase -PdatabaseName=$DATABASE_NAME; popd
-    }
-
   else
     echo "skipping database"
     return 0

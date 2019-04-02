@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SQLServerLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -193,8 +192,7 @@ public class InvitationsServiceMockMvcTests {
         String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
 
-        String dbTrueString = LimitSqlAdapterFactory.getLimitSqlAdapter().getClass().equals(SQLServerLimitSqlAdapter.class) ? "1" : "true";
-        jdbcTemplate.update("UPDATE users SET verified=" + dbTrueString + " WHERE email=?", email);
+        jdbcTemplate.update("UPDATE users SET verified=true WHERE email=?", email);
         assertTrue("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
         assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
 

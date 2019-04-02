@@ -21,7 +21,6 @@ ext {
   mariaDBClientVersion = '2.2.0'
   mockitoVersion = '2.13.0'
   powermockVersion = '2.0.0-beta.5'
-  mssqlVersion = '6.2.2.jre8'
   passayVersion = '1.2.0'
   postgresqlVersion = '42.2.5'
   scimSDKVersion = '1.8.18'
