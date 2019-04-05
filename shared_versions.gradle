@@ -4,7 +4,7 @@ ext {
   bouncyCastleVersion  = '1.61'
   cglibVersion = '3.2.5'
   codehausGroovyVersion = '2.5.2'
-  commonsHttpClientVersion = '4.5.6'
+  commonsHttpClientVersion = '4.5.3'
   commonsLoggingVersion = '1.2'
   flywayVersion = '4.2.0'
   googleauthVersion = '1.1.2'
