@@ -806,7 +806,6 @@ public class IntegrationTestUtils {
                                       String zoneId,
                                       String originKey) {
         IdentityProvider provider = getProvider(zoneAdminToken, url, zoneId, originKey);
-        assertNotNull(provider);
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", "bearer " + zoneAdminToken);
