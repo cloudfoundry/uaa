@@ -84,7 +84,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String approvalsLastUpdatedAtDescription = "Date this approval was last updated.";
     private final String approvalsExpiresAtDescription = "Date this approval will expire.";
     private final String userActiveDescription = "Whether the user is allowed to log in. False acts as a soft delete; the user will not be able to log in.";
-    private final String userVerifiedDescription = "Becomes true when the user verifies their email address.";
+    private final String userVerifiedDescription = "New users are automatically verified by default. Unverified users can be created by specifying verified: false. Becomes true when the user verifies their email address.";
     private final String userOriginDescription = "The alias of the Identity Provider that authenticated this user. The value `uaa` indicates a user from the UAA's internal user store.";
     private final String userZoneIdDescription = "The Identity Zone this user belongs to. The value `uaa` refers to the default zone.";
     private final String passwordLastModifiedDescription = "The timestamp when this user's password was last changed.";
@@ -159,7 +159,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
             fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
             fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
             fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
@@ -210,7 +210,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
             fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
             fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
@@ -270,7 +270,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
             fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
             fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
-            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
