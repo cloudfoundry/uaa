@@ -184,7 +184,7 @@ public abstract class AbstractLdapMockMvcTest {
         this.mockMvc = mockMvc;
 
         String userId = new RandomValueStringGenerator().generate().toLowerCase();
-        zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI);
+        zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI, IdentityZoneHolder.getCurrentZoneId());
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setLdapProfileFile("ldap/" + ldapProfile);

@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvis
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -184,7 +185,7 @@ class SamlAuthenticationMockMvcTests {
     }
 
     private String performIdpAuthentication() throws Exception {
-        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone));
+        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone.getId()));
         return mockMvc.perform(
                 get("/saml/idp/initiate")
                         .header("Host", idpZone.getSubdomain() + ".localhost")
@@ -249,7 +250,7 @@ class SamlAuthenticationMockMvcTests {
                 generator.generate(),
                 mockMvc,
                 webApplicationContext,
-                adminClient
+                adminClient, IdentityZoneHolder.getCurrentZoneId()
         ).getIdentityZone();
     }
 

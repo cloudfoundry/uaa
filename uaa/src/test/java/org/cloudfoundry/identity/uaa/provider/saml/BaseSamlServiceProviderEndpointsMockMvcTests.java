@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ abstract class BaseSamlServiceProviderEndpointsMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
 
-        zone = zoneSwitching ? MockMvcUtils.createOtherIdentityZone(generator.generate().toLowerCase(), mockMvc, webApplicationContext) : IdentityZone.getUaa();
+        zone = zoneSwitching ? MockMvcUtils.createOtherIdentityZone(generator.generate().toLowerCase(), mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId()) : IdentityZone.getUaa();
         String scope = zoneSwitching ? "zones." + zone.getId() + ".sps.write" : "sps.write";
         MockMvcUtils.createClient(this.mockMvc, adminToken, clientId, clientSecret, null, null, Arrays.asList("client_credentials", "password"), scope);
 

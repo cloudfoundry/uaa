@@ -164,7 +164,7 @@ class UaaSamlIDPEndpointDocs extends EndpointDocs {
 
     IdentityZone createZone() throws Exception {
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
-        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
         return MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
     }
 
@@ -199,7 +199,7 @@ class UaaSamlIDPEndpointDocs extends EndpointDocs {
                 get("/saml/idp/initiate")
                         .param("sp", spEntityID)
                         .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
-                        .with(securityContext(getUaaSecurityContext(marissa.getUserName(), webApplicationContext, zone)))
+                        .with(securityContext(getUaaSecurityContext(marissa.getUserName(), webApplicationContext, zone.getId())))
         )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("<input type=\"hidden\" name=\"SAMLResponse\" value=\"")))

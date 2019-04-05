@@ -250,11 +250,11 @@ class PasswordResetEndpointMockMvcTests {
     @Test
     void zoneAdminCanResetsAndChangePassword() throws Exception {
         String subDomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subDomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subDomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = result.getIdentityZone();
         String zoneAdminScope = "zones." + identityZone.getId() + ".admin";
 
-        ScimUser scimUser = MockMvcUtils.createAdminForZone(mockMvc, adminToken, zoneAdminScope);
+        ScimUser scimUser = MockMvcUtils.createAdminForZone(mockMvc, adminToken, zoneAdminScope, IdentityZoneHolder.get().getId());
 
         String zonifiedAdminClientId = generator.generate().toLowerCase();
         String zonifiedAdminClientSecret = generator.generate().toLowerCase();

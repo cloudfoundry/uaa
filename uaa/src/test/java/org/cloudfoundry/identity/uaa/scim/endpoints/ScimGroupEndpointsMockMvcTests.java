@@ -289,7 +289,7 @@ public class ScimGroupEndpointsMockMvcTests {
     @Test
     void testGroupOperations_as_Zone_Admin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
         IdentityZone zone = result.getIdentityZone();
 
@@ -405,7 +405,7 @@ public class ScimGroupEndpointsMockMvcTests {
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                subdomain, mockMvc, webApplicationContext, bootstrapClient
+                subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
         );
 
         ScimGroup group1 = new ScimGroup(null, "scim.whatever", result.getIdentityZone().getId());
@@ -473,7 +473,7 @@ public class ScimGroupEndpointsMockMvcTests {
         String subdomain = new RandomValueStringGenerator(8).generate();
         BaseClientDetails bootstrapClient = null;
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                subdomain, mockMvc, webApplicationContext, bootstrapClient
+                subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
         );
 
         String zonedClientId = "zonedClientId";

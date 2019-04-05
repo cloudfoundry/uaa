@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,7 +118,7 @@ class LdapCertificateMockMvcTests {
                 gen.generate(),
                 mockMvc,
                 webApplicationContext,
-                null);
+                null, IdentityZoneHolder.getCurrentZoneId());
 
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
                 "ldaps://localhost:" + LDAP_VALID_LDAPS_PORT,
@@ -141,7 +142,7 @@ class LdapCertificateMockMvcTests {
                 gen.generate(),
                 mockMvc,
                 webApplicationContext,
-                null);
+                null, IdentityZoneHolder.getCurrentZoneId());
         definition.setBaseUrl("ldaps://localhost:" + LDAP_EXPIRED_LDAPS_PORT);
         MockMvcUtils.createIdentityProvider(mockMvc, trustedButExpiredCertZone, OriginKeys.LDAP, definition);
 

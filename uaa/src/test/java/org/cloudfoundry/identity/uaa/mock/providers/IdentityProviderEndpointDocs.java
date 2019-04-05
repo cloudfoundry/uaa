@@ -730,7 +730,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(new RandomValueStringGenerator(8).generate().toLowerCase(),
                         mockMvc,
                         webApplicationContext,
-                        admin);
+                        admin, IdentityZoneHolder.getCurrentZoneId());
 
 
         Snippet requestFields = requestFields(fields);

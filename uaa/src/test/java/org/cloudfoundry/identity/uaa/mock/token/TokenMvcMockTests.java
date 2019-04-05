@@ -565,7 +565,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 mockMvc,
                 webApplicationContext,
                 null,
-                false);
+                false, IdentityZoneHolder.getCurrentZoneId());
 
         //create an actual IDP, so we can fetch metadata
         String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);
@@ -640,7 +640,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 mockMvc,
                 webApplicationContext,
                 null,
-                false);
+                false, IdentityZoneHolder.getCurrentZoneId());
         //create an actual IDP, so we can fetch metadata
         String spMetadata = MockMvcUtils.getSPMetadata(mockMvc, null);
         String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);

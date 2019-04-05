@@ -65,7 +65,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         originClient = new BaseClientDetails(generator.generate(), "", "openid", "password", null);
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
-        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient);
+        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient, IdentityZoneHolder.getCurrentZoneId());
         originUser = createUser(originZone.getIdentityZone());
     }
 
@@ -91,7 +91,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                                                                                 mockMvc,
                                                                                 webApplicationContext,
                                                                                 null,
-                                                                                false).getIdentityZone();
+                                                                                false, IdentityZoneHolder.getCurrentZoneId()).getIdentityZone();
         createProvider(zone, getTokenVerificationKey(originZone.getIdentityZone()));
         perform_grant_in_zone(zone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
             .andExpect(status().isOk())
