@@ -116,16 +116,16 @@ public class ZoneAwareMetadataGeneratorTests {
     void testZonifiedEntityID() {
         generator.setEntityId("local-name");
         assertEquals("local-name", generator.getEntityId());
-        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId(), IdentityZoneHolder.get()));
 
         generator.setEntityId(null);
         assertNotNull(generator.getEntityId());
-        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId(), IdentityZoneHolder.get()));
 
         IdentityZoneHolder.set(otherZone);
 
         assertNotNull(generator.getEntityId());
-        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId()));
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId(generator.getEntityId(), IdentityZoneHolder.get()));
     }
 
     @Test
@@ -139,14 +139,14 @@ public class ZoneAwareMetadataGeneratorTests {
 
         // valid entityID from SamlConfig
         assertEquals("local-name", generator.getEntityId());
-        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId("local-name"));
+        assertEquals("local-name", SamlRedirectUtils.getZonifiedEntityId("local-name", IdentityZoneHolder.get()));
         assertNotNull(generator.getEntityId());
 
         // remove SamlConfig
         newZone.getConfig().setSamlConfig(null);
-        assertNotNull(SamlRedirectUtils.getZonifiedEntityId("local-idp"));
+        assertNotNull(SamlRedirectUtils.getZonifiedEntityId("local-idp", IdentityZoneHolder.get()));
         // now the entityID is generated id as before this change
-        assertEquals("new-zone-id.local-name", SamlRedirectUtils.getZonifiedEntityId("local-name"));
+        assertEquals("new-zone-id.local-name", SamlRedirectUtils.getZonifiedEntityId("local-name", IdentityZoneHolder.get()));
     }
 
     @Test

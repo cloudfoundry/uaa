@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
@@ -17,7 +18,7 @@ public class TokenEndpointBuilder {
 
     public String getTokenEndpoint() {
         try {
-            return UaaTokenUtils.constructTokenEndpointUrl(issuer);
+            return UaaTokenUtils.constructTokenEndpointUrl(issuer, IdentityZoneHolder.get());
         } catch (URISyntaxException e) {
             logger.error("Failed to get token endpoint for issuer " + issuer, e);
             throw new IllegalArgumentException(e);

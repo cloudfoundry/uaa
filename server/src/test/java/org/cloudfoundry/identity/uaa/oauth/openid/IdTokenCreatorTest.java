@@ -138,13 +138,16 @@ public class IdTokenCreatorTest {
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
         when(tokenValidityResolver.resolve(clientId)).thenReturn(expDate);
 
-        PowerMockito.mockStatic(UaaTokenUtils.class);
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn(issuerUrl);
-
-        when(UaaTokenUtils.getRevocableTokenSignature(user, tokensalt, clientId, clientsecret)).thenReturn("Signature");
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(zoneId);
 
         PowerMockito.mockStatic(IdentityZoneHolder.class);
-        when(IdentityZoneHolder.get()).thenReturn(new IdentityZone() {{ setId(zoneId); }});
+        when(IdentityZoneHolder.get()).thenReturn(identityZone);
+
+        PowerMockito.mockStatic(UaaTokenUtils.class);
+        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl, identityZone)).thenReturn(issuerUrl);
+
+        when(UaaTokenUtils.getRevocableTokenSignature(user, tokensalt, clientId, clientsecret)).thenReturn("Signature");
 
         uaaUserDatabase = mock(UaaUserDatabase.class);
         when(uaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
@@ -372,7 +375,7 @@ public class IdTokenCreatorTest {
 
     @Test
     public void idToken_containsZonifiedIssuerUrl() throws Exception {
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn("http://myzone.localhost:8080/uaa/oauth/token");
+        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl, IdentityZoneHolder.get())).thenReturn("http://myzone.localhost:8080/uaa/oauth/token");
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 

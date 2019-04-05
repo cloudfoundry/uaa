@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.joda.time.DateTime;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml2.core.Assertion;
@@ -34,19 +34,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 public class SamlRedirectUtils {
 
-    public static String getIdpRedirectUrl(SamlIdentityProviderDefinition definition, String entityId) {
+    public static String getIdpRedirectUrl(SamlIdentityProviderDefinition definition, String entityId, IdentityZone identityZone) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
         builder.queryParam("returnIDParam", "idp");
-        builder.queryParam("entityID", getZonifiedEntityId(entityId));
+        builder.queryParam("entityID", getZonifiedEntityId(entityId, identityZone));
         builder.queryParam("idp", definition.getIdpEntityAlias());
         builder.queryParam("isPassive", "true");
         return builder.build().toUriString();
     }
 
-    public static String getZonifiedEntityId(String entityID) {
+    public static String getZonifiedEntityId(String entityID, IdentityZone identityZone) {
         try{
-            if (!IdentityZoneHolder.isUaa()) {
-                String url = IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID();
+            if (!identityZone.isUaa()) {
+                String url = identityZone.getConfig().getSamlConfig().getEntityID();
                 if (url != null) {
                     return url;
                 }
@@ -54,9 +54,9 @@ public class SamlRedirectUtils {
         } catch (Exception ignored) {}
 
         if (UaaUrlUtils.isUrl(entityID)) {
-            return UaaUrlUtils.addSubdomainToUrl(entityID, IdentityZoneHolder.get().getSubdomain());
+            return UaaUrlUtils.addSubdomainToUrl(entityID, identityZone.getSubdomain());
         } else {
-            return UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain()) + entityID;
+            return UaaUrlUtils.getSubdomain(identityZone.getSubdomain()) + entityID;
         }
     }
 

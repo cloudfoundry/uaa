@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +28,7 @@ public class OpenIdConnectEndpoints {
     }
 
     public String getTokenEndpoint() throws URISyntaxException {
-        return UaaTokenUtils.constructTokenEndpointUrl(issuer);
+        return UaaTokenUtils.constructTokenEndpointUrl(issuer, IdentityZoneHolder.get());
     }
 
     public String getIssuer() {
