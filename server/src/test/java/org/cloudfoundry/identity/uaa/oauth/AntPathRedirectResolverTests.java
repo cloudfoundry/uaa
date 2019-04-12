@@ -123,6 +123,14 @@ class AntPathRedirectResolverTests {
         }
 
         @Test
+        void doesNotWarnOnEmptyRedirectUri() {
+            ClientDetails client = createClient("foo", "http://localhost");
+
+            resolver.resolveRedirect(null, client);
+            assertThat(logEvents, empty());
+        }
+
+        @Test
         void warnsOnImplicitMultipleDomainExpansion() {
             final String configuredUri = "https://example.com";
             final String requestedUri = "https://another.subdomain.example.com";

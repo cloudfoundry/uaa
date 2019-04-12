@@ -26,7 +26,6 @@ import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectReso
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -64,7 +63,6 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
                 return true;
             }
 
-
             return super.redirectMatches(requestedRedirect, clientRedirect);
         } catch (IllegalArgumentException e) {
             logger.error(
@@ -95,7 +93,7 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
         registeredRedirectUris
             .stream()
             .filter(configured ->
-                super.redirectMatches(requestedRedirect, configured) && !requestedRedirect.equals(configured)
+                requestedRedirect != null && super.redirectMatches(requestedRedirect, configured) && !requestedRedirect.equals(configured)
             )
             .forEach(configured ->
                     logger.warn(String.format(MSG_TEMPLATE, client.getClientId(), configured, redactSensitiveInformation(requestedRedirect))));
