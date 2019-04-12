@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -38,15 +37,7 @@ import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.schema.XSAny;
-import org.opensaml.xml.schema.XSBase64Binary;
-import org.opensaml.xml.schema.XSBoolean;
-import org.opensaml.xml.schema.XSBooleanValue;
-import org.opensaml.xml.schema.XSDateTime;
-import org.opensaml.xml.schema.XSInteger;
-import org.opensaml.xml.schema.XSQName;
-import org.opensaml.xml.schema.XSString;
-import org.opensaml.xml.schema.XSURI;
+import org.opensaml.xml.schema.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
@@ -72,24 +63,13 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
@@ -398,57 +378,25 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
-        String name = principal.getName();
-        String email = userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME);
-        String givenName = userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME);
-        String familyName = userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME);
-        String phoneNumber = userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME);
-        String emailVerified = userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME);
-        String userId = NotANumber;
-        String origin = principal.getOrigin()!=null?principal.getOrigin(): OriginKeys.LOGIN_SERVER;
-        String zoneId = principal.getZoneId();
-        if (name == null && email != null) {
-            name = email;
-        }
-        if (name == null) {
+        if (principal.getName() == null && userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME) == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
         }
-        if (email == null) {
-            if (name.contains("@")) {
-                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                    email = name;
-                } else {
-                    email = name.replaceAll("@", "") + "@this-default-was-not-configured.invalid";
-                }
-            }
-            else {
-                email = name + "@this-default-was-not-configured.invalid";
-            }
-        }
-        if (givenName == null) {
-            givenName = email.split("@")[0];
-        }
-        if (familyName == null) {
-            familyName = email.split("@")[1];
-        }
-        return new UaaUser(
-        new UaaUserPrototype()
-            .withVerified(Boolean.valueOf(emailVerified))
-            .withEmail(email)
-            .withGivenName(givenName)
-            .withFamilyName(familyName)
-            .withPhoneNumber(phoneNumber)
-            .withModified(new Date())
-            .withId(userId)
-            .withUsername(name)
-            .withPassword("")
-            .withAuthorities(Collections.EMPTY_LIST)
-            .withCreated(new Date())
-            .withOrigin(origin)
-            .withExternalId(name)
-            .withZoneId(zoneId)
-            .withSalt(null)
-            .withPasswordLastModified(null));
+
+        String name = principal.getName();
+        return UaaUser.createWithDefaults(u ->
+            u.withId(OriginKeys.NotANumber)
+                .withUsername(name)
+                .withEmail(userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME))
+                .withPhoneNumber(userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME))
+                .withPassword("")
+                .withGivenName(userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME))
+                .withFamilyName(userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME))
+                .withAuthorities(Collections.emptyList())
+                .withVerified(Boolean.valueOf(userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME)))
+                .withOrigin(principal.getOrigin() != null ? principal.getOrigin() : OriginKeys.LOGIN_SERVER)
+                .withExternalId(name)
+                .withZoneId(principal.getZoneId())
+        );
     }
 
     protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {

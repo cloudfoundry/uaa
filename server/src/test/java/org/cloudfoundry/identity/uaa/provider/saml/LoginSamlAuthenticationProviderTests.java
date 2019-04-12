@@ -20,11 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.user.*;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -36,26 +32,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.common.SAMLException;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Attribute;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.*;
 import org.opensaml.ws.wsaddressing.impl.AttributedURIImpl;
 import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.encryption.DecryptionException;
 import org.opensaml.xml.schema.XSBoolean;
 import org.opensaml.xml.schema.XSBooleanValue;
-import org.opensaml.xml.schema.impl.XSAnyImpl;
-import org.opensaml.xml.schema.impl.XSBase64BinaryImpl;
-import org.opensaml.xml.schema.impl.XSBooleanBuilder;
-import org.opensaml.xml.schema.impl.XSBooleanImpl;
-import org.opensaml.xml.schema.impl.XSDateTimeImpl;
-import org.opensaml.xml.schema.impl.XSIntegerImpl;
-import org.opensaml.xml.schema.impl.XSQNameImpl;
-import org.opensaml.xml.schema.impl.XSURIImpl;
+import org.opensaml.xml.schema.impl.*;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.validation.ValidationException;
 import org.springframework.context.ApplicationEvent;
@@ -82,35 +66,16 @@ import org.springframework.web.context.request.ServletWebRequest;
 
 import javax.servlet.ServletContext;
 import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
@@ -662,41 +627,6 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
-    public void emailIsNullNameDoesNotContainCommercialAtReturnsNamePlusDefaultDomain() {
-        String somethingReasonable = "something-reasonable";
-        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-uaa-principal", null, OriginKeys.SAML, somethingReasonable, identityZoneManager.getCurrentIdentityZone().getId());
-        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
-        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
-    }
-
-    @Test
-    public void emailIsNullNameContainsLeadingCommericalAtReturnsNamePlusDefaultDomain() {
-        String somethingReasonable = "something-reasonable";
-        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "@new-uaa-principal", null, OriginKeys.SAML, somethingReasonable, identityZoneManager.getCurrentIdentityZone().getId());
-        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
-        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
-    }
-
-    @Test
-    public void emailIsNullNameContainsTrailingCommericalAtReturnsNamePlusDefaultDomain() {
-        String somethingReasonable = "something-reasonable";
-        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-uaa-principal@", null, OriginKeys.SAML, somethingReasonable, identityZoneManager.getCurrentIdentityZone().getId());
-        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
-        assertEquals("new-uaa-principal@this-default-was-not-configured.invalid", user.getEmail());
-    }
-    @Test
-    public void emailIsNullNameContainsMiddleCommericalAtReturnsNamePlusDefaultDomain() {
-        String somethingReasonable = "something-reasonable";
-        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(somethingReasonable, "new-u@a-principal", null, OriginKeys.SAML, somethingReasonable, identityZoneManager.getCurrentIdentityZone().getId());
-        UaaUser user = authprovider.getUser(uaaPrincipal, attributes);
-        assertEquals("new-u@a-principal", user.getEmail());
-    }
-
-    @Test
     public void dont_update_existingUser_if_attributes_areTheSame() {
         getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
@@ -916,6 +846,93 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
         assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
         assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+    }
+
+
+    @Test
+    public void getUserByDefaultUsesTheAvailableData() {
+        UaaPrincipal principal = new UaaPrincipal(
+                UUID.randomUUID().toString(),
+                "user",
+                "user@example.com",
+                OriginKeys.SAML,
+                "user",
+                identityZoneManager.getCurrentIdentityZone().getId()
+        );
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        attributes.add(EMAIL_ATTRIBUTE_NAME, "user@example.com");
+        attributes.add(PHONE_NUMBER_ATTRIBUTE_NAME, "(415) 555-0111");
+        attributes.add(GIVEN_NAME_ATTRIBUTE_NAME, "Jane");
+        attributes.add(FAMILY_NAME_ATTRIBUTE_NAME, "Doe");
+        attributes.add(EMAIL_VERIFIED_ATTRIBUTE_NAME, "true");
+
+        UaaUser user = authprovider.getUser(principal, attributes);
+        assertThat(user, is(
+                aUaaUser()
+                        .withUsername("user")
+                        .withEmail("user@example.com")
+                        .withPhoneNumber("(415) 555-0111")
+                        .withPassword("")
+                        .withGivenName("Jane")
+                        .withFamilyName("Doe")
+                        .withAuthorities(emptyIterable())
+                        .withVerified(true)
+                        .withOrigin(OriginKeys.SAML)
+                        .withExternalId("user")
+                        .withZoneId(identityZoneManager.getCurrentIdentityZoneId())
+        ));
+    }
+
+    @Test
+    public void getUserWithoutOriginSuppliesDefaultsToLoginServer() {
+        UaaPrincipal principal = new UaaPrincipal(
+                UUID.randomUUID().toString(),
+                "user",
+                "user@example.com",
+                null,
+                "user",
+                identityZoneManager.getCurrentIdentityZone().getId()
+        );
+
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaUser user = authprovider.getUser(principal, attributes);
+        assertThat(user, is(aUaaUser().withOrigin(OriginKeys.LOGIN_SERVER)));
+    }
+
+    @Test
+    public void getUserWithoutVerifiedDefaultsToFalse() {
+        UaaPrincipal principal = new UaaPrincipal(
+                UUID.randomUUID().toString(),
+                "user",
+                "user@example.com",
+                null,
+                "user",
+                identityZoneManager.getCurrentIdentityZone().getId()
+        );
+
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+        UaaUser user = authprovider.getUser(principal, attributes);
+        assertThat(user, is(aUaaUser().withVerified(false)));
+    }
+
+    @Test
+    public void throwsIfUserNameAndEmailAreMissing() {
+        UaaPrincipal principal = new UaaPrincipal(
+                UUID.randomUUID().toString(),
+                null,
+                "user@example.com",
+                null,
+                "user",
+                identityZoneManager.getCurrentIdentityZone().getId()
+        );
+
+        LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
+
+        assertThrows(
+                BadCredentialsException.class,
+                () -> authprovider.getUser(principal, attributes),
+                "Cannot determine username from credentials supplied"
+        );
     }
 
     protected UaaAuthentication getAuthentication() {
