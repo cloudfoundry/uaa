@@ -24,19 +24,28 @@ import org.springframework.security.oauth2.common.exceptions.RedirectMismatchExc
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class AntPathRedirectResolver extends DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(AntPathRedirectResolver.class);
+    static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which implicitly performs wildcard matching. This feature will be removed in a future version of UAA. In this instance, %s matches %s.";
 
     @Override
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
@@ -54,6 +63,7 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
                     clientRedirectUri.match(requestedRedirectURI)) {
                 return true;
             }
+
 
             return super.redirectMatches(requestedRedirect, clientRedirect);
         } catch (IllegalArgumentException e) {
@@ -76,15 +86,53 @@ public class AntPathRedirectResolver extends DefaultRedirectResolver {
 
         List<String> invalidUrls = registeredRedirectUris.stream()
                 .filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         if (!invalidUrls.isEmpty()) {
             throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
         }
 
+        registeredRedirectUris
+            .stream()
+            .filter(configured ->
+                super.redirectMatches(requestedRedirect, configured) && !requestedRedirect.equals(configured)
+            )
+            .forEach(configured ->
+                    logger.warn(String.format(MSG_TEMPLATE, client.getClientId(), configured, redactSensitiveInformation(requestedRedirect))));
+
         return super.resolveRedirect(requestedRedirect, client);
     }
 
+    private static String redactSensitiveInformation(String uri) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(uri);
+        redactQueryParams(builder);
+        redactUserInfo(builder);
+        redactHashFragment(builder);
+        return builder.toUriString();
+    }
+
+    private static void redactQueryParams(UriComponentsBuilder builder) {
+        MultiValueMap<String, String> originalParams = builder.build().getQueryParams();
+        Map<String, List<String>> redactedParams = originalParams.entrySet()
+            .stream()
+            .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
+            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        builder.queryParams(new LinkedMultiValueMap<>(redactedParams));
+    }
+
+    private static void redactUserInfo(UriComponentsBuilder builder) {
+        String userInfo = builder.build().getUserInfo();
+        if (!isEmpty(userInfo)) {
+            builder.userInfo("REDACTED:REDACTED");
+        }
+    }
+
+    private static void redactHashFragment(UriComponentsBuilder builder) {
+        if (!isEmpty(builder.build().getFragment())) {
+            builder.fragment("REDACTED");
+        }
+    }
 
     private static class ClientRedirectUriPattern {
         // The URI spec provides a regex for matching URI parts

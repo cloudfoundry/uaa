@@ -15,31 +15,245 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.jupiter.api.*;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.apache.logging.log4j.Level.WARN;
 
 class AntPathRedirectResolverTests {
 
     private final AntPathRedirectResolver resolver = new AntPathRedirectResolver();
+
+    private static ClientDetails createClient(String id, String... redirectUris) {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(id);
+        clientDetails.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
+        clientDetails.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUris)));
+
+        return clientDetails;
+    }
+
+    private static String expectedWarning(String clientId, String configured, String requested) {
+        return String.format(AntPathRedirectResolver.MSG_TEMPLATE, clientId, configured, requested);
+    }
+
+    private static Matcher<LogEvent> warning(String msg) {
+        return new LogEventMatcher(WARN, msg, "a warning about implicit redirect matching");
+    }
+
+    private static class LogEventMatcher extends TypeSafeMatcher<LogEvent> {
+        private Level level;
+        private Matcher<String> msgMatcher;
+        private String matchFail;
+
+        LogEventMatcher(Level level, String msg, String matchFail) {
+            this.level = level;
+            this.msgMatcher = is(msg);
+            this.matchFail = matchFail;
+        }
+
+        @Override
+        protected boolean matchesSafely(LogEvent event) {
+            return event.getLevel().equals(level) && msgMatcher.matches(event.getMessage().getFormattedMessage());
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText(matchFail);
+        }
+    }
+
+    @Nested
+    class WithCapturedLogs {
+        private List<LogEvent> logEvents;
+        private AbstractAppender appender;
+
+        @BeforeEach
+        void setupLogger() {
+            logEvents = new ArrayList<>();
+            appender = new AbstractAppender("", null, null) {
+                @Override
+                public void append(LogEvent event) {
+                    logEvents.add(event);
+                }
+            };
+            appender.start();
+
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            context.getRootLogger().addAppender(appender);
+        }
+
+        @AfterEach
+        void removeAppender() {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            context.getRootLogger().removeAppender(appender);
+        }
+
+        @Test
+        void warnsOnImplicitDomainExpansion() {
+            final String configuredUri = "https://example.com";
+            final String requestedUri = "https://subdomain.example.com";
+            ClientDetails client = createClient("foo", configuredUri);
+
+            resolver.resolveRedirect(requestedUri, client);
+            assertThat(logEvents, hasItem(
+                warning(expectedWarning(client.getClientId(), configuredUri, requestedUri)))
+            );
+        }
+
+        @Test
+        void warnsOnImplicitMultipleDomainExpansion() {
+            final String configuredUri = "https://example.com";
+            final String requestedUri = "https://another.subdomain.example.com";
+            ClientDetails client = createClient("foo", configuredUri);
+
+            resolver.resolveRedirect(requestedUri, client);
+            assertThat(logEvents, hasItem(
+                    warning(expectedWarning(client.getClientId(), configuredUri, requestedUri)))
+            );
+        }
+
+        @Test
+        void doesNotWarnOnExplicitDomainExpansion() {
+            final String configuredRedirectUri = "https://*.example.com";
+            final String requestedRedirectUri = "https://subdomain.example.com";
+            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
+            assertThat(logEvents, empty());
+        }
+
+        @Test
+        void warnsOnImplicitPathExpansion() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com/path";
+            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
+            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+        }
+
+        @Test
+        void warnsOnImplicitMultiplePathExpansion() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com/some/path";
+            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
+            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+        }
+
+        @Test
+        void doesNotWarnOnExplicitPathExpansion() {
+            final String configuredRedirectUri = "https://example.com/*";
+            final String requestedRedirectUri = "https://example.com/path";
+            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
+            assertThat(logEvents, empty());
+        }
+
+        @Test
+        void warnsOnPotentialImplicitWildcardMatch() {
+            final String configuredExplicitRedirectUri = "https://*.example.com/";
+            final String configuredImplicitRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://an.example.com/";
+
+            // the explicit redirect uri will match first, but we should still log
+            ClientDetails clientDetails = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
+            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
+        }
+
+        @Test
+        void redactsQueryParameterValues() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com/path?foo=bar&foo=1234&baz=qux";
+
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+
+            assertThat(logEvents, hasItem(
+                warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/path?foo=REDACTED&foo=REDACTED&baz=REDACTED")))
+            );
+        }
+
+        @Test
+        void redactsHashFragment() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com/#IAmAHash";
+
+            ClientDetails client = createClient("front-end-app", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+
+            assertThat(logEvents, hasItem(
+                warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/#REDACTED")))
+            );
+        }
+
+        @Test
+        void warnsOnImplicitAuthorizationExpansion() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://user:pass@example.com/";
+
+            ClientDetails client = createClient("myAppIsCool", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+
+            assertThat(logEvents, hasItem(
+                warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://REDACTED:REDACTED@example.com/")))
+            );
+        }
+
+        @Test
+        void doesNotWarnForExactMatch() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com/";
+
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+
+            assertThat(logEvents, empty());
+        }
+
+        @Test
+        void doesNotWarnForPortExpansion() {
+            final String configuredRedirectUri = "https://example.com/";
+            final String requestedRedirectUri = "https://example.com:65000/";
+
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            assertThrows(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect(requestedRedirectUri, client));
+
+            assertThat(logEvents, empty());
+        }
+    }
 
     @Nested
     @DisplayName("matching http://domain.com")
@@ -639,5 +853,4 @@ class AntPathRedirectResolverTests {
         }
 
     }
-
 }
