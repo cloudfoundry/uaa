@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -24,7 +21,9 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -35,13 +34,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
-import java.util.Date;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -127,60 +124,28 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     }
 
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
-        String name = req.getName();
-        String email = info.get("email");
-        String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
-
-        if(info.get(ORIGIN)!=null && info.get(ORIGIN).equals(UAA)){
+        if(info.get(OriginKeys.ORIGIN)!=null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)){
             throw new BadCredentialsException("uaa origin not allowed for external login server");
         }
-        String origin = info.get(ORIGIN)!=null?info.get(ORIGIN): LOGIN_SERVER;
 
-        if (name == null && email != null) {
-            name = email;
-        }
-        if (name == null && NotANumber.equals(userId)) {
+        // TODO: Verify this can be removed
+        // AuthzAuthenticationRequest requires name. This condition can never happen.
+        if (req.getName() == null && info.get("email") == null && info.get("user_id") == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
-        } else if (name==null) {
-            //we have user_id, name is irrelevant
-            name="unknown";
         }
-        if (email == null) {
-            if (name.contains("@")) {
-                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                    email = name;
-                } else {
-                    email = name.replaceAll("@", "") + "@this-default-was-not-configured.invalid";
-                }
-            }
-            else {
-                email = name + "@this-default-was-not-configured.invalid";
-            }
-        }
-        String givenName = info.get("given_name");
-        if (givenName == null) {
-            givenName = email.split("@")[0];
-        }
-        String familyName = info.get("family_name");
-        if (familyName == null) {
-            familyName = (email.split("@").length > 1 ? email.split("@")[1] : email);
-        }
-        return new UaaUser(
-            userId,
-            name,
-            "" /*zero length password for login server */,
-            email,
-            UaaAuthority.USER_AUTHORITIES,
-            givenName,
-            familyName,
-            new Date(),
-            new Date(),
-            origin,
-            name,
-            false,
-            identityZoneManager.getCurrentIdentityZoneId(),
-            null,
-            null);
 
+        String name = req.getName();
+        return UaaUser.createWithDefaults(u ->
+            u.withId(info.getOrDefault("user_id", NotANumber))
+                .withUsername(name)
+                .withEmail(info.get("email"))
+                .withGivenName(info.get("given_name"))
+                .withFamilyName(info.get("family_name"))
+                .withPassword("")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withOrigin(info.getOrDefault(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER))
+                .withExternalId(name)
+                .withZoneId(identityZoneManager.getCurrentIdentityZoneId())
+        );
     }
 }
