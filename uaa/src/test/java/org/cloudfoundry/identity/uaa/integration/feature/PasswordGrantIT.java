@@ -27,6 +27,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
@@ -138,40 +139,7 @@ public class PasswordGrantIT {
     public void testUserLoginViaPasswordGrantLoginHintOidc() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
-            IdentityProvider identityProvider = new IdentityProvider<>();
-            identityProvider.setName("my oidc provider");
-            identityProvider.setIdentityZoneId(OriginKeys.UAA);
-            OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
-            config.setClientAuthInBody(false);
-            config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-            config.addAttributeMapping("given_name", "user_name");
-            config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
-            config.addAttributeMapping("external_groups", "scope");
-
-            config.setStoreCustomAttributes(true);
-
-            config.addWhiteListedGroup("*");
-
-            config.setAuthUrl(new URL(baseUrl + "/oauth/authorize"));
-            config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
-            config.setTokenKeyUrl(new URL(baseUrl + "/token_key"));
-            config.setIssuer(baseUrl + "/oauth/token");
-            config.setUserInfoUrl(new URL(baseUrl + "/userinfo"));
-
-            config.setShowLinkText(true);
-            config.setLinkText("My OIDC Provider");
-            config.setSkipSslValidation(true);
-            config.setRelyingPartyId("identity");
-            config.setRelyingPartySecret("identitysecret");
-            config.setPasswordGrantEnabled(true);
-            List<String> requestedScopes = new ArrayList<>();
-            requestedScopes.add("openid");
-            requestedScopes.add("cloud_controller.read");
-            config.setScopes(requestedScopes);
-            identityProvider.setConfig(config);
-            identityProvider.setOriginKey("puppy");
-            identityProvider.setIdentityZoneId("uaa");
-            IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
+            createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -189,6 +157,37 @@ public class PasswordGrantIT {
                     Void.class);
 
             Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        } finally {
+            IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
+        }
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantLoginHintOidcFails() throws Exception {
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        try {
+            createOidcProvider(clientCredentialsToken);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+
+            LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+            postBody.add("grant_type", "password");
+            postBody.add("username", testAccounts.getUserName());
+            postBody.add("password", "invalidPassword");
+            postBody.add("login_hint", "{\"origin\":\"puppy\"}");
+
+            try {
+                ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
+                        HttpMethod.POST,
+                        new HttpEntity<>(postBody, headers),
+                        Void.class);
+            } catch (HttpClientErrorException e) {
+                Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            }
+            //Check Audit events?
+
         } finally {
             IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
         }
@@ -255,5 +254,42 @@ public class PasswordGrantIT {
         testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", false);
 
         return userEmail;
+    }
+
+    private void createOidcProvider(String clientCredentialsToken) throws MalformedURLException {
+        IdentityProvider identityProvider = new IdentityProvider<>();
+        identityProvider.setName("my oidc provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        config.setClientAuthInBody(false);
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
+        config.addAttributeMapping("given_name", "user_name");
+        config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
+        config.addAttributeMapping("external_groups", "scope");
+
+        config.setStoreCustomAttributes(true);
+
+        config.addWhiteListedGroup("*");
+
+        config.setAuthUrl(new URL(baseUrl + "/oauth/authorize"));
+        config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
+        config.setTokenKeyUrl(new URL(baseUrl + "/token_key"));
+        config.setIssuer(baseUrl + "/oauth/token");
+        config.setUserInfoUrl(new URL(baseUrl + "/userinfo"));
+
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        config.setPasswordGrantEnabled(true);
+        List<String> requestedScopes = new ArrayList<>();
+        requestedScopes.add("openid");
+        requestedScopes.add("cloud_controller.read");
+        config.setScopes(requestedScopes);
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey("puppy");
+        identityProvider.setIdentityZoneId("uaa");
+        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
     }
 }

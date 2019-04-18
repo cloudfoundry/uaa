@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,6 +35,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
@@ -42,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -69,6 +74,7 @@ class PasswordGrantAuthenticationManagerTest {
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private MultitenantClientServices clientDetailsService;
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private ApplicationEventPublisher eventPublisher;
 
     private IdentityProvider idp;
     private IdentityProvider uaaProvider;
@@ -114,6 +120,8 @@ class PasswordGrantAuthenticationManagerTest {
 
         instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, xoAuthAuthenticationManager, clientDetailsService, xoAuthProviderConfigurator);
         IdentityZoneHolder.clear();
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        instance.setApplicationEventPublisher(eventPublisher);
     }
 
     @AfterEach
@@ -187,6 +195,37 @@ class PasswordGrantAuthenticationManagerTest {
         assertThat(headers.get("Authorization").get(0), startsWith("Basic "));
 
         assertEquals("mytoken", tokenArgumentCaptor.getValue().getIdToken());
+    }
+
+    @Test
+    void testOIDCPasswordGrantInvalidLogin() {
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala1");
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+
+        ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        HttpClientErrorException exception = mock(HttpClientErrorException.class);
+        when(rt.exchange(anyString(),any(HttpMethod.class),any(HttpEntity.class),any(ParameterizedTypeReference.class))).thenThrow(exception);
+
+        try {
+            instance.authenticate(auth);
+            fail("No Exception thrown.");
+        } catch (BadCredentialsException e) {
+        }
+
+        ArgumentCaptor<AbstractUaaEvent> eventArgumentCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventArgumentCaptor.capture());
+
+        assertEquals(1, eventArgumentCaptor.getAllValues().size());
+        assertTrue(eventArgumentCaptor.getValue() instanceof IdentityProviderAuthenticationFailureEvent);
     }
 
     @Test
