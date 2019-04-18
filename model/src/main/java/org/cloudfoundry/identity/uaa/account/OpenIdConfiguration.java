@@ -53,6 +53,8 @@ public class OpenIdConfiguration {
     private String serviceDocumentation = "http://docs.cloudfoundry.org/api/uaa/";
     @JsonProperty("ui_locales_supported")
     private String[] uiLocalesSupported = new String[]{"en-US"};
+    @JsonProperty("code_challenge_methods_supported")
+    private String[] codeChallengeMethodsSupported = new String[]{"S256", "plain"};
 
     //For json serialization
     public OpenIdConfiguration() {}
@@ -200,4 +202,12 @@ public class OpenIdConfiguration {
     public void setUiLocalesSupported(String[] uiLocalesSupported) {
         this.uiLocalesSupported = uiLocalesSupported;
     }
+
+	public String[] getCodeChallengeMethodsSupported() {
+		return codeChallengeMethodsSupported;
+	}
+
+	public void setCodeChallengeMethodsSupported(String[] codeChallengeMethodsSupported) {
+		this.codeChallengeMethodsSupported = codeChallengeMethodsSupported;
+	}
 }

@@ -57,6 +57,7 @@ public class OpenIdConfigurationTests {
         assertFalse(defaultConfig.isClaimsParameterSupported());
         assertEquals("http://docs.cloudfoundry.org/api/uaa/", defaultConfig.getServiceDocumentation());
         assertArrayEquals(new String[]{"en-US"}, defaultConfig.getUiLocalesSupported());
+        assertArrayEquals(new String[]{"S256", "plain"}, defaultConfig.getCodeChallengeMethodsSupported());
     }
 
 }

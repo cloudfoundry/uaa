@@ -34,12 +34,27 @@
         client-details-service-ref="jdbcClientDetailsService"
         token-services-ref="tokenServices" user-approval-handler-ref="userManagedApprovalHandler"
         authorization-request-manager-ref="authorizationRequestManager" request-validator-ref="oauth2RequestValidator">
-        <oauth:authorization-code authorization-code-services-ref="authorizationCodeServices" />
+        <!-- Removed default AuthorizationCodeTokenGranter to be able to introduce the PkceEnhancedAuthorizationCodeTokenGranter see below -->
+        <oauth:authorization-code disabled="true" />
         <oauth:implicit />
         <oauth:refresh-token />
         <oauth:client-credentials />
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
+
+	<bean id="pkceEnhancedAuthorizationCodeTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.PkceEnhancedAuthorizationCodeTokenGranter">
+        <constructor-arg name="tokenServices" ref="tokenServices"/>
+        <constructor-arg name="authorizationCodeServices" ref="authorizationCodeServices"/>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
+        <property name="pkceValidationService" ref="pkceValidationServices"/>
+    </bean>
+    
+    <bean id="addExtendedAuthorizationCodeTokenGranter"
+          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
+        <constructor-arg name="userTokenGranter" ref="pkceEnhancedAuthorizationCodeTokenGranter"/>
+        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
+    </bean>
 
     <bean id="userTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.UserTokenGranter">
         <constructor-arg name="tokenServices" ref="tokenServices"/>
@@ -158,6 +173,7 @@
         <property name="hybridTokenGranterForAuthCode" ref="hybridTokenGranterForAuthCodeGrant"/>
         <property name="redirectResolver" ref="antPathRedirectResolver"/>
         <property name="openIdSessionStateCalculator" ref="openIdSessionStateCalculator"/>
+        <property name="pkceValidationService" ref="pkceValidationServices"/>
     </bean>
 
     <bean id="hybridTokenGranterForAuthCodeGrant" class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">
@@ -454,6 +470,20 @@
     </bean>
 
     <!-- End -->
+    
+    <!-- PKCE -->
+    <bean id="s256PkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier"/>
+    <bean id="plainPkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier"/>
+    
+    <util:map id="codeChallengeMethods" map-class="java.util.HashMap">
+        <entry key="S256" value-ref="s256PkceVerifier"/>
+        <entry key="plain" value-ref="plainPkceVerifier"/>
+    </util:map>
+    
+    <bean id="pkceValidationServices" class="org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService">
+        <constructor-arg ref="codeChallengeMethods" />
+    </bean>
+    <!-- End of PKCE -->
 
     <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenStore">
         <constructor-arg ref="dataSource" />
