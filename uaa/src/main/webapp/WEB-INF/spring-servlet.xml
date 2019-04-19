@@ -215,8 +215,9 @@
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
-        <property name="requireHttps" value="${require_https:false}" />
         <property name="dumpRequests" value="${dump_requests:false}" />
+        <property name="requireHttps" value="${require_https:false}" />
+        <property name="httpsPort" value="${https_port:443}" />
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
