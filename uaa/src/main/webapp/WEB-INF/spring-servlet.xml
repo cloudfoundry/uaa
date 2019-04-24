@@ -401,6 +401,15 @@
 
     <mvc:default-servlet-handler />
 
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor"/>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <bean id="localeResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver" />
+
     <util:list id="prompts">
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="username" />
