@@ -4,7 +4,8 @@
       layout:decorator="layouts/main">
 <div th:switch="${error_message_code}" class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
-        <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
+        <h1 th:if="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title_org_account(companyName)}"></h1>
+        <h1 th:unless="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title}"></h1>
     </div>
 
     <div th:case = "'other_idp'" class="island-content">
@@ -13,7 +14,7 @@
         </div>
         <form th:action="@{/login/idp_discovery}" method="post" novalidate="novalidate">
             <input type="hidden" name="email" th:value="${email}"/>
-            <input type="submit" value="Login with provider" class="island-button"/>
+            <input type="submit" th:value="#{create_account.login_with_provider_link}" value="Login with provider" class="island-button"/>
         </form>
     </div>
 
@@ -27,23 +28,23 @@
             </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
             <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
-            <input name="email" type="email" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
-            <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
-            <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
+            <input name="email" type="email" th:placeholder="#{create_account.email_placeholder}" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
+            <input name="password" type="password" required="required" th:placeholder="#{create_account.password_placeholder}" placeholder="Password" autocomplete="off" class="form-control"/>
+            <input name="password_confirmation" type="password" required="required" th:placeholder="#{create_account.password_confirmation_placeholder}" placeholder="Confirm" autocomplete="off" class="form-control"/>
 
             <label th:if="${consent_text}" style="margin-bottom: 20px">
                 <input name="does_user_consent" type="checkbox" style="display: inline">
-                <span>I agree to </span>
+                <span th:text="#{create_account.consent_text_header}">I agree to </span>
                 <span th:if="!${consent_link}" th:text="${consent_text}"></span>
                 <a th:if="${consent_link}" th:text="${consent_text}" name="consent-link" th:href="@{${consent_link}}" target="_blank"></a>
             </label>
 
-            <input type="submit" value="Send activation link" class="island-button"/>
+            <input type="submit" th:value="#{create_account.send_activation_link}" value="Send activation link" class="island-button"/>
         </form>
     </div>
 
     <div class="island-footer">
-        <a href="/login" th:href="@{/login}" class="link-lowlight">Already joined? Sign in.</a>
+        <a href="/login" th:href="@{/login}" class="link-lowlight" th:text="#{create_account.sign_in}">Already joined? Sign in.</a>
     </div>
 </div>
 </html>

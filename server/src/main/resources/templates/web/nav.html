@@ -15,8 +15,8 @@
             <i class="fa fa-chevron-down"></i>
         </div>
         <ul class="dropdown-content">
-            <li><a href="/profile" th:href="@{/profile}">Account Settings</a></li>
-            <li><a href="/logout.do" th:href="@{/logout.do}">Sign Out</a></li>
+            <li><a href="/profile" th:href="@{/profile}" th:text="#{nav.dropdown.account_settings}">Account Settings</a></li>
+            <li><a href="/logout.do" th:href="@{/logout.do}" th:text="#{nav.dropdown.sign_out}">Sign Out</a></li>
         </ul>
     </div>
 </th:block>

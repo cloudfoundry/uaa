@@ -9,17 +9,17 @@
     <th:block layout:replace="nav :: nav"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
-    <h1>Change Email</h1>
+    <h1 th:text="#{change_email.title}">Change Email</h1>
     <div class="island-content">
-        <div th:text="|Current Email Address: ${email}|" class="email-display">Current Email Address: user@example.com</div>
+        <div th:utext="#{change_email.current_email(${email})}" class="email-display">Current Email Address: user@example.com</div>
         <form th:action="@{/change_email.do}" method="post" novalidate="novalidate">
             <div th:if="${error_message_code}" class="alert alert-error">
                 <p th:text="#{'email_change.' + ${error_message_code}}">Error Message</p>
             </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
             <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
-            <input name="newEmail" type="email" placeholder="New Email Address" autocomplete="off" class="form-control"/>
-            <input type="submit" value="Send Verification Link" class="island-button"/>
+            <input name="newEmail" type="email" th:placeholder="#{change_email.new_email_placeholder}" placeholder="New Email Address" autocomplete="off" class="form-control"/>
+            <input type="submit" th:value="#{change_email.send_verification_link}" value="Send Verification Link" class="island-button"/>
         </form>
     </div>
 </div>

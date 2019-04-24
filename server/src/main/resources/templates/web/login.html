@@ -4,7 +4,8 @@
     <meta http-equiv="refresh" th:content="${@loginCookieCsrfRepository.getCookieMaxAge()}" />
 </head>
 <div class="island" layout:fragment="page-content">
-    <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
+    <h1 th:if="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa}" th:text="#{login.welcome}">Welcome!</h1>
+    <h1 th:unless="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa}" th:text="#{login.welcome_to(#{zone_name})}">Welcome!</h1>
     <div class="island-content">
         <div th:if="${param.error}" th:unless="${error}" class="alert alert-error">
             <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
@@ -23,7 +24,7 @@
                    th:placeholder="${prompt.value[1]}"
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
                    class="form-control"/>
-            <input type="submit" value="Sign in" class="island-button"/>
+            <input type="submit" th:value="#{login.sign_in}" value="Sign in" class="island-button"/>
             <input th:if="${session.SPRING_SECURITY_SAVED_REQUEST}"
                    th:unless="${form_redirect_uri}"
                    th:name="form_redirect_uri"
@@ -45,7 +46,7 @@
         </form>
         </th:block>
         <div class="saml-login">
-            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or sign in with: </p>
+            <p th:if="${showLoginLinks==true and fieldUsernameShow}" th:text="#{login.sign_in_alternative}">or sign in with: </p>
             <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>
@@ -57,9 +58,9 @@
         </div>
         <th:block th:if="${linkCreateAccountShow}">
         <span class="left">
-            <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
+            <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight" th:text="#{login.create_account_link}">Create account</a>
         </span><span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
-            <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
+            <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight" th:text="#{login.forgot_password_link}">Reset password</a>
         </span>
         </th:block>
     </div>
