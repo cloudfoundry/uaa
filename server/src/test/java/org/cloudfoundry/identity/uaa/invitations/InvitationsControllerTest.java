@@ -255,9 +255,9 @@ public class InvitationsControllerTest {
         mockMvc.perform(get)
                 .andExpect(view().name("invitations/accept_invite"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
+                .andExpect(content().string(containsString("accept_invite.current_email")))
+                .andExpect(content().string(containsString("enterprise_email")))
+                .andExpect(content().string(containsString("enterprise_username")))
                 .andExpect(model().attribute("code", "code"))
                 .andReturn();
     }
@@ -371,9 +371,9 @@ public class InvitationsControllerTest {
                 .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
+                .andExpect(content().string(containsString("accept_invite.current_email")))
+                .andExpect(content().string(containsString("enterprise_email")))
+                .andExpect(content().string(containsString("enterprise_username")))
                 .andExpect(model().attribute("code", "code"))
                 .andExpect(model().attribute("error_message", "invite.email_mismatch"))
                 .andReturn();

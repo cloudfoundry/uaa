@@ -294,7 +294,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(view().name("reset_password"))
             .andExpect(model().attribute("email", "email"))
             .andExpect(model().attribute("username", "username"))
-            .andExpect(content().string(containsString("<div class=\"email-display\">Username: username</div>")))
+            .andExpect(content().string(containsString("reset_password.current_username")))
             .andExpect(content().string(containsString("<input type=\"hidden\" name=\"username\" value=\"username\"/>")));
     }
 

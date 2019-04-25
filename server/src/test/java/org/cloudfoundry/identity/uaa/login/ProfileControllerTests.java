@@ -161,10 +161,10 @@ public class ProfileControllerTests extends TestClassNullifier {
             .andExpect(model().attribute("approvals", hasKey("app")))
             .andExpect(model().attribute("approvals", hasValue(hasSize(2))))
             .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
-            .andExpect(content().string(containsString("These applications have been granted access to your account.")))
-            .andExpect(content().string(containsString("Change Password")))
-            .andExpect(content().string(containsString("<h3>"+name)))
-            .andExpect(content().string(containsString("Are you sure you want to revoke access to " + name)));
+            .andExpect(content().string(containsString("account_settings.approvals")))
+            .andExpect(content().string(containsString("account_settings.change_password_link")))
+            .andExpect(content().string(containsString(name)))
+            .andExpect(content().string(containsString("account_settings.approvals.revoke_access.confirm")));
     }
 
 
@@ -179,7 +179,7 @@ public class ProfileControllerTests extends TestClassNullifier {
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("approvals"))
                 .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
-                .andExpect(content().string(containsString("You have not yet authorized any third party applications.")));
+                .andExpect(content().string(containsString("account_settings.approvals.empty")));
     }
 
     @Test
