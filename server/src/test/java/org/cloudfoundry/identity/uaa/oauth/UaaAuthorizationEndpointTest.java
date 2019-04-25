@@ -50,7 +50,7 @@ public class UaaAuthorizationEndpointTest {
     @Before
     public void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
-        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint();
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(null);
         uaaAuthorizationEndpoint.setOAuth2RequestFactory(oAuth2RequestFactory);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
         openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -35,18 +36,18 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEA
 
 /**
  * An easy way to create and populate a new Identity Zone for tests to help you isolate your test setup.
- *
+ * <p>
  * Can be injected into your before or test method as a parameter (see {@link ZoneSeederExtension}).
- *
+ * <p>
  * Use the with*() methods to configure, then call {@link #seed()} to create the data in the db.
  * Add callbacks with the {@link #afterSeeding(AfterSeedCallback)} method if you need to do
  * additional setup after the seed but before your test starts.
  * After seeding has happened, use the get*() methods to query what was created,
  * and use the create*() methods to keep creating more objects in the zone.
- *
+ * <p>
  * {@link #seed()} will automatically be called by {@link ZoneSeederExtension#beforeTestExecution(ExtensionContext)}
  * which happens after all beforeEach methods, just before the test itself is executed.
- *
+ * <p>
  * {@link #destroy()} will automatically be called by {@link ZoneSeederExtension#afterEach(ExtensionContext)}
  * to perform a cascading delete of the zone and its contents after each test.
  */
@@ -128,6 +129,23 @@ public class ZoneSeeder {
                 "implicit,password,refresh_token",
                 "uaa.none",
                 "http://localhost:8080/**");
+        newClient.setClientSecret(generator.generate());
+        clientDetailsToCreate.add(newClient);
+
+        return this;
+    }
+
+    public ZoneSeeder withClientWithImplicitAndAuthorizationCodeGrants(
+            String clientId,
+            String commaSeparatedRedirectUris) {
+        BaseClientDetails newClient = new BaseClientDetails(
+                clientId,
+                "none",
+                "openid",
+                "implicit,authorization_code",
+                "uaa.none",
+                commaSeparatedRedirectUris);
+        newClient.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
         newClient.setClientSecret(generator.generate());
         clientDetailsToCreate.add(newClient);
 

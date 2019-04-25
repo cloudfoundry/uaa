@@ -1,19 +1,4 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
-package org.cloudfoundry.identity.uaa.oauth;
+package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -22,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -42,8 +26,8 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.springframework.util.StringUtils.isEmpty;
 
-public class AntPathRedirectResolver extends DefaultRedirectResolver {
-    private static final Logger logger = LoggerFactory.getLogger(AntPathRedirectResolver.class);
+public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
+    private static final Logger logger = LoggerFactory.getLogger(LegacyRedirectResolver.class);
     static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which implicitly performs wildcard matching. This feature will be removed in a future version of UAA. In this instance, %s matches %s.";
 
     @Override

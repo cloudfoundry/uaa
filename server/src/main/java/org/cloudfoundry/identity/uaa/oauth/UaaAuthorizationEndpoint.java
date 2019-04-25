@@ -103,7 +103,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
-    private RedirectResolver redirectResolver;
+    private final RedirectResolver redirectResolver;
 
     private UserApprovalHandler userApprovalHandler = new DefaultUserApprovalHandler();
 
@@ -122,6 +122,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
+
+    UaaAuthorizationEndpoint(final RedirectResolver redirectResolver) {
+        this.redirectResolver = redirectResolver;
+    }
 
     @RequestMapping(value = "/oauth/authorize")
     public ModelAndView authorize(Map<String, Object> model,
@@ -705,10 +709,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     public void setAuthorizationCodeServices(AuthorizationCodeServices authorizationCodeServices) {
         this.authorizationCodeServices = authorizationCodeServices;
-    }
-
-    public void setRedirectResolver(RedirectResolver redirectResolver) {
-        this.redirectResolver = redirectResolver;
     }
 
     public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {
