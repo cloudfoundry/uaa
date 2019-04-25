@@ -11,14 +11,14 @@
 </div>
 <div class="panel-container" layout:fragment="page-content">
     <div class="panel">
-        <h1>Application Authorization</h1>
+        <h1 th:text="#{application_authorization.title}">Application Authorization</h1>
         <form id="application_authorization" action="/oauth/authorize" th:action="@{${original_uri}}" method="POST" class="panel-content">
             <h2 th:text="${client_display_name}">Cloudbees</h2>
             <a class="application-link"
                href="https://cloudfoundry.cloudbees.com/authenticate"
                th:href="${redirect_uri}"
                th:text="${redirect_uri}">https://cloudfoundry.cloudbees.com/authenticate</a>
-            <p>
+            <p th:text="#{application_authorization.instructions(${client_display_name})}">
                 <th:block th:text="${client_display_name}">Cloudbees</th:block> has requested permission to
                 access your account. If you do not recognize this application or
                 its URL, you should click deny. The application will not see your password.
@@ -49,7 +49,7 @@
                     </th:block>
                 </th:block>
             </ul>
-            <p>
+            <p th:text="#{application_authorization.agreement(${client_display_name})}">
                 You can change your approval of permissions or revoke access for this application
                 at any time from account settings. By approving access, you agree to
                 <th:block th:text="${client_display_name}">Cloudbees</th:block>'s terms of service and privacy policy.
@@ -60,13 +60,15 @@
                         name="user_oauth_approval"
                         th:name="${options.get('deny').get('key')}"
                         value="false"
-                        class="btn btn-lowlight">Deny</button>
+                        class="btn btn-lowlight"
+                        th:text="#{application_authorization.deny}">Deny</button>
                 <button id="authorize"
                         type="submit"
                         name="user_oauth_approval"
                         th:name="${options.get('confirm').get('key')}"
                         value="true"
-                        class="btn btn-primary">Authorize</button>
+                        class="btn btn-primary"
+                        th:text="#{application_authorization.confirm}">Authorize</button>
             </div>
             <input th:if="${original_uri}" th:name="form_redirect_uri" th:type="hidden" th:value="${original_uri}"/>
         </form>

@@ -5,7 +5,7 @@
 </head>
 <div class="island" layout:fragment="page-content">
     <h1 th:if="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa}" th:text="#{login.welcome}">Welcome!</h1>
-    <h1 th:unless="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa}" th:text="#{login.welcome_to(#{zone_name})}">Welcome!</h1>
+    <h1 th:unless="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa}" th:text="#{login.welcome_to(${zone_name})}">Welcome!</h1>
     <div class="island-content">
         <div th:if="${param.error}" th:unless="${error}" class="alert alert-error">
             <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
@@ -21,7 +21,7 @@
             <input th:each="prompt,iter : ${prompts}"
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
-                   th:placeholder="${prompt.value[1]}"
+                   th:placeholder="#{'prompt.' + ${prompt.key}}"
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
                    class="form-control"/>
             <input type="submit" th:value="#{login.sign_in}" value="Sign in" class="island-button"/>

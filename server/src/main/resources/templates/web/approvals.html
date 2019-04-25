@@ -41,7 +41,7 @@
             </p>
             <h2 th:text="#{account_settings.third_party_access}">Third Party Access</h2>
             <p th:if="${approvals.size() > 0}" th:text="#{account_settings.approvals}">These applications have been granted access to your account.</p>
-            <p th:unless="${approvals.size() > 0}" th:text="#{account_settings.no_approvals}">You have not yet authorized any third party applications.</p>
+            <p th:unless="${approvals.size() > 0}" th:text="#{account_settings.approvals.empty}">You have not yet authorized any third party applications.</p>
             <th:block th:each="client : ${approvals}">
                 <form action="/profile" th:action="@{/profile}" method="POST"
                       th:id="${client.key} + '-form'" class="panel-content client-scopes">
@@ -50,7 +50,7 @@
                         <div class="application-label">
                             <h3 th:text="${clientnames[client.key]}">
                                 Cloudbees
-                            </h3><a href="#" th:href="|revoke?client=${client.key}|" th:attr="data-client-id=${client.key}" class="revoke-link">
+                            </h3><a href="#" th:text="#{account_settings.approvals.revoke_access}" th:href="|revoke?client=${client.key}|" th:attr="data-client-id=${client.key}" class="revoke-link">
                                 Revoke Access
                             </a>
                         </div>
@@ -69,18 +69,18 @@
                                 </li>
                             </th:block>
                         </ul>
-                        <button type="submit" name="update" class="btn btn-primary">Update</button>
+                        <button type="submit" name="update" class="btn btn-primary" th:text="#{account_settings.approvals.update}">Update</button>
                         <div class="revocation-scrim" th:id="${client.key} + '-scrim'">
                             <div class="revocation-modal">
                                 <div class="revocation-modal-header">
-                                    <h3>Revoke Access</h3><div class="close-icon revocation-cancel">&#x2716;</div>
+                                    <h3 th:text="#{account_settings.approvals.revoke_access}">Revoke Access</h3><div class="close-icon revocation-cancel">&#x2716;</div>
                                 </div>
-                                <p>
+                                <p th:text="#{account_settings.approvals.revoke_access.confirm(${clientnames[client.key]})}">
                                     Are you sure you want to revoke access to <th:block th:text="${clientnames[client.key]}">Cloudbees</th:block>?
                                 </p>
                                 <div class="revocation-actions">
-                                    <button type="button" class="revocation-cancel btn btn-lowlight">Go Back</button>
-                                    <button type="submit" class="revocation-confirm btn btn-primary" name="delete">Yes</button>
+                                    <button type="button" class="revocation-cancel btn btn-lowlight" th:text="#{account_settings.approvals.revoke_access.cancel}">Go Back</button>
+                                    <button type="submit" class="revocation-confirm btn btn-primary" name="delete" th:text="#{account_settings.approvals.revoke_access.do}">Yes</button>
                                 </div>
                             </div>
                         </div>

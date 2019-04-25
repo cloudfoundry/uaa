@@ -11,8 +11,9 @@
 </div>
 <div class="panel-container" layout:fragment="page-content">
     <div class="panel">
-        <p th:utext="#{switch_idp.not_supported(${client_display_name})}">
-            <a th:text="#{switch_idp.click_here}" th:href="@{/logout.do(redirect=${redirect})}"></a>.
+        <p>
+            <span th:utext="#{switch_idp.not_supported(${client_display_name})}"></span>
+            <a th:text="#{switch_idp.click_here}" th:href="@{/logout.do(redirect=${redirect})}">click here</a>.
         </p>
     </div>
 </div>

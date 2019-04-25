@@ -4,7 +4,7 @@
       layout:decorator="layouts/main">
 <div th:switch="${error_message_code}" class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
-        <h1 th:if="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title_org_account(companyName)}"></h1>
+        <h1 th:if="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title_org_account(${companyName})}"></h1>
         <h1 th:unless="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title}"></h1>
     </div>
 

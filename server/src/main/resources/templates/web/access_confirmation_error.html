@@ -10,7 +10,7 @@
         </div>
         <img src="/resources/images/sad_cloud.png" th:src="@{/resources/images/sad_cloud.png}" role="presentation" />
     </div>
-    <h2>
+    <h2 th:utext="#{application_authorization.invalid_request}">
         Authorization Request Error<br/>
         There was an error. The request for authorization was invalid.
     </h2>

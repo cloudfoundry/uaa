@@ -4,13 +4,13 @@
       layout:decorator="layouts/main">
 <div class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
-        <h1 th:if="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title_org_account(companyName)}"></h1>
+        <h1 th:if="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title_org_account(${companyName})}"></h1>
         <h1 th:unless="${!companyName.equals('Cloud Foundry') and isUaa}" th:text="#{create_account.title}"></h1>
     </div>
     <div class="island-content">
         <div class="alert alert-error">
             <p>
-                <span th:text="#{create_account.activation_link_expired}">
+                <span th:text="#{create_account.activation_link_expired}"></span>
                 <a href="/create_account" th:href="${@environment.getProperty('links.signup') != null}? ${@environment.getProperty('links.signup')} : @{/create_account}" th:text="#{create_account.request_activation_link}">here</a>.
             </p>
         </div>
