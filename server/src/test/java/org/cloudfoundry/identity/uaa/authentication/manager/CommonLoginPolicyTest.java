@@ -15,8 +15,8 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -64,7 +64,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyFailedRecentAttempts() {
+    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);
@@ -78,7 +78,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyFailedRecentAttempts() {
+    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 2, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Arrays.asList(auditEvent);

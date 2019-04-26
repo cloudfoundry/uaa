@@ -47,7 +47,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     public void testRetrieveActive() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
         assertEquals(1 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
@@ -58,7 +58,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Test
     public void testCreateAndUpdateSamlServiceProviderInDefaultZone() throws Exception {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
 
@@ -172,7 +172,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Test(expected = SamlSpAlreadyExistsException.class)
     public void testCreateSamlServiceProviderWithSameEntityIdInDefaultZone() throws Exception {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         db.create(sp, sp.getIdentityZoneId());
         db.create(sp, sp.getIdentityZoneId());
@@ -190,7 +190,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Test
     public void testCreateSamlServiceProviderWithSameEntityIdInDifferentZones() throws Exception {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         db.create(sp, sp.getIdentityZoneId());
 
@@ -204,7 +204,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Test
     public void testDeleteSamlServiceProvidersInUaaZone() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());

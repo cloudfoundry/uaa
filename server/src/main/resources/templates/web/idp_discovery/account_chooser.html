@@ -5,8 +5,11 @@
     Choose an account
   </h4>
 
-  <div th:if="${param.error}" class="alert alert-error mbxl">
+  <div th:if="${param.error}" th:unless="${error}" class="alert alert-error mbxl">
     <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+  </div>
+  <div th:if="${error}" class="alert alert-error">
+    <p th:text="#{'login.' + ${error}}">Error Message</p>
   </div>
   <div th:if="${param.success}" class="alert alert-success mbxl">
     <p th:text="#{'login.' + ${param.success}}">Success Message</p>

@@ -67,6 +67,10 @@ public class JsonWebKey {
         deriveBits
     }
 
+    public static String KID = "kid";
+    public static String KTY = "kty";
+    public static String ALG = "alg";
+
     private final Map<String, Object> json;
 
     public JsonWebKey(Map<String, Object> json) {
@@ -82,15 +86,15 @@ public class JsonWebKey {
     }
 
     public final KeyType getKty() {
-        return KeyType.valueOf((String) getKeyProperties().get("kty"));
+        return KeyType.valueOf((String) getKeyProperties().get(KTY));
     }
 
     public final String getKid() {
-        return (String) getKeyProperties().get("kid");
+        return (String) getKeyProperties().get(KID);
     }
 
     public JsonWebKey setKid(String kid) {
-        this.json.put("kid", kid);
+        this.json.put(KID, kid);
         return this;
     }
 
@@ -122,7 +126,7 @@ public class JsonWebKey {
 
     //helper methods
     public String getAlgorithm() {
-        return (String) getKeyProperties().get("alg");
+        return (String) getKeyProperties().get(ALG);
     }
 
     public String getValue() {

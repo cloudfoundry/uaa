@@ -20,7 +20,7 @@ public class MfaAuthenticationFailureEvent extends AbstractUaaAuthenticationEven
     public AuditEvent getAuditEvent() {
         Assert.notNull(user, "UaaUser cannot be null");
         return createAuditRecord(user.getId(), AuditEventType.MfaAuthenticationFailure,
-                getOrigin(getAuthenticationDetails()) + ", type=" + type, user.getUsername());
+                getOrigin(getAuthenticationDetails()), user.getUsername(), type, null);
     }
 
     public UaaUser getUser() {

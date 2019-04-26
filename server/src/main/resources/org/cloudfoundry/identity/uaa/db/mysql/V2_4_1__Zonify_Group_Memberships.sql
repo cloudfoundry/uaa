@@ -13,10 +13,12 @@
 
 ALTER TABLE group_membership ADD COLUMN identity_zone_id varchar(36) DEFAULT 'uaa';
 ALTER TABLE group_membership DROP PRIMARY KEY;
+ALTER TABLE group_membership ADD COLUMN `id` int(11) unsigned PRIMARY KEY AUTO_INCREMENT;
 
 ALTER TABLE external_group_mapping ADD COLUMN identity_zone_id varchar(36);
 ALTER TABLE external_group_mapping ADD COLUMN origin varchar(36);
 ALTER TABLE external_group_mapping DROP PRIMARY KEY;
+ALTER TABLE external_group_mapping ADD COLUMN `id` int(11) unsigned PRIMARY KEY AUTO_INCREMENT;
 
 UPDATE group_membership SET identity_zone_id = (SELECT identity_zone_id FROM users where users.id = group_membership.member_id);
 UPDATE group_membership SET identity_zone_id = (SELECT 'uaa' FROM groups where groups.id = group_membership.member_id);

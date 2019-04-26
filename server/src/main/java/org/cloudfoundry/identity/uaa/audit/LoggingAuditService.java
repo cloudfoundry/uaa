@@ -25,8 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Audit service implementation which just outputs the relevant information
  * through the logger.
- * <p>
- * Also accumulates count data for exposure through /varz
  *
  * @author Luke Taylor
  * @author Dave Syer
@@ -111,8 +109,20 @@ public class LoggingAuditService implements UaaAuditService {
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         updateCounters(auditEvent);
-        log(String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s], authenticationType=[%s]", auditEvent.getType().name(), auditEvent.getData(),
-                        auditEvent.getPrincipalId(), auditEvent.getOrigin(), auditEvent.getIdentityZoneId(), auditEvent.getAuthenticationType()));
+
+        String logMessage = String.format("%s ('%s'): principal=%s, origin=[%s], identityZoneId=[%s]",
+                auditEvent.getType().name(),
+                auditEvent.getData(),
+                auditEvent.getPrincipalId(),
+                auditEvent.getOrigin(),
+                auditEvent.getIdentityZoneId()
+        );
+
+        if (auditEvent.getAuthenticationType() != null) {
+            logMessage = String.format("%s, authenticationType=[%s]", logMessage, auditEvent.getAuthenticationType());
+        }
+
+        log(logMessage);
     }
 
     private void updateCounters(AuditEvent auditEvent) {
@@ -166,5 +176,9 @@ public class LoggingAuditService implements UaaAuditService {
 
     public void setLogger(Log logger) {
         this.logger = logger;
+    }
+
+    public Log getLogger() {
+        return logger;
     }
 }

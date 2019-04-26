@@ -30,9 +30,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)

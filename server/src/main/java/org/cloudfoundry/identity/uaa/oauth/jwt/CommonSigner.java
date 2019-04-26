@@ -14,31 +14,40 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 
 public class CommonSigner implements Signer {
-
     private final org.springframework.security.jwt.crypto.sign.Signer delegate;
     private final String keyId;
+    private String keyURL;
 
-    public CommonSigner(String keyId, String signingKey) {
-        org.springframework.security.jwt.crypto.sign.Signer signer;
+    public CommonSigner(String keyId, String signingKey, String keyURL) {
         if (signingKey == null) {
             throw new IllegalArgumentException(signingKey);
-        } else if(KeyInfo.isAssymetricKey(signingKey)) {
-            signer = new RsaSigner(signingKey);
+        } else if (isAssymetricKey(signingKey)) {
+            delegate = new RsaSigner(signingKey);
         } else {
-            signer = new MacSigner(signingKey);
+            delegate = new MacSigner(signingKey);
         }
-        delegate = signer;
+
         this.keyId = keyId;
+        this.keyURL = keyURL;
+    }
+
+
+    private static boolean isAssymetricKey(String key) {
+        return key.startsWith("-----BEGIN");
     }
 
     @Override
     public String keyId() {
         return keyId;
+    }
+
+    @Override
+    public String keyURL() {
+        return keyURL;
     }
 
     @Override
@@ -54,6 +63,4 @@ public class CommonSigner implements Signer {
     public String getJavaAlgorithm() {
         return delegate.algorithm();
     }
-
-
 }

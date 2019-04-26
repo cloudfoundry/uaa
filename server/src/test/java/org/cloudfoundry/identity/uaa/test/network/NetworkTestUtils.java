@@ -15,28 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.test.network;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import com.sun.net.httpserver.HttpsConfigurator;
-import com.sun.net.httpserver.HttpsExchange;
-import com.sun.net.httpserver.HttpsParameters;
-import com.sun.net.httpserver.HttpsServer;
+import com.sun.net.httpserver.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import sun.security.x509.X500Name;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import javax.net.ssl.*;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -79,18 +63,15 @@ public class NetworkTestUtils {
                                    Date issueDate,
                                    long validityDays) throws Exception {
         return getKeystore(directory,
-                           filename,
-                           1024,
-                           commonName,
-                           organizationalUnit,
-                           organization,
-                           city,
-                           state,
-                           country,
-                           issueDate,
-                           validityDays,
-                           alias,
-                           keyPass);
+          filename,
+          1024,
+          commonName,
+          organizationalUnit,
+          organization,
+                issueDate,
+          validityDays,
+          alias,
+          keyPass);
 
     }
 
@@ -100,9 +81,6 @@ public class NetworkTestUtils {
                                    String commonName,
                                    String organizationalUnit,
                                    String organization,
-                                   String city,
-                                   String state,
-                                   String country,
                                    Date issueDate,
                                    long validityDays,
                                    String keyAlias,
@@ -114,7 +92,7 @@ public class NetworkTestUtils {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(keysize);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate[] chain = {getSelfCertificate(new X500Name(commonName, organizationalUnit, organization, city, state, country), issueDate, validityDays * 24 * 60 * 60, keyPair, "SHA256withRSA")};
+        X509Certificate[] chain = {getSelfCertificate(keyPair, organization, organizationalUnit, commonName, issueDate, validityDays * 24 * 60 * 60, "SHA256withRSA")};
         keyStore.setKeyEntry(keyAlias, keyPair.getPrivate(), keyPass.toCharArray(), chain);
 
         File keystore = new File(directory, filename);
@@ -125,9 +103,9 @@ public class NetworkTestUtils {
         return keystore;
     }
 
-    public static HttpServer startHttpServer(int port, HttpHandler handler) throws Exception {
+    public static HttpServer startHttpServer(HttpHandler handler) throws Exception {
         //some stack overflow goodness for testing only
-        InetSocketAddress address = new InetSocketAddress(port);
+        InetSocketAddress address = new InetSocketAddress(0);
         HttpServer httpServer = HttpServer.create(address, 0);
         httpServer.createContext("/", handler);
         httpServer.setExecutor(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
@@ -136,9 +114,9 @@ public class NetworkTestUtils {
     }
 
 
-    public static HttpsServer startHttpsServer(int port, File keystore, String keypass, HttpHandler handler) throws Exception {
+    public static HttpsServer startHttpsServer(File keystore, String keypass, HttpHandler handler) throws Exception {
         //some stack overflow goodness for testing only
-        InetSocketAddress address = new InetSocketAddress(port);
+        InetSocketAddress address = new InetSocketAddress(0);
         HttpsServer httpsServer = HttpsServer.create(address, 0);
         SSLContext sslContext = SSLContext.getInstance("TLS");
 
@@ -213,4 +191,6 @@ public class NetworkTestUtils {
             httpExchange.close();
         }
     }
+
+
 }

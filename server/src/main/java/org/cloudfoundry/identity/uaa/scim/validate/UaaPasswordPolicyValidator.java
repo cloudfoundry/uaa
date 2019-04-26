@@ -15,14 +15,12 @@ import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 import org.passay.RuleResult;
 
-import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.*;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
+
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.messageResolver;
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator;
 
 /**
  * ****************************************************************************
@@ -62,7 +60,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             password = "";
         }
 
-        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
             return;

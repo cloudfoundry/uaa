@@ -1,10 +1,5 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -20,7 +15,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +30,11 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -44,10 +43,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -423,7 +422,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
-        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString())).thenReturn(invitedUser);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
         UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
@@ -468,7 +467,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         providerDefinition.setStoreCustomAttributes(false);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         providerDefinition.setStoreCustomAttributes(true);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
@@ -481,14 +480,14 @@ public class ExternalLoginAuthenticationManagerTest  {
         reset(manager.getUserDatabase());
         manager.setProviderProvisioning(null);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         manager.setProviderProvisioning(providerProvisioning);
         //empty attributes does not store it
         reset(manager.getUserDatabase());
         userAttributes.clear();
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
-        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), anyObject());
+        verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
     }
 
     @Test

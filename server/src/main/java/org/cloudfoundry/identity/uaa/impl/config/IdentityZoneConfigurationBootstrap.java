@@ -50,6 +50,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String logoutDefaultRedirectUrl;
     private boolean logoutDisableRedirectParameter = true;
     private List<Prompt> prompts;
+    private String defaultIdentityProvider;
 
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
@@ -78,7 +79,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
-        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
@@ -91,6 +92,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.getMfaConfig().setEnabled(mfaEnabled);
         definition.getMfaConfig().setProviderName(mfaProviderName);
+        definition.setDefaultIdentityProvider(defaultIdentityProvider);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
@@ -205,6 +207,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setPrompts(List<Prompt> prompts) {
         this.prompts = prompts;
+    }
+
+    public void setDefaultIdentityProvider(String defaultIdentityProvider) {
+        this.defaultIdentityProvider = defaultIdentityProvider;
     }
 
     public void setSamlSpCertificate(String samlSpCertificate) {

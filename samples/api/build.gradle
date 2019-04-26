@@ -24,9 +24,6 @@ dependencies {
 
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
-  testCompile(group: 'org.cloudfoundry', name: 'cloudfoundry-client-lib', version:'1.0.2') {
-    exclude(module: 'jackson-core-asl')
-  }
 }
 
 test {

@@ -20,8 +20,11 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.io.File;
 
 public class ApacheDSHelper {
+    private static final int DEFAULT_PORT = 33389;
+    private static final int DEFAULT_SSL_PORT = 33636;
+
     public static ApacheDsSSLContainer start() throws Exception {
-        return start(33389, 33636);
+        return start(DEFAULT_PORT, DEFAULT_SSL_PORT);
     }
     public static ApacheDsSSLContainer start(int port, int sslPort) throws Exception {
         ApacheDsSSLContainer apacheDS;

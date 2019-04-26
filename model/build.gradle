@@ -6,6 +6,8 @@ dependencies {
 
   compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
 
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
   compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
   compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
@@ -15,10 +17,8 @@ dependencies {
     exclude(module: 'spring-security-web')
   }
 
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:parent.slf4jVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
 
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }
@@ -26,6 +26,10 @@ dependencies {
 }
 
 apply from: file('build_properties.gradle')
+
+configurations.all {
+   exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file

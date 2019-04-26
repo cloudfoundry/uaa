@@ -12,47 +12,48 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Set;
 
-public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest {
+@DefaultTestContext
+public class CheckDefaultAuthoritiesMvcMockTests {
+    @Autowired
+    public WebApplicationContext webApplicationContext;
 
-    ClientServicesExtension clientRegistrationService;
     private Set<String> defaultAuthorities;
-    public static final String[] EXPECTED_DEFAULT_GROUPS = new String[]{
-        "openid",
-        "scim.me",
-        "cloud_controller.read",
-        "cloud_controller.write",
-        "cloud_controller_service_permissions.read",
-        "password.write",
-        "scim.userids",
-        "uaa.user",
-        "approvals.me",
-        "oauth.approvals",
-        "profile",
-        "roles",
-        "user_attributes",
-        "uaa.offline_token"
+    private static final String[] EXPECTED_DEFAULT_GROUPS = new String[]{
+            "openid",
+            "scim.me",
+            "cloud_controller.read",
+            "cloud_controller.write",
+            "cloud_controller_service_permissions.read",
+            "password.write",
+            "scim.userids",
+            "uaa.user",
+            "approvals.me",
+            "oauth.approvals",
+            "profile",
+            "roles",
+            "user_attributes",
+            "uaa.offline_token"
     };
 
-    @Before
-    public void setUp() throws Exception {
-        clientRegistrationService = getWebApplicationContext().getBean(ClientServicesExtension.class);
-
-        defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
+    @BeforeEach
+    void setUp() {
+        defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
     }
 
     @Test
-    public void testDefaultAuthorities() throws Exception {
+    void testDefaultAuthorities() {
         Assert.assertEquals(14, defaultAuthorities.size());
         for (String s : EXPECTED_DEFAULT_GROUPS) {
-            Assert.assertTrue("Expecting authority to be present:"+s,defaultAuthorities.contains(s));
+            Assert.assertTrue("Expecting authority to be present:" + s, defaultAuthorities.contains(s));
         }
     }
 }

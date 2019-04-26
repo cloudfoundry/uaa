@@ -42,7 +42,7 @@ public class JdbcTestBase extends TestClassNullifier {
     public void setUp() throws Exception {
         IdentityZoneHolder.clear();
         MockEnvironment environment = new MockEnvironment();
-        if (System.getProperty("spring.profiles.active")!=null) {
+        if (System.getProperty("spring.profiles.active") != null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
         setUp(environment);
@@ -52,7 +52,7 @@ public class JdbcTestBase extends TestClassNullifier {
         this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);
-        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.setConfigLocations(getWebApplicationContextConfigFiles());
         webApplicationContext.refresh();
         flyway = webApplicationContext.getBean(Flyway.class);
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
@@ -63,27 +63,19 @@ public class JdbcTestBase extends TestClassNullifier {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
-    public void cleanData() {
-        IdentityZoneHolder.clear();
-        TestUtils.cleanTestDatabaseData(jdbcTemplate);
+    public String[] getWebApplicationContextConfigFiles() {
+        return new String[]{
+                "classpath:spring/env.xml",
+                "classpath:spring/data-source.xml"
+        };
     }
 
     @After
-    public final void tearDown() throws Exception {
-        tearDown(needsToCleanData());
-    }
+    public void tearDown() throws Exception {
+        TestUtils.restoreToDefaults(webApplicationContext);
 
-    public final void tearDown(boolean cleandata) throws Exception {
-        if (cleandata) {
-            cleanData();
-        }
-        IdentityZoneHolder.clear();
-        IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
-        ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
+        ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close(true);
         webApplicationContext.destroy();
     }
 
-    protected boolean needsToCleanData() {
-        return true;
-    }
 }

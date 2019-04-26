@@ -18,11 +18,13 @@ import org.cloudfoundry.identity.uaa.user.DialableByPhone;
 import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
 import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.Named;
+import org.cloudfoundry.identity.uaa.user.VerifiableUser;
+
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import java.util.Map;
 
-public interface ExtendedLdapUserDetails extends LdapUserDetails, Mailable, Named, DialableByPhone, ExternallyIdentifiable {
+public interface ExtendedLdapUserDetails extends LdapUserDetails, VerifiableUser, Mailable, Named, DialableByPhone, ExternallyIdentifiable {
 
     String[] getMail();
 

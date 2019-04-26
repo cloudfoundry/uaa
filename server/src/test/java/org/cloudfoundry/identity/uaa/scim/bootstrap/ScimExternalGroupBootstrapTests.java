@@ -12,6 +12,7 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -43,14 +44,18 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
     @Before
     public void initScimExternalGroupBootstrapTests() {
+        IdentityZone zone = new IdentityZone();
+        zone.setId(RandomStringUtils.randomAlphabetic(10));
+        IdentityZoneHolder.set(zone);
+
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 
-        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
-        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaa().getId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
+        gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }

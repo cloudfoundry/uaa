@@ -112,6 +112,8 @@ public class UaaStringUtilsTest {
         assertFalse(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string"));
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x"), "x"));
         assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x*x"), "x*x"));
+        assertEquals(UaaStringUtils.escapeRegExCharacters("\\"), "\\\\");
+        assertEquals(UaaStringUtils.escapeRegExCharacters("["), "\\[");
     }
 
     @Test

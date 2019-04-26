@@ -9,7 +9,6 @@
 		- [Token Endpoint: `POST /oauth/token`](#token-endpoint-post-oauthtoken)
 	- [Login Info: `GET /login`](#login-info-get-login)
 	- [Healthz: `GET /healthz`](#healthz-get-healthz)
-	- [Varz: `GET /varz`](#varz-get-varz)
 	- [Autologin](#autologin)
 		- [Obtain Autologin Code: `POST /autologin`](#obtain-autologin-code-post-autologin)
 
@@ -120,48 +119,6 @@ Unauthenticated.
 ## Healthz: `GET /healthz`
 
 Returns "ok" in the response body if the server is up and running
-
-## Varz: `GET /varz`
-
-Reports basic management information about the Login Server and the
-JVM it runs in (memory usage etc.).  Secured with HTTP Basic
-authentication using credentials that are advertised on NATS in Cloud
-Foundry (for a standalone instance the default is
-`varz:varzclientsecret`).
-
-Request: `GET /varz`  
-Response Body:  
-
-    {
-      "type": "Login",
-      "links": {
-        "JMImplementation": "http://localhost:8080/uaa/varz/JMImplementation",
-        "spring.application": "http://localhost:8080/uaa/varz/spring.application",
-        "com.sun.management": "http://localhost:8080/uaa/varz/com.sun.management",
-        "Catalina": "http://localhost:8080/uaa/varz/Catalina",
-        "env": "http://localhost:8080/uaa/varz/env",
-        "java.lang": "http://localhost:8080/uaa/varz/java.lang",
-        "java.util.logging": "http://localhost:8080/uaa/varz/java.util.logging"
-      },
-      "mem": 19173496,
-      "memory": {
-        "verbose": false,
-        "non_heap_memory_usage": {
-          "max": 184549376,
-          "committed": 30834688,
-          "init": 19136512,
-          "used": 30577744
-        },
-        "object_pending_finalization_count": 0,
-        "heap_memory_usage": {
-          "max": 902299648,
-          "committed": 84475904,
-          "init": 63338496,
-          "used": 19173496
-        }
-      },
-      "spring.profiles.active": []
-    }
 
 ## Autologin
 

@@ -86,7 +86,6 @@
 
 	/*
 		saveState stores an object with an Identifier.
-	TODO: Ensure that both localstorage and JSON encoding has fallbacks for ancient browsers.
 	In the state object, we put the request object, plus these parameters:
 		  * restoreHash
 		  * providerID

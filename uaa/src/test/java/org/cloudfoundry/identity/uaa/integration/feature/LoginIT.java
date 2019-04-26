@@ -52,7 +52,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -219,6 +221,26 @@ public class LoginIT {
     }
 
     @Test
+    public void testLoginHint() throws Exception {
+        String newUserEmail = createAnotherUser();
+        webDriver.get(baseUrl + "/logout.do");
+        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", "UTF-8");
+        webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
+        attemptLogin(newUserEmail, USER_PASSWORD);
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
+
+        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", "UTF-8");
+        webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
+        attemptLogin(newUserEmail, USER_PASSWORD);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        webDriver.get(baseUrl + "/logout.do");
+    }
+
+    @Test
     public void testNoZoneFound() throws Exception {
         assertTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
@@ -243,7 +265,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testFailedLogin() throws Exception {
+    public void testUnsuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
@@ -289,7 +311,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testRedirectAfterFailedLogin() throws Exception {
+    public void testRedirectAfterUnsuccessfulLogin() throws Exception {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -323,7 +345,7 @@ public class LoginIT {
     }
 
     @Test
-    public void userLockedoutAfterFailedAttempts() throws Exception {
+    public void userLockedoutAfterUnsuccessfulAttempts() throws Exception {
         String userEmail = createAnotherUser();
 
         webDriver.get(baseUrl + "/logout.do");
@@ -461,13 +483,6 @@ public class LoginIT {
         webDriver.get(res + "/logout.do");
         webDriver.manage().deleteAllCookies();
         return res;
-    }
-
-    private void createZoneAdmin() {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
-        );
-        //TODO add zone admin client here, return it
     }
 
     private void loginThroughDiscovery(String userEmail, String password) {

@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
@@ -29,7 +30,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -46,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
@@ -55,9 +58,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -80,8 +83,8 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     private ApplicationEventPublisher publisher;
 
     @Before
-    public void setUpClientAdminTests() throws Exception {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    public void setUpClientAdminTests() {
+        PasswordEncoder encoder = new FakePasswordEncoder();
         bootstrap = new ClientAdminBootstrap(encoder);
         clientRegistrationService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate));
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientRegistrationService, jdbcTemplate);
@@ -109,7 +112,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", clientId);
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
         return map;
@@ -173,7 +176,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         doSimpleTest(map);
     }
@@ -184,7 +187,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "implicit");
+        map.put("authorized-grant-types", GRANT_TYPE_IMPLICIT);
         map.put("authorities", "uaa.none");
         doSimpleTest(map);
     }
@@ -209,7 +212,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
         ClientDetails clientDetails = doSimpleTest(map);
@@ -242,7 +245,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
         map.put("change_email_redirect_url", "change_email_url");
@@ -259,7 +262,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
-        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("change_email_redirect_url", "change_email_callback_url");
         ClientDetails created = doSimpleTest(map);
@@ -463,7 +466,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         assertSet((String) map.get("resource-ids"), new HashSet(Arrays.asList("none")), created.getResourceIds(), String.class);
 
         String authTypes = (String) map.get("authorized-grant-types");
-        if (authTypes!=null && authTypes.contains("authorization_code")) {
+        if (authTypes!=null && authTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE)) {
             authTypes+=",refresh_token";
         }
         assertSet(authTypes, Collections.emptySet(), created.getAuthorizedGrantTypes(), String.class);

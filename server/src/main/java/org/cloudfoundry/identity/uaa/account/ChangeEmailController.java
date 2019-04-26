@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -112,10 +111,12 @@ public class ChangeEmailController {
         String redirectLocation = response.get("redirect_url");
 
         if (SecurityContextHolder.getContext().getAuthentication() instanceof UaaAuthentication) {
-            String authenticatedId = ((UaaAuthentication) SecurityContextHolder.getContext().getAuthentication()).getPrincipal().getId();
+            UaaAuthentication oldAuthentication = (UaaAuthentication)SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedId = oldAuthentication.getPrincipal().getId();
             if (authenticatedId.equals(user.getId())) {
                 UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
-                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
+                UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
+                success.setAuthenticationMethods(oldAuthentication.getAuthenticationMethods());
                 SecurityContextHolder.getContext().setAuthentication(success);
             }
             if (redirectLocation == null) {

@@ -33,14 +33,15 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,6 +51,7 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.logging.LogType;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +72,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -78,6 +79,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
@@ -85,6 +87,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
@@ -92,6 +95,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -110,6 +114,9 @@ public class SamlLoginIT {
     private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -143,12 +150,46 @@ public class SamlLoginIT {
         }
     }
 
+    @Before
+    public void setup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        ScimGroup group = new ScimGroup(null, "zones.uaa.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.testzone1.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.testzone2.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.testzone3.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+
+        group = new ScimGroup(null, "zones.testzone4.admin", null);
+        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+    }
+
+    @After
+    public void cleanup() {
+        String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4", "uaa")) {
+            String groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, String.format("zones.%s.admin", zoneId)).getId();
+            IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
+
+            try {
+                IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
+                IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
+            } catch(Exception _){}
+        }
+    }
+
     public static String getValidRandomIDPMetaData() {
         return String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
     }
 
     @Before
-    public void clearWebDriverOfCookies() throws Exception {
+    public void clearWebDriverOfCookies() {
         screenShootRule.setWebDriver(webDriver);
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
@@ -159,7 +200,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testContentTypes() throws Exception {
+    public void testContentTypes() {
         String loginUrl = baseUrl + "/login";
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.add("Accept", "application/json");
@@ -214,22 +255,18 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
+        // We need to verify the last request URL through the performance log because the redirect
         // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
         // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
-        Thread.sleep(1000);
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
-        LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 
-        String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
+        List<LogEntry> logEntries = webDriver.manage().logs().get(LogType.PERFORMANCE).getAll();
+        List<String> logMessages = logEntries.stream().map(logEntry -> logEntry.getMessage()).collect(Collectors.toList());
 
-        assertThat("Unexpected URL.", lastRequestUrl,
-                Matchers.containsString(redirectUri + "?error=access_denied"
-                        + "&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+        assertThat(logMessages, hasItem(containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.")));
     }
 
     @Test
-    public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
+    public void incorrectResponseFromSamlIDP_showErrorFromSaml() throws Exception {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -241,16 +278,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -277,18 +316,6 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
-    }
-
-    private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
-            throws IOException {
-
-        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
-        Map<String, Object> log = (Map<String, Object>) message.get("log");
-        List<Object> entries = (List<Object>) log.get("entries");
-        Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
-        Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
-        String url = (String) request.get("url");
-        return url;
     }
 
     @Test
@@ -360,11 +387,12 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -391,7 +419,7 @@ public class SamlLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
         String redirectUrl = zoneUrl + "/login?test=test";
-        BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, "authorization_code", null);
+        BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
         clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
         clientDetails.setClientSecret("secret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -479,20 +507,21 @@ public class SamlLoginIT {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + OriginKeys.UAA + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
                 email,
                 "secr3T");
 
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid",
-                "authorization_code", "uaa.resource", redirectUri);
+        BaseClientDetails clientDetails =
+                new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", redirectUri);
         clientDetails.setClientSecret("secret");
-        List<String> idps = Arrays.asList(provider.getOriginKey());
+        List<String> idps = Collections.singletonList(provider.getOriginKey());
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         IntegrationTestUtils.createClient(zoneAdminToken, baseUrl, clientDetails);
@@ -539,16 +568,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -628,16 +659,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -690,16 +723,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -720,13 +755,12 @@ public class SamlLoginIT {
 
         List<String> idps = Arrays.asList(provider.getOriginKey());
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
+        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
-
-        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
         webDriver.get(zoneUrl + "/logout.do");
 
@@ -760,16 +794,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -866,16 +902,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -939,6 +977,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
@@ -950,7 +989,8 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
@@ -964,7 +1004,7 @@ public class SamlLoginIT {
 
         UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
-        Map<String,List<String>> userAttributeMap = (Map<String,List<String>>) userInfo.getAttributeValue(USER_ATTRIBUTES);
+        Map<String,List<String>> userAttributeMap = userInfo.getUserAttributes();
         List<String> costCenterData = userAttributeMap.get(COST_CENTERS);
         List<String> managerData = userAttributeMap.get(MANAGERS);
         assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
@@ -992,28 +1032,20 @@ public class SamlLoginIT {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
-        //admin client token - to create users
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
-        );
 
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
         //create the zone
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
-        //String idpMetadata = idpMetadataUrl;
 
         String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
 
-        //TODO Remove this and the test fails if it runs against a newly started instance
-        //see https://www.pivotaltracker.com/story/show/138365807
-        //String spMetadata = new RestTemplate().getForObject(baseUrl + "/saml/metadata", String.class);
-
         String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
 
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
             .setZoneId(uaaZoneId)
             .setMetaDataLocation(idpMetadata)
@@ -1030,7 +1062,7 @@ public class SamlLoginIT {
         provider.setName(idpOrigin);
         provider.setOriginKey(idpOrigin);
 
-        provider = IntegrationTestUtils.createOrUpdateProvider(adminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(adminToken, baseUrl, provider);
 
         String clientId = new RandomValueStringGenerator().generate().toLowerCase();
         String username = "saml2bearerUser";
@@ -1077,7 +1109,8 @@ public class SamlLoginIT {
         ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Map<String,Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull("Expecting access_token to be present in response", tokenResponse.get("access_token"));
     }
 
@@ -1097,16 +1130,18 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                                                            UaaTestAccounts.standard(serverRunning),
                                                            "identity",
                                                            "identitysecret",
@@ -1168,6 +1203,7 @@ public class SamlLoginIT {
                                                                                                      "token id_token",
                                                                                                      cookie.getValue(),
                                                                                                      zoneUrl,
+                                                                                                     null,
                                                                                                      false);
 
         webDriver.get(baseUrl + "/logout.do");
@@ -1179,13 +1215,13 @@ public class SamlLoginIT {
         assertNotNull(idToken);
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
 
         assertNotNull(claims.get(USER_ATTRIBUTES));
         assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
         assertEquals("marissa6@test.org", claims.get(ClaimConstants.EMAIL));
     }
-
 
 
     @Test
@@ -1198,14 +1234,16 @@ public class SamlLoginIT {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
 
         String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                 UaaTestAccounts.standard(serverRunning),
                 "identity",
                 "identitysecret",
@@ -1298,7 +1336,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
@@ -1318,7 +1356,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/uaa/login");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/uaa/login");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         testClient.createClient(adminAccessToken, clientDetails);
@@ -1326,11 +1364,13 @@ public class SamlLoginIT {
         try {
             webDriver.findElement(By.name("username"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         try {
             webDriver.findElement(By.name("password"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {}
+        } catch (NoSuchElementException x) {
+        }
         webDriver.get(baseUrl + "/logout.do");
     }
 
@@ -1343,7 +1383,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", baseUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
@@ -1368,7 +1408,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
         List<String> idps = Arrays.asList("okta-local"); //not authorized for the current IDP
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -1463,20 +1503,6 @@ public class SamlLoginIT {
         return def;
     }
 
-    @Test
-    @Ignore("was used to test self signed URLs - but this test can only be run once")
-    public void test_url_provider() throws  Exception {
-        SamlIdentityProviderDefinition definition = getTestURLDefinition();
-        IntegrationTestUtils.createIdentityProvider(
-            "test saml url provider",
-            OriginKeys.SAML,
-            true,
-            baseUrl,
-            serverRunning,
-            definition
-        );
-    }
-
     private void logout() {
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
@@ -1492,6 +1518,4 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
     }
-
-
 }

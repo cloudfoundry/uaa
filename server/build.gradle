@@ -24,30 +24,7 @@ dependencies {
   compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
   compile group: 'org.springframework.security', name: 'spring-security-web', version:springSecurityVersion
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
-    exclude(module: 'opensaml')
-  }
-  compile(group: 'org.opensaml', name: 'opensaml', version: openSamlVersion) {
-    exclude(module: 'bcprov-jdk15on')
-    exclude(group: 'org.slf4j', module: 'log4j-over-slf4j')
-    exclude(group: 'org.owasp.esapi', module: 'esapi')
-    exclude(group: 'ca.juliusdavies', module: 'not-yet-commons-ssl')
-    exclude(group: "org.apache.velocity", module: 'velocity')
-  }
-  compile group: 'org.apache.santuario', name: 'xmlsec', version: parent.openSamlXmlSec
-  compile group: 'org.apache.velocity', name: 'velocity-engine-core', version: '2.0'
-
-  compile (group:'org.owasp.esapi', name:'esapi', version:parent.esapiVersion) {
-    exclude(group: 'xalan', module: 'xalan')
-    exclude(group: 'commons-beanutils', module: 'commons-beanutils-core')
-    exclude(group: 'commons-fileupload', module: 'commons-fileupload')
-    exclude(group: 'org.owasp.antisamy', module: 'antisamy')
-  }
-  compile group: 'commons-fileupload', name: 'commons-fileupload', version: parent.commonsFileuploadVersion
-  compile group: 'commons-beanutils', name: 'commons-beanutils', version: parent.commonsBeanUtilsVersion
-  compile group: 'org.owasp.antisamy', name: 'antisamy', version: parent.antisamyVersion
-  compile group: 'xalan', name: 'xalan', version:parent.xalanVersion
-  compile files('lib/not-yet-commons-ssl-0.3.17.jar')
+  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion
 
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
@@ -55,16 +32,18 @@ dependencies {
     exclude(module: 'spring-security-web')
   }
 
-  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bcprovVersion
-  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bcpkixVersion
+  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bouncyCastleVersion
+  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bouncyCastleVersion
 
   compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
 
   compile group: 'org.aspectj', name: 'aspectjrt', version: parent.aspectJVersion
+  compile group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
 
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
   compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
+  compile group: 'org.codehaus.groovy', name: 'groovy', version: parent.codehausGroovyVersion
 
   compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
     exclude(module: 'servlet-api')
@@ -94,11 +73,19 @@ dependencies {
 
   compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
 
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
+
+  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
+  compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+
+  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
+
   testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+
   testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
     exclude(module: 'hamcrest-core')
   }
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile (group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion)  {
     exclude(module: 'hamcrest-core')
   }
@@ -111,10 +98,16 @@ dependencies {
   testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
   testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
 
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-el-api', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jasper-el', version:parent.tomcatJdbcPoolVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
 
+}
+
+configurations.all {
+    exclude group: 'org.beanshell', module: 'bsh-core'
 }
 
 processResources {
@@ -124,7 +117,7 @@ processResources {
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any
-  true == false
+  false
 }
 
 

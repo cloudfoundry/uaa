@@ -43,6 +43,7 @@ public class MfaProviderEndpointsTest {
         validator = mock(GeneralMfaProviderValidator.class);
         endpoint.setMfaProviderProvisioning(provisioning);
         endpoint.setMfaProviderValidator(validator);
+        IdentityZoneHolder.clear();
     }
 
     @Test

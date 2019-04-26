@@ -206,7 +206,7 @@ OpenID has been somewhat stagnant since OpenID 2.0 was completed. The community 
 
 http://lists.openid.net/mailman/listinfo/openid-specs-ab
 
-Simple Cloud Identity Management (SCIM)
+System for Cross-domain Identity Management (SCIM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A new effort led by Salesforce, Ping Identity, others, attempting to produce a REST/JSON standard for managing user accounts, attributes, roles, groups. LDAP for cloud apps.

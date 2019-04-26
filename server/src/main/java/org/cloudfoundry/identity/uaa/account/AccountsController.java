@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
@@ -62,6 +63,8 @@ public class AccountsController {
         }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
+        updateModelWithConsentAttributes(model);
+
         return "accounts/new_activation_email";
     }
 
@@ -71,7 +74,13 @@ public class AccountsController {
                                       @RequestParam(value = "redirect_uri", required = false) String redirectUri,
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
-                                      @RequestParam("password_confirmation") String passwordConfirmation) {
+                                      @RequestParam("password_confirmation") String passwordConfirmation,
+                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent) {
+
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "missing_consent");
+        }
         if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
@@ -128,14 +137,24 @@ public class AccountsController {
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
         model.addAttribute(attributeKey, attributeValue);
+        updateModelWithConsentAttributes(model);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "accounts/new_activation_email";
     }
 
     private String handleSelfServiceDisabled(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
         model.addAttribute(attributeKey, attributeValue);
+        updateModelWithConsentAttributes(model);
         response.setStatus(HttpStatus.NOT_FOUND.value());
         return "error";
+    }
+
+    private void updateModelWithConsentAttributes(Model model) {
+        BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
+        if (zoneBranding != null && zoneBranding.getConsent() != null) {
+            model.addAttribute("consent_text", zoneBranding.getConsent().getText());
+            model.addAttribute("consent_link", zoneBranding.getConsent().getLink());
+        }
     }
 
     public static class ValidEmail {

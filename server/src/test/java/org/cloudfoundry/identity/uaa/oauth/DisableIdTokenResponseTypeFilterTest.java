@@ -30,7 +30,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -79,12 +79,12 @@ public class DisableIdTokenResponseTypeFilterTest {
     @Test
     public void testDoFilterInternal_NO_Response_Type_Parameter() throws Exception {
         filter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertSame(request, captor.getValue());
         reset(chain);
 
         disabledFilter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertNotSame(request, captor.getValue());
     }
 
@@ -93,7 +93,7 @@ public class DisableIdTokenResponseTypeFilterTest {
         String responseType = "code";
         request.addParameter(RESPONSE_TYPE, responseType);
         filter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertSame(request, captor.getValue());
         reset(chain);
         assertEquals(responseType, captor.getValue().getParameter(RESPONSE_TYPE));
@@ -103,7 +103,7 @@ public class DisableIdTokenResponseTypeFilterTest {
         assertEquals(responseType, captor.getValue().getParameterValues(RESPONSE_TYPE)[0]);
 
         disabledFilter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertNotSame(request, captor.getValue());
         assertEquals(responseType, captor.getValue().getParameter(RESPONSE_TYPE));
         assertEquals(1, captor.getValue().getParameterMap().get(RESPONSE_TYPE).length);
@@ -136,7 +136,7 @@ public class DisableIdTokenResponseTypeFilterTest {
     public void validate_filter(String responseType, String removedType) throws Exception {
         request.addParameter(RESPONSE_TYPE, responseType);
         filter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertSame(request, captor.getValue());
         reset(chain);
         assertEquals(responseType, captor.getValue().getParameter(RESPONSE_TYPE));
@@ -146,7 +146,7 @@ public class DisableIdTokenResponseTypeFilterTest {
         assertEquals(responseType, captor.getValue().getParameterValues(RESPONSE_TYPE)[0]);
 
         disabledFilter.doFilterInternal(request, response, chain);
-        verify(chain).doFilter(captor.capture(), anyObject());
+        verify(chain).doFilter(captor.capture(), any());
         assertNotSame(request, captor.getValue());
         assertEquals(removedType, captor.getValue().getParameter(RESPONSE_TYPE));
         assertEquals(1, captor.getValue().getParameterMap().get(RESPONSE_TYPE).length);

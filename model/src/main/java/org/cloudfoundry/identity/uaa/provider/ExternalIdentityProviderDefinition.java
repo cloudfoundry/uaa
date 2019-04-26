@@ -31,6 +31,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     public static final String GIVEN_NAME_ATTRIBUTE_NAME = "given_name"; //can be a string
     public static final String FAMILY_NAME_ATTRIBUTE_NAME = "family_name"; //can be a string
     public static final String PHONE_NUMBER_ATTRIBUTE_NAME = "phone_number"; //can be a string
+    public static final String EMAIL_VERIFIED_ATTRIBUTE_NAME = "email_verified"; //can be a string
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
     public static final String USER_NAME_ATTRIBUTE_NAME = "user_name";
 

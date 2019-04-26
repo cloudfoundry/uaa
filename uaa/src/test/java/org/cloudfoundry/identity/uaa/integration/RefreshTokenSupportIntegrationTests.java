@@ -24,7 +24,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
@@ -32,12 +31,13 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -144,11 +144,12 @@ public class RefreshTokenSupportIntegrationTests {
         formData.clear();
         formData.add("client_id", resource.getClientId());
         formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
-        formData.add("grant_type", "authorization_code");
+        formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
                         testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        tokenHeaders.set("Cache-Control", "no-store");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -162,7 +163,7 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("refresh_token", accessToken.getRefreshToken().getValue());
         tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertEquals("no-cache, no-store, max-age=0, must-revalidate", tokenResponse.getHeaders().getFirst("Cache-Control"));
+        assertEquals("no-store", tokenResponse.getHeaders().getFirst("Cache-Control"));
         @SuppressWarnings("unchecked")
         OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
         try {
@@ -175,4 +176,26 @@ public class RefreshTokenSupportIntegrationTests {
 
     }
 
+    @Test
+    public void testRefreshTokenWithNonExistingZone() {
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "refresh_token");
+        formData.add("refresh_token", "dummyrefreshtoken-r");
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri().replace("localhost", "testzonedoesnotexist.localhost"), formData, new HttpHeaders());
+        assertEquals(HttpStatus.NOT_FOUND, tokenResponse.getStatusCode());
+    }
+
+    @Test
+    public void testRefreshTokenWithInactiveZone() {
+        RestTemplate identityClient = IntegrationTestUtils
+            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                    new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "refresh_token");
+        formData.add("refresh_token", "dummyrefreshtoken-r");
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri().replace("localhost", "testzoneinactive.localhost"), formData, new HttpHeaders());
+        assertEquals(HttpStatus.NOT_FOUND, tokenResponse.getStatusCode());
+    }
 }

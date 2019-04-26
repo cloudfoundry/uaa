@@ -23,6 +23,9 @@ public class GeneralMfaProviderValidator implements MfaProviderValidator{
         if(mfaProvider.getConfig() == null) {
             throw new InvalidMfaProviderException("Provider config is required");
         }
+        if(mfaProvider.getConfig().getIssuer() != null && mfaProvider.getConfig().getIssuer().contains(":")) {
+            throw new InvalidMfaProviderException("Provider config contains an invalid issuer. Issuer must not contain a colon");
+        }
         if(!StringUtils.hasText(mfaProvider.getIdentityZoneId())){
             throw new InvalidMfaProviderException("Provider must belong to a zone");
         }

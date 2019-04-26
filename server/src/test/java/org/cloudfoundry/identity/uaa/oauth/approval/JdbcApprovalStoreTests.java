@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -120,7 +119,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @After
     public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "authz_approvals");
+        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         IdentityZoneHolder.clear();
     }
@@ -314,31 +313,6 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
             .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
         app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
         assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
-    }
-
-    @Test
-    @Ignore //this test has issues
-    public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
-        Date timeFromNow = Approval.timeFromNow(6000);
-        assertTrue(dao.addApproval(new Approval()
-            .setUserId("u2")
-            .setClientId("c2")
-            .setScope("dash.user")
-            .setExpiresAt(timeFromNow)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId()));
-        Approval app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
-        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
-
-        timeFromNow = Approval.timeFromNow(8000);
-        assertTrue(dao.addApproval(new Approval()
-            .setUserId("u2")
-            .setClientId("c2")
-            .setScope("dash.user")
-            .setExpiresAt(timeFromNow)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId()));
-        app = dao.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).iterator().next();
-        assertThat((int)Math.abs(timeFromNow.getTime()/1000d - app.getExpiresAt().getTime()/1000d), lessThan(2));
-        assertEquals(DENIED, app.getStatus());
     }
 
     @Test

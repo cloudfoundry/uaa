@@ -32,9 +32,9 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
     public static final String DISABLE_INTERNAL_USER_MANAGEMENT = "disableInternalUserManagement";
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    private static String regex = "^/login|^/Users.*";
+    private static final String regex = "^/login|^/Users.*";
 
-    private Pattern pattern = Pattern.compile(regex);
+    private final Pattern pattern = Pattern.compile(regex);
 
     public DisableInternalUserManagementFilter(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -44,7 +44,7 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         if (matches(request)) {
-            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
             boolean isDisableInternalUserManagement = false;
             UaaIdentityProviderDefinition config = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
             if (config != null) {

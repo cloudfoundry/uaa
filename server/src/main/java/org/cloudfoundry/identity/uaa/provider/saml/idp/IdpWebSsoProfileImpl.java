@@ -202,9 +202,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         SAMLObjectBuilder<AuthnContextClassRef> authnContextClassRefBuilder = (SAMLObjectBuilder<AuthnContextClassRef>) builderFactory
                 .getBuilder(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
         AuthnContextClassRef authnContextClassRef = authnContextClassRefBuilder.buildObject();
-        //TODO - BEGIN we don't know this, should read value from authentication object
         authnContextClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
-        //TODO - END
         authnContext.setAuthnContextClassRef(authnContextClassRef);
         authnStatement.setAuthnContext(authnContext);
         assertion.getAuthnStatements().add(authnStatement);
@@ -357,6 +355,12 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
             if (StringUtils.hasText(phoneNumber) && attributeMappings.containsKey("phone_number")) {
                 Attribute phoneNumberAttribute = buildStringAttribute(attributeMappings.get("phone_number").toString(), Collections.singletonList(phoneNumber));
                 attributeStatement.getAttributes().add(phoneNumberAttribute);
+            }
+
+            String email = user.getPrimaryEmail();
+            if (StringUtils.hasText(email) && attributeMappings.containsKey("email")) {
+                Attribute customEmailAttribute = buildStringAttribute(attributeMappings.get("email").toString(), Collections.singletonList(email));
+                attributeStatement.getAttributes().add(customEmailAttribute);
             }
         }
 

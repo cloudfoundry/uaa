@@ -11,7 +11,6 @@ package org.cloudfoundry.identity.uaa.provider.saml; /**************************
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.XMLObject;

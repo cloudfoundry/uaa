@@ -22,14 +22,15 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,10 +39,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -51,31 +51,20 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasValue;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = ProfileControllerTests.ContextConfiguration.class)
 public class ProfileControllerTests extends TestClassNullifier {
@@ -96,7 +85,7 @@ public class ProfileControllerTests extends TestClassNullifier {
     private List<DescribedApproval> allDescApprovals;
     private List<Approval> allApprovals;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
@@ -132,16 +121,16 @@ public class ProfileControllerTests extends TestClassNullifier {
 
         Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(allApprovals);
 
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
 
-        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write","authorization_code", "");
+        BaseClientDetails otherClient = new BaseClientDetails("other-client","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         Mockito.when(clientDetailsService.loadClientByClientId("other-client", "uaa")).thenReturn(otherClient);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
     }
@@ -153,7 +142,7 @@ public class ProfileControllerTests extends TestClassNullifier {
 
     @Test
     public void testGetProfileNoAppName() throws Exception {
-        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
         testGetProfile("app");
     }

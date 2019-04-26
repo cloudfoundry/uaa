@@ -88,6 +88,7 @@
                 </constructor-arg>
             </bean>
         </property>
+        <property name="clientMaxCount" value="${clientMaxCount:500}"/>
     </bean>
 
     <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">

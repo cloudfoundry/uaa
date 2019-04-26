@@ -272,7 +272,7 @@ public class ScimGroupBootstrap implements InitializingBean {
 
     private ScimGroup getOrCreateGroup(String name) {
         logger.debug("adding group: " + name);
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         return scimGroupProvisioning.createOrGet(new ScimGroup(null, name, uaaZoneId), uaaZoneId);
     }
 }

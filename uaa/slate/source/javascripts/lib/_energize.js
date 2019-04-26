@@ -123,7 +123,6 @@
 
     /**
      * Add an energize-focus class to the targeted link (mimics :focus behavior)
-     * TODO: test and/or remove?  Does this work?
      */
     if(!target || !target.classList) return;
     target.classList.add("energize-focus");
@@ -164,6 +163,6 @@
   document.addEventListener('touchstart', touchstart, false);
   document.addEventListener('touchmove', touchmove, false);
   document.addEventListener('touchend', touchend, false);
-  document.addEventListener('click', click, true);  // TODO: why does this use capture?
+  document.addEventListener('click', click, true);
   
 })();

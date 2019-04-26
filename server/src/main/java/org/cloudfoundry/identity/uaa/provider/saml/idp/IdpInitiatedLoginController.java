@@ -82,7 +82,6 @@ public class IdpInitiatedLoginController {
             throw new ProviderNotFoundException("IDP initiated login is disabled for this service provider.");
         }
 
-        //TODO get the first name ID format in metadata
         String nameId = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
         try {
             String assertionLocation = getAssertionConsumerURL(sp);
