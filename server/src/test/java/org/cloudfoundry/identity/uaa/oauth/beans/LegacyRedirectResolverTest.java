@@ -112,13 +112,13 @@ class LegacyRedirectResolverTest {
 
         @Test
         void warnsOnImplicitDomainExpansion() {
-            final String configuredUri = "https://example.com";
-            final String requestedUri = "https://subdomain.example.com";
-            ClientDetails client = createClient("foo", configuredUri);
+            final String configuredRedirectUri = "https://example.com";
+            final String requestedRedirectUri = "https://subdomain.example.com";
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedUri, client);
+            resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredUri, requestedUri)))
+                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
             );
         }
 
@@ -132,67 +132,88 @@ class LegacyRedirectResolverTest {
 
         @Test
         void warnsOnImplicitMultipleDomainExpansion() {
-            final String configuredUri = "https://example.com";
-            final String requestedUri = "https://another.subdomain.example.com";
-            ClientDetails client = createClient("foo", configuredUri);
+            final String configuredRedirectUri = "https://example.com";
+            final String requestedRedirectUri = "https://another.subdomain.example.com";
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedUri, client);
+            resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredUri, requestedUri)))
+                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
             );
         }
 
         @Test
-        void doesNotWarnOnExplicitDomainExpansion() {
+        void warnsOnExplicitDomainExpansion() {
             final String configuredRedirectUri = "https://*.example.com";
             final String requestedRedirectUri = "https://subdomain.example.com";
-            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
-            assertThat(logEvents, empty());
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(
+                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+            );
         }
 
         @Test
         void warnsOnImplicitPathExpansion() {
             final String configuredRedirectUri = "https://example.com/";
             final String requestedRedirectUri = "https://example.com/path";
-            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
-            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri))));
         }
 
         @Test
         void warnsOnImplicitMultiplePathExpansion() {
             final String configuredRedirectUri = "https://example.com/";
             final String requestedRedirectUri = "https://example.com/some/path";
-            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
-            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri))));
         }
 
         @Test
-        void doesNotWarnOnExplicitPathExpansion() {
+        void warnsOnExplicitPathExpansion() {
             final String configuredRedirectUri = "https://example.com/*";
             final String requestedRedirectUri = "https://example.com/path";
-            ClientDetails clientDetails = createClient("foo", configuredRedirectUri);
+            ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
-            assertThat(logEvents, empty());
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(
+                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+            );
         }
 
         @Test
-        void warnsOnPotentialImplicitWildcardMatch() {
+        void warnsOnAllConfiguredUrisWhichLegacyMatchButDoNotStrictlyMatch() {
             final String configuredExplicitRedirectUri = "https://*.example.com/";
             final String configuredImplicitRedirectUri = "https://example.com/";
             final String requestedRedirectUri = "https://an.example.com/";
 
             // the explicit redirect uri will match first, but we should still log
-            ClientDetails clientDetails = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
+            ClientDetails client = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
 
-            resolver.resolveRedirect(requestedRedirectUri, clientDetails);
-            assertThat(logEvents, hasItem(warning(expectedWarning(clientDetails.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredExplicitRedirectUri, requestedRedirectUri))));
+        }
+
+        @Test
+        void warnsOnlyAboutMatchingConfiguredUrisMWhenThereIsAMatch() {
+            final String configuredImplicitRedirectUri = "https://example.com";
+            final String configuredOtherRedirectUri = "https://other.com/";
+            final String requestedRedirectUri = "https://an.example.com/";
+
+            // the explicit redirect uri will match first, but we should still log
+            ClientDetails client = createClient("foo", configuredOtherRedirectUri, requestedRedirectUri, configuredImplicitRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
+            // configured uri which matches both old and new resolvers is not logged
+            // and non-matching configured uri is also not logged
+            assertThat(logEvents.size(), is(1));
         }
 
         @Test
@@ -211,15 +232,15 @@ class LegacyRedirectResolverTest {
 
         @Test
         void redactsHashFragment() {
-            final String configuredRedirectUri = "https://example.com/";
-            final String requestedRedirectUri = "https://example.com/#IAmAHash";
+            final String configuredRedirectUri = "https://example.com";
+            final String requestedRedirectUri = "https://example.com/a/b#IAmAHash";
 
             ClientDetails client = createClient("front-end-app", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
 
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/#REDACTED")))
+                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/a/b#REDACTED")))
             );
         }
 
@@ -253,6 +274,19 @@ class LegacyRedirectResolverTest {
         void doesNotWarnForPortExpansion() {
             final String configuredRedirectUri = "https://example.com/";
             final String requestedRedirectUri = "https://example.com:65000/";
+
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            assertThrows(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect(requestedRedirectUri, client));
+
+            assertThat(logEvents, empty());
+        }
+
+        @Test
+        void doesNotWarnWhenThereIsNoMatch() {
+            final String configuredRedirectUri = "https://example.com";
+            final String requestedRedirectUri = "https://other.com";
 
             ClientDetails client = createClient("foo", configuredRedirectUri);
 

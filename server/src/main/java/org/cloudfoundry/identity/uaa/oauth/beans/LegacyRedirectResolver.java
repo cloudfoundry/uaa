@@ -30,6 +30,8 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     private static final Logger logger = LoggerFactory.getLogger(LegacyRedirectResolver.class);
     static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which implicitly performs wildcard matching. This feature will be removed in a future version of UAA. In this instance, %s matches %s.";
 
+    private final SpecCompliantRedirectMatcher specCompliantRedirectMatcher = new SpecCompliantRedirectMatcher();
+
     @Override
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
         try {
@@ -74,15 +76,30 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
         }
 
-        registeredRedirectUris
-            .stream()
-            .filter(configured ->
-                requestedRedirect != null && super.redirectMatches(requestedRedirect, configured) && !requestedRedirect.equals(configured)
-            )
-            .forEach(configured ->
-                    logger.warn(String.format(MSG_TEMPLATE, client.getClientId(), configured, redactSensitiveInformation(requestedRedirect))));
+        String resolveRedirect = super.resolveRedirect(requestedRedirect, client);
 
-        return super.resolveRedirect(requestedRedirect, client);
+        // This legacy resolver decided that the requested redirect URI was a match for one
+        // of the configured redirect uris (i.e. super.resolveRedirect() did not throw), so
+        // check to see if we need to log some warnings before returning.
+        logConfiguredRedirectUrisWhichOnlyMatchFuzzily(client.getClientId(), registeredRedirectUris, requestedRedirect);
+
+        return resolveRedirect;
+    }
+
+    private void logConfiguredRedirectUrisWhichOnlyMatchFuzzily(String clientId, Set<String> registeredRedirectUris, String requestedRedirect) {
+        // For each registered redirect uri considered to be a match by this class, log a warning
+        // when the standard Spring library class disagrees (i.e. when it acts more strictly).
+        registeredRedirectUris.stream()
+                .filter(registeredRedirectUri ->
+                        requestedRedirect != null &&
+                                this.redirectMatches(requestedRedirect, registeredRedirectUri) &&
+                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri)
+                )
+                .forEach(registeredRedirectUri ->
+                        logger.warn(String.format(MSG_TEMPLATE, clientId, registeredRedirectUri,
+                                redactSensitiveInformation(requestedRedirect))
+                        )
+                );
     }
 
     private static String redactSensitiveInformation(String uri) {
@@ -96,9 +113,9 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     private static void redactQueryParams(UriComponentsBuilder builder) {
         MultiValueMap<String, String> originalParams = builder.build().getQueryParams();
         Map<String, List<String>> redactedParams = originalParams.entrySet()
-            .stream()
-            .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
-            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .stream()
+                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         builder.queryParams(new LinkedMultiValueMap<>(redactedParams));
     }
@@ -113,6 +130,26 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     private static void redactHashFragment(UriComponentsBuilder builder) {
         if (!isEmpty(builder.build().getFragment())) {
             builder.fragment("REDACTED");
+        }
+    }
+
+    private class SpecCompliantRedirectMatcher {
+        private final CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff matcher =
+                new CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff();
+
+        boolean redirectMatches(String requestedRedirect, String redirectUri) {
+            return matcher.redirectMatches(requestedRedirect, redirectUri);
+        }
+
+        private class CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff extends org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
+            CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff() {
+                super();
+                setMatchSubdomains(false);
+            }
+
+            public boolean redirectMatches(String requestedRedirect, String redirectUri) {
+                return super.redirectMatches(requestedRedirect, redirectUri);
+            }
         }
     }
 
