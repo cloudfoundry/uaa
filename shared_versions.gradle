@@ -1,5 +1,5 @@
 ext {
-  apacheLdapApiVersion = '1.0.0'
+  apacheLdapApiVersion = '1.0.3'
   aspectJVersion = '1.8.12'
   bouncyCastleVersion  = '1.61'
   cglibVersion = '3.2.5'
