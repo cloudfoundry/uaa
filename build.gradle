@@ -36,15 +36,15 @@ apply from: file('shared_versions.gradle')
 apply plugin: 'com.bmuschko.cargo'
 
 allprojects {
-    apply plugin: 'maven'
-    apply plugin: 'signing'
-
-    group = 'org.cloudfoundry.identity'
-
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
     configurations.provided.transitive = false
+
+    apply plugin: 'maven'
+    apply plugin: 'signing'
+
+    group = 'org.cloudfoundry.identity'
 
     repositories {
         mavenCentral()
