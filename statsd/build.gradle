@@ -44,18 +44,48 @@ integrationTest {
     }
 }
 
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-publishing {
-    publications {
-        statsd(MavenPublication) {
-            apply plugin: 'war'
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
 
-            groupId 'org.cloudfoundry.identity'
-            version version
-            artifactId 'cloudfoundry-identity-statsd'
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
 
-            from components.web
-            artifact sourceJar
+            pom.project {
+                name 'UAA statsd'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                artifactId 'cloudfoundry-identity-statsd'
+                description 'Cloud Foundry User Account and Authentication (UAA) Server'
+                url 'https://github.com/cloudfoundry/uaa'
+
+                scm {
+                    connection 'scm:git:git://github.com:cloudfoundry/uaa.git'
+                    developerConnection 'scm:git:ssh://github.com:cloudfoundry/uaa.git'
+                    url 'https://github.com/cloudfoundry/uaa'
+                }
+
+                developers {
+                    developer {
+                        id 'pcf-uaa'
+                        name 'PCF UAA Team'
+                        email 'pcf-uaa@pivotal.io'
+                    }
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
         }
     }
 }
