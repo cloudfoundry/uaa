@@ -41,35 +41,12 @@ allprojects {
     apply plugin: 'propdeps-idea'
     configurations.provided.transitive = false
 
-    apply plugin: 'maven'
-    apply plugin: 'signing'
-
-    group = 'org.cloudfoundry.identity'
-
     repositories {
         mavenCentral()
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
         maven { url 'https://repository.mulesoft.org/releases/' }
-    }
-
-    task javadocJar(type: Jar) {
-        classifier = 'javadoc'
-        from javadoc
-    }
-
-    task sourcesJar(type: Jar) {
-        from sourceSets.main.allSource
-        classifier = 'sources'
-    }
-
-    artifacts {
-        archives javadocJar, sourcesJar
-    }
-
-    signing {
-        sign configurations.archives
     }
 }
 
