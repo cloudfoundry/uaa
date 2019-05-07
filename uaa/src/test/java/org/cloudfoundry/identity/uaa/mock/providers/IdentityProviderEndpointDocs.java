@@ -452,7 +452,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         ));
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
+                .setMetaDataLocation("http://example.com/saml2/idp/metadata.php")
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
                 .setZoneId(IdentityZone.getUaaZoneId());
