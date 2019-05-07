@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
@@ -452,7 +453,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         ));
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("http://example.com/saml2/idp/metadata.php")
+                .setMetaDataLocation(IntegrationTestUtils.EXAMPLE_DOT_COM_SAML_IDP_METADATA)
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
                 .setZoneId(IdentityZone.getUaaZoneId());
