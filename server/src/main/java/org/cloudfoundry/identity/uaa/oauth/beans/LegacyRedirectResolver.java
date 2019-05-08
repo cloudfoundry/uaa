@@ -28,7 +28,10 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(LegacyRedirectResolver.class);
-    static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which implicitly performs wildcard matching. This feature will be removed in a future version of UAA. In this instance, %s matches %s.";
+    static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which performs implicit or " +
+            "wildcard matching in legacy redirect uri matching mode. In this instance, the requested uri %s matches the " +
+            "configured uri %s. Please consider configuring your requested redirect uri to exactly match the " +
+            "redirect_uri for this client.";
 
     private final SpecCompliantRedirectMatcher specCompliantRedirectMatcher = new SpecCompliantRedirectMatcher();
 
@@ -96,8 +99,8 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                                 !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri)
                 )
                 .forEach(registeredRedirectUri ->
-                        logger.warn(String.format(MSG_TEMPLATE, clientId, registeredRedirectUri,
-                                redactSensitiveInformation(requestedRedirect))
+                        logger.warn(String.format(MSG_TEMPLATE, clientId,
+                                redactSensitiveInformation(requestedRedirect), registeredRedirectUri)
                         )
                 );
     }

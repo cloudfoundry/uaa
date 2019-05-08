@@ -54,8 +54,8 @@ class LegacyRedirectResolverTest {
         return clientDetails;
     }
 
-    private static String expectedWarning(String clientId, String configured, String requested) {
-        return String.format(LegacyRedirectResolver.MSG_TEMPLATE, clientId, configured, requested);
+    private static String expectedWarning(String clientId, String requested, String configured) {
+        return String.format(LegacyRedirectResolver.MSG_TEMPLATE, clientId, requested, configured);
     }
 
     private static Matcher<LogEvent> warning(String msg) {
@@ -118,7 +118,7 @@ class LegacyRedirectResolverTest {
 
             resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
             );
         }
 
@@ -138,7 +138,7 @@ class LegacyRedirectResolverTest {
 
             resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
             );
         }
 
@@ -150,7 +150,7 @@ class LegacyRedirectResolverTest {
 
             resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
             );
         }
 
@@ -161,7 +161,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri))));
         }
 
         @Test
@@ -171,7 +171,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri))));
         }
 
         @Test
@@ -182,7 +182,7 @@ class LegacyRedirectResolverTest {
 
             resolver.resolveRedirect(requestedRedirectUri, client);
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, requestedRedirectUri)))
+                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
             );
         }
 
@@ -196,8 +196,8 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredExplicitRedirectUri, requestedRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredExplicitRedirectUri))));
         }
 
         @Test
@@ -210,7 +210,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredOtherRedirectUri, requestedRedirectUri, configuredImplicitRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), configuredImplicitRedirectUri, requestedRedirectUri))));
+            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri))));
             // configured uri which matches both old and new resolvers is not logged
             // and non-matching configured uri is also not logged
             assertThat(logEvents.size(), is(1));
@@ -226,7 +226,7 @@ class LegacyRedirectResolverTest {
             resolver.resolveRedirect(requestedRedirectUri, client);
 
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/path?foo=REDACTED&foo=REDACTED&baz=REDACTED")))
+                    warning(expectedWarning(client.getClientId(), "https://example.com/path?foo=REDACTED&foo=REDACTED&baz=REDACTED", configuredRedirectUri)))
             );
         }
 
@@ -240,7 +240,7 @@ class LegacyRedirectResolverTest {
             resolver.resolveRedirect(requestedRedirectUri, client);
 
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://example.com/a/b#REDACTED")))
+                    warning(expectedWarning(client.getClientId(), "https://example.com/a/b#REDACTED", configuredRedirectUri)))
             );
         }
 
@@ -254,7 +254,7 @@ class LegacyRedirectResolverTest {
             resolver.resolveRedirect(requestedRedirectUri, client);
 
             assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), configuredRedirectUri, "https://REDACTED:REDACTED@example.com/")))
+                    warning(expectedWarning(client.getClientId(), "https://REDACTED:REDACTED@example.com/", configuredRedirectUri)))
             );
         }
 
