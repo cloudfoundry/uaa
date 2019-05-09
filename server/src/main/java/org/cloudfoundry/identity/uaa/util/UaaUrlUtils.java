@@ -26,6 +26,11 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public abstract class UaaUrlUtils {
 
+   /** Pattern that matches valid subdomains.
+    *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
+    */
+    private static final Pattern VALID_SUBDOMAIN_PATTERN = Pattern.compile("([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
+
     public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
         return getUaaUrl(path, false, currentIdentityZone);
     }
@@ -69,6 +74,10 @@ public abstract class UaaUrlUtils {
             return allowedRedirectUriPattern.matcher(url).matches();
         }
         return false;
+    }
+
+    public static boolean isValidSubdomain(String subdomain) {
+        return VALID_SUBDOMAIN_PATTERN.matcher(subdomain).matches();
     }
 
     /**

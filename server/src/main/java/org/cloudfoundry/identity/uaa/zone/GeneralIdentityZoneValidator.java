@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.util.StringUtils;
 
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
@@ -31,6 +31,12 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
         if (IdentityZoneHolder.getUaaZone().getId().equals(identityZone.getId()) && !identityZone.isActive()) {
             throw new InvalidIdentityZoneDetailsException("The default zone cannot be set inactive.", null);
         }
+
+        // allow default identity zone to have empty subdomain
+        if (!(identityZone.isUaa() || UaaUrlUtils.isValidSubdomain(identityZone.getSubdomain()))) {
+            throw new InvalidIdentityZoneDetailsException("The subdomain is invalid: " + identityZone.getSubdomain(), null);
+        }
+
         try {
             identityZone.setConfig(configValidator.validate(identityZone, mode));
         } catch (InvalidIdentityZoneConfigurationException ex) {
