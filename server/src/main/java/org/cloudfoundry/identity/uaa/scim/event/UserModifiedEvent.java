@@ -18,96 +18,102 @@ package org.cloudfoundry.identity.uaa.scim.event;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.security.core.Authentication;
 
 public class UserModifiedEvent extends AbstractUaaEvent {
 
     private static final long serialVersionUID = 8139998613071093676L;
-    private String userId;
-    private String username;
-    private String email;
-    private AuditEventType eventType;
+    private final ScimUser scimUser;
+    private final AuditEventType eventType;
 
-
-    protected UserModifiedEvent(String userId, String username, AuditEventType type, Authentication authentication, String zoneId) {
-        super(authentication, zoneId);
-        this.userId = userId;
-        this.username = username;
-        this.eventType = type;
+    public UserModifiedEvent(ScimUser scimUser, AuditEventType eventType) {
+        super(getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+        this.scimUser = scimUser;
+        this.eventType = eventType;
     }
 
-    protected UserModifiedEvent(String userId, String username, String email, AuditEventType type, Authentication authentication, String zoneId) {
-        super(authentication, zoneId);
-        this.userId = userId;
-        this.username = username;
-        this.eventType = type;
-        this.email = email;
+    public static UserModifiedEvent userCreated(ScimUser scimUser) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserCreatedEvent);
     }
 
-    public static UserModifiedEvent userCreated(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserCreatedEvent,
-            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+    public static UserModifiedEvent userModified(ScimUser scimUser) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserModifiedEvent);
     }
 
-    public static UserModifiedEvent userModified(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserModifiedEvent,
-            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+    public static UserModifiedEvent userDeleted(ScimUser scimUser) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserDeletedEvent);
     }
 
-    public static UserModifiedEvent userDeleted(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserDeletedEvent,
-            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+    public static UserModifiedEvent userVerified(ScimUser scimUser) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserVerifiedEvent);
     }
 
-    public static UserModifiedEvent userVerified(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserVerifiedEvent,
-            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
-    }
-
-    public static UserModifiedEvent emailChanged(String userId, String username, String email) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            email,
-            AuditEventType.EmailChangedEvent,
-            getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+    public static UserModifiedEvent emailChanged(ScimUser scimUser) {
+        return new UserModifiedEvent(scimUser, AuditEventType.EmailChangedEvent);
     }
 
     @Override
     public AuditEvent getAuditEvent() {
-        String[] details = {"user_id="+userId, "username="+username};
-        String data = JsonUtils.writeValueAsString(details);
+        String data = JsonUtils.writeValueAsString(buildDetails());
         return createAuditRecord(
-            userId,
-            eventType,
-            getOrigin(getAuthentication()),
-            data);
+                scimUser.getId(),
+                eventType,
+                getOrigin(getAuthentication()),
+                data);
+    }
+
+    private String[] buildDetails() {
+        if (AuditEventType.UserCreatedEvent.equals(this.eventType)) {
+
+            // Not authenticated, e.g. when saml login creates a shadow user
+            if (!getContextAuthentication().isAuthenticated()) {
+                return new String[]{
+                        "user_id=" + scimUser.getId(),
+                        "username=" + scimUser.getUserName(),
+                        "user_origin=" + scimUser.getOrigin()
+                };
+            }
+
+            // Authenticated as a user
+            if (getContextAuthentication().getPrincipal() instanceof UaaPrincipal) {
+                UaaPrincipal uaaPrincipal = (UaaPrincipal) getContextAuthentication().getPrincipal();
+
+                return new String[]{
+                        "user_id=" + scimUser.getId(),
+                        "username=" + scimUser.getUserName(),
+                        "user_origin=" + scimUser.getOrigin(),
+                        "created_by_user_id=" + uaaPrincipal.getId(),
+                        "created_by_username=" + uaaPrincipal.getName()
+                };
+            }
+
+            // Authenticated as a client
+            return new String[]{
+                    "user_id=" + scimUser.getId(),
+                    "username=" + scimUser.getUserName(),
+                    "user_origin=" + scimUser.getOrigin(),
+                    "created_by_client_id=" + getContextAuthentication().getPrincipal()
+            };
+        }
+        return new String[]{
+                "user_id=" + scimUser.getId(),
+                "username=" + scimUser.getUserName()
+        };
     }
 
     public String getUserId() {
-        return userId;
+        return scimUser.getId();
     }
 
     public String getUsername() {
-        return username;
+        return scimUser.getUserName();
     }
 
     public String getEmail() {
-        return email;
+        return scimUser.getPrimaryEmail();
     }
 
 }

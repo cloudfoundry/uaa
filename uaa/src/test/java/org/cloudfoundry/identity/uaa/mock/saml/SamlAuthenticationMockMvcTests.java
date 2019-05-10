@@ -16,7 +16,10 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -30,8 +33,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -81,6 +86,14 @@ class SamlAuthenticationMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
+    @Autowired
+    JdbcScimUserProvisioning jdbcScimUserProvisioning;
+
+    @Autowired
+    private LoggingAuditService loggingAuditService;
+    private InterceptingLogger testLogger;
+    private Logger originalAuditServiceLogger;
+
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @BeforeEach
     void createSamlRelationship(
@@ -97,6 +110,18 @@ class SamlAuthenticationMockMvcTests {
         createIdp(jdbcIdentityProviderProvisioning);
         createSp(jdbcSamlServiceProviderProvisioning);
         createUser(jdbcScimUserProvisioning, idpZone);
+    }
+
+    @BeforeEach
+    void installTestLogger() {
+        testLogger = new InterceptingLogger();
+        originalAuditServiceLogger = loggingAuditService.getLogger();
+        loggingAuditService.setLogger(testLogger);
+    }
+
+    @AfterEach
+    void putBackOriginalLogger() {
+        loggingAuditService.setLogger(originalAuditServiceLogger);
     }
 
     @Test
@@ -174,6 +199,9 @@ class SamlAuthenticationMockMvcTests {
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, false);
         String subdomain = spZone.getSubdomain();
+
+        testLogger.reset();
+
         mockMvc.perform(
                 post("/uaa/saml/SSO/alias/" + spZoneEntityId)
                         .contextPath("/uaa")
@@ -182,6 +210,19 @@ class SamlAuthenticationMockMvcTests {
                         .param("SAMLResponse", xml)
         )
                 .andExpect(authenticated());
+
+        assertThat(testLogger.getMessageCount(), is(3));
+
+        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(spZone.getId())
+                .stream().filter(dbUser -> dbUser.getUserName().equals("marissa")).findFirst().get();
+
+        String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
+        String expectedMessage = String.format(
+                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa\",\"user_origin=%s\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
+                createdUser.getId(), idpZone.getSubdomain(), createdUser.getId(), spZone.getId()
+        );
+
+        assertThat(userCreatedLogMessage, is(expectedMessage));
     }
 
     private String performIdpAuthentication() throws Exception {

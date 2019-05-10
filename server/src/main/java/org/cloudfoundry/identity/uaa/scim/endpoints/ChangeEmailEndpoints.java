@@ -95,7 +95,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
             }
 
-            publisher.publishEvent(UserModifiedEvent.emailChanged(userId, user.getUserName(), user.getPrimaryEmail()));
+            publisher.publishEvent(UserModifiedEvent.emailChanged(user));
 
             EmailChangeResponse emailChangeResponse = new EmailChangeResponse();
             emailChangeResponse.setEmail(email);

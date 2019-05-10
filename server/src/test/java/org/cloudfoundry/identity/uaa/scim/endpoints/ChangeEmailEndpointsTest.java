@@ -114,6 +114,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .thenReturn(clientDetails);
 
         ScimUser scimUser = new ScimUser();
+        scimUser.setId("user-id-001");
         scimUser.setUserName("user@example.com");
         scimUser.setPrimaryEmail("user@example.com");
 

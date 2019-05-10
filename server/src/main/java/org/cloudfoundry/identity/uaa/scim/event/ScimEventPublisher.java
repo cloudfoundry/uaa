@@ -31,19 +31,19 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
     }
 
     public void userCreated(ScimUser user) {
-        publish(UserModifiedEvent.userCreated(user.getId(), user.getUserName()));
+        publish(UserModifiedEvent.userCreated(user));
     }
 
     public void userVerified(ScimUser user) {
-        publish(UserModifiedEvent.userVerified(user.getId(), user.getUserName()));
+        publish(UserModifiedEvent.userVerified(user));
     }
 
     public void userModified(ScimUser user) {
-        publish(UserModifiedEvent.userModified(user.getId(), user.getUserName()));
+        publish(UserModifiedEvent.userModified(user));
     }
 
     public void userDeleted(ScimUser user) {
-        publish(UserModifiedEvent.userDeleted(user.getId(), user.getUserName()));
+        publish(UserModifiedEvent.userDeleted(user));
     }
 
     public void groupCreated(ScimGroup group) {

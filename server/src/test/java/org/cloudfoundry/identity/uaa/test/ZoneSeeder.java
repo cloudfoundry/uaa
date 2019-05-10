@@ -114,6 +114,11 @@ public class ZoneSeeder {
         return this;
     }
 
+    public ZoneSeeder withClient(ClientDetails clientDetails) {
+        clientDetailsToCreate.add(clientDetails);
+        return this;
+    }
+
     public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants() {
         return withClientWithImplicitPasswordRefreshTokenGrants(
                 IMPLICIT_PASSWORD_REFRESH_TOKEN_CLIENT_ID,
@@ -235,10 +240,9 @@ public class ZoneSeeder {
         clientDetailsToCreate.clear();
 
         // Make the users
-        for (ScimUser scimUser : usersInGroupsToCreate.keySet()) {
-            ScimUser createdUser = provisionScimUser(scimUser);
-            List<String> groupNames = usersInGroupsToCreate.get(scimUser);
-            for (String groupName : groupNames) {
+        for (Map.Entry<ScimUser, List<String>> entry : usersInGroupsToCreate.entrySet()) {
+            ScimUser createdUser = provisionScimUser(entry.getKey());
+            for (String groupName : entry.getValue()) {
                 provisionGroupMembership(createdUser, groupName);
             }
             ScimUser refreshedUser = jdbcScimUserProvisioning.retrieve(createdUser.getId(), getIdentityZoneId());

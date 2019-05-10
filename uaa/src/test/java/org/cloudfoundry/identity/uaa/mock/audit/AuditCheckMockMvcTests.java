@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.audit;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -9,18 +10,31 @@ import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.audit.*;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.AuditListener;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.event.*;
+import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -32,15 +46,18 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
-import org.slf4j.helpers.SubstituteLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,6 +83,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -74,19 +92,61 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ApprovalModifiedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientCreateSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientUpdateSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupCreatedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupDeletedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupModifiedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.IdentityProviderAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.IdentityProviderAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordResetRequest;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.TokenIssuedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UnverifiedUserAuthentication;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserCreatedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserDeletedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserModifiedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserNotFound;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserVerifiedEvent;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.RegexMatcher.matchesRegex;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.http.HttpHeaders.*;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
 class AuditCheckMockMvcTests {
@@ -760,7 +820,7 @@ class AuditCheckMockMvcTests {
     }
 
     @Test
-    void testUserCreatedEvent() throws Exception {
+    void generateUserModifiedEvent_whenUserCreatedByClient() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -768,19 +828,14 @@ class AuditCheckMockMvcTests {
 
         resetAuditTestReceivers();
 
-        String username = "jacob" + new RandomValueStringGenerator().generate(), firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
-        ScimUser user = new ScimUser();
-        user.setPassword("password");
-        user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
-        user.addEmail(email);
+        ScimUser scimUser = buildRandomScimUser();
 
         MockHttpServletRequestBuilder userPost = post("/Users")
                 .accept(APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .session(new MockHttpSession())
                 .header("Authorization", "Bearer " + adminToken)
-                .content(JsonUtils.writeValueAsBytes(user));
+                .content(JsonUtils.writeValueAsBytes(scimUser));
 
         mockMvc.perform(userPost)
                 .andExpect(status().isCreated());
@@ -789,18 +844,87 @@ class AuditCheckMockMvcTests {
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
         assertEquals(UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
-                .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
+                .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
+        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_client_id=%s\"]",
+                createdUser.getId(),
+                scimUser.getUserName(),
+                testAccounts.getAdminClientId());
         assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserCreatedEvent, createdUser.getId(), format("[\"user_id=%s\",\"username=%s\"]", createdUser.getId(), username));
+                UserCreatedEvent, createdUser.getId(), logMessage);
+    }
+
+    @Nested
+    @DefaultTestContext
+    @ExtendWith(ZoneSeederExtension.class)
+    class WithUserWithScimWrite {
+
+        private ZoneSeeder zoneSeeder;
+        private ScimUser scimWriteUser;
+        private ClientDetails adminClient;
+
+        @BeforeEach
+        void setUp(ZoneSeeder zoneSeeder) {
+            this.zoneSeeder = zoneSeeder
+                    .withDefaults()
+                    .withClientWithImplicitPasswordRefreshTokenGrants("admin_client", "scim.write")
+                    .withUserWhoBelongsToGroups("admin@test.org", Lists.newArrayList("scim.write"))
+                    .afterSeeding(zs -> {
+                        scimWriteUser = zs.getUserByEmail("admin@test.org");
+                        adminClient = zs.getClientById("admin_client");
+                    });
+        }
+
+        @Test
+        void generateUserModifiedEvent_whenUserCreatesUser(
+                @Autowired TestClient testClient
+        ) throws Exception {
+            String userAccessToken = testClient.getUserOAuthAccessTokenForZone(
+                    adminClient.getClientId(),
+                    zoneSeeder.getPlainTextClientSecret(adminClient),
+                    scimWriteUser.getUserName(),
+                    zoneSeeder.getPlainTextPassword(scimWriteUser),
+                    "scim.write",
+                    zoneSeeder.getIdentityZoneSubdomain()
+            );
+
+            ScimUser scimUser = buildRandomScimUser();
+
+            MockHttpServletRequestBuilder userPost = post("/Users")
+                    .headers(zoneSeeder.getZoneSubdomainRequestHeader())
+                    .accept(APPLICATION_JSON_VALUE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(new MockHttpSession())
+                    .with(httpBearer(userAccessToken))
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
+
+            mockMvc.perform(userPost)
+                    .andExpect(status().isCreated());
+
+            ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(zoneSeeder.getIdentityZoneId())
+                    .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
+
+            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_user_id=%s\",\"created_by_username=%s\"]'): ",
+                    createdUser.getId(),
+                    scimUser.getUserName(),
+                    scimWriteUser.getId(),
+                    scimWriteUser.getUserName());
+            String actualLogMessage = testLogger.getLatestMessage();
+            assertThat(actualLogMessage, startsWith("UserCreatedEvent "));
+            assertThat(actualLogMessage, containsString(format("principal=%s,", createdUser.getId())));
+            assertThat(actualLogMessage, containsString(logMessage));
+            assertThat(actualLogMessage, containsString(format(", identityZoneId=[%s]", zoneSeeder.getIdentityZoneId())));
+            assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
+        }
+
     }
 
     @Test
-    void testUserCreatedEventDuringLoginServerAuthorize() throws Exception {
+    void generateUserCreatedEvent_DuringLoginServerAuthorize() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080/uaa"));
         String username = "jacob" + new RandomValueStringGenerator().generate();
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -840,8 +964,14 @@ class AuditCheckMockMvcTests {
 
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
+
+        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=login-server\",\"created_by_client_id=%s\"]",
+                createdUser.getId(),
+                username,
+                "login");
+
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0),
-                UserCreatedEvent, createdUser.getId(), format("[\"user_id=%s\",\"username=%s\"]", createdUser.getId(), username));
+                UserCreatedEvent, createdUser.getId(), logMessage);
     }
 
     @Test
@@ -1102,6 +1232,19 @@ class AuditCheckMockMvcTests {
                 GroupDeletedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
     }
 
+    private static ScimUser buildRandomScimUser() {
+        String username = "jacob" + new RandomValueStringGenerator().generate();
+        String firstName = "Jacob";
+        String lastName = "Gyllenhammar";
+        String email = "jacob@gyllenhammar.non";
+        ScimUser user = new ScimUser();
+        user.setPassword("password");
+        user.setUserName(username);
+        user.setName(new ScimUser.Name(firstName, lastName));
+        user.addEmail(email);
+        return user;
+    }
+
     private void verifyGroupAuditData(ScimGroup group, AuditEventType eventType) {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
@@ -1146,7 +1289,6 @@ class AuditCheckMockMvcTests {
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         return JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
-
     }
 
     private class DefaultApplicationListener<T extends ApplicationEvent> implements ApplicationListener<T> {
@@ -1234,7 +1376,7 @@ class AuditCheckMockMvcTests {
         assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
     }
 
-    private void assertLogMessageWithoutSession(String actualLogMessage, AuditEventType expectedAuditEventType, String expectedPrincipal, String expectedUserName) {
+    private static void assertLogMessageWithoutSession(String actualLogMessage, AuditEventType expectedAuditEventType, String expectedPrincipal, String expectedUserName) {
         assertThat(actualLogMessage, startsWith(expectedAuditEventType.toString() + " "));
         assertThat(actualLogMessage, containsString(format("principal=%s,", expectedPrincipal)));
         assertThat(actualLogMessage, containsString(format(" ('%s'): ", expectedUserName)));
@@ -1242,7 +1384,7 @@ class AuditCheckMockMvcTests {
         assertThat(actualLogMessage, not(containsString("sessionId")));
     }
 
-    private void assertGroupMembershipLogMessage(String actualLogMessage, AuditEventType expectedEventType, String expectedGroupDisplayName, String expectedGroupId, String... expectedUserIds) {
+    private static void assertGroupMembershipLogMessage(String actualLogMessage, AuditEventType expectedEventType, String expectedGroupDisplayName, String expectedGroupId, String... expectedUserIds) {
         assertThat(actualLogMessage, startsWith(expectedEventType.toString() + " "));
         assertThat(actualLogMessage, containsString(format("principal=%s,", expectedGroupId)));
         assertThat(actualLogMessage, not(containsString("sessionId")));
@@ -1254,39 +1396,4 @@ class AuditCheckMockMvcTests {
         assertThat(memberIdsFromLogMessage, equalTo(Sets.newHashSet(expectedUserIds)));
     }
 
-    private class InterceptingLogger extends SubstituteLogger {
-        private List<String> messages = new ArrayList<>();
-
-        InterceptingLogger() {
-            super("InterceptingLogger", new LinkedList<>(), true);
-        }
-
-        @Override
-        public void info(String message) {
-            messages.add(message);
-        }
-
-        void reset() {
-            messages.clear();
-        }
-
-        String getMessageAtIndex(int messageIndex) {
-            return messages.get(messageIndex);
-        }
-
-        String getFirstLogMessageOfType(AuditEventType type) {
-            return messages.stream().filter(msg -> msg.startsWith(type.toString() + " ")).findFirst().orElse(null);
-        }
-
-        int getMessageCount() {
-            return messages.size();
-        }
-
-        String getLatestMessage() {
-            if (messages.isEmpty()) {
-                return null;
-            }
-            return messages.get(messages.size() - 1);
-        }
-    }
 }
