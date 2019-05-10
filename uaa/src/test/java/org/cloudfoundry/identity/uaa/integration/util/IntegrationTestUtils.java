@@ -119,6 +119,8 @@ public class IntegrationTestUtils {
             "  </md:ContactPerson>\n" +
             "</md:EntityDescriptor>\n";
 
+    public static final String OIDC_ACCEPTANCE_URL = "https://oidc10.uaa-acceptance.cf-app.com/";
+
     public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId) {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminToken, userId, null);
     }
@@ -894,9 +896,9 @@ public class IntegrationTestUtils {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_key"));
+        config.setAuthUrl(new URL(OIDC_ACCEPTANCE_URL + "oauth/authorize"));
+        config.setTokenUrl(new URL(OIDC_ACCEPTANCE_URL + "oauth/token"));
+        config.setTokenKeyUrl(new URL(OIDC_ACCEPTANCE_URL + "token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
