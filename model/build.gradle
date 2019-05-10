@@ -23,6 +23,9 @@ dependencies {
     exclude(module: 'hamcrest-core')
   }
 
+  compileOnly 'org.projectlombok:lombok:1.18.6'
+  annotationProcessor 'org.projectlombok:lombok:1.18.6'
+  testCompile 'org.skyscreamer:jsonassert:1.5.0'
 }
 
 apply from: file('build_properties.gradle')

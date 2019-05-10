@@ -1,0 +1,19 @@
+{
+  "issuer": null,
+  "authorization_endpoint": null,
+  "token_endpoint": null,
+  "token_endpoint_auth_methods_supported": null,
+  "token_endpoint_auth_signing_alg_values_supported": null,
+  "userinfo_endpoint": null,
+  "jwks_uri": null,
+  "scopes_supported": null,
+  "response_types_supported": null,
+  "subject_types_supported": null,
+  "id_token_signing_alg_values_supported": null,
+  "id_token_encryption_alg_values_supported": null,
+  "claim_types_supported": null,
+  "claims_supported": null,
+  "claims_parameter_supported": false,
+  "service_documentation": null,
+  "ui_locales_supported": null
+}

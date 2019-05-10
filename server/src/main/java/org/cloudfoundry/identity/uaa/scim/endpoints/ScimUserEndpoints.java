@@ -417,7 +417,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if(status.getLocked() != null && status.getLocked()) {
             throw new IllegalArgumentException("Cannot set user account to locked. User accounts only become locked through exceeding the allowed failed login attempts.");
         }
-        if(status.isPasswordChangeRequired() != null && !status.isPasswordChangeRequired()) {
+        if(status.getPasswordChangeRequired() != null && !status.getPasswordChangeRequired()) {
             throw new IllegalArgumentException("The requirement that this user change their password cannot be removed via API.");
         }
 
@@ -425,7 +425,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if(status.getLocked() != null && !status.getLocked()) {
             publish(new UserAccountUnlockedEvent(user, IdentityZoneHolder.getCurrentZoneId()));
         }
-        if(status.isPasswordChangeRequired() != null && status.isPasswordChangeRequired()) {
+        if(status.getPasswordChangeRequired() != null && status.getPasswordChangeRequired()) {
             scimUserProvisioning.updatePasswordChangeRequired(userId, true, IdentityZoneHolder.get().getId());
         }
 

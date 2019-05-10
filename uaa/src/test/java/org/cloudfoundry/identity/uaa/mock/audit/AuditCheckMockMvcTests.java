@@ -638,7 +638,9 @@ class AuditCheckMockMvcTests {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         String expiringCode = requestExpiringCode(testUser.getUserName(), loginToken);
 
-        LostPasswordChangeRequest pwch = new LostPasswordChangeRequest(expiringCode, "Koala2");
+        LostPasswordChangeRequest pwch = new LostPasswordChangeRequest();
+        pwch.setChangeCode(expiringCode);
+        pwch.setNewPassword("Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
                 .accept(APPLICATION_JSON_VALUE)
