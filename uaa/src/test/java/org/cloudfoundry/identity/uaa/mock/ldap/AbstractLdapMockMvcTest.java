@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
 import org.apache.directory.server.core.security.TlsKeyGenerator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
@@ -14,6 +16,7 @@ import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
+import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
@@ -23,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -39,6 +43,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -86,8 +91,14 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.atLeast;
@@ -133,6 +144,10 @@ public abstract class AbstractLdapMockMvcTest {
 
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
+    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    private LoggingAuditService loggingAuditService;
+    private InterceptingLogger testLogger;
+    private Logger originalAuditServiceLogger;
 
     private WebApplicationContext getWebApplicationContext() {
         return webApplicationContext;
@@ -179,9 +194,13 @@ public abstract class AbstractLdapMockMvcTest {
     @BeforeEach
     void setUp(@Autowired WebApplicationContext webApplicationContext,
                @Autowired MockMvc mockMvc,
-               @Autowired ConfigurableApplicationContext configurableApplicationContext) throws Exception {
+               @Autowired ConfigurableApplicationContext configurableApplicationContext,
+               @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning,
+               @Autowired LoggingAuditService loggingAuditService) throws Exception {
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
+        this.jdbcScimUserProvisioning = jdbcScimUserProvisioning;
+        this.loggingAuditService = loggingAuditService;
 
         String userId = new RandomValueStringGenerator().generate().toLowerCase();
         zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI, IdentityZoneHolder.getCurrentZoneId());
@@ -210,6 +229,10 @@ public abstract class AbstractLdapMockMvcTest {
         configurableApplicationContext.addApplicationListener(listener);
 
         ensureLdapServerIsRunning();
+
+        testLogger = new InterceptingLogger();
+        originalAuditServiceLogger = loggingAuditService.getLogger();
+        loggingAuditService.setLogger(testLogger);
     }
 
     @AfterEach
@@ -220,6 +243,11 @@ public abstract class AbstractLdapMockMvcTest {
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
         MockMvcUtils.removeEventListener(webApplicationContext, listener);
+    }
+
+    @AfterEach
+    void putBackOriginalLogger() {
+        loggingAuditService.setLogger(originalAuditServiceLogger);
     }
 
     @Test
@@ -869,7 +897,20 @@ public abstract class AbstractLdapMockMvcTest {
         assertEquals("marissa", event.getUsername());
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
+        testLogger.reset();
+
         testSuccessfulLogin();
+
+        assertThat(testLogger.getMessageCount(), is(5));
+        String zoneId = zone.getZone().getIdentityZone().getId();
+        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(zoneId)
+                .stream().filter(dbUser -> dbUser.getUserName().equals("marissa2")).findFirst().get();
+        String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
+        String expectedMessage = String.format(
+                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\",\"user_origin=ldap\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
+                createdUser.getId(), createdUser.getId(), zoneId
+        );
+        assertThat(userCreatedLogMessage, is(expectedMessage));
 
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
