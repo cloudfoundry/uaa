@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.event;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -13,6 +13,13 @@ import java.util.Collections;
 import static java.util.Optional.ofNullable;
 
 public class ScimEventPublisher implements ApplicationEventPublisherAware {
+
+    private final IdentityZoneManager identityZoneManager;
+
+    public ScimEventPublisher(final IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
+
     private ApplicationEventPublisher publisher;
 
     @Override
@@ -21,19 +28,19 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
     }
 
     public void userCreated(final ScimUser user) {
-        publish(UserModifiedEvent.userCreated(user));
+        publish(UserModifiedEvent.userCreated(user, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void userVerified(final ScimUser user) {
-        publish(UserModifiedEvent.userVerified(user));
+        publish(UserModifiedEvent.userVerified(user, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void userModified(final ScimUser user) {
-        publish(UserModifiedEvent.userModified(user));
+        publish(UserModifiedEvent.userModified(user, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void userDeleted(final ScimUser user) {
-        publish(UserModifiedEvent.userDeleted(user));
+        publish(UserModifiedEvent.userDeleted(user, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void groupCreated(final ScimGroup group) {
@@ -41,7 +48,7 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
                 group.getId(),
                 group.getDisplayName(),
                 getMembers(group),
-                IdentityZoneHolder.getCurrentZoneId()));
+                identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void groupModified(final ScimGroup group) {
@@ -49,7 +56,7 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
                 group.getId(),
                 group.getDisplayName(),
                 getMembers(group),
-                IdentityZoneHolder.getCurrentZoneId()));
+                identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void groupDeleted(final ScimGroup group) {
@@ -57,7 +64,7 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
                 group.getId(),
                 group.getDisplayName(),
                 getMembers(group),
-                IdentityZoneHolder.getCurrentZoneId()));
+                identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     private static String[] getMembers(final ScimGroup group) {

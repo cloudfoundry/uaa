@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 public class UserModifiedEvent extends AbstractUaaEvent {
 
@@ -14,30 +13,33 @@ public class UserModifiedEvent extends AbstractUaaEvent {
     private final ScimUser scimUser;
     private final AuditEventType eventType;
 
-    private UserModifiedEvent(ScimUser scimUser, AuditEventType eventType) {
-        super(getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
+    private UserModifiedEvent(
+            final ScimUser scimUser,
+            final AuditEventType eventType,
+            final String zoneId) {
+        super(getContextAuthentication(), zoneId);
         this.scimUser = scimUser;
         this.eventType = eventType;
     }
 
-    static UserModifiedEvent userCreated(ScimUser scimUser) {
-        return new UserModifiedEvent(scimUser, AuditEventType.UserCreatedEvent);
+    static UserModifiedEvent userCreated(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserCreatedEvent, zoneId);
     }
 
-    static UserModifiedEvent userModified(ScimUser scimUser) {
-        return new UserModifiedEvent(scimUser, AuditEventType.UserModifiedEvent);
+    static UserModifiedEvent userModified(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserModifiedEvent, zoneId);
     }
 
-    static UserModifiedEvent userDeleted(ScimUser scimUser) {
-        return new UserModifiedEvent(scimUser, AuditEventType.UserDeletedEvent);
+    static UserModifiedEvent userDeleted(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserDeletedEvent, zoneId);
     }
 
-    static UserModifiedEvent userVerified(ScimUser scimUser) {
-        return new UserModifiedEvent(scimUser, AuditEventType.UserVerifiedEvent);
+    static UserModifiedEvent userVerified(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserVerifiedEvent, zoneId);
     }
 
-    public static UserModifiedEvent emailChanged(ScimUser scimUser) {
-        return new UserModifiedEvent(scimUser, AuditEventType.EmailChangedEvent);
+    public static UserModifiedEvent emailChanged(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.EmailChangedEvent, zoneId);
     }
 
     @Override
