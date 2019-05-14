@@ -84,6 +84,28 @@ public class UserModifiedEvent extends AbstractUaaEvent {
                     "user_origin=" + scimUser.getOrigin(),
                     "created_by_client_id=" + getContextAuthentication().getPrincipal()
             };
+        } else if (AuditEventType.UserDeletedEvent.equals(this.eventType)) {
+
+            // Authenticated as a user
+            if (getContextAuthentication().getPrincipal() instanceof UaaPrincipal) {
+                UaaPrincipal uaaPrincipal = (UaaPrincipal) getContextAuthentication().getPrincipal();
+
+                return new String[]{
+                        "user_id=" + scimUser.getId(),
+                        "username=" + scimUser.getUserName(),
+                        "user_origin=" + scimUser.getOrigin(),
+                        "deleted_by_user_id=" + uaaPrincipal.getId(),
+                        "deleted_by_username=" + uaaPrincipal.getName()
+                };
+            }
+
+            // Authenticated as a client
+            return new String[]{
+                    "user_id=" + scimUser.getId(),
+                    "username=" + scimUser.getUserName(),
+                    "user_origin=" + scimUser.getOrigin(),
+                    "deleted_by_client_id=" + getContextAuthentication().getPrincipal()
+            };
         }
         return new String[]{
                 "user_id=" + scimUser.getId(),

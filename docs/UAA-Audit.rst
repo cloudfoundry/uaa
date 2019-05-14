@@ -102,7 +102,9 @@ Scim Administration Events
 
 * UserDeletedEvent
     - Happens: When a user is deleted
-    - Data Recorded: User ID, Username
+    - Data Recorded: User ID (user_id), Username (username), User Origin (user_origin)
+    - Notes: When the user is deleted by a client, also records the client ID (deleted_by_client_id).
+      When the user is deleted by another user, also records the User ID (deleted_by_user_id) and Username (deleted_by_username) of the user who performed the deletion.
 
 * UserVerifiedEvent
     - Happens: When a user is verified

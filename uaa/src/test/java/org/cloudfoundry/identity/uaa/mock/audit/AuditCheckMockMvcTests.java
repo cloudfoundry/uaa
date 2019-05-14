@@ -804,9 +804,12 @@ class AuditCheckMockMvcTests {
         private ZoneSeeder zoneSeeder;
         private ScimUser scimWriteUser;
         private ClientDetails adminClient;
+        private String scimWriteUserToken;
+        private ScimUser scimUser;
+        private MockHttpSession mockHttpSession;
 
         @BeforeEach
-        void setUp(ZoneSeeder zoneSeeder) {
+        void setUp(final ZoneSeeder zoneSeeder, @Autowired TestClient testClient) {
             this.zoneSeeder = zoneSeeder
                     .withDefaults()
                     .withClientWithImplicitPasswordRefreshTokenGrants("admin_client", "scim.write")
@@ -814,30 +817,32 @@ class AuditCheckMockMvcTests {
                     .afterSeeding(zs -> {
                         scimWriteUser = zs.getUserByEmail("admin@test.org");
                         adminClient = zs.getClientById("admin_client");
+
+                        scimWriteUserToken = testClient.getUserOAuthAccessTokenForZone(
+                                adminClient.getClientId(),
+                                zoneSeeder.getPlainTextClientSecret(adminClient),
+                                scimWriteUser.getUserName(),
+                                zoneSeeder.getPlainTextPassword(scimWriteUser),
+                                "scim.write",
+                                zoneSeeder.getIdentityZoneSubdomain()
+                        );
+
                     });
+            scimUser = buildRandomScimUser();
+            mockHttpSession = new MockHttpSession();
         }
 
         @Test
         void generateUserModifiedEvent_whenCreatingUser(
-                @Autowired TestClient testClient
+                @Autowired MockMvc mockMvc
         ) throws Exception {
-            String userAccessToken = testClient.getUserOAuthAccessTokenForZone(
-                    adminClient.getClientId(),
-                    zoneSeeder.getPlainTextClientSecret(adminClient),
-                    scimWriteUser.getUserName(),
-                    zoneSeeder.getPlainTextPassword(scimWriteUser),
-                    "scim.write",
-                    zoneSeeder.getIdentityZoneSubdomain()
-            );
-
-            ScimUser scimUser = buildRandomScimUser();
 
             MockHttpServletRequestBuilder userPost = post("/Users")
                     .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                     .accept(APPLICATION_JSON_VALUE)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .session(new MockHttpSession())
-                    .with(httpBearer(userAccessToken))
+                    .session(mockHttpSession)
+                    .with(httpBearer(scimWriteUserToken))
                     .content(JsonUtils.writeValueAsBytes(scimUser));
 
             mockMvc.perform(userPost)
@@ -852,9 +857,53 @@ class AuditCheckMockMvcTests {
                     scimWriteUser.getId(),
                     scimWriteUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
-            assertThat(actualLogMessage, startsWith("UserCreatedEvent "));
+            assertThat(actualLogMessage, startsWith(UserCreatedEvent.toString() + " "));
             assertThat(actualLogMessage, containsString(format("principal=%s,", createdUser.getId())));
             assertThat(actualLogMessage, containsString(logMessage));
+            assertThat(actualLogMessage, containsString(format(", identityZoneId=[%s]", zoneSeeder.getIdentityZoneId())));
+            assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
+        }
+
+        @Test
+        void generateUserDeletedEvent_whenDeletingUser(
+                @Autowired MockMvc mockMvc
+        ) throws Exception {
+            MockHttpServletRequestBuilder userPost = post("/Users")
+                    .headers(zoneSeeder.getZoneSubdomainRequestHeader())
+                    .accept(APPLICATION_JSON_VALUE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(new MockHttpSession())
+                    .with(httpBearer(scimWriteUserToken))
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
+
+            mockMvc.perform(userPost)
+                    .andExpect(status().isCreated());
+
+            scimUser = jdbcScimUserProvisioning.retrieveAll(zoneSeeder.getIdentityZoneId())
+                    .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
+
+            MockHttpServletRequestBuilder userDelete = delete("/Users/" + scimUser.getId())
+                    .headers(zoneSeeder.getZoneSubdomainRequestHeader())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(mockHttpSession)
+                    .with(httpBearer(scimWriteUserToken))
+                    .header("If-Match", scimUser.getVersion());
+
+            resetAuditTestReceivers();
+            mockMvc.perform(userDelete).andExpect(status().isOk());
+
+            assertNumberOfAuditEventsReceived(2);
+
+            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_user_id=%s\",\"deleted_by_username=%s\"]",
+                    scimUser.getId(),
+                    scimUser.getUserName(),
+                    scimWriteUser.getId(),
+                    scimWriteUser.getUserName());
+            String actualLogMessage = testLogger.getLatestMessage();
+            assertThat(actualLogMessage, startsWith(UserDeletedEvent.toString() + " "));
+            assertThat(actualLogMessage, containsString(format("principal=%s,", scimUser.getId())));
+            assertThat(actualLogMessage, containsString(format(" ('%s'): ", logMessage)));
             assertThat(actualLogMessage, containsString(format(", identityZoneId=[%s]", zoneSeeder.getIdentityZoneId())));
             assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
         }
@@ -914,7 +963,7 @@ class AuditCheckMockMvcTests {
 
     @Nested
     @DefaultTestContext
-    class AsScimWriteClient {
+    class AsClientWithScimWrite {
 
         private String scimWriteClientToken;
         private ScimUser scimUser;
@@ -1001,7 +1050,10 @@ class AuditCheckMockMvcTests {
             assertEquals(UserDeletedEvent, userDeletedEvent.getAuditEvent().getType());
             assertTrue(userDeletedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
+            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_client_id=%s\"]",
+                    scimUser.getId(),
+                    scimUser.getUserName(),
+                    testAccounts.getAdminClientId());
             assertLogMessageWithSession(testLogger.getLatestMessage(),
                     UserDeletedEvent, scimUser.getId(), logMessage);
         }

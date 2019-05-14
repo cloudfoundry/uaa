@@ -203,7 +203,7 @@ public class ZoneSeeder {
     }
 
     public interface AfterSeedCallback {
-        void afterSeed(ZoneSeeder zoneSeeder);
+        void afterSeed(ZoneSeeder zoneSeeder) throws Exception;
     }
 
     public ZoneSeeder afterSeeding(AfterSeedCallback callback) {
@@ -211,7 +211,7 @@ public class ZoneSeeder {
         return this;
     }
 
-    ZoneSeeder seed() {
+    ZoneSeeder seed() throws Exception {
         if (alreadySeeded) {
             return this;
         }
