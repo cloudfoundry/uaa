@@ -913,41 +913,35 @@ class AuditCheckMockMvcTests {
     }
 
     @Test
-    void testUserModifiedAndDeleteEvent() throws Exception {
+    void generateUserModifiedEventandUserDeletedEvent_whenModifyingAndDeletingUsers() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
-                "uaa.admin,scim.write");
+                "scim.write");
 
-        String username = "jacob" + new RandomValueStringGenerator().generate(), firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
-        String modifiedFirstName = firstName + lastName;
-        ScimUser user = new ScimUser();
-        user.setPassword("password");
-        user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
-        user.addEmail(email);
+        ScimUser scimUser = buildRandomScimUser();
 
-        MockHttpSession session = new MockHttpSession();
+        MockHttpSession mockHttpSession = new MockHttpSession();
         MockHttpServletRequestBuilder userPost = post("/Users")
-                .accept(APPLICATION_JSON_VALUE)
+                .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .session(session)
-                .header("Authorization", "Bearer " + adminToken)
-                .content(JsonUtils.writeValueAsBytes(user));
+                .session(mockHttpSession)
+                .with(httpBearer(adminToken))
+                .content(JsonUtils.writeValueAsBytes(scimUser));
 
         ResultActions result = mockMvc.perform(userPost)
                 .andExpect(status().isCreated());
 
-        user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
+        scimUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
-        user.setName(new ScimUser.Name(modifiedFirstName, lastName));
-        MockHttpServletRequestBuilder userPut = put("/Users/" + user.getId())
-                .accept(APPLICATION_JSON_VALUE)
+        scimUser.getName().setGivenName(scimUser.getName().getGivenName() + "modified");
+        MockHttpServletRequestBuilder userPut = put("/Users/" + scimUser.getId())
+                .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .session(session)
-                .header("Authorization", "Bearer " + adminToken)
-                .header("If-Match", user.getVersion())
-                .content(JsonUtils.writeValueAsBytes(user));
+                .session(mockHttpSession)
+                .with(httpBearer(adminToken))
+                .header("If-Match", scimUser.getVersion())
+                .content(JsonUtils.writeValueAsBytes(scimUser));
 
         resetAuditTestReceivers();
         mockMvc.perform(userPut).andExpect(status().isOk());
@@ -956,20 +950,23 @@ class AuditCheckMockMvcTests {
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
         assertEquals(UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
+        String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
         assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserModifiedEvent, user.getId(), format("[\"user_id=%s\",\"username=%s\"]", user.getId(), username));
+                UserModifiedEvent,
+                scimUser.getId(),
+                logMessage);
 
         //delete the user
-        MockHttpServletRequestBuilder userDelete = delete("/Users/" + user.getId())
-                .accept(APPLICATION_JSON_VALUE)
+        MockHttpServletRequestBuilder userDelete = delete("/Users/" + scimUser.getId())
+                .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .session(session)
-                .header("Authorization", "Bearer " + adminToken)
-                .header("If-Match", user.getVersion() + 1);
+                .session(mockHttpSession)
+                .with(httpBearer(adminToken))
+                .header("If-Match", scimUser.getVersion() + 1);
 
         resetAuditTestReceivers();
         mockMvc.perform(userDelete).andExpect(status().isOk());
@@ -978,12 +975,12 @@ class AuditCheckMockMvcTests {
 
         userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
         assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
         assertEquals(UserDeletedEvent, userModifiedEvent.getAuditEvent().getType());
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserDeletedEvent, user.getId(), format("[\"user_id=%s\",\"username=%s\"]", user.getId(), username));
+                UserDeletedEvent, scimUser.getId(), logMessage);
     }
 
     @Test
