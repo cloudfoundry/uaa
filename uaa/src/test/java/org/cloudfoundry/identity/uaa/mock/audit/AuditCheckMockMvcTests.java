@@ -10,44 +10,23 @@ import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
-import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
-import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.audit.*;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.AuditListener;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.*;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
-import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
-import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
+import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -83,70 +62,29 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ApprovalModifiedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientCreateSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientUpdateSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupCreatedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupDeletedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.GroupModifiedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.IdentityProviderAuthenticationFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.IdentityProviderAuthenticationSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordResetRequest;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.TokenIssuedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UnverifiedUserAuthentication;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserCreatedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserDeletedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserModifiedEvent;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserNotFound;
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserVerifiedEvent;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.RegexMatcher.matchesRegex;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.springframework.http.HttpHeaders.ACCEPT;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.mockito.Mockito.*;
+import static org.springframework.http.HttpHeaders.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DefaultTestContext
 class AuditCheckMockMvcTests {
@@ -1148,6 +1086,9 @@ class AuditCheckMockMvcTests {
                 ScimGroupMember.Type.USER);
 
         group.setMembers(Arrays.asList(mjacob, memily));
+        String[] groupMemberIds = Stream.of(jacob, emily)
+                .map(ScimCore::getId)
+                .toArray(String[]::new);
 
         resetAuditTestReceivers();
 
@@ -1165,13 +1106,12 @@ class AuditCheckMockMvcTests {
         GroupModifiedEvent event = (GroupModifiedEvent) testListener.getLatestEvent();
         assertEquals(GroupCreatedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
-        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(),
-                        ScimEventPublisher.getMembers(group)),
+        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), groupMemberIds),
                 JsonUtils.readValue(event.getAuditEvent().getData(),
                         GroupModifiedEvent.GroupInfo.class)
         );
 
-        verifyGroupAuditData(group, GroupCreatedEvent);
+        verifyGroupAuditData(group, groupMemberIds, GroupCreatedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupCreatedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId());
@@ -1179,6 +1119,10 @@ class AuditCheckMockMvcTests {
         //update the group with one additional member
         List<ScimGroupMember> members = group.getMembers();
         members.add(mjonas);
+        groupMemberIds = Stream.of(jacob, emily, jonas)
+                .map(ScimCore::getId)
+                .toArray(String[]::new);
+
         group.setMembers(members);
         MockHttpServletRequestBuilder groupPut = put("/Groups/" + group.getId())
                 .accept(APPLICATION_JSON_VALUE)
@@ -1197,10 +1141,10 @@ class AuditCheckMockMvcTests {
         event = (GroupModifiedEvent) testListener.getLatestEvent();
         assertEquals(GroupModifiedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
-        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
+        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), groupMemberIds),
                 JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
-        verifyGroupAuditData(group, GroupModifiedEvent);
+        verifyGroupAuditData(group, groupMemberIds, GroupModifiedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupModifiedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
@@ -1223,10 +1167,10 @@ class AuditCheckMockMvcTests {
         event = (GroupModifiedEvent) testListener.getLatestEvent();
         assertEquals(GroupDeletedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
-        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
+        assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), groupMemberIds),
                 JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
-        verifyGroupAuditData(group, GroupDeletedEvent);
+        verifyGroupAuditData(group, groupMemberIds, GroupDeletedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupDeletedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
@@ -1245,7 +1189,7 @@ class AuditCheckMockMvcTests {
         return user;
     }
 
-    private void verifyGroupAuditData(ScimGroup group, AuditEventType eventType) {
+    private void verifyGroupAuditData(ScimGroup group, String[] groupMemberIds, AuditEventType eventType) {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == eventType).collect(Collectors.toList());
@@ -1257,7 +1201,7 @@ class AuditCheckMockMvcTests {
         Map<String, Object> auditObjects = JsonUtils.readValue(auditEventData, new TypeReference<Map<String, Object>>() {
         });
         assertEquals("testgroup", auditObjects.get("group_name"));
-        assertThat((Collection<String>) auditObjects.get("members"), containsInAnyOrder(ScimEventPublisher.getMembers(group)));
+        assertThat((Collection<String>) auditObjects.get("members"), containsInAnyOrder(groupMemberIds));
     }
 
     private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password, boolean verified) throws Exception {

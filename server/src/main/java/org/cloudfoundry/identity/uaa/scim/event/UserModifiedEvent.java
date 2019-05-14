@@ -1,18 +1,3 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.scim.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -29,25 +14,25 @@ public class UserModifiedEvent extends AbstractUaaEvent {
     private final ScimUser scimUser;
     private final AuditEventType eventType;
 
-    public UserModifiedEvent(ScimUser scimUser, AuditEventType eventType) {
+    private UserModifiedEvent(ScimUser scimUser, AuditEventType eventType) {
         super(getContextAuthentication(), IdentityZoneHolder.getCurrentZoneId());
         this.scimUser = scimUser;
         this.eventType = eventType;
     }
 
-    public static UserModifiedEvent userCreated(ScimUser scimUser) {
+    static UserModifiedEvent userCreated(ScimUser scimUser) {
         return new UserModifiedEvent(scimUser, AuditEventType.UserCreatedEvent);
     }
 
-    public static UserModifiedEvent userModified(ScimUser scimUser) {
+    static UserModifiedEvent userModified(ScimUser scimUser) {
         return new UserModifiedEvent(scimUser, AuditEventType.UserModifiedEvent);
     }
 
-    public static UserModifiedEvent userDeleted(ScimUser scimUser) {
+    static UserModifiedEvent userDeleted(ScimUser scimUser) {
         return new UserModifiedEvent(scimUser, AuditEventType.UserDeletedEvent);
     }
 
-    public static UserModifiedEvent userVerified(ScimUser scimUser) {
+    static UserModifiedEvent userVerified(ScimUser scimUser) {
         return new UserModifiedEvent(scimUser, AuditEventType.UserVerifiedEvent);
     }
 
