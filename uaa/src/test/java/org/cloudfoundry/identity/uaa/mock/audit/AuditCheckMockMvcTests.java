@@ -799,7 +799,7 @@ class AuditCheckMockMvcTests {
     @Nested
     @DefaultTestContext
     @ExtendWith(ZoneSeederExtension.class)
-    class WithUserWithScimWrite {
+    class AsUserWithScimWrite {
 
         private ZoneSeeder zoneSeeder;
         private ScimUser scimWriteUser;
@@ -818,7 +818,7 @@ class AuditCheckMockMvcTests {
         }
 
         @Test
-        void generateUserModifiedEvent_whenUserCreatesUser(
+        void generateUserModifiedEvent_whenCreatingUser(
                 @Autowired TestClient testClient
         ) throws Exception {
             String userAccessToken = testClient.getUserOAuthAccessTokenForZone(
@@ -912,75 +912,99 @@ class AuditCheckMockMvcTests {
                 UserCreatedEvent, createdUser.getId(), logMessage);
     }
 
-    @Test
-    void generateUserModifiedEventandUserDeletedEvent_whenModifyingAndDeletingUsers() throws Exception {
-        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                testAccounts.getAdminClientId(),
-                testAccounts.getAdminClientSecret(),
-                "scim.write");
+    @Nested
+    @DefaultTestContext
+    class AsScimWriteClient {
 
-        ScimUser scimUser = buildRandomScimUser();
+        private String scimWriteClientToken;
+        private ScimUser scimUser;
+        private MockHttpSession mockHttpSession;
 
-        MockHttpSession mockHttpSession = new MockHttpSession();
-        MockHttpServletRequestBuilder userPost = post("/Users")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON)
-                .session(mockHttpSession)
-                .with(httpBearer(adminToken))
-                .content(JsonUtils.writeValueAsBytes(scimUser));
+        @BeforeEach
+        void setUp(
+                @Autowired MockMvc mockMvc,
+                @Autowired TestClient testClient
+        ) throws Exception {
 
-        ResultActions result = mockMvc.perform(userPost)
-                .andExpect(status().isCreated());
+            scimWriteClientToken = testClient.getClientCredentialsOAuthAccessToken(
+                    testAccounts.getAdminClientId(),
+                    testAccounts.getAdminClientSecret(),
+                    "scim.write");
 
-        scimUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
+            scimUser = buildRandomScimUser();
+            mockHttpSession = new MockHttpSession();
 
-        scimUser.getName().setGivenName(scimUser.getName().getGivenName() + "modified");
-        MockHttpServletRequestBuilder userPut = put("/Users/" + scimUser.getId())
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON)
-                .session(mockHttpSession)
-                .with(httpBearer(adminToken))
-                .header("If-Match", scimUser.getVersion())
-                .content(JsonUtils.writeValueAsBytes(scimUser));
+            MockHttpServletRequestBuilder userPost = post("/Users")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(mockHttpSession)
+                    .with(httpBearer(scimWriteClientToken))
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
 
-        resetAuditTestReceivers();
-        mockMvc.perform(userPut).andExpect(status().isOk());
+            ResultActions result = mockMvc.perform(userPost)
+                    .andExpect(status().isCreated());
 
-        assertNumberOfAuditEventsReceived(1);
+            scimUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
-        UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
-        assertEquals(UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
-        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+            resetAuditTestReceivers();
+        }
 
-        String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
-        assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserModifiedEvent,
-                scimUser.getId(),
-                logMessage);
+        @Test
+        void generateUserModifiedEvent_whenModifyingUser(
+                @Autowired MockMvc mockMvc
+        ) throws Exception {
 
-        //delete the user
-        MockHttpServletRequestBuilder userDelete = delete("/Users/" + scimUser.getId())
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON)
-                .session(mockHttpSession)
-                .with(httpBearer(adminToken))
-                .header("If-Match", scimUser.getVersion() + 1);
+            scimUser.getName().setGivenName(scimUser.getName().getGivenName() + "modified");
+            MockHttpServletRequestBuilder userPut = put("/Users/" + scimUser.getId())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(mockHttpSession)
+                    .with(httpBearer(scimWriteClientToken))
+                    .header("If-Match", scimUser.getVersion())
+                    .content(JsonUtils.writeValueAsBytes(scimUser));
+            mockMvc.perform(userPut).andExpect(status().isOk());
 
-        resetAuditTestReceivers();
-        mockMvc.perform(userDelete).andExpect(status().isOk());
+            assertNumberOfAuditEventsReceived(1);
 
-        assertNumberOfAuditEventsReceived(2);
+            UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
+            assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+            assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
+            assertEquals(UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
+            assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-        userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        assertEquals(scimUser.getUserName(), userModifiedEvent.getUsername());
-        assertEquals(UserDeletedEvent, userModifiedEvent.getAuditEvent().getType());
-        assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
+            assertLogMessageWithSession(testLogger.getLatestMessage(),
+                    UserModifiedEvent,
+                    scimUser.getId(),
+                    logMessage);
+        }
 
-        assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserDeletedEvent, scimUser.getId(), logMessage);
+        @Test
+        void generateUserDeletedEvent_whenDeletingUser(
+                @Autowired MockMvc mockMvc
+        ) throws Exception {
+
+            MockHttpServletRequestBuilder userDelete = delete("/Users/" + scimUser.getId())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .session(mockHttpSession)
+                    .with(httpBearer(scimWriteClientToken))
+                    .header("If-Match", scimUser.getVersion());
+
+            mockMvc.perform(userDelete).andExpect(status().isOk());
+
+            assertNumberOfAuditEventsReceived(2);
+
+            UserModifiedEvent userDeletedEvent = (UserModifiedEvent) testListener.getLatestEvent();
+            assertEquals(testAccounts.getAdminClientId(), userDeletedEvent.getAuthentication().getName());
+            assertEquals(scimUser.getUserName(), userDeletedEvent.getUsername());
+            assertEquals(UserDeletedEvent, userDeletedEvent.getAuditEvent().getType());
+            assertTrue(userDeletedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
+
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
+            assertLogMessageWithSession(testLogger.getLatestMessage(),
+                    UserDeletedEvent, scimUser.getId(), logMessage);
+        }
     }
 
     @Test
