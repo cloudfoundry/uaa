@@ -16,8 +16,8 @@ public class ConfigMetadataProviderTest {
     @Test
     public void testDoGetMetadata() throws Exception {
         String metadataString = new Scanner(new File("../uaa/src/main/resources/idp.xml")).useDelimiter("\\Z").next();
-        ConfigMetadataProvider provider = new ConfigMetadataProvider(IdentityZone.getUaa().getId(), "testalias", metadataString);
-        ConfigMetadataProvider provider2 = new ConfigMetadataProvider(IdentityZone.getUaa().getId(), "testalias", metadataString);
+        ConfigMetadataProvider provider = new ConfigMetadataProvider(IdentityZone.getUaaZoneId(), "testalias", metadataString);
+        ConfigMetadataProvider provider2 = new ConfigMetadataProvider(IdentityZone.getUaaZoneId(), "testalias", metadataString);
         DefaultBootstrap.bootstrap();
         provider.setParserPool(new BasicParserPool());
         XMLObject xmlObject = provider.doGetMetadata();

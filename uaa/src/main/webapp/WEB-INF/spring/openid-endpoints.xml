@@ -35,7 +35,7 @@
     </bean>
 
     <bean id="openIdConnectEndpoints" class="org.cloudfoundry.identity.uaa.account.OpenIdConnectEndpoints">
-      <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
+      <property name="issuer" value="${issuer.uri}" />
     </bean>
 
     <bean id="openIdSessionStateCalculator" class="org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator"/>

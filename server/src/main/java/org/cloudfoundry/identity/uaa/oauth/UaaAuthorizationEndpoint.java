@@ -17,7 +17,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -27,17 +27,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.common.exceptions.ClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
-import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
+import org.springframework.security.oauth2.common.exceptions.*;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -58,6 +50,7 @@ import org.springframework.security.oauth2.provider.request.DefaultOAuth2Request
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpSessionRequiredException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -82,20 +75,18 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_PREFIX;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -105,9 +96,11 @@ import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
  * https://github.com/fhanik/spring-security-oauth/compare/feature/extendable-redirect-generator?expand=1
  */
 @Controller
-@SessionAttributes("authorizationRequest")
+@SessionAttributes({UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST})
 public class UaaAuthorizationEndpoint extends AbstractEndpoint implements AuthenticationEntryPoint {
 
+    static final String AUTHORIZATION_REQUEST = "authorizationRequest";
+    static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
     private RedirectResolver redirectResolver;
@@ -188,6 +181,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                   "User must be authenticated with Spring Security before authorization can be completed.");
             }
 
+            if (!(responseTypes.size() > 0)) {
+                return new ModelAndView(new RedirectView(addQueryParameter(addQueryParameter(resolvedRedirect, "error","invalid_request"), "error_description", "Missing response_type in authorization request")));
+            }
+
             authorizationRequest.setRedirectUri(resolvedRedirect);
             // We intentionally only validate the parameters requested by the client (ignoring any data that may have
             // been added to the request by the manager).
@@ -224,8 +221,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                 // Place auth request into the model so that it is stored in the session
                 // for approveOrDeny to use. That way we make sure that auth request comes from the session,
                 // so any auth request parameters passed to approveOrDeny will be ignored and retrieved from the session.
-                model.put("authorizationRequest", authorizationRequest);
+                model.put(AUTHORIZATION_REQUEST, authorizationRequest);
                 model.put("original_uri", UrlUtils.buildFullRequestUrl(request));
+                model.put(ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
+
                 return getUserApprovalPageResponse(model, authorizationRequest, (Authentication) principal);
             }
         } catch (RedirectMismatchException e) {
@@ -233,7 +232,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             throw e;
         } catch (Exception e) {
             sessionStatus.setComplete();
-
+            logger.debug("Unable to handle /oauth/authorize, internal error", e);
             if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
                 return new ModelAndView(
                   new RedirectView(addFragmentComponent(resolvedRedirect, "error=internal_server_error"))
@@ -283,11 +282,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
         boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
         String redirectLocation;
+        String errorCode = authException instanceof InteractionRequiredException ? "interaction_required" : "login_required";
         if (implicit) {
-            redirectLocation = addFragmentComponent(resolvedRedirect, "error=login_required");
+            redirectLocation = addFragmentComponent(resolvedRedirect, "error="+ errorCode);
             redirectLocation = addFragmentComponent(redirectLocation, "session_state=" + sessionState);
         } else {
-            redirectLocation = addQueryParameter(resolvedRedirect, "error", "login_required");
+            redirectLocation = addQueryParameter(resolvedRedirect, "error", errorCode);
             redirectLocation = addQueryParameter(redirectLocation, "session_state", sessionState);
         }
 
@@ -309,6 +309,36 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         return new ModelAndView("switch_idp", model, HttpStatus.UNAUTHORIZED);
     }
 
+    Map<String, Object> unmodifiableMap(AuthorizationRequest authorizationRequest) {
+        Map<String, Object> authorizationRequestMap = new HashMap<>();
+
+        authorizationRequestMap.put(OAuth2Utils.CLIENT_ID, authorizationRequest.getClientId());
+        authorizationRequestMap.put(OAuth2Utils.STATE, authorizationRequest.getState());
+        authorizationRequestMap.put(OAuth2Utils.REDIRECT_URI, authorizationRequest.getRedirectUri());
+
+        if (authorizationRequest.getResponseTypes() != null) {
+            authorizationRequestMap.put(OAuth2Utils.RESPONSE_TYPE,
+                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getResponseTypes())));
+        }
+        if (authorizationRequest.getScope() != null) {
+            authorizationRequestMap.put(OAuth2Utils.SCOPE,
+                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getScope())));
+        }
+
+        authorizationRequestMap.put("approved", authorizationRequest.isApproved());
+
+        if (authorizationRequest.getResourceIds() != null) {
+            authorizationRequestMap.put("resourceIds",
+                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getResourceIds())));
+        }
+        if (authorizationRequest.getAuthorities() != null) {
+            authorizationRequestMap.put("authorities",
+                    Collections.unmodifiableSet(new HashSet<GrantedAuthority>(authorizationRequest.getAuthorities())));
+        }
+
+        return authorizationRequestMap;
+    }
+
     @RequestMapping(value = "/oauth/authorize", method = RequestMethod.POST, params = OAuth2Utils.USER_OAUTH_APPROVAL)
     public View approveOrDeny(@RequestParam Map<String, String> approvalParameters, Map<String, ?> model,
                               SessionStatus sessionStatus, Principal principal) {
@@ -319,11 +349,33 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
               "User must be authenticated with Spring Security before authorizing an access token.");
         }
 
-        AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get("authorizationRequest");
+        AuthorizationRequest authorizationRequest = (AuthorizationRequest) model.get(AUTHORIZATION_REQUEST);
 
         if (authorizationRequest == null) {
             sessionStatus.setComplete();
             throw new InvalidRequestException("Cannot approve uninitialized authorization request.");
+        }
+
+        // Check to ensure the Authorization Request was not modified during the user approval step
+        @SuppressWarnings("unchecked")
+        Map<String, Object> originalAuthorizationRequest = (Map<String, Object>) model.get(ORIGINAL_AUTHORIZATION_REQUEST);
+        if (isAuthorizationRequestModified(authorizationRequest, originalAuthorizationRequest)) {
+            logger.warn("The requested scopes are invalid");
+            throw new InvalidRequestException("Changes were detected from the original authorization request.");
+        }
+
+        for (String approvalParameter : approvalParameters.keySet()) {
+            if (approvalParameter.startsWith(SCOPE_PREFIX)) {
+                String scope = approvalParameters.get(approvalParameter).substring(SCOPE_PREFIX.length());
+                Set<String> originalScopes = (Set<String>) originalAuthorizationRequest.get("scope");
+                if (!originalScopes.contains(scope)) {
+                    sessionStatus.setComplete();
+
+                    logger.warn("The requested scopes are invalid");
+                    return new RedirectView(getUnsuccessfulRedirect(authorizationRequest,
+                            new InvalidScopeException("The requested scopes are invalid. Please use valid scope names in the request."), false), false, true, false);
+                }
+            }
         }
 
         try {
@@ -362,13 +414,55 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     }
 
+    private boolean isAuthorizationRequestModified(AuthorizationRequest authorizationRequest, Map<String, Object> originalAuthorizationRequest) {
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getClientId(),
+                originalAuthorizationRequest.get(OAuth2Utils.CLIENT_ID))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getState(),
+                originalAuthorizationRequest.get(OAuth2Utils.STATE))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getRedirectUri(),
+                originalAuthorizationRequest.get(OAuth2Utils.REDIRECT_URI))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getResponseTypes(),
+                originalAuthorizationRequest.get(OAuth2Utils.RESPONSE_TYPE))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.isApproved(),
+                originalAuthorizationRequest.get("approved"))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getResourceIds(),
+                originalAuthorizationRequest.get("resourceIds"))) {
+            return true;
+        }
+        if (!ObjectUtils.nullSafeEquals(
+                authorizationRequest.getAuthorities(),
+                originalAuthorizationRequest.get("authorities"))) {
+            return true;
+        }
+
+        return !ObjectUtils.nullSafeEquals(
+                authorizationRequest.getScope(),
+                originalAuthorizationRequest.get(OAuth2Utils.SCOPE));
+    }
+
     protected String deriveGrantTypeFromResponseType(Set<String> responseTypes) {
         if (responseTypes.contains("token")) {
-            return "implicit";
+            return GRANT_TYPE_IMPLICIT;
         } else if (responseTypes.size() == 1 && responseTypes.contains("id_token")) {
-            return "implicit";
+            return GRANT_TYPE_IMPLICIT;
         }
-        return "authorization_code";
+        return GRANT_TYPE_AUTHORIZATION_CODE;
     }
 
     // We need explicit approval from the user.
@@ -387,7 +481,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     ) {
         OAuth2AccessToken accessToken;
         try {
-            TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, "implicit");
+            TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, GRANT_TYPE_IMPLICIT);
+            Map<String, String> requestParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+            requestParameters.put(GRANT_TYPE, grantType);
+            authorizationRequest.setRequestParameters(requestParameters);
             OAuth2Request storedOAuth2Request = getOAuth2RequestFactory().createOAuth2Request(authorizationRequest);
             accessToken = getAccessTokenForImplicitGrantOrHybrid(tokenRequest, storedOAuth2Request, grantType);
             if (accessToken == null) {
@@ -415,9 +512,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         // one thread removes the token request before another has a chance to redeem it.
         synchronized (this.implicitLock) {
             switch (grantType) {
-                case "implicit":
+                case GRANT_TYPE_IMPLICIT:
                     return getTokenGranter().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
-                case "authorization_code":
+                case GRANT_TYPE_AUTHORIZATION_CODE:
                     return getHybridTokenGranterForAuthCode().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
                 default:
                     throw new OAuth2Exception(OAuth2Exception.INVALID_GRANT);
@@ -464,9 +561,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             url.append("&access_token=").append(encode(accessToken.getValue()));
         }
 
-        if (accessToken instanceof CompositeAccessToken &&
-          authorizationRequest.getResponseTypes().contains(CompositeAccessToken.ID_TOKEN)) {
-            url.append("&").append(CompositeAccessToken.ID_TOKEN).append("=").append(encode(((CompositeAccessToken) accessToken).getIdTokenValue()));
+        if (accessToken instanceof CompositeToken &&
+          authorizationRequest.getResponseTypes().contains(CompositeToken.ID_TOKEN)) {
+            url.append("&").append(CompositeToken.ID_TOKEN).append("=").append(encode(((CompositeToken) accessToken).getIdTokenValue()));
         }
 
         if (authorizationRequest.getResponseTypes().contains("code")) {
@@ -685,7 +782,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         // If it's already there then we are in the approveOrDeny phase and we can use the saved request
         AuthorizationRequest authorizationRequest = (AuthorizationRequest) sessionAttributeStore.retrieveAttribute(
-          webRequest, "authorizationRequest");
+          webRequest, AUTHORIZATION_REQUEST);
         if (authorizationRequest != null) {
             return authorizationRequest;
         }

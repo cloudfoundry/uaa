@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 

@@ -28,7 +28,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
@@ -106,7 +105,7 @@ public class MultitenantJdbcClientDetailsService extends ClientServicesExtension
 
     private String selectClientDetailsSql = DEFAULT_SELECT_STATEMENT;
 
-    private PasswordEncoder passwordEncoder = NoOpPasswordEncoder.getInstance();
+    private PasswordEncoder passwordEncoder;
 
     private final JdbcTemplate jdbcTemplate;
 

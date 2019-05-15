@@ -54,7 +54,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private final PasswordEncoder encoder;
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
-    private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+    private AccountLoginPolicy accountLoginPolicy;
     private IdentityProviderProvisioning providerProvisioning;
 
     private String origin;
@@ -128,7 +128,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     success.setRequiresPasswordChange(true);
                 }
 
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, OriginKeys.UAA));
                 return success;
             }
         }
@@ -140,7 +140,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     protected int getPasswordExpiresInMonths() {
         int result = 0;
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (provider!=null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
             if (idpDefinition!=null) {
@@ -154,7 +154,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     protected Date getPasswordNewerThan() {
         Date result = null;
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if(provider != null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
             if(idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {

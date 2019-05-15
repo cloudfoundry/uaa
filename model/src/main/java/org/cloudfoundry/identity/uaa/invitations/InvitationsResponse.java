@@ -2,12 +2,9 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class InvitationsResponse {
 

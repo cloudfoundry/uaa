@@ -2,39 +2,41 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class DynamicZoneAwareAuthenticationManagerTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class DynamicZoneAwareAuthenticationManagerTest {
 
-    public static final IdentityZone ZONE = MultitenancyFixture.identityZone("test", "test");
-    DynamicZoneAwareAuthenticationManager manager;
-    IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
-    LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+    private static final IdentityZone ZONE = MultitenancyFixture.identityZone("test", "test");
+    private IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
+    private LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
         "ldap://localhost:38889/",
         "cn=admin,ou=Users,dc=test,dc=com",
         "adminsecret",
@@ -51,21 +53,21 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         true);
 
 
-    AuthenticationManager uaaAuthenticationMgr = mock(AuthenticationManager.class);
-    ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
-    ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
-    LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);
-    Authentication success = mock(Authentication.class);
-    IdentityProvider uaaActive = mock(IdentityProvider.class);
-    IdentityProvider uaaInactive = mock(IdentityProvider.class);
-    IdentityProvider ldapActive = mock(IdentityProvider.class);
-    IdentityProvider ldapInactive = mock(IdentityProvider.class);
+    private AuthenticationManager uaaAuthenticationMgr = mock(AuthenticationManager.class);
+    private ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
+    private ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
+    private LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);
+    private Authentication success = mock(Authentication.class);
+    private IdentityProvider uaaActive = mock(IdentityProvider.class);
+    private IdentityProvider uaaInactive = mock(IdentityProvider.class);
+    private IdentityProvider ldapActive = mock(IdentityProvider.class);
+    private IdentityProvider ldapInactive = mock(IdentityProvider.class);
 
 
 
-    @Before
-    @After
-    public void beforeAndAfter() throws Exception {
+    @BeforeEach
+    @AfterEach
+    void beforeAndAfter() {
         when(success.isAuthenticated()).thenReturn(true);
 
         when(uaaActive.isActive()).thenReturn(true);
@@ -84,7 +86,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testAuthenticateInUaaZone() throws Exception {
+    void testAuthenticateInUaaZone() {
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager();
         Authentication result = manager.authenticate(null);
         assertNull(result);
@@ -92,7 +94,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testNonUAAZoneUaaNotActive() throws Exception {
+    void testNonUAAZoneUaaNotActive() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaInactive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
@@ -106,7 +108,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testNonUAAZoneUaaActiveAccountNotVerified() throws Exception {
+    void testNonUAAZoneUaaActiveAccountNotVerified() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
@@ -123,7 +125,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testNonUAAZoneUaaActiveAccountLocked() throws Exception {
+    void testNonUAAZoneUaaActiveAccountLocked() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
@@ -140,7 +142,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testNonUAAZoneUaaActiveUaaAuthenticationSucccess() throws Exception {
+    void testNonUAAZoneUaaActiveUaaAuthenticationSucccess() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
@@ -152,7 +154,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testNonUAAZoneUaaActiveUaaAuthenticationFailure() throws Exception {
+    void testNonUAAZoneUaaActiveUaaAuthenticationFailure() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
@@ -164,7 +166,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testAuthenticateInNoneUaaZoneWithLdapProvider() throws Exception {
+    void testAuthenticateInNoneUaaZoneWithLdapProvider() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaInactive);
@@ -178,7 +180,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    public void testAuthenticateInNoneUaaZoneWithInactiveProviders() throws Exception {
+    void testAuthenticateInNoneUaaZoneWithInactiveProviders() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapInactive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaInactive);
@@ -196,10 +198,69 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         verifyZeroInteractions(mockManager);
     }
 
-    protected DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager() {
+    @Test
+    void testExtractLoginHint() {
+        DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
+
+        UaaAuthenticationDetails mockDetails = mock(UaaAuthenticationDetails.class);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("uaa");
+        when(success.getDetails()).thenReturn(mockDetails);
+
+        assertNull(manager.extractLoginHint(null));
+        assertNull(manager.extractLoginHint(success));
+
+        when(mockDetails.getLoginHint()).thenReturn(loginHint);
+        assertEquals(loginHint, manager.extractLoginHint(success));
+    }
+
+    @Test
+    void testInvalidLoginHint() {
+        DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidc");
+        try {
+            manager.getChainedAuthenticationManager(IdentityZone.getUaa(), loginHint);
+            fail();
+        } catch (ProviderNotFoundException e) {
+            assertEquals("The origin provided in the login hint is invalid.", e.getMessage());
+        }
+    }
+
+    @Test
+    void testLoginHintUaa() {
+        IdentityZoneHolder.set(ZONE);
+        when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
+        when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
+
+        DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("uaa");
+        ChainedAuthenticationManager chainedAuthenticationManager = manager.getChainedAuthenticationManager(ZONE, loginHint);
+
+        assertEquals(1, chainedAuthenticationManager.getDelegates().length);
+        assertEquals(uaaAuthenticationMgr, chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager());
+    }
+
+    @Test
+    void testLoginHintLdap() {
+        IdentityZoneHolder.set(ZONE);
+        when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
+        when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);
+
+        DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("ldap");
+        ChainedAuthenticationManager chainedAuthenticationManager = manager.getChainedAuthenticationManager(ZONE, loginHint);
+
+        assertEquals(1, chainedAuthenticationManager.getDelegates().length);
+        assertEquals(manager.getLdapAuthenticationManager(ZONE, ldapActive), chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager());
+    }
+
+    DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager() {
         return getDynamicZoneAwareAuthenticationManager(false);
     }
-    protected DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager(boolean mock) {
+    DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager(boolean mock) {
         if (mock) {
             final DynamicLdapAuthenticationManager mockLdapManager = mock(DynamicLdapAuthenticationManager.class);
             return new DynamicZoneAwareAuthenticationManager(

@@ -25,6 +25,8 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static java.util.Optional.ofNullable;
+
 public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public static final String DEFAULT_CSRF_HEADER_NAME = "X-CSRF-TOKEN";
@@ -86,7 +88,7 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         Cookie csrfCookie = new Cookie(token.getParameterName(), token.getToken());
         csrfCookie.setHttpOnly(true);
         csrfCookie.setSecure(secure || request.getProtocol().equals("https"));
-
+        csrfCookie.setPath(ofNullable(request.getContextPath()).orElse("") + "/");
         if (expire) {
             csrfCookie.setMaxAge(0);
         } else {

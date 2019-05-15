@@ -1,56 +1,41 @@
-import org.apache.commons.lang.time.StopWatch
 import org.apache.tools.ant.filters.ReplaceTokens
 
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import io.honeycomb.libhoney.HoneyClient
+import io.honeycomb.libhoney.EventFactory
+import static io.honeycomb.libhoney.LibHoney.create
+import static io.honeycomb.libhoney.LibHoney.options
+
 buildscript {
     apply from: file('shared_versions.gradle')
 
-  repositories {
-    mavenCentral()
-    //jcenter()
-    maven {
-      url 'https://repo.spring.io/plugins-release'
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url 'https://repo.spring.io/plugins-release'
+        }
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
     }
-    maven {
-      url 'https://plugins.gradle.org/m2/'
-    }
-  }
 
-  dependencies {
-    classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
-    classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
-    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-    classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
-    classpath group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '6.1.0.jre8'
-    classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
-    classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
-    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
-    classpath ('org.springframework.cloud:spring-cloud-spring-service-connector:1.1.1.RELEASE') {
-        exclude (module: 'spring-asm')
-    }
-    classpath 'org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.1.1.RELEASE'
+    dependencies {
+        classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
+        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
+        classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
+        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
+        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+        classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
   }
 }
 
 apply from: file('docker.gradle')
-
-ext {
-    databaseType = {
-        List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
-        if (activeProfiles.contains('postgresql')) {
-            'postgresql'
-        } else if (activeProfiles.contains('sqlserver')) {
-            'sqlserver'
-        } else {
-            'hsqldb'
-        }
-    }
-    integrationCoverageFile = file("$buildDir/integration.ser")
-}
-
 apply from: file('shared_versions.gradle')
+apply plugin: 'com.bmuschko.cargo'
+
 
 def uaaVersion = version
 def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
@@ -62,13 +47,10 @@ def nonProxyHosts = 'localhost|*.localhost'
 allprojects {
     apply plugin: 'maven'
     group = 'org.cloudfoundry.identity'
-    version = uaaVersion
 
-    apply plugin: 'jacoco'
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
-    apply plugin: 'propdeps-eclipse'
     configurations.provided.transitive = false
     configurations.all {
         resolutionStrategy {
@@ -100,6 +82,7 @@ allprojects {
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
         }
+        maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
         from sourceSets.main.allJava
@@ -110,7 +93,7 @@ allprojects {
     publishing {
         repositories {
             maven {
-                url "https://oss.sonatype.org/content/repositories/releases/"
+                url "https://oss.sonatype.org/content/repositories/releases"
                 credentials {
                     username "$nexusUsername"
                     password "$nexusPassword"
@@ -120,80 +103,66 @@ allprojects {
     }
 }
 
-//apply plugin: 'com.bmuschko.cargo-base'
-apply plugin: 'com.bmuschko.cargo'
-apply plugin: 'org.flywaydb.flyway'
 apply plugin: 'jacoco'
-
-flyway {
-  switch (databaseType()) {
-    case 'postgresql':
-      driver = 'org.postgresql.Driver'
-      url = 'jdbc:postgresql:uaa'
-      user = 'root'
-      password = 'changeme'
-      break
-    case 'sqlserver':
-      driver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-      url = 'jdbc:sqlserver://localhost:1433;database=uaa;'
-      user = 'root'
-      password = 'changemeCHANGEME1234!'
-      break
-  }
-}
-
-flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
-
-task prepareDatabase {
-    dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
-}
 
 def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
     it.name == 'jacocoagent.jar'
 }).asPath
 def jacocoLocation = System.getProperty('java.io.tmpdir') + '/cargo/jacocoagent.jar'
 
-task cleanCargoConfDir {
-    delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
-    delete file(jacocoLocation)
-    try {
-        Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
-    } catch (all) {
-    }
-    Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
-}
-
-cargoStartLocal.dependsOn assemble, prepareDatabase
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-task run(dependsOn: cargoRunLocal)
-
-task manifests(dependsOn: assemble, type: Copy) {
-    from('uaa/src/test/resources/sample-manifests') {
-        include '**/*.yml'
-        filter(ReplaceTokens,
-                tokens: [
-                        version: uaaVersion,
-                        app: System.getProperty('app', 'myuaa'),
-                        appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
-                ]
-        )
-    }
-    into 'build/sample-manifests'
-}
-
 subprojects {
+    EventFactory honeyCombEventFactory = buildEventFactory()
+
     apply plugin: 'java'
+
+    dependencies {
+        testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
+        testCompile("org.junit.jupiter:junit-jupiter-api:${junit5JupiterVersion}")
+        testCompile("org.junit.jupiter:junit-jupiter-params:${junit5JupiterVersion}")
+        testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
+        testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
+        testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit5JupiterVersion}")
+        testRuntime("org.junit.vintage:junit-vintage-engine:${junit5JupiterVersion}")
+    }
+
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
     test {
-        jvmArgs += ["-Xmx1024m"]
+        if (System.getenv("DB") == null) {
+            maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        }
+
+        useJUnitPlatform()
+        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+
+        afterSuite { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
+        }
+
+        afterTest { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
+        }
+
+        testLogging {
+            events 'skipped', 'failed', 'passed'
+            exceptionFormat 'full'
+
+            // Uncomment the following line to see all standard output from tests (there's a ton of it!)
+            //showStandardStreams = true
+        }
     }
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
-        finalizedBy rootProject.cargoStopLocal
+
+        afterSuite { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
+        }
+
+        afterTest { descriptor, testResult ->
+            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
+        }
     }
 
     task packageSources(type: Jar) {
@@ -204,25 +173,13 @@ subprojects {
     task generateDocs() {
     }
 
-    javadoc {
-        logging.captureStandardError LogLevel.INFO
-        logging.captureStandardOutput LogLevel.INFO // suppress "## warnings" message
-    }
-
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier 'javadoc'
-        from javadoc.destinationDir
-    }
-
     artifacts {
         archives packageSources
-        archives javadocJar
     }
+
     repositories {
+        maven { url 'https://jitpack.io' }
         maven { url "https://repo.spring.io/release" }
-        maven { url "https://repo.spring.io/milestone" }
-        maven { url "https://repo.spring.io/snapshot" }
-        maven { url "https://repo.spring.io/ext-release-local" }
         maven { url "https://repo.maven.apache.org/maven2" }
         maven {
             credentials {
@@ -241,58 +198,9 @@ subprojects {
         }
     }
 
-  tasks.withType(Test) {
-    systemProperties = System.properties
-    systemProperties['user.dir'] = workingDir
-  }
-
-    install {
-        repositories.mavenInstaller {
-            pom.project {
-                name 'UAA'
-                description 'Cloud Foundry User Account and Authentication'
-                url 'http://github.com//cloudfoundry/uaa'
-                inceptionYear '2011'
-                licenses {
-                    license {
-                        name 'The Apache License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        distribution 'repo'
-                    }
-                }
-                scm {
-                    connection 'scm:git:git@github.com:cloudfoundry/uaa.git'
-                    developerConnection 'scm:git:git@github.com:cloudfoundry/uaa.git'
-                    url 'https://github.com/cloudfoundry/uaa'
-                }
-                developers {
-                    developer {
-                        id 'fhanik'
-                        name 'Filip Hanik'
-                        roles {
-                            role 'Developer'
-                        }
-                    }
-                    developer {
-                        id 'mbhave'
-                        name 'Madhura Bhave'
-                        roles {
-                            role 'Developer'
-                        }
-                    }
-                    developer {
-                        id 'cdutra'
-                        name 'Chris Dutra'
-                        roles {
-                            role 'Developer'
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    sourceSets {
+    tasks.withType(Test) {
+        systemProperties = System.properties
+        systemProperties['user.dir'] = workingDir
     }
 
     jacocoTestReport {
@@ -307,28 +215,11 @@ subprojects {
     }
 }
 
-
-
-publishing {
-    publications {
-        uaa_parent(MavenPublication) {
-            groupId 'org.cloudfoundry.identity'
-            version uaaVersion
-            artifactId 'cloudfoundry-identity-parent'
-
-            from components.java
-            artifact sourceJar
-        }
-    }
-}
-
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
 cargo {
-    containerId = tomcatContainerId
+    containerId = 'tomcat9x'
     port = 8080
-    timeout = 240000
-
 
     deployable {
         file = file('statsd/build/libs/cloudfoundry-identity-statsd-' + version + '.war')
@@ -345,15 +236,26 @@ cargo {
         context = 'app'
     }
 
+    deployable {
+        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
+        context = 'uaa'
+    }
+
     local {
-        //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-        jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData} -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+        startStopTimeout = 540000
+        List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
+        jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+        if (activeProfiles.contains('debug')) {
+            jvmArgs += " -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+        } else {
+            jvmArgs += " -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+        }
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
         configFile {
-            file = file('scripts/travis/tomcat-conf/context.xml')
+            files = files('scripts/cargo/tomcat-conf/context.xml')
             toDir = 'conf'
-
         }
+
         systemProperties {
             property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
             property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
@@ -367,6 +269,8 @@ cargo {
             property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
             property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
             property 'METER_BASE_DOMAIN', 'localhost'
+            property 'smtp.host', 'localhost'
+            property 'smtp.port', 2525
         }
 
         installer {
@@ -378,52 +282,51 @@ cargo {
 }
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-    cargo {
-        deployable {
-            file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-            context = 'uaa'
-        }
-
-        local {
-//      jvmArgs = jvmArgs + " -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
-
-            systemProperties {
-                //property 'uaa.allowUnverifiedUsers', 'false'
-                property 'smtp.host', 'localhost'
-                property 'smtp.port', 2525
-            }
-        }
-    }
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
         it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+        it.systemProperty 'testId', System.getProperty('testId', '')
     }
+}
+
+//task declarations
+task run(dependsOn: cargoRunLocal)
+
+task manifests(dependsOn: assemble, type: Copy) {
+    from('uaa/src/test/resources/sample-manifests') {
+        include '**/*.yml'
+        filter(ReplaceTokens,
+                tokens: [
+                        version  : version,
+                        app      : System.getProperty('app', 'myuaa'),
+                        appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
+                ]
+        )
+    }
+    into 'build/sample-manifests'
+}
+
+task cleanCargoConfDir {
+    delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
+    delete file(jacocoLocation)
+    try {
+        Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
+    } catch (all) {
+    }
+    Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
 apply plugin: 'com.github.kt3k.coveralls'
-
-Project identityModel = subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-Project identityServer = subprojects.find { it.name.equals('cloudfoundry-identity-server') }
-Project identityStatsd = subprojects.find { it.name.equals('cloudfoundry-identity-statsd') }
-Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
-
 def publishedProjects = subprojects
 
-assemble.dependsOn subprojects.assemble
-
-task integrationTest {
-    dependsOn cargoStartLocal
+task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
-integrationTest.dependsOn subprojects.integrationTest
-
-test.dependsOn subprojects.test
-test.mustRunAfter integrationTest
 
 def jacocoRootReportConfiguration = {
     additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
     sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
     classDirectories = files(subprojects.sourceSets.main.output)
-    executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
+    //executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
     reports {
         html.enabled = true
         xml.enabled = true
@@ -481,7 +384,6 @@ task mockAssertion(type: JavaExec) {
     classpath = files(subprojects.sourceSets.test.runtimeClasspath)
 }
 
-
 coveralls {
     sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
     jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
@@ -490,6 +392,18 @@ coveralls {
 tasks.coveralls {
     group = 'Coverage reports'
     description = 'Uploads the aggregated coverage report to Coveralls'
+}
+
+task encrypt(type: JavaExec) {
+    main = 'org.cloudfoundry.identity.uaa.Encryptor'
+    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+}
+
+task decrypt(type: JavaExec) {
+    main = 'org.cloudfoundry.identity.uaa.Decryptor'
+    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
+    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 task setupDegradedTestLocal(type: Exec, dependsOn: cargoStartLocal) {
@@ -514,104 +428,61 @@ task setupDegradedTestCloud(type: Exec) {
   commandLine './setupDegradedTests.sh'
 }
 
-// Log timings per task.
-class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {
-    private StopWatch clock
-    private StopWatch testClock
-    private int beforeCount
-    private timings = []
-    private testTimings = []
-    private final testLimit = 5000
-    private Task currentTask
+// task dependencies
+assemble.dependsOn subprojects.assemble
+test.dependsOn subprojects.test
+test.mustRunAfter integrationTest
+cargoStartLocal.dependsOn assemble
+cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
-    @Override
-    void beforeExecute(Task task) {
-        clock = new StopWatch()
-        clock.start()
-        currentTask = task
+private EventFactory buildEventFactory() {
+    def honeycombKey = System.getenv("HONEYCOMB_KEY")
+    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
+
+    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
+        return null
     }
 
-    @Override
-    void afterExecute(Task task, TaskState taskState) {
-        clock.stop()
-        def ms = clock.getTime()
-        timings.add([ms, task.path])
-        task.project.logger.warn "${task.path} took ${ms}ms"
-    }
+    HoneyClient honeyClient = create(
+            options()
+                    .setWriteKey(honeycombKey)
+                    .setDataset(honeycombDataset)
+                    .build()
+    )
 
-    @Override
-    void buildFinished(BuildResult result) {
-        println "Task timings:"
-        for (timing in timings) {
-            if (timing[0] >= 500) {
-                printf "%7sms  %s\n", timing
-            }
-        }
-        println "Test timings:"
-        for (timing in testTimings.sort { it[0] }) {
-            if (timing[0] >= testLimit) {
-                printf "%7sms  %s\n", timing
-            }
-        }
-    }
+    def uniqueTestID = UUID.randomUUID().toString()
+    System.setProperty("testId", uniqueTestID)
 
-    @Override
-    void beforeSuite(TestDescriptor suite) {
-        testClock = new StopWatch()
-        testClock.start()
-    }
-
-    @Override
-    void afterSuite(TestDescriptor suite, TestResult result) {
-        def ms = testClock.getTime()
-        testTimings.add([ms, suite.getName()])
-        currentTask.project.logger.warn "${suite.name} took ${ms}ms"
-    }
-
-    int checkConnections(String action, TestDescriptor suite) {
-        java.sql.Connection con = null
-        int count = -1
-        try {
-            java.sql.Driver driver = Class.forName("org.postgresql.Driver").newInstance()
-            java.util.Properties p = new java.util.Properties()
-            p.setProperty("user", "root")
-            p.setProperty("password", "changeme")
-            con = driver.connect("jdbc:postgresql:uaa", p)
-            java.sql.Statement st = con.createStatement()
-            java.sql.ResultSet rs = st.executeQuery("select count(*) from pg_stat_activity")
-            rs.next()
-            count = rs.getInt(1)
-            System.err.println(action + " Connection count[" + suite.getName() + "] is: " + count)
-        } finally {
-            if (con != null) {
-                try {
-                    con.close()
-                } catch (Exception ignore) {
-                }
-            }
-        }
-        return count
-    }
-
-    @Override
-    void beforeTest(TestDescriptor test) {}
-
-    @Override
-    void afterTest(TestDescriptor test, TestResult result) {}
-
-    @Override
-    void buildStarted(Gradle gradle) {}
-
-    @Override
-    void projectsEvaluated(Gradle gradle) {}
-
-    @Override
-    void projectsLoaded(Gradle gradle) {}
-
-    @Override
-    void settingsEvaluated(Settings settings) {}
-
-
+    return honeyClient.buildEventFactory()
+            .addField("testId", uniqueTestID)
+            .addField("cpuCores", Runtime.getRuntime().availableProcessors())
+            .addField("hostname", InetAddress.getLocalHost().getHostName())
+            .build()
 }
 
-gradle.addListener new TimingsListener()
+private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
+    if (localBuilder != null) {
+        def event = localBuilder.createEvent()
+
+        event
+                .addField("test_lifecycle", testLifecycle)
+                .addField("testClass", descriptor.className)
+                .addField("testName", descriptor.name)
+                .addField("result", testResult.resultType)
+                .addField("output", testResult.exception)
+                .addField("startTime", testResult.startTime)
+                .addField("endTime", testResult.endTime)
+                .addField("duration", testResult.endTime - testResult.startTime)
+                .setTimestamp(System.currentTimeMillis())
+
+        for (Map.Entry entry : System.getProperties().entrySet()) {
+            event.addField(entry.key, entry.value)
+        }
+
+        event.addField("DB", System.getenv().get("DB"))
+        event.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"))
+        event.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"))
+
+        event.send()
+    }
+}

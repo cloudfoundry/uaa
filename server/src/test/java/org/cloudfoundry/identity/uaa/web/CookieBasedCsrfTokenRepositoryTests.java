@@ -16,14 +16,15 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+
 import org.junit.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
 
+import java.util.Arrays;
 import javax.servlet.http.Cookie;
 
 import static org.hamcrest.Matchers.nullValue;
@@ -59,27 +60,36 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals("token-id", token.getToken());
     }
 
+
+
     @Test
     public void testSave_and_Load_Token() throws Exception {
-        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        CsrfToken token = repo.generateToken(request);
-        assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
-        repo.saveToken(token, request, response);
+        for (String contextPath : Arrays.asList("", "/uaa")) {
+            String expectedCookiePath = contextPath + "/";
+            CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            request.setPathInfo("/login/somepath");
+            request.setContextPath(contextPath);
+            CsrfToken token = repo.generateToken(request);
+            assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
+            repo.saveToken(token, request, response);
 
-        Cookie cookie = response.getCookie(token.getParameterName());
-        assertNotNull(cookie);
-        assertEquals(token.getToken(), cookie.getValue());
-        assertEquals(true, cookie.isHttpOnly());
-        assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
+            Cookie cookie = response.getCookie(token.getParameterName());
+            assertNotNull(cookie);
+            assertEquals(token.getToken(), cookie.getValue());
+            assertEquals(true, cookie.isHttpOnly());
+            assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
+            assertNotNull(cookie.getPath());
+            assertEquals(expectedCookiePath, cookie.getPath());
 
-        request.setCookies(cookie);
+            request.setCookies(cookie);
 
-        CsrfToken saved = repo.loadToken(request);
-        assertEquals(token.getToken(), saved.getToken());
-        assertEquals(token.getHeaderName(), saved.getHeaderName());
-        assertEquals(token.getParameterName(), saved.getParameterName());
+            CsrfToken saved = repo.loadToken(request);
+            assertEquals(token.getToken(), saved.getToken());
+            assertEquals(token.getHeaderName(), saved.getHeaderName());
+            assertEquals(token.getParameterName(), saved.getParameterName());
+        }
     }
 
     @Test

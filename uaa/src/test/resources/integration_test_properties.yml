@@ -1,0 +1,184 @@
+userMaxCount: 5
+groupMaxCount: 5
+clientMaxCount: 5
+
+
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
+
+LOGIN_SECRET: loginsecret
+
+jwt:
+  token:
+    signing-key: tokenKey
+
+uaa:
+  # The hostname of the UAA that this login server will connect to
+  url: http://localhost:8080/uaa
+  token:
+    url: http://localhost:8080/uaa/oauth/token
+  approvals:
+    url: http://localhost:8080/uaa/approvals
+  login:
+    url: http://localhost:8080/uaa/authenticate
+  limitedFunctionality:
+    enabled: false
+    whitelist:
+      endpoints:
+      - /oauth/authorize/**
+      - /oauth/token/**
+      - /check_token/**
+      - /login/**
+      - /login.do
+      - /logout/**
+      - /logout.do
+      - /saml/**
+      - /autologin/**
+      - /authenticate/**
+      - /idp_discovery/**
+      methods:
+      - GET
+      - HEAD
+      - OPTIONS
+
+database:
+  abandonedtimeout: 45
+  caseinsensitive: true
+  evictionintervalms: 30000
+  logabandoned: false
+  maxactive: 50
+  maxidle: 5
+  minidle: 3
+  removeabandoned: true
+  driverClassName: org.hsqldb.jdbcDriver
+  url: jdbc:hsqldb:mem:uaadb
+  username: sa
+  password: ''
+
+scim:
+  groups:
+    zones.read: Read identity zones
+    zones.write: Create and update identity zones
+    idps.read: Retrieve identity providers
+    idps.write: Create and update identity providers
+    clients.admin: Create, modify and delete OAuth clients
+    clients.write: Create and modify OAuth clients
+    clients.read: Read information about OAuth clients
+    clients.secret: Change the password of an OAuth client
+    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
+    scim.read: Read all SCIM entities, i.e. users and groups
+    scim.create: Create users
+    scim.userids: Read user IDs and retrieve users by ID
+    scim.zones: Control a user's ability to manage a zone
+    scim.invite: Send invitations to users
+    password.write: Change your password
+    oauth.approval: Manage approved scopes
+    oauth.login: Authenticate users outside of the UAA
+    openid: Access profile information, i.e. email, first and last name, and phone number
+    groups.update: Update group information and memberships
+    uaa.user: Act as a user in the UAA
+    uaa.resource: Serve resources protected by the UAA
+    uaa.admin: Act as an administrator throughout the UAA
+    uaa.none: Forbid acting as a user
+    uaa.offline_token: Allow offline access
+
+oauth:
+  user:
+    authorities:
+    - openid
+    - scim.me
+    - cloud_controller.read
+    - cloud_controller.write
+    - cloud_controller_service_permissions.read
+    - password.write
+    - scim.userids
+    - uaa.user
+    - approvals.me
+    - oauth.approvals
+    - profile
+    - roles
+    - user_attributes
+    - uaa.offline_token
+
+issuer:
+  uri: http://localhost:8080/uaa
+
+
+login:
+  serviceProviderKey: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5
+    L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA
+    fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB
+    AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges
+    7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu
+    lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp
+    ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX
+    kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL
+    gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK
+    vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe
+    A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS
+    N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
+    qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
+    -----END RSA PRIVATE KEY-----
+  serviceProviderKeyPassword: password
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
+    MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
+    MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
+    cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
+    CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
+    BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
+    BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
+    ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
+    qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
+    znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
+    MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
+    gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
+    VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
+    VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
+    QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
+    0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
+    KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
+    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
+    -----END CERTIFICATE-----
+  url: http://localhost:8080/uaa
+  entityBaseURL: http://localhost:8080/uaa
+  entityID: cloudfoundry-saml-login
+  saml:
+    #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
+    #entityIDAlias: cloudfoundry-saml-login
+    #Default nameID if IDP nameID is not set
+    nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
+    #Default assertionConsumerIndex if IDP value is not set
+    assertionConsumerIndex: 0
+    #Local/SP metadata - sign metadata
+    signMetaData: true
+    #Local/SP metadata - requests signed
+    signRequest: true
+    #Local/SP metadata - want incoming assertions signed
+    #wantAssertionSigned: true
+    #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
+    #signatureAlgorithm: SHA256
+    socket:
+      # URL metadata fetch - pool timeout
+      connectionManagerTimeout: 10000
+      # URL metadata fetch - read timeout
+      soTimeout: 10000
+  authorize:
+    url: http://localhost:8080/uaa/oauth/authorize
+
+
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'

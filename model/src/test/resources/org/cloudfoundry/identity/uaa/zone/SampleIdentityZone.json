@@ -1,0 +1,127 @@
+{
+  "id": "f7758816-ab47-48d9-9d24-25b10b92d4cc",
+  "subdomain": "demo",
+  "config": {
+    "clientSecretPolicy": {
+      "minLength": -1,
+      "maxLength": -1,
+      "requireUpperCaseCharacter": -1,
+      "requireLowerCaseCharacter": -1,
+      "requireDigit": -1,
+      "requireSpecialCharacter": -1
+    },
+    "tokenPolicy": {
+      "accessTokenValidity": -1,
+      "refreshTokenValidity": -1,
+      "jwtRevocable": false,
+      "refreshTokenUnique": false,
+      "refreshTokenFormat": "jwt",
+      "activeKeyId": null
+    },
+    "samlConfig": {
+      "assertionSigned": true,
+      "requestSigned": true,
+      "wantAssertionSigned": true,
+      "wantAuthnRequestSigned": false,
+      "assertionTimeToLiveSeconds": 600,
+      "keys": {
+      },
+      "disableInResponseToCheck": true
+    },
+    "corsPolicy": {
+      "xhrConfiguration": {
+        "allowedOrigins": [
+          ".*"
+        ],
+        "allowedOriginPatterns": [
+        ],
+        "allowedUris": [
+          ".*"
+        ],
+        "allowedUriPatterns": [
+        ],
+        "allowedHeaders": [
+          "Accept",
+          "Authorization",
+          "Content-Type"
+        ],
+        "allowedMethods": [
+          "GET"
+        ],
+        "allowedCredentials": false,
+        "maxAge": 1728000
+      },
+      "defaultConfiguration": {
+        "allowedOrigins": [
+          ".*"
+        ],
+        "allowedOriginPatterns": [
+        ],
+        "allowedUris": [
+          ".*"
+        ],
+        "allowedUriPatterns": [
+        ],
+        "allowedHeaders": [
+          "Accept",
+          "Authorization",
+          "Content-Type"
+        ],
+        "allowedMethods": [
+          "GET"
+        ],
+        "allowedCredentials": false,
+        "maxAge": 1728000
+      }
+    },
+    "links": {
+      "logout": {
+        "redirectUrl": "/login",
+        "redirectParameterName": "redirect",
+        "disableRedirectParameter": false,
+        "whitelist": null
+      },
+      "selfService": {
+        "selfServiceLinksEnabled": true,
+        "signup": null,
+        "passwd": null
+      }
+    },
+    "prompts": [
+      {
+        "name": "username",
+        "type": "text",
+        "text": "Email"
+      },
+      {
+        "name": "password",
+        "type": "password",
+        "text": "Password"
+      },
+      {
+        "name": "passcode",
+        "type": "password",
+        "text": "Temporary Authentication Code (Get on at /passcode)"
+      }
+    ],
+    "idpDiscoveryEnabled": false,
+    "accountChooserEnabled": false,
+    "userConfig": {
+      "defaultGroups": [
+        "openid",
+        "password.write",
+        "uaa.user",
+        "approvals.me",
+        "profile",
+        "roles",
+        "user_attributes",
+        "uaa.offline_token"
+      ]
+    }
+  },
+  "name": "Demo Login Page",
+  "version": 1,
+  "description": "{\"plan_display_name\":\"Demo\",\"plan_description\":\"Demo SSO Plan\"}",
+  "created": 1503504273000,
+  "last_modified": 1504898224000
+}

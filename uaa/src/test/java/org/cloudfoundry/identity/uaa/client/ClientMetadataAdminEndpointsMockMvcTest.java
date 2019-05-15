@@ -1,33 +1,25 @@
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -44,17 +36,27 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContextTest {
-
+@DefaultTestContext
+public class ClientMetadataAdminEndpointsMockMvcTest {
+    @Autowired
+    public WebApplicationContext webApplicationContext;
     private String adminClientTokenWithClientsWrite;
     private MultitenantJdbcClientDetailsService clients;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private UaaTestAccounts testAccounts;
     private String adminClientTokenWithClientsRead;
+    private MockMvc mockMvc;
+    private TestClient testClient;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(springSecurityFilterChain)
+                .build();
+
+        testClient = new TestClient(mockMvc);
+
         testAccounts = UaaTestAccounts.standard(null);
         adminClientTokenWithClientsRead = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
@@ -65,11 +67,11 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
                 testAccounts.getAdminClientSecret(),
                 "clients.write");
 
-        clients = getWebApplicationContext().getBean(MultitenantJdbcClientDetailsService.class);
+        clients = webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class);
     }
 
     @Test
-    public void getClientMetadata() throws Exception {
+    void getClientMetadata() throws Exception {
         String clientId = generator.generate();
 
         String marissaToken = getUserAccessToken(clientId);
@@ -86,7 +88,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void getClientMetadata_WhichDoesNotExist() throws Exception {
+    void getClientMetadata_WhichDoesNotExist() throws Exception {
         String clientId = generator.generate();
 
         MockHttpServletResponse response = getTestClientMetadata(clientId, adminClientTokenWithClientsRead);
@@ -95,7 +97,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void getAllClientMetadata() throws Exception {
+    void getAllClientMetadata() throws Exception {
         String clientId1 = generator.generate();
         String marissaToken = getUserAccessToken(clientId1);
 
@@ -121,10 +123,11 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         client4Metadata.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
         performUpdate(client4Metadata);
 
-        MockHttpServletResponse response = getMockMvc().perform(get("/oauth/clients/meta")
-            .header("Authorization", "Bearer " + marissaToken)
-            .accept(APPLICATION_JSON)).andExpect(status().isOk()).andReturn().getResponse();
-        ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(), new TypeReference<ArrayList<ClientMetadata>>() {});
+        MockHttpServletResponse response = mockMvc.perform(get("/oauth/clients/meta")
+                .header("Authorization", "Bearer " + marissaToken)
+                .accept(APPLICATION_JSON)).andExpect(status().isOk()).andReturn().getResponse();
+        ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(), new TypeReference<ArrayList<ClientMetadata>>() {
+        });
 
         assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId1))));
         assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2))));
@@ -133,22 +136,22 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void missingAcceptHeader_isOk() throws Exception {
-        getMockMvc().perform(get("/oauth/clients/meta")
+    void missingAcceptHeader_isOk() throws Exception {
+        mockMvc.perform(get("/oauth/clients/meta")
                 .header("Authorization", "Bearer " + getUserAccessToken(generator.generate())))
                 .andExpect(status().isOk());
     }
 
     @Test
-    public void wrongAcceptHeader_isNotAcceptable() throws Exception {
-        getMockMvc().perform(get("/oauth/clients/meta")
+    void wrongAcceptHeader_isNotAcceptable() throws Exception {
+        mockMvc.perform(get("/oauth/clients/meta")
                 .header("Authorization", "Bearer " + getUserAccessToken(generator.generate()))
                 .accept(TEXT_PLAIN))
                 .andExpect(status().isNotAcceptable());
     }
 
     @Test
-    public void updateClientMetadata() throws Exception {
+    void updateClientMetadata() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -172,11 +175,11 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-        return getMockMvc().perform(updateClientPut);
+        return mockMvc.perform(updateClientPut);
     }
 
     @Test
-    public void updateClientMetadata_InsufficientScope() throws Exception {
+    void updateClientMetadata_InsufficientScope() throws Exception {
         String clientId = generator.generate();
         String marissaToken = getUserAccessToken(clientId);
 
@@ -186,17 +189,17 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-            .header("Authorization", "Bearer " + marissaToken)
-            .header("If-Match", "0")
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-        MockHttpServletResponse response = getMockMvc().perform(updateClientPut).andReturn().getResponse();
+                .header("Authorization", "Bearer " + marissaToken)
+                .header("If-Match", "0")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(updatedClientMetadata));
+        MockHttpServletResponse response = mockMvc.perform(updateClientPut).andReturn().getResponse();
         assertThat(response.getStatus(), is(HttpStatus.FORBIDDEN.value()));
     }
 
     @Test
-    public void updateClientMetadata_WithNoClientIdInBody() throws Exception {
+    void updateClientMetadata_WithNoClientIdInBody() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -206,12 +209,12 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
-            .header("If-Match", "0")
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-        ResultActions perform = getMockMvc().perform(updateClientPut);
+                .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+                .header("If-Match", "0")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(updatedClientMetadata));
+        ResultActions perform = mockMvc.perform(updateClientPut);
         assertThat(perform.andReturn().getResponse().getContentAsString(), containsString(appLaunchUrl.toString()));
 
         MockHttpServletResponse response = getTestClientMetadata(clientId, adminClientTokenWithClientsRead);
@@ -220,7 +223,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void updateClientMetadata_ForNonExistentClient() throws Exception {
+    void updateClientMetadata_ForNonExistentClient() throws Exception {
         String clientId = generator.generate();
 
         ClientMetadata clientMetadata = new ClientMetadata();
@@ -229,17 +232,17 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
-            .header("If-Match", "0")
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(clientMetadata));
-        ResultActions perform = getMockMvc().perform(updateClientPut);
+                .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+                .header("If-Match", "0")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientMetadata));
+        ResultActions perform = mockMvc.perform(updateClientPut);
         assertEquals(perform.andReturn().getResponse().getStatus(), NOT_FOUND.value());
     }
 
     @Test
-    public void updateClientMetadata_ClientIdMismatch() throws Exception {
+    void updateClientMetadata_ClientIdMismatch() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -249,12 +252,12 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
-            .header("If-Match", "0")
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(clientMetadata));
-        ResultActions perform = getMockMvc().perform(updateClientPut);
+                .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+                .header("If-Match", "0")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientMetadata));
+        ResultActions perform = mockMvc.perform(updateClientPut);
         assertEquals(perform.andReturn().getResponse().getStatus(), HttpStatus.BAD_REQUEST.value());
     }
 
@@ -262,6 +265,6 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         MockHttpServletRequestBuilder createClientGet = get("/oauth/clients/" + clientId + "/meta")
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON);
-        return getMockMvc().perform(createClientGet).andReturn().getResponse();
+        return mockMvc.perform(createClientGet).andReturn().getResponse();
     }
 }

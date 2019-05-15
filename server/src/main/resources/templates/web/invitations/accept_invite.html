@@ -20,6 +20,14 @@
                 <input name="code" type="hidden" value="code" th:value="${code}"/>
                 <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
                 <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+
+                <label th:if="${consent_text}" style="margin-bottom: 20px">
+                    <input name="does_user_consent" type="checkbox" style="display: inline">
+                    <span>I agree to </span>
+                    <span th:if="!${consent_link}" th:text="${consent_text}"></span>
+                    <a th:if="${consent_link}" th:text="${consent_text}" name="consent-link" th:href="@{${consent_link}}" target="_blank"></a>
+                </label>
+
                 <input type="submit" th:value="${!companyName.equals('Cloud Foundry') and isUaa ? 'Create ' + companyName + ' account' : 'Create account'}" class="island-button"/>
             </form>
           </th:block>

@@ -14,11 +14,14 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ZoneManagementScopes {
     public static final String ZONE_ID_MATCH = "{zone.id}";
     public static final String ZONES_ZONE_ID_PREFIX = "zones." ;

@@ -43,7 +43,7 @@ public class QueryFilterTests {
 
 
     @Test
-    public void reportFailedQuery() throws Exception {
+    public void reportUnsuccessfulQuery() throws Exception {
         long start = System.currentTimeMillis();
         filter.reportFailedQuery("query", null, "name", start, null);
         assertNotNull(metric.getQueries());

@@ -26,4 +26,8 @@ public class MfaChecker {
     public boolean isMfaEnabled(IdentityZone zone, String originKey) {
         return zone.getConfig().getMfaConfig().isEnabled();
     }
+
+    public boolean isRequired(IdentityZone zone, String originKey) {
+        return zone.getConfig().getMfaConfig().getIdentityProviders().contains(originKey);
+    }
 }

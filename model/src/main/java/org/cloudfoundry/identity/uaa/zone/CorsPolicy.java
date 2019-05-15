@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CorsPolicy {
 
     private CorsConfiguration xhrConfiguration = new CorsConfiguration();

@@ -16,16 +16,15 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.util.ReflectionUtils;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.util.Properties;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
@@ -33,20 +32,20 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedMod
 
 public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
     private File existingStatusFile;
-    private File statusFile;
-    private XmlWebApplicationContext webApplicationContext;
+
     private MockEnvironment mockEnvironment;
     private MockPropertySource propertySource;
     private Properties originalProperties = new Properties();
     Field f = ReflectionUtils.findField(MockEnvironment.class, "propertySource");
 
-    @Before
-    @Override
-    public void setUpContext() throws Exception {
-        super.setUpContext();
-        webApplicationContext = getWebApplicationContext();
+    @BeforeEach
+    public void setUpLimitedModeContext(
+            @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
+    ) throws Exception {
+        super.setUpContext(defaultAuthorities);
         existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
-        statusFile = setLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
+
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource) ReflectionUtils.getField(f, mockEnvironment);
@@ -54,16 +53,15 @@ public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvc
             originalProperties.put(s, propertySource.getProperty(s));
         }
         mockEnvironment.setProperty("spring_profiles", "default, degraded");
-
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
+
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
         mockEnvironment.getPropertySources().addLast(originalPropertySource);
     }
-
 }

@@ -117,10 +117,6 @@ public class UaaTestAccounts implements TestAccounts {
         return profile != null && environment.acceptsProfiles(profile);
     }
 
-    public String getVarzAuthorizationHeader() {
-        return getAuthorizationHeader("varz", "varz", "varzclientsecret");
-    }
-
     public String getAuthorizationHeader(String prefix, String defaultUsername, String defaultPassword) {
         String username = environment.getProperty(prefix + ".username", defaultUsername);
         String password = environment.getProperty(prefix + ".password", defaultPassword);

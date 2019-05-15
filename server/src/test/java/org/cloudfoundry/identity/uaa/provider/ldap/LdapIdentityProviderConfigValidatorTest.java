@@ -25,8 +25,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;

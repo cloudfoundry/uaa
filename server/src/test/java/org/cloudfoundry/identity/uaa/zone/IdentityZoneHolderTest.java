@@ -14,202 +14,260 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.springframework.security.saml.key.KeyManager;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import java.util.UUID;
 
-public class IdentityZoneHolderTest {
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
-    private BrandingInformation zoneBranding;
-    private BrandingInformation defaultZoneBranding;
-    private IdentityZone fakeUaa;
+@ExtendWith(PollutionPreventionExtension.class)
+class IdentityZoneHolderTest {
 
-    @Before
-    public void setUp() throws Exception {
-        defaultZoneBranding = new BrandingInformation();
-        defaultZoneBranding.setProductLogo("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVQ4EaVTO04DMRB9YdOTC+QcK46w" +
-                                               "FU3apclKuQMH4AYUkUxFmyY0PgLac3AB6ImM3kyePYkQDZZ27Zl58+aNP8A/x2J7ixI5Xr6wiHaMX8eIW/L3/tlStisUAZm8fx1acMxWTPFK0BBOR" +
-                                               "hL5ukP2ZQ9UsjHXIqZA4LuVrwjsPjxxenRfAtAh47QenCiQgFL5fb8NpTyjlAf/5KOfa/llk/pG1WvV2T3T0We1wLh8jNAmaSUwyTMMRGC6dxDXIl" +
-                                               "ExtUd7SZb0BKhXU3LIRrTfKKXNpsLU+R7VTWTFKJEpuzGbktNmuFiLjnEj4M52s4OnMVt/CedTYLWjx9Artc1269hG3MSohMps9LAjVCqrc9QWaJg" +
-                                               "SZCRWOp+GoX5J5u3lvan3nioIphIOnQr711BVXf0LAoGuieRnMt8A438SKEFEsuMDirEf/oirUgza/ucAAAAASUVORK5CYII=");
+    private SamlKeyManagerFactory mockSamlKeyManagerFactory;
 
-        zoneBranding = new BrandingInformation();
-        zoneBranding.setProductLogo("zoneBrandingString===");
+    @BeforeEach
+    void setUp() {
+        mockSamlKeyManagerFactory = mock(SamlKeyManagerFactory.class);
+        setSamlKeyManagerFactory(mockSamlKeyManagerFactory);
+    }
 
-        fakeUaa = IdentityZoneHolder.getUaaZone();
-        fakeUaa.getConfig().setBranding(defaultZoneBranding);
-
-        IdentityZoneProvisioning provisioning = Mockito.mock(IdentityZoneProvisioning.class);
-        IdentityZoneHolder.setProvisioning(provisioning);
-
-        Mockito.when(provisioning.retrieve(fakeUaa.getId())).thenReturn(fakeUaa);
+    @AfterAll
+    static void tearDown() {
+        setSamlKeyManagerFactory(new SamlKeyManagerFactory());
     }
 
     @Test
-    public void getProductLogoForZone() {
-        IdentityZone testZone = new IdentityZone();
-        IdentityZoneHolder.set(testZone);
-        IdentityZoneHolder.get().getConfig().setBranding(zoneBranding);
+    void set() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        getKeyManagerThreadLocal().set(mock(KeyManager.class));
 
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), zoneBranding.getProductLogo());
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
+        assertThat(getKeyManagerThreadLocal().get(), is(nullValue()));
     }
 
     @Test
-    public void emptyProductLogoForZoneDoesNotReturnDefault() {
-        IdentityZone testZone = new IdentityZone();
-        IdentityZoneHolder.set(testZone);
-        IdentityZoneHolder.get().getConfig().setBranding(new BrandingInformation());
+    void get() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
 
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertNull(brandingInformationSource.getProductLogo());
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
+    }
+
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    class WhenZoneIsUaa {
+        @BeforeEach
+        void setUp() {
+            IdentityZoneHolder.set(IdentityZone.getUaa());
+        }
+
+        @Test
+        void isUaa() {
+            assertThat(IdentityZoneHolder.isUaa(), is(true));
+        }
+    }
+
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    class WhenZoneIsNotUaa {
+        private IdentityZone mockIdentityZone;
+
+        @BeforeEach
+        void setUp() {
+            mockIdentityZone = mock(IdentityZone.class);
+            when(mockIdentityZone.getId()).thenReturn("not uaa");
+            IdentityZoneHolder.set(mockIdentityZone);
+        }
+
+        @Test
+        void isUaa() {
+            assertThat(IdentityZoneHolder.isUaa(), is(false));
+        }
+    }
+
+    @Nested
+    class WithNullProvisioning {
+        @BeforeEach
+        void setUp() {
+            IdentityZoneHolder.setProvisioning(null);
+        }
+
+        @Test
+        void initializer() {
+            IdentityZoneHolder.clear();
+            assertThat(IdentityZoneHolder.get(), is(IdentityZone.getUaa()));
+        }
+
+        @Test
+        void getUaaZone() {
+            assertThat(IdentityZoneHolder.getUaaZone(), is(IdentityZone.getUaa()));
+        }
+
+        @Test
+        void getSamlSPKeyManager_WhenSecondCallWorks() {
+            IdentityZone mockIdentityZone = mock(IdentityZone.class);
+            IdentityZoneHolder.set(mockIdentityZone);
+
+            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+
+            SamlConfig mockSamlConfig = mock(SamlConfig.class);
+            when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+
+            KeyManager expectedKeyManager = mock(KeyManager.class);
+            when(mockSamlKeyManagerFactory.getKeyManager(any()))
+                    .thenReturn(null)
+                    .thenReturn(expectedKeyManager);
+
+            // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+            verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+            verify(mockSamlKeyManagerFactory, times(2)).getKeyManager(any());
+        }
+    }
+
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    class WithJdbcProvisioning {
+        private IdentityZoneProvisioning mockIdentityZoneProvisioning;
+        private IdentityZone mockIdentityZoneFromProvisioning;
+
+        @BeforeEach
+        void setUp() {
+            mockIdentityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+            mockIdentityZoneFromProvisioning = mock(IdentityZone.class);
+            when(mockIdentityZoneProvisioning.retrieve(anyString())).thenReturn(mockIdentityZoneFromProvisioning);
+            IdentityZoneHolder.setProvisioning(mockIdentityZoneProvisioning);
+        }
+
+        @Test
+        void initializer() {
+            IdentityZoneHolder.clear();
+            assertThat(IdentityZoneHolder.get(), is(mockIdentityZoneFromProvisioning));
+            verify(mockIdentityZoneProvisioning).retrieve("uaa");
+        }
+
+        @Test
+        void getUaaZone() {
+            assertThat(IdentityZoneHolder.getUaaZone(), is(mockIdentityZoneFromProvisioning));
+            verify(mockIdentityZoneProvisioning).retrieve("uaa");
+        }
+
+        @Test
+        void getSamlSPKeyManager_WhenSecondCallWorks() {
+            IdentityZoneConfiguration mockIdentityZoneConfigurationFromProvisioning = mock(IdentityZoneConfiguration.class);
+            when(mockIdentityZoneFromProvisioning.getConfig()).thenReturn(mockIdentityZoneConfigurationFromProvisioning);
+
+            SamlConfig mockSamlConfigFromProvisioning = mock(SamlConfig.class);
+            when(mockIdentityZoneConfigurationFromProvisioning.getSamlConfig()).thenReturn(mockSamlConfigFromProvisioning);
+
+            IdentityZone mockIdentityZone = mock(IdentityZone.class);
+            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+            SamlConfig mockSamlConfig = mock(SamlConfig.class);
+            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+            when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+            when(mockSamlKeyManagerFactory.getKeyManager(mockSamlConfig))
+                    .thenReturn(null);
+            IdentityZoneHolder.set(mockIdentityZone);
+
+            KeyManager expectedKeyManager = mock(KeyManager.class);
+            when(mockSamlKeyManagerFactory.getKeyManager(mockSamlConfigFromProvisioning))
+                    .thenReturn(expectedKeyManager);
+
+            // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+            assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+            InOrder inOrder = inOrder(mockSamlKeyManagerFactory);
+
+            inOrder.verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+            inOrder.verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfigFromProvisioning);
+            verify(mockSamlKeyManagerFactory, times(2)).getKeyManager(any());
+        }
     }
 
     @Test
-    public void getProductLogoForDefaultZoneReturnsDefaultLogo() {
-        IdentityZoneHolder.set(fakeUaa);
+    void getSamlSPKeyManager_WhenKeyManagerIsNotNull() {
+        KeyManager expectedKeyManager = mock(KeyManager.class);
+        getKeyManagerThreadLocal().set(expectedKeyManager);
 
-        BrandingInformationSource brandingInformationSource = IdentityZoneHolder.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), defaultZoneBranding.getProductLogo());
+        // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+        verify(mockSamlKeyManagerFactory, never()).getKeyManager(any());
     }
 
     @Test
-    public void deserialize() throws Exception {
-        String json = "{\n" +
-            "  \"id\": \"f7758816-ab47-48d9-9d24-25b10b92d4cc\",\n" +
-            "  \"subdomain\": \"demo\",\n" +
-            "  \"config\": {\n" +
-            "    \"clientSecretPolicy\": {\n" +
-            "      \"minLength\": -1,\n" +
-            "      \"maxLength\": -1,\n" +
-            "      \"requireUpperCaseCharacter\": -1,\n" +
-            "      \"requireLowerCaseCharacter\": -1,\n" +
-            "      \"requireDigit\": -1,\n" +
-            "      \"requireSpecialCharacter\": -1\n" +
-            "    },\n" +
-            "    \"tokenPolicy\": {\n" +
-            "      \"accessTokenValidity\": -1,\n" +
-            "      \"refreshTokenValidity\": -1,\n" +
-            "      \"jwtRevocable\": false,\n" +
-            "      \"refreshTokenUnique\": false,\n" +
-            "      \"refreshTokenFormat\": \"jwt\",\n" +
-            "      \"activeKeyId\": null\n" +
-            "    },\n" +
-            "    \"samlConfig\": {\n" +
-            "      \"assertionSigned\": true,\n" +
-            "      \"requestSigned\": true,\n" +
-            "      \"wantAssertionSigned\": true,\n" +
-            "      \"wantAuthnRequestSigned\": false,\n" +
-            "      \"assertionTimeToLiveSeconds\": 600,\n" +
-            "      \"keys\": {\n" +
-            "      },\n" +
-            "      \"disableInResponseToCheck\": true\n" +
-            "    },\n" +
-            "    \"corsPolicy\": {\n" +
-            "      \"xhrConfiguration\": {\n" +
-            "        \"allowedOrigins\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedOriginPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedUris\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedUriPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedHeaders\": [\n" +
-            "          \"Accept\",\n" +
-            "          \"Authorization\",\n" +
-            "          \"Content-Type\"\n" +
-            "        ],\n" +
-            "        \"allowedMethods\": [\n" +
-            "          \"GET\"\n" +
-            "        ],\n" +
-            "        \"allowedCredentials\": false,\n" +
-            "        \"maxAge\": 1728000\n" +
-            "      },\n" +
-            "      \"defaultConfiguration\": {\n" +
-            "        \"allowedOrigins\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedOriginPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedUris\": [\n" +
-            "          \".*\"\n" +
-            "        ],\n" +
-            "        \"allowedUriPatterns\": [\n" +
-            "\n" +
-            "        ],\n" +
-            "        \"allowedHeaders\": [\n" +
-            "          \"Accept\",\n" +
-            "          \"Authorization\",\n" +
-            "          \"Content-Type\"\n" +
-            "        ],\n" +
-            "        \"allowedMethods\": [\n" +
-            "          \"GET\"\n" +
-            "        ],\n" +
-            "        \"allowedCredentials\": false,\n" +
-            "        \"maxAge\": 1728000\n" +
-            "      }\n" +
-            "    },\n" +
-            "    \"links\": {\n" +
-            "      \"logout\": {\n" +
-            "        \"redirectUrl\": \"/login\",\n" +
-            "        \"redirectParameterName\": \"redirect\",\n" +
-            "        \"disableRedirectParameter\": false,\n" +
-            "        \"whitelist\": null\n" +
-            "      },\n" +
-            "      \"selfService\": {\n" +
-            "        \"selfServiceLinksEnabled\": true,\n" +
-            "        \"signup\": null,\n" +
-            "        \"passwd\": null\n" +
-            "      }\n" +
-            "    },\n" +
-            "    \"prompts\": [\n" +
-            "      {\n" +
-            "        \"name\": \"username\",\n" +
-            "        \"type\": \"text\",\n" +
-            "        \"text\": \"Email\"\n" +
-            "      },\n" +
-            "      {\n" +
-            "        \"name\": \"password\",\n" +
-            "        \"type\": \"password\",\n" +
-            "        \"text\": \"Password\"\n" +
-            "      },\n" +
-            "      {\n" +
-            "        \"name\": \"passcode\",\n" +
-            "        \"type\": \"password\",\n" +
-            "        \"text\": \"One Time Code (Get on at /passcode)\"\n" +
-            "      }\n" +
-            "    ],\n" +
-            "    \"idpDiscoveryEnabled\": false,\n" +
-            "    \"accountChooserEnabled\": false,\n" +
-            "    \"userConfig\": {\n" +
-            "      \"defaultGroups\": [\n" +
-            "        \"openid\",\n" +
-            "        \"password.write\",\n" +
-            "        \"uaa.user\",\n" +
-            "        \"approvals.me\",\n" +
-            "        \"profile\",\n" +
-            "        \"roles\",\n" +
-            "        \"user_attributes\",\n" +
-            "        \"uaa.offline_token\"\n" +
-            "      ]\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"name\": \"Demo Login Page\",\n" +
-            "  \"version\": 1,\n" +
-            "  \"description\": \"{\\\"plan_display_name\\\":\\\"Demo\\\",\\\"plan_description\\\":\\\"Demo SSO Plan\\\"}\",\n" +
-            "  \"created\": 1503504273000,\n" +
-            "  \"last_modified\": 1504898224000\n" +
-            "}";
-        IdentityZone zone = JsonUtils.readValue(json, IdentityZone.class);
+    void getSamlSPKeyManager_WhenFirstCallWorks() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+        when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+
+        SamlConfig mockSamlConfig = mock(SamlConfig.class);
+        when(mockIdentityZoneConfiguration.getSamlConfig()).thenReturn(mockSamlConfig);
+
+        KeyManager expectedKeyManager = mock(KeyManager.class);
+        when(mockSamlKeyManagerFactory.getKeyManager(any())).thenReturn(expectedKeyManager);
+
+        // Call several times! The value is cached in KEY_MANAGER_THREAD_LOCAL
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+        assertThat(IdentityZoneHolder.getSamlSPKeyManager(), is(expectedKeyManager));
+
+        verify(mockSamlKeyManagerFactory).getKeyManager(mockSamlConfig);
+        verify(mockSamlKeyManagerFactory, times(1)).getKeyManager(any());
     }
+
+    @Test
+    void getCurrentZoneId() {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        String expectedId = UUID.randomUUID().toString();
+        when(mockIdentityZone.getId()).thenReturn(expectedId);
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        assertThat(IdentityZoneHolder.getCurrentZoneId(), is(expectedId));
+    }
+
+    private static void setSamlKeyManagerFactory(
+            SamlKeyManagerFactory samlKeyManagerFactory) {
+        ReflectionTestUtils.setField(
+                IdentityZoneHolder.class,
+                "samlKeyManagerFactory",
+                samlKeyManagerFactory);
+    }
+
+    private static ThreadLocal<KeyManager> getKeyManagerThreadLocal() {
+        return (ThreadLocal<KeyManager>)
+                ReflectionTestUtils.getField(IdentityZoneHolder.class, "KEY_MANAGER_THREAD_LOCAL");
+    }
+
 }

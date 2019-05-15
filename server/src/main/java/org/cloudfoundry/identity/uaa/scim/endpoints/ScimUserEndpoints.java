@@ -23,28 +23,20 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
-import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
-import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
-import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
-import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.resources.*;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
+import org.cloudfoundry.identity.uaa.security.ScimUserUpdateDiff;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -64,34 +56,19 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -153,40 +130,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private ApplicationEventPublisher publisher;
 
-    public void checkIsEditAllowed(String origin, HttpServletRequest request) {
-        Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
-        if (attr!=null && attr instanceof Boolean) {
-            boolean isUserManagementDisabled = (boolean)attr;
-            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
-                throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
-            }
-        }
-    }
+    private int userMaxCount;
 
-    /**
-     * Set the message body converters to use.
-     * <p>
-     * These converters are used to convert from and to HTTP requests and
-     * responses.
-     */
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
-    }
-
-    /**
-     * Map from exception type to Http status.
-     *
-     * @param statuses the statuses to set
-     */
-    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
-        this.statuses = statuses;
-    }
-
-    private static String generatePassword() {
-        byte[] bytes = new byte[16];
-        passwordGenerator.nextBytes(bytes);
-        return new String(Hex.encode(bytes));
-    }
+    private IsSelfCheck isSelfCheck;
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
     public int getTotalUsers() {
@@ -225,7 +171,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             user.setOrigin(OriginKeys.UAA);
         }
 
-        checkIsEditAllowed(user.getOrigin(), request);
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
         ScimUtils.validate(user);
         if (!isUaaUser(user)) {
             //set a default password, "" for non UAA users.
@@ -262,13 +208,18 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
                                @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                                HttpServletRequest request,
-                    HttpServletResponse httpServletResponse) {
-        checkIsEditAllowed(user.getOrigin(), request);
+                               HttpServletResponse httpServletResponse,
+                               OAuth2Authentication authentication) {
+
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
+        throwWhenInvalidSelfEdit(user, userId, request, authentication);
+
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
         int version = getVersion(userId, etag);
         user.setVersion(version);
+
         try {
             ScimUser updated = scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
             scimUpdates.incrementAndGet();
@@ -285,7 +236,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public ScimUser patchUser(@RequestBody ScimUser patch, @PathVariable String userId,
                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                               HttpServletRequest request,
-                              HttpServletResponse response) {
+                              HttpServletResponse response,
+                              OAuth2Authentication authentication) {
 
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
@@ -301,7 +253,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 existing.setEmails(new ArrayList<>());
                 existing.setPrimaryEmail(primary);
             }
-            return updateUser(existing, userId, etag, request, response);
+            return updateUser(existing, userId, etag, request, response, authentication);
         } catch (IllegalArgumentException x) {
             throw new InvalidScimResourceException(x.getMessage());
         }
@@ -315,8 +267,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
-        checkIsEditAllowed(user.getOrigin(), request);
-        membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
+        membershipManager.removeMembersByMemberId(userId, user.getOrigin(), IdentityZoneHolder.get().getId());
         scimUserProvisioning.delete(userId, version, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         if (publisher != null) {
@@ -353,8 +305,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             throw new UserAlreadyVerifiedException();
         }
 
-        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri, REGISTRATION);
-        responseBody.setVerifyLink(ScimUtils.getVerificationURL(expiringCode));
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri, REGISTRATION, IdentityZoneHolder.getCurrentZoneId());
+        responseBody.setVerifyLink(ScimUtils.getVerificationURL(expiringCode, IdentityZoneHolder.get()));
 
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
@@ -404,15 +356,20 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             startIndex = 1;
         }
 
+        if (count > userMaxCount) {
+            count = userMaxCount;
+        }
+
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
+        Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
         try {
             result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), IdentityZoneHolder.get().getId());
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
-                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {
+                if(attributes.isEmpty() || attributes.stream().anyMatch(p -> "groups".equalsIgnoreCase(p))) {
                     syncGroups(user);
                 }
-                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)approvals") || attributesCommaSeparated.isEmpty()) {
+                if(attributes.isEmpty() || attributes.stream().anyMatch(p -> "approvals".equalsIgnoreCase(p))) {
                     syncApprovals(user);
                 }
                 input.add(user);
@@ -427,7 +384,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             // Return all user data
-            return new SearchResults<ScimUser>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
+            return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
         }
 
         Map<String, String> attributeMap = new HashMap<>();
@@ -436,10 +393,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         attributeMap.put("givenName", "name.givenName");
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
 
-        String[] attributes = attributesCommaSeparated.split(",");
         try {
-            return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                                                              mapper, Arrays.asList(ScimCore.SCHEMAS));
+            return SearchResultsFactory.buildSearchResultFrom(input,
+                                                              startIndex,
+                                                              count,
+                                                              result.size(),
+                                                              attributes.toArray(new String[attributes.size()]),
+                                                              mapper,
+                                                              Arrays.asList(ScimCore.SCHEMAS)
+            );
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
@@ -478,7 +440,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         mfaCredentialsProvisioning.delete(user.getId());
     }
 
-    private ScimUser syncGroups(ScimUser user) {
+    protected ScimUser syncGroups(ScimUser user) {
         if (user == null) {
             return user;
         }
@@ -498,14 +460,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
-    private ScimUser syncApprovals(ScimUser user) {
+    protected ScimUser syncApprovals(ScimUser user) {
         if (user == null || approvalStore == null) {
             return user;
         }
         Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovalsForUser(user.getId(), IdentityZoneHolder.get().getId()));
         Set<Approval> active = new HashSet<Approval>(approvals);
         for (Approval approval : approvals) {
-            if (!approval.isCurrentlyActive()) {
+            if (!approval.isActiveAsOf(new Date())) {
                 active.remove(approval);
             }
         }
@@ -513,11 +475,17 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleException(UaaException e) {
+        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        if (e instanceof InternalUserManagementDisabledException) {
+            throw e;
+        }
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
+    }
+
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
-        if (t instanceof InternalUserManagementDisabledException) {
-            throw (InternalUserManagementDisabledException)t;
-        }
         logger.error("Unhandled exception in SCIM user endpoints.",t);
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException) {
@@ -606,5 +574,79 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
+    }
+
+    public void setUserMaxCount(int userMaxCount) {
+        if (userMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+            );
+        }
+
+        this.userMaxCount = userMaxCount;
+    }
+
+    private void throwWhenUserManagementIsDisallowed(String origin, HttpServletRequest request) {
+        Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
+        if (attr!=null && attr instanceof Boolean) {
+            boolean isUserManagementDisabled = (boolean)attr;
+            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
+                throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
+            }
+        }
+    }
+
+    /**
+     * Set the message body converters to use.
+     * <p>
+     * These converters are used to convert from and to HTTP requests and
+     * responses.
+     */
+    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+        this.messageConverters = messageConverters;
+    }
+
+    /**
+     * Map from exception type to Http status.
+     *
+     * @param statuses the statuses to set
+     */
+    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
+        this.statuses = statuses;
+    }
+
+    private void throwWhenInvalidSelfEdit(ScimUser user, String userId, HttpServletRequest request, Authentication authentication) {
+        boolean isSelfEdit = isSelfCheck.isUserSelf(request, 1);
+        if (!isSelfEdit) {
+            return;
+        }
+
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"uaa.admin", "scim.write"})) {
+            return;
+        }
+
+        ScimUserUpdateDiff diffEngine = new ScimUserUpdateDiff(scimUserProvisioning);
+        boolean selfUpdateAllowed = diffEngine.isAnythingOtherThanNameDifferent(userId, user);
+        if (!selfUpdateAllowed) {
+            throw new InvalidSelfEditException();
+        }
+    }
+
+    public IsSelfCheck getIsSelfCheck() {
+        return isSelfCheck;
+    }
+
+    public void setIsSelfCheck(IsSelfCheck isSelfCheck) {
+        this.isSelfCheck = isSelfCheck;
+    }
+
+    private class InvalidSelfEditException extends UaaException {
+        InvalidSelfEditException() {
+            super("invalid_self_edit",
+                    "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
+                            "and in that case they may only edit the givenName and familyName.",
+                    403
+            );
+        }
     }
 }

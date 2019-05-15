@@ -141,27 +141,16 @@ public class BootstrapSamlIdentityProviderDataTests {
         "      metadataTrustCheck: true\n" +
         "      showSamlLoginLink: true\n" +
         "      linkText: 'Okta Preview 2'\n" +
-//        "    vsphere.local:\n" +
-//        "      idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local\n" +
-//        "      nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent\n" +
-//        "      assertionConsumerIndex: 1\n" +
-//        "      metadataTrustCheck: false\n"+
-//        "      showSamlLoginLink: false\n" +
-//        "      linkText: 'Log in with vCenter SSO'\n" +
-//        "      iconUrl: 'http://vsphere.local/iconurl.jpg'\n" +
         "    simplesamlphp-url:\n" +
         "      storeCustomAttributes: false\n" +
         "      assertionConsumerIndex: 0\n" +
-        "      idpMetadata: http://simplesamlphp.oms.identity.team/saml2/idp/metadata.php\n" +
+        "      idpMetadata: http://simplesamlphp.com/saml2/idp/metadata.php\n" +
         "      metadataTrustCheck: false\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
         "    custom-authncontext:\n" +
         "      authnContext: [\"custom-context\", \"another-context\"]\n" +
         "      idpMetadata: |\n" +
         "        " + testXmlFileData.replace("\n","\n        ") + "\n"
-
-//        +"    incomplete-provider:\n" +
-//        "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n"
         ;
 
     @Before

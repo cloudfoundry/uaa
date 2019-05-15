@@ -13,9 +13,10 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:util="http://www.springframework.org/schema/util"
-    xmlns:aop="http://www.springframework.org/schema/aop"
-    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
@@ -172,7 +173,6 @@
         </property>
         <property name="parameters">
             <map>
-                <entry key="response_type" value="token" />
                 <entry key="client_id" value="" />
             </map>
         </property>
@@ -180,7 +180,7 @@
 
 
     <!-- Version of the /oauth/token endpoint for stateless clients
-         /oauth/token Authorization: Bearer <access_token> grant_type=user_token&client_id=<value>&response_type=token
+         /oauth/token Authorization: Bearer <access_token> grant_type=user_token&client_id=<value>
     -->
     <http name="statelessTokenApiSecurity" request-matcher-ref="oauthTokenApiRequestMatcher" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
@@ -203,6 +203,7 @@
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <custom-filter ref="clientParameterAuthenticationFilter" before="BASIC_AUTH_FILTER" />
         <custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
+        <custom-filter ref="statelessMfaAuthenticationFilter" before="EXCEPTION_TRANSLATION_FILTER"/>
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
     </http>
@@ -251,12 +252,24 @@
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg ref="passwordGrantAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="samlWebSSOProcessingFilter"/>
         <constructor-arg ref="xOauthAuthenticationManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
+    </bean>
+
+    <bean id="statelessMfaAuthenticationFilter" class="org.cloudfoundry.identity.uaa.mfa.StatelessMfaAuthenticationFilter">
+        <constructor-arg name="provisioning" ref="userGoogleMfaCredentialsProvisioning"/>
+        <constructor-arg name="supportedGrantTypes">
+            <util:set>
+                <value>password</value>
+            </util:set>
+        </constructor-arg>
+        <constructor-arg name="mfaProvider" ref="mfaProviderProvisioning"/>
+        <constructor-arg name="userDb" ref="userDatabase"/>
+        <constructor-arg name="commonLoginPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
     <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
@@ -354,6 +367,19 @@
 
     <bean id="antPathRedirectResolver" class="org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver"/>
 
+    <bean id="mfaRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaRequiredFilter">
+        <constructor-arg name="checker" ref="mfaChecker"/>
+        <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
+    </bean>
+
+    <bean id="passwordChangeRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
+        <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
+    </bean>
+
+    <bean id="currentUserCookieFilter" class="org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilter">
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+    </bean>
+
     <http name="promptStatelessTokenApiSecurity"
           disable-url-rewriting="true"
           entry-point-ref="uaaAuthorizationEndpoint"
@@ -361,14 +387,19 @@
           request-matcher-ref="promptOauthAuthorizeApiRequestMatcher"
           create-session="never"
           xmlns="http://www.springframework.org/schema/security">
+        <custom-filter ref="mfaRequiredFilter" position="BASIC_AUTH_FILTER"/>
+        <custom-filter ref="passwordChangeRequiredFilter" after="BASIC_AUTH_FILTER"/>
+        <custom-filter ref="currentUserCookieFilter" before="FILTER_SECURITY_INTERCEPTOR"/>
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <csrf disabled="true"/>
     </http>
 
     <bean id="xOauthAuthenticationManager" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
         <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
-        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
-        <property name="uaaTokenServices" ref="tokenServices"/>
+        <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
+        <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>
@@ -428,7 +459,6 @@
 
     <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler">
         <!--<property name="tokenServices" ref="tokenServices" />-->
-        <!--TODO - set to true once we have persistent tokens -->
         <property name="useTokenServices" value="false"/>
         <property name="requestFactory" ref="authorizationRequestManager"/>
         <property name="tokenServices" ref="tokenServices"/>
@@ -460,6 +490,7 @@
         <property name="arguments">
             <list>
                 <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>
+                <value type="java.lang.String">${uaa.url}</value>
             </list>
         </property>
         <property name="staticMethod" value="org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.setLegacySigningKey" />
@@ -480,18 +511,85 @@
     <bean id="revocableTokenProvisioning" class="org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
         <constructor-arg name="limitSqlAdapter" ref="limitSqlAdapter"/>
+        <constructor-arg name="timeService" ref="timeService" />
         <property name="maxExpirationRuntime" value="${delete.expirationRunTime:2500}"/>
     </bean>
 
+    <bean id="clientAccessTokenValidity" class="org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+    </bean>
+    <bean id="accessTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
+        <constructor-arg name="clientTokenValidity" ref="clientAccessTokenValidity"/>
+        <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}"/>
+        <constructor-arg name="timeService" ref="timeService"/>
+    </bean>
+
+    <bean id="clientRefreshTokenValidity" class="org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+    </bean>
+    <bean id="refreshTokenValidityResolver" class="org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver">
+        <constructor-arg name="clientTokenValidity" ref="clientRefreshTokenValidity"/>
+        <constructor-arg name="globalTokenValiditySeconds" value="${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}"/>
+        <constructor-arg name="timeService" ref="timeService"/>
+    </bean>
+
+    <bean id="timeService" class="org.cloudfoundry.identity.uaa.util.TimeServiceImpl"/>
+
+    <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+
+    <bean id="idTokenCreator" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator">
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="timeService" ref="timeService"/>
+        <constructor-arg name="tokenValidityResolver" ref="accessTokenValidityResolver"/>
+        <constructor-arg name="uaaUserDatabase" ref="userDatabase"/>
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="excludedClaims" ref="excludedClaims"/>
+    </bean>
+
+    <bean id="refreshTokenCreator" class="org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator">
+        <constructor-arg name="isRestrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="refreshTokenValidityResolver" ref="refreshTokenValidityResolver" />
+        <constructor-arg name="timeService" ref="timeService" />
+        <constructor-arg name="keyInfoService" ref="keyInfoService" />
+    </bean>
+
+    <bean id="tokenEndpointBuilder" class="org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder">
+        <constructor-arg name="issuerUrlBase" value="${issuer.uri}" />
+    </bean>
+
+    <bean id="tokenValidationService" class="org.cloudfoundry.identity.uaa.oauth.TokenValidationService">
+        <constructor-arg name="clientServicesExtension" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="revocableTokenProvisioning" ref="revocableTokenProvisioning"/>
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
+        <constructor-arg name="userDatabase" ref="userDatabase"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+    </bean>
+
+    <bean id="idTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter">
+        <constructor-arg name="approvalService" ref="approvalService" />
+    </bean>
+
+    <bean id="approvalService" class="org.cloudfoundry.identity.uaa.approval.ApprovalService">
+        <constructor-arg name="timeService" ref="timeService" />
+        <constructor-arg name="approvalStore" ref="approvalStore" />
+    </bean>
+
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
-        <property name="clientDetailsService" ref="jdbcClientDetailsService" />
-        <property name="userDatabase" ref="userDatabase" />
-        <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
-        <property name="approvalStore" ref="approvalStore" />
-        <property name="tokenPolicy" ref="globalTokenPolicy" />
-        <property name="excludedClaims" ref="excludedClaims"/>
-        <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
-        <property name="restrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
+        <constructor-arg name="idTokenCreator" ref="idTokenCreator" />
+        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder" />
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService" />
+        <constructor-arg name="revocableTokenProvisioning" ref="revocableTokenProvisioning" />
+        <constructor-arg name="tokenValidationService" ref="tokenValidationService" />
+        <constructor-arg name="refreshTokenCreator" ref="refreshTokenCreator" />
+        <constructor-arg name="timeService" ref="timeService" />
+        <constructor-arg name="accessTokenValidityResolver" ref="accessTokenValidityResolver" />
+        <constructor-arg name="userDatabase" ref="userDatabase" />
+        <constructor-arg name="approvalService" ref="approvalService" />
+        <constructor-arg name="excludedClaims" ref="excludedClaims" />
+        <constructor-arg name="globalTokenPolicy" ref="globalTokenPolicy"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="idTokenGranter" ref="idTokenGranter" />
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">
@@ -505,8 +603,9 @@
     <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
         entry-point-ref="oauthAuthenticationEntryPoint" />
 
-
-    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint" />
+    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint">
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+    </bean>
 
     <bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
@@ -558,13 +657,29 @@
                   value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
     </bean>
 
+    <bean id="defaultMfaLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
+        <property name="lockoutAfterFailures"
+                  value="5"/>
+        <property name="countFailuresWithin"
+                  value="90"/>
+        <property name="lockoutPeriodSeconds"
+                  value="300"/>
+    </bean>
+
+
     <bean id="globalUserLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
         <constructor-arg ref="identityProviderProvisioning"/>
         <property name="defaultLockoutPolicy" ref="defaultUserLockoutPolicy" />
     </bean>
 
+    <bean id="globalMfaLockoutPolicyRetriever" class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
+        <constructor-arg ref="identityProviderProvisioning"/>
+        <property name="defaultLockoutPolicy" ref="defaultMfaLockoutPolicy" />
+    </bean>
+
     <bean id="globalPeriodLockoutPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
         <constructor-arg ref="globalUserLoginPolicy" />
+        <constructor-arg ref="mfaGlobalUserLoginPolicy" />
     </bean>
 
     <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
@@ -576,10 +691,19 @@
         <constructor-arg index="5" value="true"/>
     </bean>
 
+    <bean id="mfaGlobalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
+        <constructor-arg index="0" ref="jdbcAuditService"/>
+        <constructor-arg index="1" ref="globalMfaLockoutPolicyRetriever"/>
+        <constructor-arg index="2" value="MfaAuthenticationSuccess"/>
+        <constructor-arg index="3" value="MfaAuthenticationFailure"/>
+        <constructor-arg index="4" ref="timeService" />
+        <constructor-arg index="5" value="true"/>
+    </bean>
+
     <bean id="uaaUserDatabaseAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="bcryptPasswordEncoder"/>
+        <constructor-arg ref="passwdEncoder"/>
         <constructor-arg ref="identityProviderProvisioning"/>
         <property name="accountLoginPolicy" ref="globalPeriodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
@@ -601,4 +725,22 @@
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
     </bean>
 
+    <bean id="passwordGrantAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
+        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager" />
+        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
+        <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager" />
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService" />
+        <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator" />
+    </bean>
+
+    <bean id="passwdEncoderFactory" class="org.cloudfoundry.identity.uaa.util.PasswordEncoderFactory"/>
+    <bean id="passwdEncoder" factory-bean="passwdEncoderFactory" factory-method="get"/>
+    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
+        <property name="passwordEncoder" ref="passwdEncoder"/>
+        <property name="maxKeys" value="1000"/>
+        <property name="maxEncodedPasswords" value="5"/>
+        <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
+        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
+    </bean>
 </beans>

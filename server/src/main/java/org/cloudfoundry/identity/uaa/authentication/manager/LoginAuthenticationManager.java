@@ -12,9 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.Date;
-import java.util.Map;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -25,9 +24,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -40,6 +36,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+
+import java.util.Date;
+import java.util.Map;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
     public static final String NotANumber = OriginKeys.NotANumber;
@@ -108,7 +107,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
                 return success;
             }
         }

@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 
 public class MockMvcTestClient {
 
-    //TODO - nullify?
     private MockMvc mockMvc;
 
     public MockMvcTestClient(MockMvc mockMvc) {

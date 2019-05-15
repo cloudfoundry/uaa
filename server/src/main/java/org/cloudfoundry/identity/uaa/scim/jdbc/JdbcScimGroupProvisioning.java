@@ -131,11 +131,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         GROUP_MEMBERSHIP_TABLE
     );
 
-
     public static final String DELETE_EXTERNAL_GROUP_BY_PROVIDER = String.format(
         "delete from %s where identity_zone_id = ? and origin = ?",
-        EXTERNAL_GROUP_TABLE,
-        GROUP_TABLE
+        EXTERNAL_GROUP_TABLE
     );
 
     public static final String DELETE_MEMBER_SQL = String.format(
@@ -301,8 +299,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     public int deleteByIdentityZone(String zoneId) {
-        jdbcTemplate.update(DELETE_ZONE_ADMIN_MEMBERSHIP_BY_ZONE, IdentityZone.getUaa().getId(), "zones." + zoneId + ".%");
-        jdbcTemplate.update(DELETE_ZONE_ADMIN_GROUPS_BY_ZONE, IdentityZone.getUaa().getId(), "zones." + zoneId + ".%");
+        jdbcTemplate.update(DELETE_ZONE_ADMIN_MEMBERSHIP_BY_ZONE, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
+        jdbcTemplate.update(DELETE_ZONE_ADMIN_GROUPS_BY_ZONE, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
         jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_ZONE, zoneId);
         jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_ZONE, zoneId);
         return jdbcTemplate.update(DELETE_GROUP_BY_ZONE, zoneId);

@@ -1,4 +1,4 @@
-# Configuration in this file ixs overridden by an external file
+# Configuration in this file is overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 
@@ -148,7 +148,6 @@
 #    requireDigit: 0
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
-
 scim:
   groups:
     zones.read: Read identity zones
@@ -358,7 +357,8 @@ links:
 #      whitelist:
 #        - https://url1.domain1.com/logout-success
 #        - https://url2.domain2.com/logout-success
-
+issuer:
+  uri: http://localhost:8080/uaa
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
   selfServiceLinksEnabled: true
@@ -387,7 +387,31 @@ login:
 #          external_groups:
 #            - scopes_example_group
 #            - roles_example_group
+#      my-oidc-provider:
+#        type: oidc1.0
+#        discoveryUrl: http://my-auth.com
+#        tokenKey: my-token-key
+#        issuer: token issuer (iss)
+#        scopes:
+#          - openid
+#          - scope.example
+#        linkText: My OIDC Provider
+#        showLinkText: true
+#        relyingPartyId: identity
+#        relyingPartySecret: identitysecret
+#        passwordGrantEnabled: true
+#        prompts:
+#          - name: username
+#            type: text
+#            text: MyEmail
+#          - name: password
+#            type: password
+#            text: MyPassword
+#          - name: passcode
+#            type: password
+#            text: MyTemporary Authentication Code (Get on at /passcode)
   url: http://localhost:8080/uaa
+#  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
 
@@ -558,7 +582,7 @@ login:
 #      iVBORw0KGgoAAAANSUhEUgAAAR8AAAFoCAYAAABucP80AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEAAAAAAAA+UO7fwAAAAlwSFlzAAALEgAACxIB0t1+/AAAZKVJREFUeNrtnXecXkX1/99n5j5lWyqQ0EJHepdeAgHpRZqKKILg15+9IVIEQhMExYJdsQPSVDoCAkrvPfQAARLSk21PuXPO74+7kc1md/PsZpdNmffr9bz22Vtm7tznzufOnDlzBiKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJDIAyFBfQGTpZrvz9yGUqwRTMEDJnhrXy0n6/leR7PikkOfxM+4c6uJEliKi+ES6ZdvzJxDKASsrT8+cxGajNiyYWSNKHY4cgiN7fhZ87H8fJQBVM9px2tpUt3K5rTKHpJDgCp7HT79rqIsXWPY92jEwd/quP0D6/vZiS+7SonQE8b9iZ9U08VtGC3fql2znwF/tiqeJECKWUXM4VBFvHOdmSrGW1qxMU4U5BrjHjwYYRSSkB2tp
 #    squareLogo: |
 #      AAABAAQAQEAAAAEAIAAoQAAARgAAACAgAAABACAAKBAAAG5AAAAYGAAAAQAgACgJAACWUAAAEBAAAAEAIAAoBAAAvlkAACgAAABAAAAAgAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAAgwAAAMMAAADuAAAA/wAAAP8AAADuAAAAwwAAAIMAAAAsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAawAAAPAAAADdAAAAeQAAAC0AAAAAAAAKAAAAvgAAANoAAAApAAAAXAAAAOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADrAAAAXgAAAA
-    footerLegalText:  "Copyright © 2018 General Electric Company. All rights reserved."
+    footerLegalText:  "Copyright © 2019 General Electric Company. All rights reserved."
     footerLinks:
       Contact Us: mailto:info@predix.io
       #GE Digital: https://www.gesoftware.com
@@ -609,3 +633,13 @@ uaa:
 #  port: 2525
 #  user:
 #  password:
+
+#ldap:
+#  profile:
+#    file: ldap/ldap-search-and-bind.xml
+#  base:
+#    url: 'ldap://localhost:389/'
+#    userDn: 'cn=admin,dc=test,dc=com'
+#    password: 'password'
+#    searchBase: 'dc=test,dc=com'
+#    searchFilter: 'cn={0}'

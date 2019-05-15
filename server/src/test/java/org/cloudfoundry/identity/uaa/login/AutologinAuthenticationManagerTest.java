@@ -9,13 +9,15 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -31,24 +33,14 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-public class AutologinAuthenticationManagerTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class AutologinAuthenticationManagerTest {
 
     private AutologinAuthenticationManager manager;
     private ExpiringCodeStore codeStore;
@@ -57,9 +49,10 @@ public class AutologinAuthenticationManagerTest {
     private ClientServicesExtension clientDetailsService;
     private String clientId;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(null);
         clientId = new RandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
@@ -75,7 +68,7 @@ public class AutologinAuthenticationManagerTest {
     }
 
     @Test
-    public void authentication_successful() throws Exception {
+    void authentication_successful() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", clientId);
@@ -117,8 +110,8 @@ public class AutologinAuthenticationManagerTest {
         assertThat(uaaAuthDetails.getClientId(), is(clientId));
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void authentication_fails_withInvalidClient() {
+    @Test
+    void authentication_fails_withInvalidClient() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", "actual-client-id");
@@ -127,11 +120,11 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        manager.authenticate(authenticationToken);
+        assertThrows(BadCredentialsException.class, () -> manager.authenticate(authenticationToken));
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void authentication_fails_withNoClientId() {
+    @Test
+    void authentication_fails_withNoClientId() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
         codeData.put("username", "test-username");
@@ -139,17 +132,17 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        manager.authenticate(authenticationToken);
+        assertThrows(BadCredentialsException.class, () -> manager.authenticate(authenticationToken));
     }
 
-    @Test(expected = InvalidCodeException.class)
-    public void authentication_fails_withExpiredCode() {
+    @Test
+    void authentication_fails_withExpiredCode() {
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(null);
-        manager.authenticate(authenticationToken);
+        assertThrows(InvalidCodeException.class, () -> manager.authenticate(authenticationToken));
     }
 
-    @Test(expected = InvalidCodeException.class)
-    public void authentication_fails_withCodeIntendedForDifferentPurpose() {
+    @Test
+    void authentication_fails_withCodeIntendedForDifferentPurpose() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", clientId);
@@ -157,16 +150,16 @@ public class AutologinAuthenticationManagerTest {
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        manager.authenticate(authenticationToken);
+        assertThrows(InvalidCodeException.class, () -> manager.authenticate(authenticationToken));
     }
 
-    @Test(expected = InvalidCodeException.class)
-    public void authentication_fails_withInvalidCode() {
+    @Test
+    void authentication_fails_withInvalidCode() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("action", "someotheraction");
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        manager.authenticate(authenticationToken);
+        assertThrows(InvalidCodeException.class, () -> manager.authenticate(authenticationToken));
     }
 
 

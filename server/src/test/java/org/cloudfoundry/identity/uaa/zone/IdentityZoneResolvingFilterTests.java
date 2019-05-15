@@ -68,6 +68,16 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
+    public void holderIsResolvedWithCaseInsensitiveIdentityZone() throws Exception {
+        assertFindsCorrectSubdomain("", "Login.MyCF.COM", "uaa.mycf.com","login.mycf.com");
+    }
+
+    @Test
+    public void holderIsSetWithCaseInsensitiveIdentityZone() throws Exception {
+        assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com","Login.MyCF.COM");
+    }
+
+    @Test
     public void doNotThrowException_InCase_RetrievingZoneFails() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String incomingSubdomain = "not_a_zone";
@@ -144,4 +154,54 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
         Mockito.verifyZeroInteractions(chain);
     }
 
+    @Test
+    public void setDefaultZoneHostnamesWithNull() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setDefaultInternalHostnames(null);
+        assertTrue(filter.getDefaultZoneHostnames().isEmpty());
+    }
+
+    @Test
+    public void setAdditionalZoneHostnamesWithNull() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setAdditionalInternalHostnames(null);
+        assertTrue(filter.getDefaultZoneHostnames().isEmpty());
+    }
+
+    @Test
+    public void setRestoreZoneHostnamesWithNull() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList("uaa.mycf.com")));
+        filter.restoreDefaultHostnames(null);
+        assertTrue(filter.getDefaultZoneHostnames().isEmpty());
+    }
+
+    @Test
+    public void setDefaultZoneHostnames() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList("uaa.mycf.com")));
+        filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList("uaa.MYCF2.com")));
+        assertEquals(2, filter.getDefaultZoneHostnames().size());
+        assertTrue(filter.getDefaultZoneHostnames().contains("uaa.mycf.com"));
+        assertTrue(filter.getDefaultZoneHostnames().contains("uaa.mycf2.com"));
+    }
+
+    @Test
+    public void setAdditionalZoneHostnames() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setAdditionalInternalHostnames(new HashSet<>(Arrays.asList("uaa.mycf.com")));
+        filter.setAdditionalInternalHostnames(new HashSet<>(Arrays.asList("uaa.MYCF2.com")));
+        assertEquals(2, filter.getDefaultZoneHostnames().size());
+        assertTrue(filter.getDefaultZoneHostnames().contains("uaa.mycf.com"));
+        assertTrue(filter.getDefaultZoneHostnames().contains("uaa.mycf2.com"));
+    }
+
+    @Test
+    public void setRestoreZoneHostnames() throws Exception {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList("uaa.mycf.com")));
+        filter.restoreDefaultHostnames(new HashSet<>(Arrays.asList("uaa.MYCF2.com")));
+        assertEquals(1, filter.getDefaultZoneHostnames().size());
+        assertTrue(filter.getDefaultZoneHostnames().contains("uaa.mycf2.com"));
+    }
 }

@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-//TODO - make object serialize/deserialize properly with JSON
 public class PasscodeInformation {
 
     private String userId;

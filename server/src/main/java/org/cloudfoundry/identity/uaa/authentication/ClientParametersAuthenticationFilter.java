@@ -16,8 +16,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;

@@ -31,7 +31,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -56,7 +55,6 @@ import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APP
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.INSERT_BARE_BONE_USER;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -127,8 +125,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
     @After
     public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "authz_approvals");
-        TestUtils.deleteFrom(dataSource, "users");
+        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
+        TestUtils.deleteFrom(jdbcTemplate, "users");
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users", Integer.class), is(0));
     }
@@ -354,29 +352,6 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
     }
 
-    @Test
-    @Ignore("Running locally only, to determine if the solution was feasible.")
-    public void performance_is_acceptable() throws Exception {
-        int max = 200000;
-        rebuildIndices();
-        int delta = 20;
-        for (int i = 0; i<delta; i++) {
-            int count = (max / delta);
-            int start = i*count;
-            doWithTiming("addUsers", start, count);
-            doWithTiming("addApprovals", start, start+count, 5);
-        }
-
-        assertThat(doWithTiming("getApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
-        assertThat(doWithTiming("getApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
-        dao.setHandleRevocationsAsExpiry(true);
-        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1000\""), lessThan(5d) );
-        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c1\""), lessThan(5d) );
-        dao.setHandleRevocationsAsExpiry(false);
-        assertThat(doWithTiming("revokeApprovalsCount", "user_id eq \"user-1001\""), lessThan(5d) );
-        assertThat(doWithTiming("revokeApprovalsCount", "client_id eq \"c2\""), lessThan(5d) );
-    }
-
     public void revokeApprovalsCountForUser(String userId) {
         assertTrue(dao.revokeApprovalsForClient(userId, IdentityZoneHolder.get().getId()));
     }
@@ -415,7 +390,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
             jdbcTemplate.update(sql);
             System.err.println("Succeeded: "+sql);
         } catch (Exception e) {
-            System.err.println("Failed: "+sql);
+            System.err.println("Unsuccessful: "+sql);
         }
     }
 

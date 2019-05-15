@@ -94,8 +94,7 @@ public class TotpMfaEndpointIntegrationTests {
         adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);
 
-        mfaZone = IntegrationTestUtils.fixtureIdentityZone("testzone1", "testzone1");
-        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1");
+        mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", "testzone1", null);
 
         zoneUrl = baseUrl.replace("localhost", mfaZone.getSubdomain() + ".localhost");
         adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "uaa.admin");
@@ -197,14 +196,14 @@ public class TotpMfaEndpointIntegrationTests {
     @Test
     public void testMfaRegisterPageWithoutLoggingIn() {
         webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get("/login/mfa/register");
+        webDriver.get(zoneUrl + "/login/mfa/register");
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
     }
 
     @Test
     public void testMfaVerifyPageWithoutLoggingIn() {
         webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get("/login/mfa/verify");
+        webDriver.get(zoneUrl + "/login/mfa/verify");
         assertEquals(zoneUrl + "/login", webDriver.getCurrentUrl());
     }
 

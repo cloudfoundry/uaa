@@ -50,6 +50,9 @@ import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
 public class ClientAdminBootstrap implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
 
@@ -144,10 +147,10 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
         autoApproveList.removeIf(s -> slatedForDeletion.contains(s));
         for (String clientId : autoApproveList) {
             try {
-                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaa().getId());
+                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: " + clientId);
-                clientRegistrationService.updateClientDetails(base, IdentityZone.getUaa().getId());
+                clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
             } catch (NoSuchClientException n) {
                 logger.debug("Client not found, unable to set autoapprove: " + clientId);
             }
@@ -206,8 +209,8 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
             if (client.getAuthorities().isEmpty()) {
                 client.setAuthorities(Collections.singleton(UaaAuthority.UAA_NONE));
             }
-            if (client.getAuthorizedGrantTypes().contains("authorization_code")) {
-                client.getAuthorizedGrantTypes().add("refresh_token");
+            if (client.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE)) {
+                client.getAuthorizedGrantTypes().add(GRANT_TYPE_REFRESH_TOKEN);
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                             "redirect-uri", "secret", "id", "override", "access-token-validity",
@@ -217,13 +220,13 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
 
             client.setAdditionalInformation(info);
             try {
-                clientRegistrationService.addClientDetails(client, IdentityZone.getUaa().getId());
+                clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
             } catch (ClientAlreadyExistsException e) {
                 if (override == null || override) {
                     logger.debug("Overriding client details for " + clientId);
-                    clientRegistrationService.updateClientDetails(client, IdentityZone.getUaa().getId());
+                    clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
                     if ( didPasswordChange(clientId, client.getClientSecret())) {
-                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaa().getId());
+                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaaZoneId());
                     }
                 } else {
                     // ignore it
@@ -231,7 +234,7 @@ public class ClientAdminBootstrap implements InitializingBean, ApplicationListen
                 }
             }
 
-            for (String s : Arrays.asList("authorization_code", "implicit")) {
+            for (String s : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
                 if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
                     throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
                 }

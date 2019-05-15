@@ -27,9 +27,9 @@
     </bean>
 
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
-        <constructor-arg name="expiringTimeMillis" value="600000"/>
+        <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
         <constructor-arg name="maxEntries" value="10000"/>
-        <constructor-arg name="ticker" ref="timeService"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <import resource="classpath:META-INF/spring-metering-filter.xml"/>
@@ -342,20 +342,7 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="emails\.value" value="email" />
-                        <entry key="groups\.display" value="authorities" />
-                        <entry key="phoneNumbers\.value" value="phoneNumber" />
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
-    </bean>
+
 
 
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
@@ -383,7 +370,6 @@
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
-
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
@@ -397,6 +383,8 @@
     <import resource="spring/openid-endpoints.xml" />
     <import resource="spring/password-endpoints.xml" />
     <import resource="spring/codestore-endpoints.xml" />
+    <import resource="spring/authentication.xml" />
+    <import resource="spring/identity-zones.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
       <property name="basenames">
@@ -406,8 +394,6 @@
         </list>
       </property>
     </bean>
-
-    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
     <bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
 
@@ -431,48 +417,11 @@
         </constructor-arg>
     </bean>
 
-    <bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-        <property name="realmName" value="UAA/oauth" />
-    </bean>
-
-    <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
-
-
     <import resource="spring/saml-providers.xml"/>
     <import resource="spring/saml-idp.xml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
-    <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
-    <!--<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"-->
-        <!--authentication-manager-ref="emptyAuthenticationManager">-->
-        <!--<sec:intercept-url pattern="/**" access="denyAll" />-->
-    <!--</sec:http>-->
-
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
-
-    <bean id="passwdEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
-
-    <bean id="bcryptPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.LowConcurrencyPasswordEncoder">
-        <constructor-arg name="delegate"  ref="passwdEncoder"/>
-        <constructor-arg name="timeoutMs" value="${system.bcrypt.timeout:5000}"/>
-        <constructor-arg name="enabled" value="${system.bcrypt.protected:false}"/>
-        <constructor-arg name="environment" ref="runtimeEnvironment" />
-    </bean>
-
-    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
-        <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
-        <property name="maxKeys" value="1000"/>
-        <property name="maxEncodedPasswords" value="5"/>
-        <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
-        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
-    </bean>
-
-    <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
-
-    <bean id="oauthWebExpressionHandler"
-      class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler">
-        <property name="identityZone" ref="uaaIdentityZone"/>
-    </bean>
 
     <mvc:default-servlet-handler />
 
@@ -490,17 +439,20 @@
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="passcode" />
             <constructor-arg name="text"
-                             value="One Time Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )" />
+                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )" />
             <constructor-arg name="type" value="password" />
         </bean>
     </util:list>
 
-    <bean id="restTemplateFactory" class="org.cloudfoundry.identity.uaa.util.RestTemplateFactory"/>
-
     <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+    </bean>
+
+    <bean class="org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher" id="oidcMetadataFetcher">
         <constructor-arg name="contentCache" ref="urlCache"/>
-        <constructor-arg name="restTemplateFactory" ref="restTemplateFactory"/>
+        <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
+        <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
     </bean>
 
     <bean id="globalLinks" class="org.cloudfoundry.identity.uaa.zone.Links">
@@ -588,6 +540,7 @@
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
+        <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

@@ -46,10 +46,10 @@ database:
   maxidle: 5
   minidle: 3
   removeabandoned: true
-  #driverClassName: org.hsqldb.jdbcDriver
-  #url: jdbc:hsqldb:mem:uaadb
-  #username: sa
-  #password:
+  driverClassName: org.hsqldb.jdbcDriver
+  url: jdbc:hsqldb:mem:uaadb
+  username: sa
+  password: ''
 
 delete:
   expirationRunTime: 3000
@@ -67,6 +67,11 @@ disableInternalAuth: true
 disableInternalUserManagement: true
 issuer:
   uri: https://localhost:8443/uaa/oauth/token
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
 jwt:
   token:
     claims:
@@ -90,7 +95,7 @@ jwt:
       enabled: false
     refresh:
       format: opaque
-      restrict_grant: true
+      restrict_grant: false
       unique: true
     revocable: true
 ldap:
@@ -136,6 +141,7 @@ login:
       base64 logo with
       line feeds
   entityBaseURL: https://login.some.test.domain.com:555/uaa
+  defaultIdentityProvider: uaa
   idpDiscoveryEnabled: true
   oauth:
     providers:
@@ -199,6 +205,33 @@ login:
         relyingPartySecret: secret
         showLinkText: true
         type: oidc1.0
+
+      uts-oidc-provider:
+        authUrl: http://my-auth.com
+        discoveryUrl: https://accounts.google.com/.well-known/openid-configuration
+        attributeMappings:
+          family_name: last_name
+          given_name: first_name
+          user_name: <Attribute holding username in the OIDC ID Token>
+          external_groups:
+            - roles
+            - <other attribute holding roles or group memberships in the OIDC id_token>
+          user:
+            attribute:
+              name-of-attribute-in-uaa-id-token: name-of-attribute-in-provider-token
+              name-of-other-attribute-in-uaa-id-token: name-of-other-attribute-in-provider-token
+        linkText: My Oauth Provider
+        relyingPartyId: uaa_token_services_test
+        relyingPartySecret: secret
+        responseType: code id_token
+        scopes:
+        - uaa_token_services_test_scope
+        tokenKey: my-token-key
+        tokenUrl: http://my-token.com
+        type: oidc1.0
+        storeCustomAttributes: true
+        clientAuthInBody: true
+
   mfa:
     providers:
       mfaprovider1:
@@ -457,7 +490,7 @@ logout:
       - https://url2.domain2.com/logout-success
     url: /configured_login
 notifications:
-  url: https://notifications.oms.identity.team
+  url: https://notifications.somedomain.com
 oauth:
   client:
     encoder_cache: false
@@ -502,6 +535,33 @@ oauth:
       scope: openid,oauth.approvals
       secret: login-secret
       id: login
+    jku_test:
+      authorities: uaa.none
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+      autoapprove: true
+      override: true
+      redirect-uri: http://localhost/**
+      scope: openid,oauth.approvals,user_attributes
+      secret: secret
+      id: jku_test
+    jku_test_without_autoapprove:
+      authorities: uaa.none
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+      autoapprove: false
+      override: true
+      redirect-uri: http://localhost/**
+      scope: openid,oauth.approvals
+      secret: secret
+      id: jku_test_without_autoapprove
+    client_without_openid:
+        authorities: uaa.none
+        authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+        autoapprove: true
+        override: true
+        redirect-uri: http://localhost/**
+        scope: password.write
+        secret: secret
+        id: client_without_openid
     notifications:
       authorities: cloud_controller.admin,scim.read
       authorized-grant-types: client_credentials

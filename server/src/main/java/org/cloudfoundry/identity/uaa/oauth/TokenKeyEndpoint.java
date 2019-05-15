@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,15 +31,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
@@ -48,13 +46,17 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 public class TokenKeyEndpoint {
 
     protected final Log logger = LogFactory.getLog(getClass());
+    private KeyInfoService keyInfoService;
+
+    public TokenKeyEndpoint(KeyInfoService keyInfoService) {
+        this.keyInfoService = keyInfoService;
+    }
 
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
             @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
-
-        String lastModified = KeyInfo.getLastModified().toString();
+        String lastModified = ((Long) IdentityZoneHolder.get().getLastModified().getTime()).toString();
         if (unmodifiedResource(eTag, lastModified)) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
         }
@@ -69,7 +71,7 @@ public class TokenKeyEndpoint {
     @ResponseBody
     public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
             @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
-        String lastModified = KeyInfo.getLastModified().toString();
+        String lastModified = ((Long) IdentityZoneHolder.get().getLastModified().getTime()).toString();
         if (unmodifiedResource(eTag, lastModified)) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
         }
@@ -88,8 +90,8 @@ public class TokenKeyEndpoint {
      * @return the key used to verify tokens
      */
     public VerificationKeyResponse getKey(Principal principal) {
-        KeyInfo key = KeyInfo.getActiveKey();
-        if (!includeSymmetricalKeys(principal) && !key.isAssymetricKey()) {
+        KeyInfo key = keyInfoService.getActiveKey();
+        if (!includeSymmetricalKeys(principal) && !RSA.name().equals(key.type())) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         return getVerificationKeyResponse(key);
@@ -100,27 +102,7 @@ public class TokenKeyEndpoint {
     }
 
     public static Map<String, Object> getResultMap(KeyInfo key) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("alg", key.getSigner().algorithm());
-        result.put("value", key.getVerifierKey());
-        //new values per OpenID and JWK spec
-        result.put("use", sig.name());
-        result.put("kid",key.getKeyId());
-        result.put("kty", key.getType());
-
-        if (key.isAssymetricKey() && "RSA".equals(key.getType())) {
-
-            RSAPublicKey rsaKey = key.getRsaPublicKey();
-            if (rsaKey != null) {
-                Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-                String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
-                String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
-                result.put("n", n);
-                result.put("e", e);
-            }
-        }
-
-        return result;
+        return key.getJwkMap();
     }
 
     private boolean unmodifiedResource(String eTag, String lastModified) {
@@ -138,9 +120,9 @@ public class TokenKeyEndpoint {
      */
     public VerificationKeysListResponse getKeys(Principal principal) {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
-        Map<String, KeyInfo> keys = KeyInfo.getKeys();
+        Map<String, KeyInfo> keys = keyInfoService.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
-                .filter(k -> includeSymmetric || k.isAssymetricKey())
+                .filter(k -> includeSymmetric || RSA.name().equals(k.type()))
                 .map(TokenKeyEndpoint::getVerificationKeyResponse)
                 .collect(Collectors.toList());
         return new VerificationKeysListResponse(keyResponses);
@@ -163,4 +145,5 @@ public class TokenKeyEndpoint {
         }
         return false;
     }
+
 }

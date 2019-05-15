@@ -15,6 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -23,7 +26,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
@@ -33,6 +39,7 @@ import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -49,8 +56,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
@@ -66,7 +72,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,17 +81,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class TokenTestSupport {
-
-    public static final String PASSWORD = "password";
     public static final String CLIENT_ID = "client";
     public static final String CLIENT_ID_NO_REFRESH_TOKEN_GRANT = "client_without_refresh_grant";
     public static final String GRANT_TYPE = "grant_type";
-    public static final String CLIENT_CREDENTIALS = "client_credentials";
-    public static final String AUTHORIZATION_CODE = "authorization_code";
-    public static final String REFRESH_TOKEN = "refresh_token";
-    public static final String IMPLICIT = "implicit";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";
     public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
     public static final String READ = "read";
@@ -111,14 +111,14 @@ public class TokenTestSupport {
         UaaAuthority.authority(OPENID),
         UaaAuthority.authority(READ),
         UaaAuthority.authority(WRITE),
-        UaaAuthority.authority(UAA_REFRESH_TOKEN));
+        UaaAuthority.authority("uaa.offline_token"));
 
     UaaUser defaultUser  =
         new UaaUser(
             new UaaUserPrototype()
                 .withId(userId)
                 .withUsername(username)
-                .withPassword(PASSWORD)
+                .withPassword(GRANT_TYPE_PASSWORD)
                 .withEmail(email)
                 .withAuthorities(defaultUserAuthorities)
                 .withGivenName("Marissa")
@@ -136,7 +136,7 @@ public class TokenTestSupport {
                 .withPreviousLogonSuccess(12365L)
         );
 
-    UaaTokenServices tokenServices = new UaaTokenServices();
+    UaaTokenServices tokenServices;
 
     final int accessTokenValidity = 60 * 60 * 12;
     final int refreshTokenValidity = 60 * 60 * 24 * 30;
@@ -154,6 +154,7 @@ public class TokenTestSupport {
     InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
 
     ApprovalStore approvalStore = new InMemoryApprovalStore();
+    ApprovalService approvalService;
     MockAuthentication mockAuthentication;
     List<String> requestedAuthScopes;
     List<String> clientScopes;
@@ -168,6 +169,10 @@ public class TokenTestSupport {
     TokenPolicy tokenPolicy;
     RevocableTokenProvisioning tokenProvisioning;
     final Map<String, RevocableToken> tokens = new HashMap<>();
+    private final RefreshTokenCreator refreshTokenCreator;
+    public final TimeService timeService;
+    public final TokenValidationService tokenValidationService;
+    private KeyInfoService keyInfoService;
 
     public void clear() {
         tokens.clear();
@@ -209,15 +214,15 @@ public class TokenTestSupport {
         defaultClient = new BaseClientDetails(
             CLIENT_ID,
             SCIM+","+CLIENTS,
-            READ+","+WRITE+","+OPENID+","+UAA_REFRESH_TOKEN,
+            READ+","+WRITE+","+OPENID+",uaa.offline_token",
             ALL_GRANTS_CSV,
             CLIENT_AUTHORITIES);
 
         clientWithoutRefreshToken = new BaseClientDetails(
             CLIENT_ID_NO_REFRESH_TOKEN_GRANT,
             SCIM+","+CLIENTS,
-            READ+","+WRITE+","+OPENID+","+UAA_REFRESH_TOKEN,
-            AUTHORIZATION_CODE,
+            READ+","+WRITE+","+OPENID+",uaa.offline_token",
+                GRANT_TYPE_AUTHORIZATION_CODE,
             CLIENT_AUTHORITIES);
 
         Map<String, BaseClientDetails> clientDetailsMap = new HashMap<>();
@@ -252,18 +257,38 @@ public class TokenTestSupport {
         AbstractOAuth2AccessTokenMatchers.revocableTokens.set(tokens);
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
-        tokenServices.setClientDetailsService(clientDetailsService);
-        tokenServices.setTokenPolicy(tokenPolicy);
+        timeService = mock(TimeService.class);
+        approvalService = new ApprovalService(timeService, approvalStore);
+        when(timeService.getCurrentDate()).thenCallRealMethod();
+        TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
+        keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
+        tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
+        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
+        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService, keyInfoService);
+        tokenServices = new UaaTokenServices(
+                idTokenCreator,
+                tokenEndpointBuilder,
+                clientDetailsService,
+                tokenProvisioning,
+                tokenValidationService,
+                refreshTokenCreator,
+                timeService,
+                accessTokenValidityResolver,
+                userDatabase,
+                Sets.newHashSet(),
+                tokenPolicy,
+                keyInfoService,
+                new IdTokenGranter(approvalService),
+                approvalService);
+
+        tokenServices.setApplicationEventPublisher(publisher);
+        tokenServices.setUaaTokenEnhancer(tokenEnhancer);
+
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
             new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
         );
-        tokenServices.setIssuer(DEFAULT_ISSUER);
-        tokenServices.setUserDatabase(userDatabase);
-        tokenServices.setApprovalStore(approvalStore);
-        tokenServices.setApplicationEventPublisher(publisher);
-        tokenServices.setTokenProvisioning(tokenProvisioning);
-        tokenServices.setUaaTokenEnhancer(tokenEnhancer);
-        tokenServices.afterPropertiesSet();
     }
 
     public UaaTokenServices getUaaTokenServices() {
@@ -274,25 +299,22 @@ public class TokenTestSupport {
         return tokenProvisioning;
     }
 
-    public UaaUser getDefaultUser() {
-        return defaultUser;
-    }
-
-    public CompositeAccessToken getCompositeAccessToken(List<String> scopes) {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
-
-        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeAccessToken.ID_TOKEN)));
-
+    public CompositeToken getCompositeAccessToken(List<String> scopes) {
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
         Set<String> amr = new HashSet<>();
         amr.addAll(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
         userAuthentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX)));
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        return (CompositeAccessToken) accessToken;
+        HashMap<String, String> requestParams = Maps.newHashMap();
+        requestParams.put("grant_type", GRANT_TYPE_PASSWORD);
+        OAuth2Request oAuth2Request = new OAuth2Request(requestParams, CLIENT_ID, null, false, Sets.newHashSet(scopes), null, null, Sets.newHashSet("token", "id_token"), null);
+
+        UaaOauth2Authentication uaaOauth2Authentication = new UaaOauth2Authentication(null, IdentityZoneHolder.get().getId(), oAuth2Request, userAuthentication);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(uaaOauth2Authentication);
+        return (CompositeToken) accessToken;
     }
 
     public String getIdTokenAsString(List<String> scopes) {
@@ -300,9 +322,9 @@ public class TokenTestSupport {
     }
 
     public Jwt getIdToken(List<String> scopes) {
-        CompositeAccessToken accessToken = getCompositeAccessToken(scopes);
+        CompositeToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier();
+        SignatureVerifier verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 
@@ -318,4 +340,5 @@ public class TokenTestSupport {
     public void copyClients(String fromZoneId, String toZoneId) {
         getClientDetailsService().setClientDetailsStore(toZoneId, getClientDetailsService().getInMemoryService(fromZoneId));
     }
+
 }

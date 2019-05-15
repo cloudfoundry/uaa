@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
@@ -52,8 +52,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -128,7 +128,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     @After
     public void clearDb() throws Exception {
         IdentityZoneHolder.clear();
-        TestUtils.deleteFrom(dataSource, "users");
+        TestUtils.deleteFrom(jdbcTemplate, "users");
     }
 
 
@@ -293,7 +293,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         JdbcTemplate spy = Mockito.spy(jdbcTemplate);
         db.setJdbcTemplate(spy);
         UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
-        verify(spy, times(2)).queryForList(anyString(), Matchers.<String>anyVararg());
+        verify(spy, times(2)).queryForList(anyString(), ArgumentMatchers.<String>anyVararg());
         assertTrue("authorities does not contain uaa.user",
                 joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
         assertTrue("authorities does not contain additional",

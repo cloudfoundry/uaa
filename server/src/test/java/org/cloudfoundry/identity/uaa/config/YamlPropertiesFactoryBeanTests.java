@@ -20,7 +20,6 @@ import java.util.Properties;
 
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
 import org.cloudfoundry.identity.uaa.impl.config.YamlPropertiesFactoryBean;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
@@ -50,30 +49,6 @@ public class YamlPropertiesFactoryBeanTests {
         Properties properties = factory.getObject();
         assertEquals("bar", properties.get("foo"));
         assertEquals("baz", properties.get("spam.foo"));
-        assertEquals("spam", properties.get("foo.bar"));
-    }
-
-    @Test
-    @Ignore
-    // We can't fail on duplicate keys because the Map is created by the YAML
-    // library
-    public void testLoadResourcesWithInternalOverride() throws Exception {
-        YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-        factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam:\n  foo: baz\nfoo: bucket"
-                        .getBytes()) });
-        Properties properties = factory.getObject();
-        assertEquals("bar", properties.get("foo"));
-    }
-
-    @Test
-    @Ignore
-    // We can't fail on duplicate keys because the Map is created by the YAML
-    // library
-    public void testLoadResourcesWithNestedInternalOverride() throws Exception {
-        YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-        factory.setResources(new Resource[] { new ByteArrayResource(
-                        "foo:\n  bar: spam\n  foo: baz\nbreak: it\nfoo: bucket".getBytes()) });
-        Properties properties = factory.getObject();
         assertEquals("spam", properties.get("foo.bar"));
     }
 

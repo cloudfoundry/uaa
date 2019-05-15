@@ -27,6 +27,7 @@ Please refer to 'https://accounts.google.com/.well-known/openid-configuration' f
           addShadowUserOnLogin: true
           relyingPartyId: REPLACE_WITH_CLIENT_ID
           relyingPartySecret: REPLACE_WITH_CLIENT_SECRET
+          clientAuthInBody: true
           skipSslValidation: false
           attributeMappings:
             user_name: email

@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +19,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.ClientAuthenticationSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,22 +28,46 @@ import static org.mockito.Mockito.verify;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = { LoggingAuditServiceTest.ContextConfiguration.class, LoggingAuditService.class })
 @TestPropertySource(properties = { "AUDIT_EVENT_TYPES_DEBUG=ClientAuthenticationSuccess,ClientAuthenticationFailure" })
-public class LoggingAuditServiceTest {
+class LoggingAuditServiceTest {
 
     @Autowired
     private LoggingAuditService loggingAuditService;
 
     private Log mockLogger;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         mockLogger = mock(Log.class);
         ReflectionTestUtils.setField(loggingAuditService, "logger", mockLogger);
     }
 
     @Test
-    public void log_sanitizesMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t", null, null);
+    void log_format_whenThereIsAnAuthType() {
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "thePrincipalId", "theOrigin", "theData", 42L, "theZoneId", "theAuthType", "theDescription");
+
+        loggingAuditService.log(auditEvent, "not-used");
+
+        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockLogger).info(stringCaptor.capture());
+        String logMessage = stringCaptor.getValue();
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId], authenticationType=[theAuthType]"));
+    }
+
+    @Test
+    void log_format_whenAuthTypeIsNull() {
+        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "thePrincipalId", "theOrigin", "theData", 42L, "theZoneId", null, "theDescription");
+
+        loggingAuditService.log(auditEvent, "not-used");
+
+        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockLogger).info(stringCaptor.capture());
+        String logMessage = stringCaptor.getValue();
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId]"));
+    }
+
+    @Test
+    void log_sanitizesMaliciousInput() {
+        AuditEvent auditEvent = new AuditEvent(UserAuthenticationSuccess, "principalId", "origin", "data", 100L, "malicious-zone\r\n\t", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 
@@ -54,8 +80,8 @@ public class LoggingAuditServiceTest {
     }
 
     @Test
-    public void log_doesNotModifyNonMaliciousInput() {
-        AuditEvent auditEvent = new AuditEvent(PasswordChangeFailure, "principalId", "origin", "data", 100L, "safe-zone", null, null);
+    void log_doesNotModifyNonMaliciousInput() {
+        AuditEvent auditEvent = new AuditEvent(UserAuthenticationSuccess, "principalId", "origin", "data", 100L, "safe-zone", null, null);
 
         loggingAuditService.log(auditEvent, "not-used");
 

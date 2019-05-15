@@ -187,7 +187,6 @@ public class ScimUserTests {
         assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
         assertEquals("bjensen@example.com", user.getPrimaryEmail());
         assertFalse(user.getEmails().get(0).isPrimary());
-        // System.out.println(mapper.writeValueAsString(user));
     }
 
     @Test
@@ -200,7 +199,6 @@ public class ScimUserTests {
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(2, user.getGroups().size());
-        // System.out.println(mapper.writeValueAsString(user));
     }
 
     @Test
@@ -210,7 +208,6 @@ public class ScimUserTests {
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(10, user.getVersion());
         assertEquals("2011-11-30", new SimpleDateFormat("yyyy-MM-dd").format(user.getMeta().getCreated()));
-        // System.out.println(mapper.writeValueAsString(user));
     }
 
     @Test

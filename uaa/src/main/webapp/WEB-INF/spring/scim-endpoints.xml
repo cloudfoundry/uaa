@@ -21,6 +21,21 @@
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
+        <property name="attributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
+                <constructor-arg name="paramsMap">
+                    <map key-type="java.lang.String" value-type="java.lang.String">
+                        <entry key="emails\.value" value="email" />
+                        <entry key="groups\.display" value="authorities" />
+                        <entry key="phoneNumbers\.value" value="phoneNumber" />
+                    </map>
+                </constructor-arg>
+            </bean>
+        </property>
+        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
+    </bean>
+
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
@@ -28,7 +43,7 @@
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
         <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}" />
         <property name="timeService" ref="timeService"/>
-        <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
+        <property name="passwordEncoder" ref="passwdEncoder"/>
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
@@ -123,6 +138,7 @@
     </util:map>
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
+        <property name="isSelfCheck" ref="self" />
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
         <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
@@ -135,6 +151,7 @@
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="codeStore" ref="codeStore"/>
         <property name="mfaCredentialsProvisioning" ref="jdbcUserGoogleMfaCredentialsProvisioning" />
+        <property name="userMaxCount" value="${userMaxCount:500}" />
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
@@ -145,6 +162,7 @@
             <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="groupMaxCount" value="${groupMaxCount:500}" />
     </bean>
 
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
@@ -211,8 +229,8 @@
         <intercept-url pattern="/Users/*/mfa" access="#oauth2.hasAnyScope('uaa.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="GET" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PUT" /> <!-- add self logic -->
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PATCH" />
+        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PUT" /> <!-- add self logic -->
+        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PATCH" />
         <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="denyAll" />
         <expression-handler ref="oauthWebExpressionHandler" />
@@ -239,7 +257,6 @@
     <oauth:resource-server id="resourceAgnosticAuthenticationFilter" token-services-ref="tokenServices"
                            entry-point-ref="oauthAuthenticationEntryPoint" />
 
-    <!--TODO What is this resource-server actually guarding? -->
     <oauth:resource-server id="idsResourceAuthenticationFilter" token-services-ref="tokenServices"
         entry-point-ref="oauthAuthenticationEntryPoint" />
 

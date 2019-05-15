@@ -100,7 +100,7 @@ public class InvitationsEndpoint {
                     List<IdentityProvider> providers = filter(activeProviders, client, email);
                     if (providers.size() == 1) {
                         ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
-                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa());
+                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
                         data.put(InvitationConstants.USER_ID, user.getId());

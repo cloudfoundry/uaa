@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
 /**
@@ -124,7 +125,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 SecurityContextHolder.getContext().setAuthentication(userAuthentication);
                 AuthorizationRequest authorizationRequest = oAuth2RequestFactory.createAuthorizationRequest(map);
 
-                //authorizationRequest.setScope(getScope(request));
                 if (clientAuth.isAuthenticated()) {
                     // Ensure the OAuth2Authentication is authenticated
                     authorizationRequest.setApproved(true);
@@ -196,7 +196,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         String grantType = request.getParameter("grant_type");
         logger.debug("Processing token user authentication for grant:"+grantType);
         Authentication authResult = null;
-        if ("password".equals(grantType)) {
+        if (GRANT_TYPE_PASSWORD.equals(grantType)) {
             Authentication credentials = extractCredentials(request);
             logger.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
             authResult = authenticationManager.authenticate(credentials);

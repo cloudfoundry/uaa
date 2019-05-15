@@ -54,7 +54,7 @@
     "findup-sync": "^0.3.0",
     "first-chunk-stream": "^2.0.0",
     "flagged-respawn": "^0.3.1",
-    "fresh": "^0.3.0",
+    "fresh": "^0.5.2",
     "gaze": "^0.5.2",
     "get-stdin": "^5.0.1",
     "glob": "^7.0.3",

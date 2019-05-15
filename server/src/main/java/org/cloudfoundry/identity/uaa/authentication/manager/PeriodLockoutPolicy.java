@@ -33,29 +33,28 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
     private final Log logger = LogFactory.getLog(getClass());
 
     private final LoginPolicy loginPolicy;
-    
-    public PeriodLockoutPolicy(LoginPolicy loginPolicy) {
+    private final LoginPolicy mfaPolicy;
+
+
+    public PeriodLockoutPolicy(LoginPolicy loginPolicy, LoginPolicy mfaPolicy) {
         this.loginPolicy = loginPolicy;
+        this.mfaPolicy = mfaPolicy;
     }
-    
+
     public LockoutPolicy getDefaultLockoutPolicy() {
         return this.loginPolicy.getLockoutPolicyRetriever().getDefaultLockoutPolicy();
     }
 
     @Override
     public boolean isAllowed(UaaUser user, Authentication a) throws AuthenticationException {
-        Result result = loginPolicy.isAllowed(user.getId());
-        if(result.isAllowed()) {
+        Result loginResult = loginPolicy.isAllowed(user.getId());
+        Result mfaResult = mfaPolicy.isAllowed(user.getId());
+        if (loginResult.isAllowed() && mfaResult.isAllowed()) {
             return true;
         }
         logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
-                + result.getFailureCount() + " failed logins within the last checking period.");
+          + loginResult.getFailureCount() + " failed user logins within the last checking period."
+          + " and " + mfaResult.getFailureCount() + " failed  mfa attempts within the last checking period.");
         return false;
     }
-
-    public LoginPolicy getLoginPolicy() {
-        return loginPolicy;
-    }
-    
-    
 }

@@ -23,16 +23,18 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.util.HtmlUtils;
 
-import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -46,27 +48,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
-
-    public static final String CLIENTID = "oauth_showcase_password_grant";
-    public static final String CLIENTSECRET = "secret";
+class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
+    private final String CLIENT_ID = "oauth_showcase_password_grant";
+    private final String CLIENT_SECRET = "secret";
     private String token;
     private String idToken;
     private String basic;
     private boolean allowQueryString;
 
-    @Before
-    public void get_token_to_check() throws Exception {
+    @Autowired
+    private CheckTokenEndpoint checkTokenEndpoint;
+
+    @BeforeEach
+    void get_token_to_check() throws Exception {
         String username = setUpUserForPasswordGrant();
 
-        String content = getMockMvc().perform(
+        String content = mockMvc.perform(
             post("/oauth/token")
-                .param("client_id", CLIENTID)
-                .param("client_secret", CLIENTSECRET)
-                .param(OAuth2Utils.GRANT_TYPE, PASSWORD)
+                .param("client_id", CLIENT_ID)
+                .param("client_secret", CLIENT_SECRET)
+                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
                 .param("response_type", "id_token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED))
@@ -75,54 +79,53 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         Map<String,Object> tokenMap = JsonUtils.readValue(content, new TypeReference<Map<String, Object>>() {});
         token = (String) tokenMap.get("access_token");
         idToken = (String) tokenMap.get("id_token");
-        basic = new String(Base64.encodeBase64((CLIENTID+":"+CLIENTSECRET).getBytes()));
-        allowQueryString = getWebApplicationContext().getBean(CheckTokenEndpoint.class).isAllowQueryString();
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(false);
+        basic = new String(Base64.encodeBase64((CLIENT_ID +":"+ CLIENT_SECRET).getBytes()));
+        allowQueryString = checkTokenEndpoint.isAllowQueryString();
+        checkTokenEndpoint.setAllowQueryString(false);
     }
 
-    @After
-    public void resetAllowQueryString() throws Exception {
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(allowQueryString);
+    @AfterEach
+    void resetAllowQueryString() {
+        checkTokenEndpoint.setAllowQueryString(allowQueryString);
     }
-
 
     @Test
-    public void check_token_get() throws Exception {
+    void check_token_get() throws Exception {
         check_token(get("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'GET' not supported", "ISO-8859-1")));
 
     }
 
     @Test
-    public void check_token_put() throws Exception {
+    void check_token_put() throws Exception {
         check_token(put("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'PUT' not supported", "ISO-8859-1")));
 
     }
 
     @Test
-    public void check_token_post() throws Exception {
+    void check_token_post() throws Exception {
         check_token(post("/check_token"), status().isOk());
     }
 
     @Test
-    public void check_token_get_when_allowed() throws Exception {
-        getWebApplicationContext().getBean(CheckTokenEndpoint.class).setAllowQueryString(true);
+    void check_token_get_when_allowed() throws Exception {
+        checkTokenEndpoint.setAllowQueryString(true);
         get_check_token(status().isOk());
     }
 
     @Test
-    public void check_token_delete() throws Exception {
+    void check_token_delete() throws Exception {
         check_token(MockMvcRequestBuilders.delete("/check_token"),status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
     }
 
     @Test
-    public void check_token_endpoint_post_query_string() throws Exception {
-        getMockMvc().perform(
+    void check_token_endpoint_post_query_string() throws Exception {
+        mockMvc.perform(
             post("/check_token?token={token}", token)
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -134,8 +137,8 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    public void check_token_endpoint_id_token() throws Exception {
-        getMockMvc().perform(
+    void check_token_endpoint_id_token() throws Exception {
+        mockMvc.perform(
             post("/check_token")
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -144,8 +147,8 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             .andExpect(status().isOk());
     }
 
-    public ResultActions check_token(MockHttpServletRequestBuilder builder, ResultMatcher matcher) throws Exception {
-        return getMockMvc().perform(
+    ResultActions check_token(MockHttpServletRequestBuilder builder, ResultMatcher matcher) throws Exception {
+        return mockMvc.perform(
             builder
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
@@ -155,8 +158,8 @@ public class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
     }
 
-    public ResultActions get_check_token(ResultMatcher matcher) throws Exception {
-        return getMockMvc().perform(
+    ResultActions get_check_token(ResultMatcher matcher) throws Exception {
+        return mockMvc.perform(
             get("/check_token?token={token}", token)
                 .header("Authorization", "Basic " + basic)
                 .header(ACCEPT, APPLICATION_JSON_VALUE)

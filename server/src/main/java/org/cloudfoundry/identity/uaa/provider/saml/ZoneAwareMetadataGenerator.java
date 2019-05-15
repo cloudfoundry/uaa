@@ -25,7 +25,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.springframework.security.saml.util.SAMLUtil;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +35,7 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
     @Override
     public ExtendedMetadata generateExtendedMetadata() {
         ExtendedMetadata metadata = super.generateExtendedMetadata();
-        metadata.setAlias(UaaUrlUtils.getSubdomain()+metadata.getAlias());
+        metadata.setAlias(UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain())+metadata.getAlias());
         return metadata;
     }
 
@@ -52,20 +51,20 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
         String entityId = super.getEntityId();
 
         if (UaaUrlUtils.isUrl(entityId)) {
-            return UaaUrlUtils.addSubdomainToUrl(entityId);
+            return UaaUrlUtils.addSubdomainToUrl(entityId, IdentityZoneHolder.get().getSubdomain());
         } else {
-            return UaaUrlUtils.getSubdomain() + entityId;
+            return UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain()) + entityId;
         }
     }
 
     @Override
     public String getEntityBaseURL() {
-        return UaaUrlUtils.addSubdomainToUrl(super.getEntityBaseURL());
+        return UaaUrlUtils.addSubdomainToUrl(super.getEntityBaseURL(), IdentityZoneHolder.get().getSubdomain());
     }
 
     @Override
     protected String getEntityAlias() {
-        return UaaUrlUtils.getSubdomain() + super.getEntityAlias();
+        return UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain()) + super.getEntityAlias();
     }
 
     @Override

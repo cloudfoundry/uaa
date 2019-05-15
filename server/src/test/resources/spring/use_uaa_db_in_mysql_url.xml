@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+
+    <beans profile="mysql">
+        <description>Override the platformProperties bean from env.xml to use the database named 'uaa' in the URL</description>
+        <util:properties id="platformProperties">
+            <prop key="database.driverClassName">org.mariadb.jdbc.Driver</prop>
+            <prop key="database.url">jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&amp;trustServerCertificate=true</prop>
+            <prop key="database.username">root</prop>
+            <prop key="database.password">changeme</prop>
+        </util:properties>
+    </beans>
+
+</beans>

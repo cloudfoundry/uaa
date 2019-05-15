@@ -53,6 +53,8 @@ public class PasswordChangeEndpointTests {
 
     @BeforeClass
     public static void init() {
+        IdentityZoneHolder.clear();
+
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         database = builder.build();
         flyway = new Flyway();
@@ -64,7 +66,6 @@ public class PasswordChangeEndpointTests {
 
     @Before
     public void setup() {
-
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate,
                         new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()));
@@ -79,7 +80,6 @@ public class PasswordChangeEndpointTests {
         dale.addEmail("olds@vmware.com");
         joel = dao.createUser(joel, "password", IdentityZoneHolder.get().getId());
         dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
-
     }
 
     @After

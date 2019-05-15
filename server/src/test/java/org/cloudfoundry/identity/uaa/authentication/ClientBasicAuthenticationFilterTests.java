@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -103,8 +103,7 @@ public class ClientBasicAuthenticationFilterTests {
 
     @Test
     public void doesContinueWithFilterChain_EvenIfClientSecretExpired() throws IOException, ServletException, ParseException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials",
-                               "http://localhost:5000/uaadb" );
+        BaseClientDetails clientDetails = new BaseClientDetails("client-1", "none", "uaa.none", "client_credentials", "http://localhost:5000/uaadb" );
 
 
         Calendar expiredDate = Calendar.getInstance();

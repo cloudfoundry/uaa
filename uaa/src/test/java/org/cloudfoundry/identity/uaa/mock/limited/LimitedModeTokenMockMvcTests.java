@@ -17,13 +17,16 @@ package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
+import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.ReflectionUtils;
@@ -33,10 +36,9 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,25 +47,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     private File existingStatusFile;
-    private File statusFile;
+
     private XmlWebApplicationContext webApplicationContext;
     private MockEnvironment mockEnvironment;
     private MockPropertySource propertySource;
     private Properties originalProperties = new Properties();
     Field f = ReflectionUtils.findField(MockEnvironment.class, "propertySource");
 
-    @BeforeClass
+    @BeforeAll
     public static void setDegradedProfile() {
         System.setProperty("spring.profiles.active", "default, degraded");
     }
 
-    @Before
+    @BeforeEach
     @Override
-    public void setUpContext() throws Exception {
+    public void setUpContext(
+            @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
+    ) throws Exception {
         super.setUpContext();
-        webApplicationContext = getWebApplicationContext();
+
         existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
-        statusFile = setLimitedModeStatusFile(webApplicationContext);
+        setLimitedModeStatusFile(webApplicationContext);
+
+        assertTrue(isLimitedMode());
+
+        webApplicationContext = getWebApplicationContext();
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource) ReflectionUtils.getField(f, mockEnvironment);
@@ -73,10 +81,10 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
         mockEnvironment.setProperty("spring_profiles", "default, degraded");
     }
 
-
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void tearDown() throws Exception {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
+
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
@@ -84,14 +92,14 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
     }
 
     @Test
-    public void check_token_while_limited() throws Exception {
+    void check_token_while_limited() throws Exception {
         BaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
                                                 "uaa.resource,clients.read",
                                                 "",
                                                 "client_credentials",
                                                 true);
-        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(getMockMvc(), client.getClientId(), SECRET, null, null, true);
-        getMockMvc().perform(
+        String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, client.getClientId(), SECRET, null, null, true);
+        mockMvc.perform(
             post("/check_token")
                 .param("token", token)
                 .header(AUTHORIZATION,
@@ -103,8 +111,12 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
             .andExpect(jsonPath("$.jti").value(token));
     }
 
-    @AfterClass
+    @AfterAll
     public static void unsetDegradedProfile() {
         System.clearProperty("spring.profiles.active");
+    }
+
+    private boolean isLimitedMode() {
+        return webApplicationContext.getBean(LimitedModeUaaFilter.class).isEnabled();
     }
 }

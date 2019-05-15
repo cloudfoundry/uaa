@@ -91,6 +91,8 @@ public class ScimGroupEndpoints {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
+    private int groupMaxCount;
+
     public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
@@ -128,13 +130,15 @@ public class ScimGroupEndpoints {
         return false;
     }
 
-    private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count) {
+    private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count, boolean includeMembers) {
         List<ScimGroup> response = new ArrayList<ScimGroup>();
         int expectedResponseSize = Math.min(count, input.size());
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
-                group.setMembers(membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()));
+                if (includeMembers) {
+                    group.setMembers(membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()));
+                }
                 response.add(group);
                 needMore = response.size() < expectedResponseSize;
                 if (!needMore) {
@@ -146,7 +150,7 @@ public class ScimGroupEndpoints {
         return response;
     }
 
-    @RequestMapping(value = { "/Groups" }, method = RequestMethod.GET)
+    @RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listGroups(
         @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -156,6 +160,10 @@ public class ScimGroupEndpoints {
         @RequestParam(required = false, defaultValue = "1") int startIndex,
         @RequestParam(required = false, defaultValue = "100") int count) {
 
+        if (count > groupMaxCount) {
+            count = groupMaxCount;
+        }
+
         List<ScimGroup> result;
         try {
             result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
@@ -163,25 +171,27 @@ public class ScimGroupEndpoints {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
 
-        List<ScimGroup> input = filterForCurrentUser(result, startIndex, count);
-
+        List<ScimGroup> input;
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
+            input = filterForCurrentUser(result, startIndex, count, true);
             return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
-                                       result.size());
+                result.size());
         }
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
         String[] attributes = attributesCommaSeparated.split(",");
+        input = filterForCurrentUser(result, startIndex, count, Arrays.asList(attributes).contains("members"));
+
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                                                              mapper,Arrays.asList(ScimCore.SCHEMAS));
+                mapper, Arrays.asList(ScimCore.SCHEMAS));
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/list" }, method = RequestMethod.GET)
+    @RequestMapping(value = {"/Groups/External/list"}, method = RequestMethod.GET)
     @ResponseBody
     @Deprecated
     public SearchResults<?> listExternalGroups(
@@ -191,7 +201,7 @@ public class ScimGroupEndpoints {
         return getExternalGroups(startIndex, count, filter, "", "");
     }
 
-    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.GET)
+    @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> getExternalGroups(
         @RequestParam(required = false, defaultValue = "1") int startIndex,
@@ -233,7 +243,7 @@ public class ScimGroupEndpoints {
             Arrays.asList(ScimCore.SCHEMAS));
     }
 
-    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.POST)
+    @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.POST)
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
@@ -252,7 +262,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -260,7 +270,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroup(groupId, externalGroup, null);
     }
 
-    @RequestMapping(value = { "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId,
@@ -280,7 +290,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/id/{groupId}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/id/{groupId}/{externalGroup}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -288,7 +298,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroup(groupId, externalGroup, LDAP);
     }
 
-    @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -296,7 +306,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroupUsingName(displayName, externalGroup, LDAP);
     }
 
-    @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName,
@@ -317,7 +327,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/{displayName}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/External/{displayName}/{externalGroup}"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -326,18 +336,18 @@ public class ScimGroupEndpoints {
     }
 
     private String getGroupId(String displayName) {
-        if (displayName==null || displayName.trim().length()==0) {
+        if (displayName == null || displayName.trim().length() == 0) {
             throw new ScimException("Group not found, not name provided", HttpStatus.NOT_FOUND);
         }
-        List<ScimGroup> result = dao.query("displayName eq \""+displayName+"\"", IdentityZoneHolder.get().getId());
-        if (result==null || result.size()==0) {
-            throw new ScimException("Group not found:"+displayName, HttpStatus.NOT_FOUND);
+        List<ScimGroup> result = dao.query("displayName eq \"" + displayName + "\"", IdentityZoneHolder.get().getId());
+        if (result == null || result.size() == 0) {
+            throw new ScimException("Group not found:" + displayName, HttpStatus.NOT_FOUND);
         }
         return result.get(0).getId();
     }
 
 
-    @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.GET)
+    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.GET)
     @ResponseBody
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
@@ -347,7 +357,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @RequestMapping(value = { "/Groups" }, method = RequestMethod.POST)
+    @RequestMapping(value = {"/Groups"}, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
@@ -369,7 +379,7 @@ public class ScimGroupEndpoints {
         return created;
     }
 
-    @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.PUT)
+    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PUT)
     @ResponseBody
     public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
                                  @RequestHeader(value = "If-Match", required = false) String etag,
@@ -407,10 +417,10 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.PATCH)
+    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PATCH)
     @ResponseBody
     public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
-                                String groupId,
+        String groupId,
                                 @RequestHeader(value = "If-Match", required = false) String etag,
                                 HttpServletResponse httpServletResponse) {
         if (etag == null) {
@@ -424,7 +434,7 @@ public class ScimGroupEndpoints {
         return updateGroup(current, groupId, etag, httpServletResponse);
     }
 
-    @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.DELETE)
     @ResponseBody
     public ScimGroup deleteGroup(@PathVariable String groupId,
                                  @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
@@ -442,7 +452,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
+    @RequestMapping(value = {"/Groups/zones"}, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Deprecated
@@ -450,11 +460,11 @@ public class ScimGroupEndpoints {
         if (!group.getDisplayName().matches(ZONE_MANAGING_SCOPE_REGEX)) {
             throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
         }
-        if (group.getMembers()==null || group.getMembers().size()==0) {
+        if (group.getMembers() == null || group.getMembers().size() == 0) {
             throw new ScimException("Invalid group members, you have to add at least one member.", HttpStatus.BAD_REQUEST);
         }
         try {
-            ScimGroup existing = getGroup(getGroupId(group.getDisplayName()),httpServletResponse);
+            ScimGroup existing = getGroup(getGroupId(group.getDisplayName()), httpServletResponse);
             List<ScimGroupMember> newMembers = new LinkedList<>(existing.getMembers());
             //we have an existing group - add new memberships
             for (ScimGroupMember member : group.getMembers()) {
@@ -473,7 +483,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/zones/{userId}/{zoneId}"}, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     @Deprecated
@@ -481,7 +491,7 @@ public class ScimGroupEndpoints {
         return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
     }
 
-    @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}/{scope}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/zones/{userId}/{zoneId}/{scope}"}, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     @Deprecated
@@ -490,7 +500,7 @@ public class ScimGroupEndpoints {
                                      @PathVariable String scope,
                                      HttpServletResponse httpServletResponse) {
 
-        String groupName = "zones."+zoneId+"."+scope;
+        String groupName = "zones." + zoneId + "." + scope;
         if (!groupName.matches(ZONE_MANAGING_SCOPE_REGEX)) {
             throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
         }
@@ -520,8 +530,8 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.GET)
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
-          @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
-          @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
+                                                                      @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
+                                                                      @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
         dao.retrieve(groupId, IdentityZoneHolder.get().getId());
         List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(members, HttpStatus.OK);
@@ -534,6 +544,7 @@ public class ScimGroupEndpoints {
 
         return membershipManager.addMember(groupId, member, IdentityZoneHolder.get().getId());
     }
+
     @RequestMapping(value = "/Groups/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
@@ -560,7 +571,7 @@ public class ScimGroupEndpoints {
         // traces
         boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
         return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, trace),
-                                                                               e.getStatus()), messageConverters);
+            e.getStatus()), messageConverters);
     }
 
     private int getVersion(String groupId, String etag) {
@@ -578,11 +589,20 @@ public class ScimGroupEndpoints {
             return Integer.valueOf(value);
         } catch (NumberFormatException e) {
             throw new ScimException("Invalid version match header (should be a version number): " + etag,
-                                    HttpStatus.BAD_REQUEST);
+                HttpStatus.BAD_REQUEST);
         }
     }
 
     private void addETagHeader(HttpServletResponse httpServletResponse, ScimGroup scimGroup) {
         httpServletResponse.setHeader(E_TAG, "\"" + scimGroup.getVersion() + "\"");
+    }
+
+    public void setGroupMaxCount(int groupMaxCount) {
+        if (groupMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
+            );
+        }
+        this.groupMaxCount = groupMaxCount;
     }
 }

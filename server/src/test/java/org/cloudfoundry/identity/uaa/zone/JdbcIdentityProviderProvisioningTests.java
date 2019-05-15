@@ -63,7 +63,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void test_delete_providers_in_uaa_zone() {
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         IdentityProvider createdIdp = db.create(idp, zoneId);
@@ -85,7 +85,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testCreateAndUpdateIdentityProviderInDefaultZone() throws Exception {
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider<UaaIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         String providerDescription = "Test Description";
@@ -150,7 +150,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test(expected=IdpAlreadyExistsException.class)
     public void testCreateIdentityProviderWithNonUniqueOriginKeyInDefaultZone() throws Exception {
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         db.create(idp, zoneId);
@@ -169,7 +169,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testCreateIdentityProvidersWithSameOriginKeyInBothZones() throws Exception {
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         db.create(idp, zoneId);
@@ -181,7 +181,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testUpdateIdentityProviderInDefaultZone() throws Exception {
-        String zoneId = IdentityZone.getUaa().getId();
+        String zoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
@@ -197,7 +197,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
         assertEquals(definition, updatedIdp.getConfig());
         assertEquals(definition, JsonUtils.readValue((String)rawUpdatedIdp.get("config"),LdapIdentityProviderDefinition.class));
-        assertEquals(IdentityZone.getUaa().getId(), rawUpdatedIdp.get("identity_zone_id"));
+        assertEquals(IdentityZone.getUaaZoneId(), rawUpdatedIdp.get("identity_zone_id"));
     }
 
     @Test
@@ -223,7 +223,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testRetrieveIdentityProviderById() {
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         String identityZoneId = RandomStringUtils.randomAlphabetic(6);
         String idpId = RandomStringUtils.randomAlphabetic(6);
@@ -242,7 +242,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testRetrieveAll() throws Exception {
-        String uaaZoneId = IdentityZone.getUaa().getId();
+        String uaaZoneId = IdentityZone.getUaaZoneId();
         List<IdentityProvider> identityProviders = db.retrieveActive(uaaZoneId);
         int numberOfIdps =  identityProviders.size();
         String origin = RandomStringUtils.randomAlphabetic(6);

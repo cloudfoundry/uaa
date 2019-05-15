@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
@@ -67,14 +67,14 @@ public class ClientAdminEventPublisherTests {
     public void testCreate() {
         BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
         subject.create(client);
-        Mockito.verify(publisher).publishEvent(Matchers.isA(ClientCreateEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientCreateEvent.class));
     }
 
     @Test
     public void testUpdate() {
         BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
         subject.update(client);
-        Mockito.verify(publisher).publishEvent(Matchers.isA(ClientUpdateEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientUpdateEvent.class));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class ClientAdminEventPublisherTests {
         ProceedingJoinPoint jp = Mockito.mock(ProceedingJoinPoint.class);
         Mockito.when(jp.proceed()).thenReturn(client);
         subject.delete(jp, "foo");
-        Mockito.verify(publisher).publishEvent(Matchers.isA(ClientDeleteEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientDeleteEvent.class));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class ClientAdminEventPublisherTests {
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
                         new BaseClientDetails("foo", null, null, "client_credentials", "none"));
         subject.secretChange("foo");
-        Mockito.verify(publisher).publishEvent(Matchers.isA(SecretChangeEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretChangeEvent.class));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class ClientAdminEventPublisherTests {
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
                         new BaseClientDetails("foo", null, null, "client_credentials", "none"));
         subject.secretFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(Matchers.isA(SecretFailureEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretFailureEvent.class));
     }
 
     @Test
@@ -107,6 +107,6 @@ public class ClientAdminEventPublisherTests {
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenThrow(
                         new InvalidClientException("Not found"));
         subject.secretFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(Matchers.isA(SecretFailureEvent.class));
+        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretFailureEvent.class));
     }
 }

@@ -7,15 +7,16 @@ import org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +27,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.HttpClientErrorException;
@@ -40,23 +41,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = EmailInvitationsServiceTests.ContextConfiguration.class)
 @DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
@@ -80,17 +80,15 @@ public class EmailInvitationsServiceTests {
     @Autowired
     ClientServicesExtension clientDetailsService;
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
     }
@@ -102,7 +100,7 @@ public class EmailInvitationsServiceTests {
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
 
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
@@ -117,15 +115,15 @@ public class EmailInvitationsServiceTests {
 
     @Test
     public void nonMatchingCodeIntent() {
-        expectedEx.expect(HttpClientErrorException.class);
-        expectedEx.expectMessage("400 BAD_REQUEST");
-
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
 
-        emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
+        HttpClientErrorException httpClientErrorException = Assertions.assertThrows(HttpClientErrorException.class,
+                () -> emailInvitationsService.acceptInvitation("code", "password").getRedirectUri());
+
+        assertThat(httpClientErrorException.getMessage(), CoreMatchers.containsString("400 BAD_REQUEST"));
     }
 
     @Test
@@ -147,12 +145,30 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
+    public void acceptInvitation_onlyMarksInternalUsersAsVerified() {
+        ScimUser user = new ScimUser("ldap-user-id", "ldapuser", "Charlie", "Brown");
+        user.setOrigin(LDAP);
+
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(scimUserProvisioning.retrieve(eq("ldap-user-id"), eq(zoneId))).thenReturn(user);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(USER_ID, "ldap-user-id");
+        userData.put(EMAIL, "ldapuser");
+        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+
+        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), anyString());
+    }
+
+    @Test
     public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId("client-not-found");
 
@@ -177,7 +193,7 @@ public class EmailInvitationsServiceTests {
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId", "uaa")).thenReturn(clientDetails);
 
         Map<String,String> userData = new HashMap<>();
@@ -201,7 +217,7 @@ public class EmailInvitationsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
-        when(scimUserProvisioning.update(anyString(), anyObject(), eq(zoneId))).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), any(), eq(zoneId))).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
         Map<String,String> userData = new HashMap<>();
@@ -216,44 +232,6 @@ public class EmailInvitationsServiceTests {
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
         verify(scimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertEquals("/home", redirectLocation);
-    }
-
-    // TODO: add cases for username no existing external user with username not email
-    @Test
-    public void accept_invitation_with_external_user_that_does_not_have_email_as_their_username() {
-        String userId = "user-id-001";
-        String email = "user@example.com";
-        String actualUsername = "actual_username";
-        ScimUser userBeforeAccept = new ScimUser(userId, email, "first", "last");
-        userBeforeAccept.setPrimaryEmail(email);
-        userBeforeAccept.setOrigin(OriginKeys.SAML);
-
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userBeforeAccept);
-        when(scimUserProvisioning.retrieve(eq(userId), eq(zoneId))).thenReturn(userBeforeAccept);
-
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
-        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
-
-        Map<String,String> userData = new HashMap<>();
-        userData.put(USER_ID, userBeforeAccept.getId());
-        userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
-        userData.put(REDIRECT_URI, "http://someother/redirect");
-        userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
-
-        ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
-        userAfterAccept.setPrimaryEmail(email);
-
-        when(scimUserProvisioning.verifyUser(eq(userId), anyInt(), eq(zoneId))).thenReturn(userAfterAccept);
-
-        ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
-        assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
-        assertEquals(userAfterAccept.getName(), acceptedUser.getName());
-        assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
-
-        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt(), eq(zoneId));
-
     }
 
     @Configuration
