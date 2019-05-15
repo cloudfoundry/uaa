@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
-import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
+import org.cloudfoundry.identity.uaa.SpringServletTestConfig;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -10,21 +9,19 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.WebApplicationContext;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
 @ActiveProfiles("default")
 @WebAppConfiguration
-@ContextConfiguration(classes = SpringServletAndHoneycombTestConfig.class)
+@ContextConfiguration(classes = SpringServletTestConfig.class)
 class PollutionPreventionExtensionTests {
 
     @Autowired

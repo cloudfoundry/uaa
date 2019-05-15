@@ -3,11 +3,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 import java.nio.file.Files
 import java.nio.file.Paths
 
-import io.honeycomb.libhoney.HoneyClient
-import io.honeycomb.libhoney.EventFactory
-import static io.honeycomb.libhoney.LibHoney.create
-import static io.honeycomb.libhoney.LibHoney.options
-
 buildscript {
     apply from: file('shared_versions.gradle')
 
@@ -23,7 +18,6 @@ buildscript {
     }
 
     dependencies {
-        classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
@@ -51,8 +45,6 @@ allprojects {
 }
 
 subprojects {
-    EventFactory honeyCombEventFactory = buildEventFactory()
-
     apply plugin: 'java'
 
     dependencies {
@@ -60,7 +52,6 @@ subprojects {
         testCompile("org.junit.jupiter:junit-jupiter-api:${junit5JupiterVersion}")
         testCompile("org.junit.jupiter:junit-jupiter-params:${junit5JupiterVersion}")
         testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
-        testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit5JupiterVersion}")
         testRuntime("org.junit.vintage:junit-vintage-engine:${junit5JupiterVersion}")
     }
@@ -73,15 +64,7 @@ subprojects {
 
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
-
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
-        }
-
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
-        }
-
+        
         testLogging {
             events 'skipped', 'failed', 'passed'
             exceptionFormat 'full'
@@ -96,14 +79,6 @@ subprojects {
 
         useJUnitPlatform()
         
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
-        }
-
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
-        }
-
         testLogging {
             events 'skipped', 'failed', 'passed'
             exceptionFormat 'full'
@@ -240,55 +215,3 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-private EventFactory buildEventFactory() {
-    def honeycombKey = System.getenv("HONEYCOMB_KEY")
-    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
-
-    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
-        return null
-    }
-
-    HoneyClient honeyClient = create(
-            options()
-                    .setWriteKey(honeycombKey)
-                    .setDataset(honeycombDataset)
-                    .build()
-    )
-
-    def uniqueTestID = UUID.randomUUID().toString()
-    System.setProperty("testId", uniqueTestID)
-
-    return honeyClient.buildEventFactory()
-            .addField("testId", uniqueTestID)
-            .addField("cpuCores", Runtime.getRuntime().availableProcessors())
-            .addField("hostname", InetAddress.getLocalHost().getHostName())
-            .build()
-}
-
-private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
-    if (localBuilder != null) {
-        def event = localBuilder.createEvent()
-
-        event
-                .addField("test_lifecycle", testLifecycle)
-                .addField("testClass", descriptor.className)
-                .addField("testName", descriptor.name)
-                .addField("result", testResult.resultType)
-                .addField("output", testResult.exception)
-                .addField("startTime", testResult.startTime)
-                .addField("endTime", testResult.endTime)
-                .addField("duration", testResult.endTime - testResult.startTime)
-                .setTimestamp(System.currentTimeMillis())
-
-        for (Map.Entry entry : System.getProperties().entrySet()) {
-            event.addField(entry.key, entry.value)
-        }
-
-        event.addField("DB", System.getenv().get("DB"))
-        event.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"))
-        event.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"))
-
-        event.send()
-    }
-}
