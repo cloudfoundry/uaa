@@ -32,8 +32,16 @@ import java.net.URI;
 import java.util.Enumeration;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -46,6 +54,10 @@ class YamlServletProfileInitializerTest {
     private StandardServletEnvironment environment;
     private ServletConfig servletConfig;
     private ServletContext servletContext;
+    private String originalApplicationConfigUrl;
+    private String originalApplicationConfigFile;
+    private static final String APPLICATION_CONFIG_URL = "APPLICATION_CONFIG_URL";
+    private static final String APPLICATION_CONFIG_FILE = "APPLICATION_CONFIG_FILE";
 
     @BeforeEach
     void setup() {
@@ -66,11 +78,24 @@ class YamlServletProfileInitializerTest {
             return null;
         }).when(servletContext).log(ArgumentMatchers.anyString());
         when(servletContext.getContextPath()).thenReturn("/context");
+
+        originalApplicationConfigUrl = System.getProperty(APPLICATION_CONFIG_URL);
+        originalApplicationConfigFile = System.getProperty(APPLICATION_CONFIG_FILE);
     }
 
     @AfterEach
     void cleanup() {
-        System.clearProperty("APPLICATION_CONFIG_URL");
+        if (originalApplicationConfigUrl == null) {
+            System.clearProperty(APPLICATION_CONFIG_URL);
+        } else {
+            System.setProperty(APPLICATION_CONFIG_URL, originalApplicationConfigUrl);
+        }
+
+        if (originalApplicationConfigFile == null) {
+            System.clearProperty(APPLICATION_CONFIG_FILE);
+        } else {
+            System.setProperty(APPLICATION_CONFIG_FILE, originalApplicationConfigFile);
+        }
     }
 
     @Test
@@ -127,7 +152,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadServletConfiguredFilename() {
-        when(servletConfig.getInitParameter("APPLICATION_CONFIG_FILE")).thenReturn("/config/path/foo.yml");
+        when(servletConfig.getInitParameter(APPLICATION_CONFIG_FILE)).thenReturn("/config/path/foo.yml");
         when(context.getResource(ArgumentMatchers.eq("file:/config/path/foo.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -163,7 +188,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResource() {
-        System.setProperty("APPLICATION_CONFIG_URL", "file:foo/uaa.yml");
+        System.setProperty(APPLICATION_CONFIG_URL, "file:foo/uaa.yml");
 
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -176,7 +201,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResourceFromFileLocation() {
-        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
+        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
 
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -189,7 +214,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loggingConfigVariableWorks() {
-        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
+        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
         initializer.initialize(context);
@@ -235,7 +260,7 @@ class YamlServletProfileInitializerTest {
     @Test
     void ignoreDashDTomcatLoggingConfigVariable() {
         final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
-        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
+        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
         ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
@@ -361,7 +386,7 @@ class YamlServletProfileInitializerTest {
 
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);
 
-        System.setProperty("APPLICATION_CONFIG_FILE", "anything");
+        System.setProperty(APPLICATION_CONFIG_FILE, "anything");
         when(context.getResource("file:anything"))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tempFile.getAbsolutePath()).getBytes()));
 

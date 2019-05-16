@@ -48,17 +48,16 @@ import java.util.UUID;
  *
  */
 public class UaaTestAccounts implements TestAccounts {
-
-    public static final String DEFAULT_PASSWORD = "koala";
-
-    public static final String DEFAULT_USERNAME = "marissa";
-
     private static final Logger logger = LoggerFactory.getLogger(UaaTestAccounts.class);
 
+    static final String UAA_TEST_USERNAME = "uaa.test.username";
+    static final String UAA_TEST_PASSWORD = "uaa.test.password";
+
+    public static final String DEFAULT_PASSWORD = "koala";
+    public static final String DEFAULT_USERNAME = "marissa";
+
     private Environment environment = TestProfileEnvironment.getEnvironment();
-
     private UrlHelper server;
-
     private static Map<String, OAuth2ProtectedResourceDetails> clientDetails = new HashMap<String, OAuth2ProtectedResourceDetails>();
 
     private UaaTestAccounts(UrlHelper server) {
@@ -71,12 +70,12 @@ public class UaaTestAccounts implements TestAccounts {
 
     @Override
     public String getUserName() {
-        return environment.getProperty("uaa.test.username", DEFAULT_USERNAME);
+        return environment.getProperty(UAA_TEST_USERNAME, DEFAULT_USERNAME);
     }
 
     @Override
     public String getPassword() {
-        return environment.getProperty("uaa.test.password", DEFAULT_PASSWORD);
+        return environment.getProperty(UAA_TEST_PASSWORD, DEFAULT_PASSWORD);
     }
 
     @Override
