@@ -20,8 +20,10 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -95,16 +97,21 @@ public class SpringMeteringFilterIT {
                 .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(this.baseUrl,
                         new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
         // create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(this.identityClient, this.baseUrl, this.zoneId, this.zoneId);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(this.identityClient, this.baseUrl, this.zoneId, this.zoneId, new IdentityZoneConfiguration());
 
         this.adminUserEmail = new RandomValueStringGenerator().generate() +"@filtertest.org";
         ScimUser adminUser = IntegrationTestUtils.createUser(this.adminClient, this.baseUrl, this.adminUserEmail,
                 "firstname", "lastname", this.adminUserEmail, true);
-        IntegrationTestUtils.makeZoneAdmin(this.identityClient, this.baseUrl, adminUser.getId(), this.zoneId);
+
+        // create a zone admin user
+        String groupName = String.format("zones.%s.admin", this.zoneId);
+        IntegrationTestUtils.createOrUpdateGroup(this.identityClient, this.baseUrl, new ScimGroup(null, groupName, this.zoneId));
+        String groupId = IntegrationTestUtils.findGroupId(this.identityClient, this.baseUrl, groupName);
+        IntegrationTestUtils.addMemberToGroup(this.identityClient, this.baseUrl, adminUser.getId(), groupId);
 
         System.out.println("****** CREATED ZONE ADMIN ******");
 
-        String zoneAdminToken = IntegrationTestUtils.getAuthorizationCodeToken(this.serverRunning,
+        String zoneAdminToken = IntegrationTestUtils.getAccessTokenByAuthCode(this.serverRunning,
                 UaaTestAccounts.standard(this.serverRunning), "identity", "identitysecret", this.adminUserEmail,
                 "secr3T");
 

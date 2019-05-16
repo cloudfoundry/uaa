@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,7 +145,7 @@ class AccountsControllerMockMvcTests {
     @Test
     void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
         mockMvc.perform(get("/accounts/email_sent")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -316,7 +317,7 @@ class AccountsControllerMockMvcTests {
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         assertTrue(message.getContentString().contains(UAA_AUTHOR));
-        assertTrue(message.getMessage().getHeader("From").contains(UAA_AUTHOR));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))
@@ -593,7 +594,7 @@ class AccountsControllerMockMvcTests {
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         assertTrue(message.getContentString().contains(UAA_AUTHOR));
-        assertThat(message.getMessage().getHeader("From").contains(UAA_AUTHOR));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get()))

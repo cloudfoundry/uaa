@@ -48,6 +48,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
 public class LimitedModeUaaFilterTests {
+    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;

@@ -39,6 +39,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.util.Properties;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.springframework.http.HttpStatus.*;
@@ -54,8 +56,9 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 @DefaultTestContext
 class LimitedModeNegativeTests {
+    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
+
     private String adminToken;
-    private File existingStatusFile;
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -71,9 +74,6 @@ class LimitedModeNegativeTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .build();
-
-        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
-        setLimitedModeStatusFile(webApplicationContext);
 
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
                 "admin",
@@ -93,8 +93,6 @@ class LimitedModeNegativeTests {
 
     @AfterEach
     void tearDown() throws Exception {
-        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
-
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));

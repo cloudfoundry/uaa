@@ -242,7 +242,7 @@ public abstract class AbstractTokenMockMvcTests {
             c.setClientSecret(SECRET);
         }
         c.setRegisteredRedirectUri(new HashSet<>(Collections.singletonList(TEST_REDIRECT_URI)));
-        c.setAutoApproveScopes(Collections.singleton(autoapprove.toString()));
+        c.setAutoApproveScopes(autoapproveCollection);
         Map<String, Object> additional = new HashMap<>();
         if (allowedIdps != null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);

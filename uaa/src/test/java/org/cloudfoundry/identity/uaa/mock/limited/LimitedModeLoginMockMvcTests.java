@@ -28,11 +28,12 @@ import org.springframework.mock.env.MockPropertySource;
 import org.springframework.util.ReflectionUtils;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.util.Properties;
 
 import static org.junit.Assert.assertTrue;
 
 class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
-    private File originalLimitedModeStatusFile;
 
     private MockEnvironment mockEnvironment;
     private MockPropertySource propertySource;
@@ -44,11 +45,6 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
             @Autowired WebApplicationContext webApplicationContext,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) throws Exception {
-        originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
-        MockMvcUtils.setLimitedModeStatusFile(webApplicationContext);
-
-        assertTrue(isLimitedMode(limitedModeUaaFilter));
-
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource) ReflectionUtils.getField(f, mockEnvironment);
@@ -56,14 +52,14 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
             originalProperties.put(s, propertySource.getProperty(s));
         }
         mockEnvironment.setProperty("spring_profiles", "default, degraded");
+
+        assertTrue(isLimitedMode(limitedModeUaaFilter));
     }
 
     @AfterEach
     void tearDownLimitedModeLoginMockMvcTests(
             @Autowired WebApplicationContext webApplicationContext
     ) throws Exception {
-        MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
-
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));

@@ -45,10 +45,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
+    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
-    private File existingStatusFile;
-
-    private XmlWebApplicationContext webApplicationContext;
     private MockEnvironment mockEnvironment;
     private MockPropertySource propertySource;
     private Properties originalProperties = new Properties();
@@ -64,14 +62,8 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
     public void setUpContext(
             @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
     ) throws Exception {
-        super.setUpContext();
+        super.setUpContext(defaultAuthorities);
 
-        existingStatusFile = getLimitedModeStatusFile(webApplicationContext);
-        setLimitedModeStatusFile(webApplicationContext);
-
-        assertTrue(isLimitedMode());
-
-        webApplicationContext = getWebApplicationContext();
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource) ReflectionUtils.getField(f, mockEnvironment);
@@ -83,8 +75,6 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     @AfterEach
     void tearDown() throws Exception {
-        resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
-
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));

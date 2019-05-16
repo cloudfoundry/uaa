@@ -44,6 +44,7 @@ import static java.util.stream.Collectors.toList;
 import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 
 public class LimitedModeUaaFilter extends OncePerRequestFilter {
+    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
     public static final String ERROR_CODE = "uaa_unavailable";
     public static final String ERROR_MESSAGE = "UAA intentionally in limited mode, operation not permitted. Please try later.";

@@ -1424,9 +1424,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     
     @Test
     public void refreshAccessToken_Opaque_With_Over_4000_Chars_In_Scope() throws Exception {
-        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        UaaTokenServices bean = webApplicationContext.getBean(UaaTokenServices.class);
         String clientId = "testclient"+ generator.generate();
-        String scopes = getManyScopes("openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN, 600);
+        String scopes = getManyScopes("openid,uaa.user,scim.me,uaa.offline_token", 600);
         setUpClients(clientId, "", scopes, "password,refresh_token", true);
 
         String username = "testuser"+ generator.generate();
@@ -1439,23 +1439,23 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .with(httpBasic(clientId, SECRET))
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password");
-        MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
-        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+        MvcResult mvcResult = mockMvc.perform(oauthTokenPost).andReturn();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeToken.class).getRefreshToken();
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
-            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .with(httpBasic(clientId, SECRET))
             .param(GRANT_TYPE, REFRESH_TOKEN)
             .param(REFRESH_TOKEN, refreshToken.getValue());
         //ask for non opaque token
-        getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
+        mockMvc.perform(postForRefreshToken).andExpect(status().isOk());
         //ask for opaque token
-        getMockMvc().perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE)).andExpect(status().isOk());
+        mockMvc.perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())).andExpect(status().isOk());
     }
 
     @Test
     void testAccessToken_With_Over_1024_Chars_AutoApprove()  throws Exception {
           String clientId = "testclient"+ generator.generate();
-          String scopes = getManyScopes("openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN, 600);
+          String scopes = getManyScopes("openid,uaa.user,scim.me,uaa.offline_token", 600);
           List<String> autoApproveScopes = Arrays.asList(scopes.split(","));
           setUpClients(clientId, scopes, scopes, "password,refresh_token", autoApproveScopes);
 
@@ -1469,9 +1469,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                   .with(httpBasic(clientId, SECRET))
                   .param(OAuth2Utils.RESPONSE_TYPE, "token")
                   .param(OAuth2Utils.GRANT_TYPE, "password");
-         MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+         MvcResult mvcResult = mockMvc.perform(oauthTokenPost).andReturn();
 
-         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
          Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
          assertNotNull(token.get("access_token"));
          assertNotNull(token.get(REFRESH_TOKEN));
@@ -1480,7 +1480,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void testAccessToken_With_Over_1024_Chars_RedirectUri()  throws Exception {
         String clientId = "testclient"+ generator.generate();
-        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        String scopes = "openid,uaa.user,scim.me,uaa.offline_token";
         List<String> autoApproveScopes = Arrays.asList(scopes.split(","));
 
         setUpClients(clientId, scopes, scopes, "password,refresh_token", autoApproveScopes, createManyRedirectURIs(300));
@@ -1495,9 +1495,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .with(httpBasic(clientId, SECRET))
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, "password");
-       MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+       MvcResult mvcResult = mockMvc.perform(oauthTokenPost).andReturn();
 
-       MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+       MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
        Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
        assertNotNull(token.get("access_token"));
        assertNotNull(token.get(REFRESH_TOKEN));
@@ -1962,7 +1962,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
 
-        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUriQueryParam, location);
@@ -2004,7 +2004,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
 
-        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().isBadRequest()).andReturn();
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().isBadRequest()).andReturn();
         assertEquals("/oauth/error", result.getResponse().getForwardedUrl());
     }
     
@@ -2054,7 +2054,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUriQueryParam);
         
-        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUriQueryParam, location);

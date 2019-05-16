@@ -93,7 +93,6 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -101,7 +100,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedI
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData>  implements InitializingBean {
+public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
     public static Log logger = LogFactory.getLog(XOAuthAuthenticationManager.class);
 
@@ -124,11 +123,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-    	restTemplateHolder.get().getRestTemplate(false).setRequestFactory(createRequestFactory());
     }
 
     @Override
@@ -434,31 +428,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
         return provider.getConfig().isAddShadowUserOnLogin();
     }
-
-    /*
-    * BEGIN
-    * The following thread local only exists to satisfy that the unit test
-    * that require the template to be bound to the mock server
-    */
-    public static class RestTemplateHolder {
-        private final RestTemplate skipSslValidationTemplate;
-        private final RestTemplate restTemplate;
-
-        public RestTemplateHolder() {
-            skipSslValidationTemplate = new RestTemplate(createRequestFactory(true));
-            restTemplate = new RestTemplate(createRequestFactory(false));
-        }
-
-        public RestTemplate getRestTemplate(boolean skipSslValidation) {
-            return skipSslValidation ? skipSslValidationTemplate : restTemplate;
-        }
-    }
-
-    private ThreadLocal<RestTemplateHolder> restTemplateHolder = new ThreadLocal<RestTemplateHolder>() {
-        @Override
-        protected RestTemplateHolder initialValue() {return new RestTemplateHolder();
-        }
-    };
 
     public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
         if (config.isSkipSslValidation()) {

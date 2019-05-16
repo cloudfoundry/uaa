@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -271,33 +272,6 @@ public class SamlLoginWithLocalIdpIT {
         ScimUser user = IntegrationTestUtils.createRandomUser(this.baseUrl);
         //This is modified for branding login.yml changes...
         testLocalSamlIdpLogin("/login", "You should not see this page. Set up your redirect URI.", user.getPrimaryEmail(), "secr3T");
-    }
-
-    private void testLocalSamlIdpLogin(String firstUrl, String lookfor, String username, String password)
-            throws Exception {
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
-        @SuppressWarnings("unchecked")
-        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
-                "Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl, this.serverRunning, idpDef);
-
-        SamlServiceProviderDefinition spDef = createLocalSamlSpDefinition("cloudfoundry-saml-login", "uaa");
-        createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef);
-
-        webDriver.get(baseUrl + firstUrl);
-        IntegrationTestUtils.takeScreenShot(webDriver);
-        //This is modified for branding login.yml changes...
-        Assert.assertEquals("Predix", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-
-        webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome!')]"));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString(lookfor));
-
-        provider.setActive(false);
-        IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
     }
 
     @Test

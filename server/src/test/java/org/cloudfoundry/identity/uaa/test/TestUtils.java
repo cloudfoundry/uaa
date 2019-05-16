@@ -78,7 +78,7 @@ public class TestUtils {
     private static void seedUaaZoneSimilarToHowTheRealFlywayMigrationDoesIt(JdbcTemplate jdbcTemplate) {
         IdentityZone uaa = IdentityZone.getUaa();
         Timestamp t = new Timestamp(uaa.getCreated().getTime());
-        jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,?,?,?,?,?,?)", uaa.getId(),t,t,uaa.getVersion(),uaa.getSubdomain(),uaa.getName(),uaa.getDescription(),null,true);
+        jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,?,?,?,?,?,?,?)", uaa.getId(),t,t,uaa.getVersion(),uaa.getSubdomain(),uaa.getName(),uaa.getDescription(),null,true,true);
         Map<String,String> originMap = new HashMap<>();
         Set<String> origins = new LinkedHashSet<>();
         origins.addAll(Arrays.asList(new String[] {OriginKeys.UAA, OriginKeys.LOGIN_SERVER, OriginKeys.LDAP, OriginKeys.KEYSTONE}));

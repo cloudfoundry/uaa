@@ -261,7 +261,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         List<Prompt> prompts = Arrays.asList(
                 new Prompt("username", "text", "Username"),
                 new Prompt("password", "password", "Password"),
-                new Prompt("passcode", "password", "One Time Code (Get on at /passcode)")
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)")
             );
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();

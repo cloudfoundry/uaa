@@ -170,7 +170,7 @@ class EmailAccountCreationServiceTests {
         assertThat(emailBody, containsString("A request has been made to activate an account for:"));
         assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you"));
-        assertThat(emailBody, containsString(zone.getName()));
+        assertThat(emailBody, containsString(zoneName));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
