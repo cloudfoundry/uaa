@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterAll;
@@ -21,9 +20,7 @@ import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
@@ -48,7 +45,6 @@ class LdapCertificateMockMvcTests {
     private MockMvcUtils.IdentityZoneCreationResult trustedCertZone;
     private MockMvcUtils.IdentityZoneCreationResult trustedButExpiredCertZone;
 
-    private static final AtomicBoolean started = new AtomicBoolean(false);
     private static String defaultTrustStore;
 
     private RandomValueStringGenerator gen = new RandomValueStringGenerator(8);
@@ -68,25 +64,22 @@ class LdapCertificateMockMvcTests {
     static void startLdapsServers() throws Exception {
         ClassLoader classLoader = LdapCertificateMockMvcTests.class.getClassLoader();
 
-        if (started.compareAndSet(false, true)) {
-            File expiredKeystore = new File(classLoader.getResource("certs/expired-self-signed-ldap-cert.jks").getFile());
-            File validKeystore = new File(classLoader.getResource("certs/valid-self-signed-ldap-cert.jks").getFile());
-            RandomValueStringGenerator generator = new RandomValueStringGenerator();
-            LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
-            LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
-            validLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
-                    .setWorkingDirectory(LDAP_ROOT_DIRECTORY_VALID)
-                    .setPort(LDAP_VALID_LDAP_PORT)
-                    .setSslPort(LDAP_VALID_LDAPS_PORT)
-                    .afterPropertiesSet(validKeystore);
+        File expiredKeystore = new File(classLoader.getResource("certs/expired-self-signed-ldap-cert.jks").getFile());
+        File validKeystore = new File(classLoader.getResource("certs/valid-self-signed-ldap-cert.jks").getFile());
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+        LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+        validLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
+                .setWorkingDirectory(LDAP_ROOT_DIRECTORY_VALID)
+                .setPort(LDAP_VALID_LDAP_PORT)
+                .setSslPort(LDAP_VALID_LDAPS_PORT)
+                .afterPropertiesSet(validKeystore);
 
-            expiredLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
-                    .setWorkingDirectory(LDAP_ROOT_DIRECTORY_EXPIRED)
-                    .setPort(LDAP_EXPIRED_LDAP_PORT)
-                    .setSslPort(LDAP_EXPIRED_LDAPS_PORT)
-                    .afterPropertiesSet(expiredKeystore);
-        }
-
+        expiredLdapCertServer = new ApacheDsSSLContainer("dc=test,dc=com", new Resource[]{new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")})
+                .setWorkingDirectory(LDAP_ROOT_DIRECTORY_EXPIRED)
+                .setPort(LDAP_EXPIRED_LDAP_PORT)
+                .setSslPort(LDAP_EXPIRED_LDAPS_PORT)
+                .afterPropertiesSet(expiredKeystore);
     }
 
     @AfterAll
@@ -100,18 +93,14 @@ class LdapCertificateMockMvcTests {
 
     @AfterAll
     static void stopLdapsServers() {
-        if (started.compareAndSet(true, false)) {
-            ofNullable(validLdapCertServer).ifPresent(s -> s.stop());
-            ofNullable(expiredLdapCertServer).ifPresent(s -> s.stop());
-            ofNullable(LDAP_ROOT_DIRECTORY_VALID).ifPresent(d -> FileSystemUtils.deleteRecursively(d));
-        }
+        validLdapCertServer.stop();
+        expiredLdapCertServer.stop();
+        FileSystemUtils.deleteRecursively(LDAP_ROOT_DIRECTORY_VALID);
+        FileSystemUtils.deleteRecursively(LDAP_ROOT_DIRECTORY_EXPIRED);
     }
 
     @BeforeEach
-    void setUp(
-            @Autowired WebApplicationContext webApplicationContext,
-            @Autowired TestClient testClient,
-            @Autowired MockMvc mockMvc) throws Exception {
+    void setUp(@Autowired WebApplicationContext webApplicationContext, @Autowired MockMvc mockMvc) throws Exception {
         this.mockMvc = mockMvc;
 
         trustedCertZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
@@ -145,7 +134,6 @@ class LdapCertificateMockMvcTests {
                 null, IdentityZoneHolder.getCurrentZoneId());
         definition.setBaseUrl("ldaps://localhost:" + LDAP_EXPIRED_LDAPS_PORT);
         MockMvcUtils.createIdentityProvider(mockMvc, trustedButExpiredCertZone, OriginKeys.LDAP, definition);
-
     }
 
     @Test
