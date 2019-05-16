@@ -175,7 +175,7 @@ public abstract class AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void trustOurCustomCA() {
-        ClassLoader classLoader = LdapCertificateMockMvcTests.class.getClassLoader();
+        ClassLoader classLoader = AbstractLdapMockMvcTest.class.getClassLoader();
         File file = new File(classLoader.getResource("certs/truststore-containing-the-ldap-ca.jks").getFile());
 
         defaultTrustStore = System.getProperty(JAVAX_NET_SSL_TRUST_STORE);
