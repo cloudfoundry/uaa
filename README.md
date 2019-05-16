@@ -131,29 +131,22 @@ To run the unit tests with docker:
 
 ## Inventory
 
-There are actually several projects here, the main `uaa` server application, a client library and some samples:
+There are actually several projects here, the main `uaa` server application and a client library:
 
 1. `uaa` a WAR project for easy deployment
 
 2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
 
-3. `model` a JAR project used by both the client library and server 
+3. `model` a JAR project used by the server
 
-4. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+4. `statsd` a Spring Boot App that reports statistics on a `uaa` running in the same tomcat server
 
-5. `app` (sample) is a user application that uses both of the above
+5. `metrics-data` a library used to help statsd emit metrics 
 
 In CloudFoundry terms
 
 * `uaa` provides an authentication service plus authorized delegation for
    back-end services and apps (by issuing OAuth2 access tokens).
-
-* `api` is a service that provides resources that other applications may
-  wish to access on behalf of the resource owner (the end user).
-
-* `app` is a webapp that needs single sign on and access to the `api`
-  service on behalf of users.
-
 
 # Contributing to the UAA
 
