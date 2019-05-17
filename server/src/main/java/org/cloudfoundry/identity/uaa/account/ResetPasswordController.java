@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -42,6 +43,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.springframework.util.StringUtils.hasText;
@@ -55,19 +57,22 @@ public class ResetPasswordController {
     private final TemplateEngine templateEngine;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
+    private final MessageSource messageSource;
 
     public ResetPasswordController(
         ResetPasswordService resetPasswordService,
         MessageService messageService,
         TemplateEngine templateEngine,
         ExpiringCodeStore codeStore,
-        UaaUserDatabase userDatabase
+        UaaUserDatabase userDatabase,
+        MessageSource messageSource
     ) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
+        this.messageSource = messageSource;
     }
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
@@ -85,16 +90,16 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
     public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
-                                 @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
+                                 @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response, final Locale locale) {
         if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
-        forgotPassword(username, clientId, redirectUri);
+        forgotPassword(username, clientId, redirectUri, locale);
         return "redirect:email_sent?code=reset_password";
     }
 
-    private void forgotPassword(String username, String clientId, String redirectUri) {
-        String subject = getSubjectText();
+    private void forgotPassword(String username, String clientId, String redirectUri, Locale locale) {
+        String subject = getSubjectText(locale);
         String htmlContent = null;
         String userId = null;
         String email = null;
@@ -103,7 +108,7 @@ public class ResetPasswordController {
             ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(username, clientId, redirectUri);
             userId = forgotPasswordInfo.getUserId();
             email = forgotPasswordInfo.getEmail();
-            htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode());
+            htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode(), locale);
         } catch (ConflictException e) {
             email = e.getEmail();
             htmlContent = getResetUnavailableEmailHtml(email);
@@ -117,18 +122,18 @@ public class ResetPasswordController {
         }
     }
 
-    private String getSubjectText() {
+    private String getSubjectText(Locale locale) {
         String serviceName = getServiceName();
         if (StringUtils.isEmpty(serviceName)) {
-            return "Account password reset request";
+            return messageSource.getMessage("reset_password.subject", null, locale);
         }
-        return serviceName + " account password reset request";
+        return messageSource.getMessage("reset_password.subject.branded", new String[] { serviceName }, locale);
     }
 
-    private String getCodeSentEmailHtml(String code) {
+    private String getCodeSentEmailHtml(String code, Locale locale) {
         String resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
 
-        final Context ctx = new Context();
+        final Context ctx = new Context(locale);
         ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("code", code);
         ctx.setVariable("resetUrl", resetUrl);

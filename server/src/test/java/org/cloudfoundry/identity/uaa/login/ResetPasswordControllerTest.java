@@ -32,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -91,6 +92,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Autowired
     UaaUserDatabase userDatabase;
+
+    @Autowired
+    MessageSource messageSource;
 
     private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
 
@@ -207,7 +211,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, messageSource);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
@@ -367,8 +371,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                                                         MessageService messageService,
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
-                                                        UaaUserDatabase userDatabase) {
-            ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
+                                                        UaaUserDatabase userDatabase,
+                                                        MessageSource messageSource) {
+            ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, messageSource);
             return controller;
         }
     }
