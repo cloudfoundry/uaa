@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.springframework.context.MessageSource;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
@@ -36,6 +37,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,6 +51,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore codeStore;
     private final MultitenantClientServices clientDetailsService;
+    private final MessageSource messageSource;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
     public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
 
@@ -56,16 +59,18 @@ public class EmailChangeEmailService implements ChangeEmailService {
                                    MessageService messageService,
                                    ScimUserProvisioning scimUserProvisioning,
                                    ExpiringCodeStore codeStore,
-                                   MultitenantClientServices clientDetailsService) {
+                                   MultitenantClientServices clientDetailsService,
+                                   MessageSource messageSource) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;
         this.codeStore = codeStore;
         this.clientDetailsService = clientDetailsService;
+        this.messageSource = messageSource;
     }
 
     @Override
-    public void beginEmailChange(String userId, String email, String newEmail, String clientId, String redirectUri) {
+    public void beginEmailChange(String userId, String email, String newEmail, String clientId, String redirectUri, Locale locale) {
         ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
         List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + newEmail + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId());
 
@@ -76,10 +81,10 @@ public class EmailChangeEmailService implements ChangeEmailService {
         }
 
         String code = generateExpiringCode(userId, newEmail, clientId, redirectUri);
-        String htmlContent = getEmailChangeEmailHtml(email, newEmail, code);
+        String htmlContent = getEmailChangeEmailHtml(email, newEmail, code, locale);
 
         if(htmlContent != null) {
-            String subject = getSubjectText();
+            String subject = getSubjectText(locale);
             messageService.sendMessage(newEmail, MessageType.CHANGE_EMAIL, subject, htmlContent);
         }
     }
@@ -136,28 +141,33 @@ public class EmailChangeEmailService implements ChangeEmailService {
         return result;
     }
 
-    private String getSubjectText() {
+    private String getSubjectText(Locale locale) {
         if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
-            return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
+            return StringUtils.hasText(companyName) ?
+                    messageSource.getMessage("verify_email.subject.branded", new String[] { companyName }, locale) :
+                    messageSource.getMessage("verify_email.subject", new String[] { companyName }, locale);
         }
         else {
-            return IdentityZoneHolder.get().getName() + " Email change verification";
+            return messageSource.getMessage("verify_email.subject.branded", new String[] { IdentityZoneHolder.get().getName() }, locale);
         }
     }
 
-    private String getEmailChangeEmailHtml(String email, String newEmail, String code) {
+    private String getEmailChangeEmailHtml(String email, String newEmail, String code, Locale locale) {
         String verifyUrl = UaaUrlUtils.getUaaUrl("/verify_email", IdentityZoneHolder.get());
 
-        final Context ctx = new Context();
+        final Context ctx = new Context(locale);
         if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
-            ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
+            ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ?
+                    messageSource.getMessage("verify_email.request.service_phrase.branded", new String[] { companyName }, locale) :
+                    messageSource.getMessage("verify_email.request.service_phrase", null, locale));
         }
         else {
             ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
-            ctx.setVariable("servicePhrase", IdentityZoneHolder.get().getName());
+            ctx.setVariable("servicePhrase",
+                    messageSource.getMessage("verify_email.request.service_phrase.branded", new String[] { IdentityZoneHolder.get().getName() }, locale));
         }
         ctx.setVariable("code", code);
         ctx.setVariable("newEmail", newEmail);

@@ -25,6 +25,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -57,7 +59,7 @@ public class ChangeEmailController {
     public String changeEmail(Model model, @Valid @ModelAttribute("newEmail") ValidEmail newEmail, BindingResult result,
                               @RequestParam(required = false, value = "client_id") String clientId,
                               @RequestParam(required = false, value = "redirect_uri") String redirectUri,
-                              RedirectAttributes redirectAttributes, HttpServletResponse response) {
+                              RedirectAttributes redirectAttributes, HttpServletResponse response, final Locale locale) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
         if(result.hasErrors()) {
@@ -76,7 +78,7 @@ public class ChangeEmailController {
         String userEmail = ((UaaPrincipal)securityContext.getAuthentication().getPrincipal()).getName();
 
         try {
-            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
+            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri, locale);
         } catch (UaaException e) {
             if (e.getHttpStatus() == 409) {
                 model.addAttribute("error_message_code", "username_exists");

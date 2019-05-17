@@ -4,18 +4,18 @@
     <meta charset="UTF-8" />
 </head>
 <body>
-<p>
+<p th:text="#{verify_email.request(${servicePhrase},${email},${newEmail})}">
     A request has been made to change the email for <th:block th:text="${servicePhrase}">an ExampleService</th:block> from <th:block th:text="${email}">user@example.com</th:block> to <th:block th:text="${newEmail}">new@example.com</th:block>.
 </p>
-<p>
+<p th:utext="#{verify_email.link(@{${verifyUrl}(code=${code})})}">
     Click <a href="http://login.example.com/login/verify_email?code=some_code"
        th:href="@{${verifyUrl}(code=${code})}">Verify your email</a>
     for the new email to be verified and the for the change to be reflected on your account.
 </p>
-<p>
+<p th:text="#{verify_email.ignore}">
     If you did not make this request, simply ignore this message and your old email will continue to work.
 </p>
-<p>
+<p th:utext="#{verify_email.salutation(${serviceName})}">
     Thank you,<br />
     <th:block th:text="${serviceName}">The Administration</th:block>
 </p>

@@ -43,6 +43,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
@@ -59,6 +60,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = ChangeEmailControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class ChangeEmailControllerTest extends TestClassNullifier {
+
+    private static final Locale LOCALE = Locale.ENGLISH;
 
     private MockMvc mockMvc;
     @Autowired
@@ -101,7 +104,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=email_change"));
 
-        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", null);
+        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", null, LOCALE);
     }
 
     @Test
@@ -118,14 +121,14 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("email_sent?code=email_change"));
 
-        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", "http://redirect.uri");
+        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", "http://redirect.uri", LOCALE);
     }
 
     @Test
     public void testChangeEmailWithUsernameConflict() throws Exception {
         setupSecurityContext();
 
-        doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null);
+        doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null, LOCALE);
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
             .contentType(APPLICATION_FORM_URLENCODED)

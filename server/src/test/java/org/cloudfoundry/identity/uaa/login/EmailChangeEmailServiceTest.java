@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.MessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -48,6 +49,7 @@ import org.thymeleaf.spring4.SpringTemplateEngine;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
@@ -66,12 +68,14 @@ import static org.mockito.Mockito.*;
 @ContextConfiguration(classes = {ThymeleafAdditional.class,ThymeleafConfig.class})
 public class EmailChangeEmailServiceTest {
     public static final String IDENTITY_ZONE_NAME = "IZ Inc";
+    private static final Locale LOCALE = Locale.ENGLISH;
     private EmailChangeEmailService emailChangeEmailService;
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore codeStore;
     private MessageService messageService;
     private MockHttpServletRequest request;
     private MultitenantClientServices clientDetailsService;
+    private MessageSource messageSource;
     private String companyName;
 
 
@@ -92,7 +96,8 @@ public class EmailChangeEmailServiceTest {
         codeStore = mock(ExpiringCodeStore.class);
         clientDetailsService = mock(MultitenantClientServices.class);
         messageService = mock(EmailService.class);
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
+        messageSource = mock(MessageSource.class);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService, messageSource);
 
         request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -108,7 +113,7 @@ public class EmailChangeEmailServiceTest {
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
                 eq(String.format("%s Email change verification", IDENTITY_ZONE_NAME)),
-                contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
+                contains("verify_email.link")
         );
     }
 
@@ -121,13 +126,14 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
 
         Assertions.assertThrows(UaaException.class,
-                () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
+                () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null, LOCALE));
     }
 
     @Test
     public void testBeginEmailChangeWithCompanyNameConfigured() throws Exception {
 
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService,
+                messageSource);
 
         ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
@@ -153,8 +159,9 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+        when(messageSource.getMessage("verify_email.subject.branded", new String[] { branding.getCompanyName() }, LOCALE)).thenReturn(String.format("%s Email change verification", branding.getCompanyName()));
 
-        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com", LOCALE);
 
         verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
 
@@ -168,8 +175,8 @@ public class EmailChangeEmailServiceTest {
 
         String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("a Best Company account"));
+        assertThat(emailBody, containsString("verify_email.link"));
+        assertThat(emailBody, containsString("verify_email.salutation"));
 
     }
 
@@ -212,8 +219,9 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+        when(messageSource.getMessage("verify_email.subject.branded", new String[] { zoneName }, LOCALE)).thenReturn(String.format("%s Email change verification", zoneName));
 
-        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com", LOCALE);
 
         verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
 
@@ -227,9 +235,9 @@ public class EmailChangeEmailServiceTest {
 
         String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", zoneName, "user@example.com", "new@example.com")));
-        assertThat(emailBody, containsString("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    "+zoneName));
+        assertThat(emailBody, containsString("verify_email.request"));
+        assertThat(emailBody, containsString("verify_email.link"));
+        assertThat(emailBody, containsString("verify_email.salutation"));
     }
 
     @Test
@@ -351,8 +359,9 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+        when(messageSource.getMessage("verify_email.subject.branded", new String[] { IDENTITY_ZONE_NAME }, LOCALE)).thenReturn(String.format("%s Email change verification", IDENTITY_ZONE_NAME));
 
-        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com", LOCALE);
 
         verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
     }
