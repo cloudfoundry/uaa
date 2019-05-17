@@ -111,7 +111,7 @@ public class ResetPasswordController {
             htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode(), locale);
         } catch (ConflictException e) {
             email = e.getEmail();
-            htmlContent = getResetUnavailableEmailHtml(email);
+            htmlContent = getResetUnavailableEmailHtml(email, locale);
             userId = e.getUserId();
         } catch (NotFoundException e) {
             logger.error("User with email address " + username + " not found.");
@@ -140,10 +140,10 @@ public class ResetPasswordController {
         return templateEngine.process("reset_password", ctx);
     }
 
-    private String getResetUnavailableEmailHtml(String email) {
+    private String getResetUnavailableEmailHtml(String email, Locale locale) {
         String hostname = UaaUrlUtils.getUaaHost(IdentityZoneHolder.get());
 
-        final Context ctx = new Context();
+        final Context ctx = new Context(locale);
         ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("email", email);
         ctx.setVariable("hostname", hostname);
