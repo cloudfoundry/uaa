@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -43,7 +44,7 @@ public class EmailService implements MessageService {
         this.mailSender = mailSender;
     }
 
-    private Address[] getSenderAddresses() throws UnsupportedEncodingException {
+    private InternetAddress getSenderAddresses() throws UnsupportedEncodingException {
         String name;
         if (identityZoneManager.isCurrentZoneUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
@@ -52,21 +53,22 @@ public class EmailService implements MessageService {
             name = identityZoneManager.getCurrentIdentityZone().getName();
         }
 
-        return new Address[]{new InternetAddress(fromAddress, name)};
+        return new InternetAddress(fromAddress, name);
     }
 
     @Override
     public void sendMessage(String email, MessageType messageType, String subject, String htmlContent) {
-        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper message = new MimeMessageHelper(mimeMessage, "UTF-8");
         try {
-            message.addFrom(getSenderAddresses());
-            message.addRecipients(Message.RecipientType.TO, email);
+            message.setFrom(getSenderAddresses());
+            message.setTo(email);
             message.setSubject(subject);
-            message.setContent(htmlContent, "text/html");
+            message.setText(htmlContent, true);
         } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Exception raised while sending message to " + email, e);
         }
 
-        mailSender.send(message);
+        mailSender.send(mimeMessage);
     }
 }
