@@ -4,18 +4,18 @@
     <meta charset="UTF-8" />
 </head>
 <body>
-<p>
+<p th:text="#{activate.request(${servicePhrase},${email})}">
     A request has been made to activate <th:block th:text="${servicePhrase}">an ExampleService</th:block> for: <th:block th:text="${email}">user@example.com</th:block>
 </p>
-<p>
+<p th:utext="#{activate.link(@{${accountsUrl}(code=${code})})}">
     <a href="http://login.example.com/accounts?code=some_code"
        th:href="@{${accountsUrl}(code=${code})}">Activate your account</a>
     to continue the registration process.
 </p>
-<p>
+<p th:text="#{activate.ignore}">
     If you did not make this request, simply ignore this message.
 </p>
-<p>
+<p th:utext="#{activate.salutation(${serviceName})}">
     Thank you,<br />
     <th:block th:text="${serviceName}">The Administration</th:block>
 </p>

@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
@@ -52,6 +53,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
@@ -65,6 +67,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = AccountsControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class AccountsControllerTest extends TestClassNullifier {
+
+    private static final Locale LOCALE = Locale.ENGLISH;
 
     @Autowired
     WebApplicationContext webApplicationContext;
@@ -118,7 +122,7 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
+        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect", LOCALE);
     }
 
     @Test
@@ -140,12 +144,12 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(view().name("accounts/new_activation_email"))
             .andExpect(model().attribute("error_message_code", "other_idp"));
 
-        Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
+        Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect", LOCALE);
     }
 
     @Test
     public void testSendActivationEmailWithUserNameConflict() throws Exception {
-        doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null, LOCALE);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .param("email", "user1@example.com")
@@ -158,12 +162,12 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(view().name("accounts/new_activation_email"))
             .andExpect(model().attribute("error_message_code", "username_exists"));
 
-        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", null, LOCALE);
     }
 
     @Test
     public void testInvalidPassword() throws Exception {
-        doThrow(new InvalidPasswordException(Arrays.asList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        doThrow(new InvalidPasswordException(Arrays.asList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null, LOCALE);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
                 .param("email", "user1@example.com")

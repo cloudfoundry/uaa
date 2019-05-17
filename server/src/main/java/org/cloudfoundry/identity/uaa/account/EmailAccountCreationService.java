@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -46,6 +47,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final MultitenantClientServices clientDetailsService;
     private final PasswordValidator passwordValidator;
     private final IdentityZoneManager identityZoneManager;
+    private final MessageSource messageSource;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -54,7 +56,8 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUserProvisioning scimUserProvisioning,
             MultitenantClientServices clientDetailsService,
             PasswordValidator passwordValidator,
-            IdentityZoneManager identityZoneManager) {
+            IdentityZoneManager identityZoneManager,
+            MessageSource messageSource) {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
@@ -63,23 +66,25 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
         this.identityZoneManager = identityZoneManager;
+        this.messageSource = messageSource;
     }
 
     @Override
-    public void beginActivation(String email, String password, String clientId, String redirectUri) {
+    public void beginActivation(String email, String password, String clientId, String redirectUri, Locale locale) {
         passwordValidator.validate(password);
 
-        String subject = buildSubjectText();
+        String subject = buildSubjectText(locale);
         try {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
-            generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
+            generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone(), locale);
         } catch (ScimResourceAlreadyExistsException e) {
             List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", identityZoneManager.getCurrentIdentityZoneId());
             if (users.size() > 0) {
                 if (users.get(0).isVerified()) {
                     throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
                 } else {
-                    generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
+                    generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri, identityZoneManager.getCurrentIdentityZone(),
+                            locale);
                 }
             }
         }
@@ -91,7 +96,8 @@ public class EmailAccountCreationService implements AccountCreationService {
             String subject,
             String userId,
             String redirectUri,
-            IdentityZone currentIdentityZone) {
+            IdentityZone currentIdentityZone,
+            Locale locale) {
         ExpiringCode expiringCode = ScimUtils.getExpiringCode(
                 codeStore,
                 userId,
@@ -100,7 +106,7 @@ public class EmailAccountCreationService implements AccountCreationService {
                 redirectUri,
                 REGISTRATION,
                 identityZoneManager.getCurrentIdentityZoneId());
-        String htmlContent = getEmailHtml(expiringCode.getCode(), email, currentIdentityZone);
+        String htmlContent = getEmailHtml(expiringCode.getCode(), email, currentIdentityZone, locale);
 
         messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
     }
@@ -171,27 +177,29 @@ public class EmailAccountCreationService implements AccountCreationService {
         }
     }
 
-    private String buildSubjectText() {
+    private String buildSubjectText(Locale locale) {
         String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         boolean addBranding = StringUtils.hasText(companyName) && identityZoneManager.isCurrentZoneUaa();
         if (addBranding) {
-            return String.format("Activate your %s account", companyName);
+            return messageSource.getMessage("activate.subject.branded", new String[] { companyName }, locale);
         } else {
-            return "Activate your account";
+            return messageSource.getMessage("activate.subject", null, locale);
         }
     }
 
-    private String getEmailHtml(String code, String email, IdentityZone currentIdentityZone) {
+    private String getEmailHtml(String code, String email, IdentityZone currentIdentityZone, Locale locale) {
         String accountsUrl = ScimUtils.getVerificationURL(null, currentIdentityZone).toString();
 
-        final Context ctx = new Context();
+        final Context ctx = new Context(locale);
         String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         if (currentIdentityZone.isUaa()) {
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {
             ctx.setVariable("serviceName", currentIdentityZone.getName());
         }
-        ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) && currentIdentityZone.isUaa() ? companyName + " account" : "an account");
+        ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) && currentIdentityZone.isUaa() ?
+                messageSource.getMessage("activate.request.service_phrase.branded", new String[] { companyName }, locale) :
+                messageSource.getMessage("activate.request.service_phrase", null, locale));
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
         ctx.setVariable("accountsUrl", accountsUrl);

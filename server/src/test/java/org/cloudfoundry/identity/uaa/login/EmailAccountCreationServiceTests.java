@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.MessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -39,6 +40,7 @@ import org.thymeleaf.spring4.SpringTemplateEngine;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
@@ -60,6 +62,8 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 })
 class EmailAccountCreationServiceTests {
 
+    private static final Locale LOCALE = Locale.ENGLISH;
+
     private EmailAccountCreationService emailAccountCreationService;
     private MessageService mockMessageService;
     private ExpiringCodeStore mockCodeStore;
@@ -72,6 +76,7 @@ class EmailAccountCreationServiceTests {
     private ExpiringCode code;
     private String currentIdentityZoneId;
     private RandomValueStringGenerator randomValueStringGenerator;
+    private MessageSource mockMessageSource;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
@@ -87,6 +92,7 @@ class EmailAccountCreationServiceTests {
         mockClientDetails = mock(ClientDetails.class);
         mockPasswordValidator = mock(PasswordValidator.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        mockMessageSource = mock(MessageSource.class);
         emailAccountCreationService = initEmailAccountCreationService();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -109,7 +115,8 @@ class EmailAccountCreationServiceTests {
                 mockScimUserProvisioning,
                 mockClientDetailsService,
                 mockPasswordValidator,
-                mockIdentityZoneManager
+                mockIdentityZoneManager,
+                mockMessageSource
         );
     }
 
@@ -132,13 +139,16 @@ class EmailAccountCreationServiceTests {
 
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(user);
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
+        when(mockMessageSource.getMessage("activate.subject", null, LOCALE)).thenReturn("Activate your account");
 
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri, LOCALE);
 
         String emailBody = captorEmailBody("Activate your account");
 
-        assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
+        assertThat(emailBody, containsString("activate.request"));
+        assertThat(emailBody, containsString("activate.link"));
+        assertThat(emailBody, containsString("activate.ignore"));
+        assertThat(emailBody, containsString("activate.salutation"));
         verify(mockIdentityZoneManager).getCurrentIdentityZone();
     }
 
@@ -163,14 +173,16 @@ class EmailAccountCreationServiceTests {
 
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenReturn(user);
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(currentIdentityZoneId))).thenReturn(code);
+        when(mockMessageSource.getMessage("activate.subject", null, LOCALE)).thenReturn("Activate your account");
 
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri, LOCALE);
 
         String emailBody = captorEmailBody("Activate your account");
-        assertThat(emailBody, containsString("A request has been made to activate an account for:"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    " + zoneName));
-        assertThat(emailBody, not(containsString("Cloud Foundry")));
+        assertThat(emailBody, containsString("activate.request"));
+        assertThat(emailBody, containsString("activate.link"));
+        assertThat(emailBody, containsString("activate.ignore"));
+        assertThat(emailBody, containsString("activate.salutation"));
+        verify(mockIdentityZone).getName();
     }
 
     @Test
@@ -192,7 +204,7 @@ class EmailAccountCreationServiceTests {
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
 
         assertThrows(UaaException.class,
-                () -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null));
+                () -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null, LOCALE));
     }
 
     @Test
@@ -212,8 +224,9 @@ class EmailAccountCreationServiceTests {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
         when(mockIdentityZone.getName()).thenReturn("something");
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
+        when(mockMessageSource.getMessage("activate.subject", null, LOCALE)).thenReturn("Activate your account");
 
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null, LOCALE);
 
         verify(mockMessageService).sendMessage(
                 eq("user@example.com"),
@@ -320,7 +333,7 @@ class EmailAccountCreationServiceTests {
         doThrow(new InvalidPasswordException("Oh hell no")).when(mockPasswordValidator).validate(anyString());
 
         assertThrows(InvalidPasswordException.class,
-                () -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null));
+                () -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null, LOCALE));
 
         verify(mockPasswordValidator).validate("some password");
     }
@@ -406,13 +419,17 @@ class EmailAccountCreationServiceTests {
         String data = setUpForSuccess(null);
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenReturn(user);
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), eq(currentIdentityZoneId))).thenReturn(code);
+        when(mockMessageSource.getMessage("activate.subject.branded", new String[] { companyName }, LOCALE)).thenReturn("Activate your " + companyName + " account");
 
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null, LOCALE);
 
         String emailBody = captorEmailBody("Activate your " + companyName + " account");
 
-        assertThat(emailBody, containsString(companyName + " account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
+        verify(mockMessageSource, never()).getMessage("activate.subject", null, LOCALE);
+        assertThat(emailBody, containsString("activate.request"));
+        assertThat(emailBody, containsString("activate.link"));
+        assertThat(emailBody, containsString("activate.ignore"));
+        assertThat(emailBody, containsString("activate.salutation"));
     }
 
 }

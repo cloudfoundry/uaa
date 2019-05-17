@@ -36,6 +36,7 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -75,7 +76,8 @@ public class AccountsController {
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation,
-                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent) {
+                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
+                                      final Locale locale) {
 
         BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
@@ -99,7 +101,7 @@ public class AccountsController {
             return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode());
         }
         try {
-            accountCreationService.beginActivation(email.getEmail(), password, clientId, redirectUri);
+            accountCreationService.beginActivation(email.getEmail(), password, clientId, redirectUri, locale);
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "username_exists");
         } catch (InvalidPasswordException e) {

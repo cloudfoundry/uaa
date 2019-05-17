@@ -4,9 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public interface AccountCreationService {
-    void beginActivation(String email, String password, String clientId, String redirectUri);
+    void beginActivation(String email, String password, String clientId, String redirectUri, Locale locale);
 
     AccountCreationResponse completeActivation(String code) throws IOException;
 
