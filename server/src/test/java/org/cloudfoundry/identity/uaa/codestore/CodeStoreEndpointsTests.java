@@ -13,19 +13,22 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
-public class CodeStoreEndpointsTests {
+class CodeStoreEndpointsTests {
 
     private CodeStoreEndpoints codeStoreEndpoints;
     private ExpiringCodeStore expiringCodeStore;
     private AtomicLong currentTime;
+    private final String EMPTY_JSON = "{}";
 
     @BeforeEach
-    public void initCodeStoreTests(@Autowired JdbcTemplate jdbcTemplate) {
+    void initCodeStoreTests(@Autowired JdbcTemplate jdbcTemplate) {
         codeStoreEndpoints = new CodeStoreEndpoints();
         currentTime = new AtomicLong(System.currentTimeMillis());
 
@@ -39,130 +42,111 @@ public class CodeStoreEndpointsTests {
     }
 
     @Test
-    public void testGenerateCode() {
-        String data = "{}";
+    void generateCode() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
 
         ExpiringCode result = codeStoreEndpoints.generateCode(expiringCode);
 
         assertNotNull(result);
 
         assertNotNull(result.getCode());
-        assertTrue(result.getCode().trim().length() == 10);
+        assertEquals(10, result.getCode().trim().length());
 
         assertEquals(expiresAt, result.getExpiresAt());
 
-        assertEquals(data, result.getData());
+        assertEquals(EMPTY_JSON, result.getData());
     }
 
     @Test
-    public void testGenerateCodeWithNullData() {
+    void generateCodeWithNullData() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, null);
 
-        try {
-            codeStoreEndpoints.generateCode(expiringCode);
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.generateCode(expiringCode));
 
-            fail("code is null, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    public void testGenerateCodeWithNullExpiresAt() {
-        String data = "{}";
-        ExpiringCode expiringCode = new ExpiringCode(null, null, data, null);
+    void generateCodeWithNullExpiresAt() {
+        ExpiringCode expiringCode = new ExpiringCode(null, null, EMPTY_JSON, null);
 
-        try {
-            codeStoreEndpoints.generateCode(expiringCode);
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.generateCode(expiringCode));
 
-            fail("expiresAt is null, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    public void testGenerateCodeWithExpiresAtInThePast() {
-        String data = "{}";
+    void generateCodeWithExpiresAtInThePast() {
         Timestamp expiresAt = new Timestamp(currentTime.get() - 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
 
-        try {
-            codeStoreEndpoints.generateCode(expiringCode);
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.generateCode(expiringCode));
 
-            fail("expiresAt is in the past, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    public void testGenerateCodeWithDuplicateCode() {
+    void generateCodeWithDuplicateCode() {
         RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
 
-        String data = "{}";
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
 
-        try {
-            codeStoreEndpoints.generateCode(expiringCode);
-            codeStoreEndpoints.generateCode(expiringCode);
+        assertDoesNotThrow(() -> codeStoreEndpoints.generateCode(expiringCode));
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.generateCode(expiringCode));
 
-            fail("duplicate code generated, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     @Test
-    public void testRetrieveCode() {
-        String data = "{}";
+    void retrieveCode() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
 
         ExpiringCode retrievedCode = codeStoreEndpoints.retrieveCode(generatedCode.getCode());
 
         assertEquals(generatedCode, retrievedCode);
 
-        try {
-            codeStoreEndpoints.retrieveCode(generatedCode.getCode());
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.retrieveCode(generatedCode.getCode()));
 
-            fail("One-use code already retrieved, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.NOT_FOUND);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
     }
 
     @Test
-    public void testRetrieveCodeWithCodeNotFound() {
-        try {
-            codeStoreEndpoints.retrieveCode("unknown");
+    void retrieveCodeWithCodeNotFound() {
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.retrieveCode("unknown"));
 
-            fail("Non-existent code, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.NOT_FOUND);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
     }
 
     @Test
-    public void testRetrieveCodeWithNullCode() {
-        try {
-            codeStoreEndpoints.retrieveCode(null);
+    void retrieveCodeWithNullCode() {
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.retrieveCode(null));
 
-            fail("code is null, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    public void testStoreLargeData() {
+    void storeLargeData() {
         char[] oneMb = new char[1024 * 1024];
         Arrays.fill(oneMb, 'a');
         String data = new String(oneMb);
@@ -178,21 +162,18 @@ public class CodeStoreEndpointsTests {
     }
 
     @Test
-    public void testRetrieveCodeWithExpiredCode() {
-        String data = "{}";
+    void retrieveCodeWithExpiredCode() {
         int expiresIn = 1000;
         Timestamp expiresAt = new Timestamp(currentTime.get() + expiresIn);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
 
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
         currentTime.addAndGet(expiresIn + 1);
 
-        try {
-            codeStoreEndpoints.retrieveCode(generatedCode.getCode());
+        CodeStoreException codeStoreException =
+                assertThrows(CodeStoreException.class,
+                        () -> codeStoreEndpoints.retrieveCode(generatedCode.getCode()));
 
-            fail("code is expired, should throw CodeStoreException.");
-        } catch (CodeStoreException e) {
-            assertEquals(e.getStatus(), HttpStatus.NOT_FOUND);
-        }
+        assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
     }
 }
