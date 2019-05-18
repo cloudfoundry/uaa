@@ -288,9 +288,7 @@
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter">
-        <constructor-arg ref="identityProviderProvisioning"/>
-    </bean>
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter" />
 
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
