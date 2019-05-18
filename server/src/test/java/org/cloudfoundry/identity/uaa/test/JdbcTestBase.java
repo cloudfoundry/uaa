@@ -28,6 +28,11 @@ import javax.sql.DataSource;
 
 import static java.util.Collections.emptyList;
 
+/**
+ * Deprecated. Use {@link org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext} instead.
+ * Don't forget to upgrade the tests to JUnit5.
+ */
+@Deprecated
 public class JdbcTestBase extends TestClassNullifier {
 
     protected XmlWebApplicationContext webApplicationContext;
