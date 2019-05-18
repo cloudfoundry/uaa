@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,17 +16,14 @@ import javax.servlet.http.HttpServletRequest;
 @Controller
 public class CodeStoreEndpoints {
 
-    private ExpiringCodeStore expiringCodeStore;
+    private final ExpiringCodeStore expiringCodeStore;
+    private final HttpMessageConverter<?>[] messageConverters;
 
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-            new HttpMessageConverter<?>[0]);
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
-    }
-
-    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
+    CodeStoreEndpoints(
+            final ExpiringCodeStore expiringCodeStore,
+            final HttpMessageConverter<?>[] messageConverters) {
         this.expiringCodeStore = expiringCodeStore;
+        this.messageConverters = messageConverters;
     }
 
     @RequestMapping(value = {"/Codes"}, method = RequestMethod.POST)

@@ -29,7 +29,6 @@ class CodeStoreEndpointsTests {
 
     @BeforeEach
     void initCodeStoreTests(@Autowired JdbcTemplate jdbcTemplate) {
-        codeStoreEndpoints = new CodeStoreEndpoints();
         currentTime = new AtomicLong(System.currentTimeMillis());
 
         expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), new TimeService() {
@@ -38,7 +37,7 @@ class CodeStoreEndpointsTests {
                 return currentTime.get();
             }
         });
-        codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
+        codeStoreEndpoints = new CodeStoreEndpoints(expiringCodeStore, null);
     }
 
     @Test
