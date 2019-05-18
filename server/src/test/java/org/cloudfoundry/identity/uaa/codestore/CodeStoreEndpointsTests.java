@@ -2,8 +2,12 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,28 +20,46 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @WithDatabaseContext
 class CodeStoreEndpointsTests {
 
     private CodeStoreEndpoints codeStoreEndpoints;
-    private ExpiringCodeStore expiringCodeStore;
+    private ExpiringCodeStore spiedExpiringCodeStore;
     private AtomicLong currentTime;
     private final String EMPTY_JSON = "{}";
+    private String currentIdentityZoneId;
 
     @BeforeEach
-    void initCodeStoreTests(@Autowired JdbcTemplate jdbcTemplate) {
+    void setUp(@Autowired JdbcTemplate jdbcTemplate) {
         currentTime = new AtomicLong(System.currentTimeMillis());
 
-        expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), new TimeService() {
+        spiedExpiringCodeStore = spy(new JdbcExpiringCodeStore(jdbcTemplate.getDataSource(), new TimeService() {
             @Override
             public long getCurrentTimeMillis() {
                 return currentTime.get();
             }
-        });
-        codeStoreEndpoints = new CodeStoreEndpoints(expiringCodeStore, null);
+        }));
+
+        currentIdentityZoneId = createDummyIdentityZone(jdbcTemplate);
+        final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+        codeStoreEndpoints = new CodeStoreEndpoints(spiedExpiringCodeStore, null, mockIdentityZoneManager);
+    }
+
+    private String createDummyIdentityZone(@Autowired JdbcTemplate jdbcTemplate) {
+        final RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        final String currentIdentityZoneId = "identityZoneId-" + generator.generate();
+
+        final IdentityZone identityZoneToCreate = IdentityZone.getUaa();
+        identityZoneToCreate.setSubdomain("identityZoneSubdomain-" + generator.generate());
+        identityZoneToCreate.setId(currentIdentityZoneId);
+
+        final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        jdbcIdentityZoneProvisioning.create(identityZoneToCreate);
+
+        return currentIdentityZoneId;
     }
 
     @Test
@@ -55,6 +77,8 @@ class CodeStoreEndpointsTests {
         assertEquals(expiresAt, result.getExpiresAt());
 
         assertEquals(EMPTY_JSON, result.getData());
+
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
     }
 
     @Test
@@ -68,6 +92,7 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
         assertThat(codeStoreException.getMessage(), is("data and expiresAt are required."));
+        verify(spiedExpiringCodeStore).generateCode(null, expiresAt, null, currentIdentityZoneId);
     }
 
     @Test
@@ -80,6 +105,7 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
         assertThat(codeStoreException.getMessage(), is("data and expiresAt are required."));
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, null, null, currentIdentityZoneId);
     }
 
     @Test
@@ -93,13 +119,14 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
         assertThat(codeStoreException.getMessage(), is("expiresAt must be in the future."));
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
     }
 
     @Test
     void generateCodeWithDuplicateCode() {
         RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         when(generator.generate()).thenReturn("duplicate");
-        expiringCodeStore.setGenerator(generator);
+        spiedExpiringCodeStore.setGenerator(generator);
 
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
@@ -111,6 +138,8 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.INTERNAL_SERVER_ERROR));
         assertThat(codeStoreException.getMessage(), is("Duplicate code generated."));
+        verify(spiedExpiringCodeStore, times(2))
+                .generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
     }
 
     @Test
@@ -129,6 +158,10 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
         assertThat(codeStoreException.getMessage(), is("Code not found: " + generatedCode.getCode()));
+
+        InOrder inOrder = inOrder(spiedExpiringCodeStore);
+        inOrder.verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
+        inOrder.verify(spiedExpiringCodeStore).retrieveCode(generatedCode.getCode(), currentIdentityZoneId);
     }
 
     @Test
@@ -139,6 +172,7 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
         assertThat(codeStoreException.getMessage(), is("Code not found: unknown"));
+        verify(spiedExpiringCodeStore).retrieveCode("unknown", currentIdentityZoneId);
     }
 
     @Test
@@ -149,6 +183,7 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
         assertThat(codeStoreException.getMessage(), is("code is required."));
+        verify(spiedExpiringCodeStore).retrieveCode(null, currentIdentityZoneId);
     }
 
     @Test
@@ -165,6 +200,9 @@ class CodeStoreEndpointsTests {
         ExpiringCode actualCode = codeStoreEndpoints.retrieveCode(code);
 
         assertEquals(generatedCode, actualCode);
+        InOrder inOrder = inOrder(spiedExpiringCodeStore);
+        inOrder.verify(spiedExpiringCodeStore).generateCode(data, expiresAt, null, currentIdentityZoneId);
+        inOrder.verify(spiedExpiringCodeStore).retrieveCode(code, currentIdentityZoneId);
     }
 
     @Test
@@ -182,5 +220,6 @@ class CodeStoreEndpointsTests {
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
         assertThat(codeStoreException.getMessage(), is("Code not found: " + generatedCode.getCode()));
+        verify(spiedExpiringCodeStore).retrieveCode(generatedCode.getCode(), currentIdentityZoneId);
     }
 }

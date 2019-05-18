@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +18,15 @@ public class CodeStoreEndpoints {
 
     private final ExpiringCodeStore expiringCodeStore;
     private final HttpMessageConverter<?>[] messageConverters;
+    private final IdentityZoneManager identityZoneManager;
 
     CodeStoreEndpoints(
             final ExpiringCodeStore expiringCodeStore,
-            final HttpMessageConverter<?>[] messageConverters) {
+            final HttpMessageConverter<?>[] messageConverters,
+            final IdentityZoneManager identityZoneManager) {
         this.expiringCodeStore = expiringCodeStore;
         this.messageConverters = messageConverters;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @RequestMapping(value = {"/Codes"}, method = RequestMethod.POST)
@@ -31,7 +34,7 @@ public class CodeStoreEndpoints {
     @ResponseBody
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
         try {
-            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null, IdentityZoneHolder.get().getId());
+            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null, identityZoneManager.getCurrentIdentityZoneId());
         } catch (NullPointerException e) {
             throw new CodeStoreException("data and expiresAt are required.", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException e) {
@@ -46,7 +49,7 @@ public class CodeStoreEndpoints {
     public ExpiringCode retrieveCode(@PathVariable String code) {
         ExpiringCode result;
         try {
-            result = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+            result = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         } catch (NullPointerException e) {
             throw new CodeStoreException("code is required.", HttpStatus.BAD_REQUEST);
         }
