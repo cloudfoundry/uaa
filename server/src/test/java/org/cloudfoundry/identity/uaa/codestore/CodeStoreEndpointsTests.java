@@ -68,6 +68,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.generateCode(expiringCode));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
+        assertThat(codeStoreException.getMessage(), is("data and expiresAt are required."));
     }
 
     @Test
@@ -79,6 +80,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.generateCode(expiringCode));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
+        assertThat(codeStoreException.getMessage(), is("data and expiresAt are required."));
     }
 
     @Test
@@ -91,6 +93,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.generateCode(expiringCode));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
+        assertThat(codeStoreException.getMessage(), is("expiresAt must be in the future."));
     }
 
     @Test
@@ -108,6 +111,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.generateCode(expiringCode));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.INTERNAL_SERVER_ERROR));
+        assertThat(codeStoreException.getMessage(), is("Duplicate code generated."));
     }
 
     @Test
@@ -125,6 +129,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.retrieveCode(generatedCode.getCode()));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
+        assertThat(codeStoreException.getMessage(), is("Code not found: " + generatedCode.getCode()));
     }
 
     @Test
@@ -134,6 +139,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.retrieveCode("unknown"));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
+        assertThat(codeStoreException.getMessage(), is("Code not found: unknown"));
     }
 
     @Test
@@ -143,6 +149,7 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.retrieveCode(null));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.BAD_REQUEST));
+        assertThat(codeStoreException.getMessage(), is("code is required."));
     }
 
     @Test
@@ -175,5 +182,6 @@ class CodeStoreEndpointsTests {
                         () -> codeStoreEndpoints.retrieveCode(generatedCode.getCode()));
 
         assertThat(codeStoreException.getStatus(), is(HttpStatus.NOT_FOUND));
+        assertThat(codeStoreException.getMessage(), is("Code not found: " + generatedCode.getCode()));
     }
 }
