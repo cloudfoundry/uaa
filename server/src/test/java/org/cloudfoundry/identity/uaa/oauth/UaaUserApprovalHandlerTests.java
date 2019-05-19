@@ -29,11 +29,9 @@ class UaaUserApprovalHandlerTests {
 
     @BeforeEach
     void setUp() {
-        handler = new UaaUserApprovalHandler();
-        MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
-        handler.setClientDetailsService(mockMultitenantClientServices);
-        AuthorizationServerTokenServices tokenServices = mock(AuthorizationServerTokenServices.class);
-        handler.setTokenServices(tokenServices);
+        final MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        final AuthorizationServerTokenServices mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
+        handler = new UaaUserApprovalHandler(mockMultitenantClientServices, null, mockAuthorizationServerTokenServices);
 
         authorizationRequest = new AuthorizationRequest("client", Collections.singletonList("read"));
         userAuthentication = new UsernamePasswordAuthenticationToken("joe", "",

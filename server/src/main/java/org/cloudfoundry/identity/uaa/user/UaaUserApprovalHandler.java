@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
 import org.slf4j.Logger;
@@ -34,48 +22,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * @author Dave Syer
- *
- */
 public class UaaUserApprovalHandler implements UserApprovalHandler {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private boolean useTokenServices = true;
+    private final MultitenantClientServices clientDetailsService;
+    private final OAuth2RequestFactory requestFactory;
+    private final AuthorizationServerTokenServices tokenServices;
 
-    private String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
-
-    private MultitenantClientServices clientDetailsService;
-
-    private OAuth2RequestFactory requestFactory;
-
-    private AuthorizationServerTokenServices tokenServices;
-
-    public void setTokenServices(AuthorizationServerTokenServices tokenServices) {
-        this.tokenServices = tokenServices;
-    }
-
-    public void setRequestFactory(OAuth2RequestFactory requestFactory) {
-        this.requestFactory = requestFactory;
-    }
-
-    public void setApprovalParameter(String approvalParameter) {
-        this.approvalParameter = approvalParameter;
-    }
-
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
+    public UaaUserApprovalHandler(
+            final MultitenantClientServices clientDetailsService,
+            final OAuth2RequestFactory requestFactory,
+            final AuthorizationServerTokenServices tokenServices) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    /**
-     * @param useTokenServices the useTokenServices to set
-     */
-    public void setUseTokenServices(boolean useTokenServices) {
-        this.useTokenServices = useTokenServices;
+        this.requestFactory = requestFactory;
+        this.tokenServices = tokenServices;
     }
 
     /**
@@ -90,9 +51,6 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
      */
     @Override
     public boolean isApproved(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
-//        if (useTokenServices && super.isApproved(authorizationRequest, userAuthentication)) {
-//            return true;
-//        }
         if (!userAuthentication.isAuthenticated()) {
             return false;
         }
@@ -180,7 +138,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     @Override
     public AuthorizationRequest updateAfterApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
         Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
-        String flag = approvalParameters.get(approvalParameter);
+        String flag = approvalParameters.get(OAuth2Utils.USER_OAUTH_APPROVAL);
         boolean approved = flag != null && flag.toLowerCase().equals("true");
         authorizationRequest.setApproved(approved);
         return authorizationRequest;

@@ -458,13 +458,7 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler">
-        <!--<property name="tokenServices" ref="tokenServices" />-->
-        <property name="useTokenServices" value="false"/>
-        <property name="requestFactory" ref="authorizationRequestManager"/>
-        <property name="tokenServices" ref="tokenServices"/>
-        <property name="clientDetailsService" ref="jdbcClientDetailsService" />
-    </bean>
+    <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler" />
 
     <bean id="userManagedApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler">
         <property name="clientDetailsService" ref="clientDetailsService" />
