@@ -1,22 +1,9 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -24,61 +11,59 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * @author Dave Syer
- *
- */
 public class UaaUserApprovalHandlerTests {
 
-    private UaaUserApprovalHandler handler = new UaaUserApprovalHandler();
+    private UaaUserApprovalHandler handler;
+    private MultitenantClientServices mockMultitenantClientServices;
+    private AuthorizationRequest authorizationRequest;
+    private Authentication userAuthentication;
+    private BaseClientDetails client;
 
-    private MultitenantClientServices clientDetailsService = Mockito.mock(MultitenantClientServices.class);
-
-    private AuthorizationServerTokenServices tokenServices = Mockito.mock(AuthorizationServerTokenServices.class);
-
-    private AuthorizationRequest authorizationRequest = new AuthorizationRequest("client",Arrays.asList("read"));
-
-    private Authentication userAuthentication = new UsernamePasswordAuthenticationToken("joe", "", AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
-
-    public UaaUserApprovalHandlerTests() {
-        handler.setClientDetailsService(clientDetailsService);
+    @Before
+    public void setUp() {
+        handler = new UaaUserApprovalHandler();
+        mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        handler.setClientDetailsService(mockMultitenantClientServices);
+        AuthorizationServerTokenServices tokenServices = mock(AuthorizationServerTokenServices.class);
         handler.setTokenServices(tokenServices);
+
+        authorizationRequest = new AuthorizationRequest("client", Collections.singletonList("read"));
+        userAuthentication = new UsernamePasswordAuthenticationToken("joe", "",
+                AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+
+        client = new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        when(mockMultitenantClientServices.loadClientByClientId("client", "uaa")).thenReturn(client);
     }
 
     @Test
-    public void testNotAutoApprove() {
-        BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
-        Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
+    public void notAutoApprove() {
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
     @Test
-    public void testAutoApproveAll() {
-        BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+    public void autoApproveAll() {
         client.setAutoApproveScopes(singleton("true"));
-            Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
     @Test
-    public void testAutoApproveByScope() {
-        BaseClientDetails client =
-                new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
-        Mockito.when(clientDetailsService.loadClientByClientId("client", "uaa")).thenReturn(client);
+    public void autoApproveByScopeRead() {
         client.setAutoApproveScopes(singleton("read"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
+    }
+
+    @Test
+    public void autoApproveByScopeWrite() {
         client.setAutoApproveScopes(singleton("write"));
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
-
-
 }
