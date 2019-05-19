@@ -2,8 +2,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -15,23 +15,22 @@ import java.util.Collections;
 
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class UaaUserApprovalHandlerTests {
+class UaaUserApprovalHandlerTests {
 
     private UaaUserApprovalHandler handler;
-    private MultitenantClientServices mockMultitenantClientServices;
     private AuthorizationRequest authorizationRequest;
     private Authentication userAuthentication;
     private BaseClientDetails client;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         handler = new UaaUserApprovalHandler();
-        mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
         handler.setClientDetailsService(mockMultitenantClientServices);
         AuthorizationServerTokenServices tokenServices = mock(AuthorizationServerTokenServices.class);
         handler.setTokenServices(tokenServices);
@@ -45,24 +44,24 @@ public class UaaUserApprovalHandlerTests {
     }
 
     @Test
-    public void notAutoApprove() {
+    void notAutoApprove() {
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
     @Test
-    public void autoApproveAll() {
+    void autoApproveAll() {
         client.setAutoApproveScopes(singleton("true"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
     @Test
-    public void autoApproveByScopeRead() {
+    void autoApproveByScopeRead() {
         client.setAutoApproveScopes(singleton("read"));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
     @Test
-    public void autoApproveByScopeWrite() {
+    void autoApproveByScopeWrite() {
         client.setAutoApproveScopes(singleton("write"));
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
