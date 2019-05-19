@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -29,14 +29,17 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     private final MultitenantClientServices clientDetailsService;
     private final OAuth2RequestFactory requestFactory;
     private final AuthorizationServerTokenServices tokenServices;
+    private final IdentityZoneManager identityZoneManager;
 
     public UaaUserApprovalHandler(
             final MultitenantClientServices clientDetailsService,
             final OAuth2RequestFactory requestFactory,
-            final AuthorizationServerTokenServices tokenServices) {
+            final AuthorizationServerTokenServices tokenServices,
+            final IdentityZoneManager identityZoneManager) {
         this.clientDetailsService = clientDetailsService;
         this.requestFactory = requestFactory;
         this.tokenServices = tokenServices;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -60,7 +63,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
         String clientId = authorizationRequest.getClientId();
         boolean approved = false;
         if (clientDetailsService != null) {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            ClientDetails client = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
             Collection<String> requestedScopes = authorizationRequest.getScope();
             if (isAutoApprove(client, requestedScopes)) {
                 approved = true;
@@ -90,7 +93,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
         Set<String> scopes = authorizationRequest.getScope();
         if (clientDetailsService!=null) {
             try {
-                ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+                ClientDetails client = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
                 approved = true;
                 for (String scope : scopes) {
                     if (!client.isAutoApprove(scope)) {
