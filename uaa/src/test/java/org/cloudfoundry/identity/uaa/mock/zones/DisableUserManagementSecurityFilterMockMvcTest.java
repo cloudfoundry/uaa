@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +64,9 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
     @Autowired
     private TestClient testClient;
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     @Value("${disableInternalUserManagement:false}")
     private boolean disableInternalUserManagement;
@@ -265,7 +268,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(get("/verify_user")
-                .param("code", getExpiringCode(codeData, codeStore).getCode()))
+                .param("code", getExpiringCode(codeData, codeStore, identityZoneManager).getCode()))
                 .andExpect(status().isForbidden())
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -329,7 +332,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         change.setClientId("login");
         change.setEmail(createdUser.getUserName());
         change.setUserId(createdUser.getId());
-        ExpiringCode code = getExpiringCode(change, codeStore);
+        ExpiringCode code = getExpiringCode(change, codeStore, identityZoneManager);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(get("/verify_email")
@@ -457,7 +460,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(post("/reset_password.do")
-                .param("code", getExpiringCode(change, codeStore).getCode())
+                .param("code", getExpiringCode(change, codeStore, identityZoneManager).getCode())
                 .param("email", createdUser.getUserName())
                 .param("password", "new-password")
 
@@ -475,13 +478,14 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
     private static ExpiringCode getExpiringCode(
             final Object data,
-            final ExpiringCodeStore codeStore) {
+            final ExpiringCodeStore codeStore,
+            IdentityZoneManager identityZoneManager) {
         Timestamp fiveMinutes = new Timestamp(Instant.now().plus(Duration.ofMinutes(5)).toEpochMilli());
         return codeStore.generateCode(
                 JsonUtils.writeValueAsString(data),
                 fiveMinutes,
                 null,
-                IdentityZoneHolder.get().getId());
+                identityZoneManager.getCurrentIdentityZoneId());
     }
 
     private static CookieCsrfPostProcessor cookieCsrf() {
