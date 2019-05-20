@@ -173,6 +173,15 @@ public class IdentityZoneNotAvailableIT {
         checkNotFoundForEndpoint(HttpMethod.POST,zoneUrl + "/password_resets");
     }
 
+    @Test
+    public void testStaticContentFound() {
+        HttpMethod method  = HttpMethod.GET;
+        String endpoint  = zoneUrl + "/resources/oss/stylesheets/application.css";
+
+        ResponseEntity<Void> forEntity = restTemplate.exchange(endpoint, method, new HttpEntity<Void>(null, new HttpHeaders()), Void.class);
+        assertEquals(HttpStatus.OK, forEntity.getStatusCode());
+    }
+
     private void checkNotFoundForEndpoint(HttpMethod method, String endpoint) {
         ResponseEntity<Void> forEntity = restTemplate.exchange(endpoint, method, new HttpEntity<Void>(null, new HttpHeaders()), Void.class);
         assertEquals(HttpStatus.NOT_FOUND, forEntity.getStatusCode());

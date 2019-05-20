@@ -58,6 +58,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             }
         }
         if (identityZone == null) {
+            // skip filter to static resources in order to serve images and css in case of invalid zones
+            boolean isStaticResource = request.getRequestURI().startsWith("/uaa/resources/");
+            if(isStaticResource) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             request.setAttribute("error_message_code", "zone.not.found");
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
             return;
