@@ -1,19 +1,20 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,13 +26,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.*;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
+@WithDatabaseContext
+class JdbcUaaUserDatabaseTests {
 
     private JdbcUaaUserDatabase jdbcUaaUserDatabase;
 
@@ -49,8 +52,14 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     private TimeService timeService;
     private Set<SimpleGrantedAuthority> defaultAuthorities;
 
-    @Before
-    public void initializeDb() {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private Environment environment;
+
+    @BeforeEach
+    void setUp() {
         defaultAuthorities = UserConfig.DEFAULT_ZONE_GROUPS
                 .stream()
                 .map(SimpleGrantedAuthority::new)
@@ -75,19 +84,19 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         IdentityZoneHolder.clear();
     }
 
-    @After
-    public void clearDb() {
+    @AfterEach
+    void tearDown() {
         IdentityZoneHolder.clear();
         TestUtils.deleteFrom(jdbcTemplate, "users");
     }
 
-    @Test(expected = NullPointerException.class)
-    public void storeUserInfoWithoutId() {
-        jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo());
+    @Test
+    void storeUserInfoWithoutId() {
+        assertThrows(NullPointerException.class, () -> jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo()));
     }
 
     @Test
-    public void storeNullUserInfo() {
+    void storeNullUserInfo() {
         String id = "id";
         jdbcUaaUserDatabase.storeUserInfo(id, null);
         UserInfo info2 = jdbcUaaUserDatabase.getUserInfo(id);
@@ -96,7 +105,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void storeUserInfo() {
+    void storeUserInfo() {
         UserInfo info = new UserInfo();
         String id = "id";
         LinkedMultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
@@ -123,7 +132,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void addedUserHasNoLegacyVerificationBehavior() {
+    void addedUserHasNoLegacyVerificationBehavior() {
         assertFalse(jdbcUaaUserDatabase.retrieveUserById(JOE_ID).isLegacyVerificationBehavior());
         assertFalse(jdbcUaaUserDatabase.retrieveUserById(MABEL_ID).isLegacyVerificationBehavior());
         IdentityZoneHolder.set(otherIdentityZone);
@@ -131,7 +140,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void getValidUserSucceeds() {
+    void getValidUserSucceeds() {
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         validateJoe(joe);
         assertNull(joe.getSalt());
@@ -140,7 +149,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void getSaltValueWorks() {
+    void getSaltValueWorks() {
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         assertNotNull(joe);
         assertNull(joe.getSalt());
@@ -151,7 +160,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void is_the_right_query_used() {
+    void is_the_right_query_used() {
         JdbcTemplate template = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase.setJdbcTemplate(template);
 
@@ -171,7 +180,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void getValidUserCaseInsensitive() {
+    void getValidUserCaseInsensitive() {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
                 jdbcUaaUserDatabase.setCaseInsensitive(caseInsensitive);
@@ -205,51 +214,47 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         assertEquals("joe@test.org", joe.getEmail());
         assertEquals("joespassword", joe.getPassword());
         assertEquals(true, joe.isPasswordChangeRequired());
-        assertTrue("authorities does not contain uaa.user",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
-    }
-
-    @Test(expected = UsernameNotFoundException.class)
-    public void getNonExistentUserRaisedNotFoundException() {
-        jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA);
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
+                "authorities does not contain uaa.user");
     }
 
     @Test
-    public void getUserWithExtraAuthorities() {
+    void getNonExistentUserRaisedNotFoundException() {
+        assertThrows(UsernameNotFoundException.class, () -> jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA));
+    }
+
+    @Test
+    void getUserWithExtraAuthorities() {
         addAuthority("dash.admin", jdbcTemplate);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
-        assertTrue("authorities does not contain uaa.user",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
-        assertTrue("authorities does not contain dash.admin",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
+                "authorities does not contain uaa.user");
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")),
+                "authorities does not contain dash.admin");
     }
 
     @Test
-    public void getUserWithMultipleExtraAuthorities() {
+    void getUserWithMultipleExtraAuthorities() {
         addAuthority("additional", jdbcTemplate);
         addAuthority("anotherOne", jdbcTemplate);
         JdbcTemplate spy = Mockito.spy(jdbcTemplate);
         jdbcUaaUserDatabase.setJdbcTemplate(spy);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         verify(spy, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
-        assertTrue("authorities does not contain uaa.user",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
-        assertTrue("authorities does not contain additional",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("additional")));
-        assertTrue("authorities does not contain anotherOne",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("anotherOne")));
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
+                "authorities does not contain uaa.user");
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("additional")),
+                "authorities does not contain additional");
+        assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("anotherOne")),
+                "authorities does not contain anotherOne");
     }
 
     @Test
-    public void getUserWithNestedAuthoritiesWorks() {
+    void getUserWithNestedAuthoritiesWorks() {
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
 
-        assertThat(joe.getAuthorities(),
-                containsInAnyOrder(
-                        defaultAuthorities
-                                .toArray(new SimpleGrantedAuthority[0])
-                )
-        );
+        defaultAuthorities.forEach(authority ->
+                assertThat(joe.getAuthorities().contains(authority), is(true)));
 
         String directId = new RandomValueStringGenerator().generate();
         String indirectId = new RandomValueStringGenerator().generate();
@@ -258,7 +263,6 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         jdbcTemplate.update(ADD_GROUP_SQL, indirectId, "indirect", IdentityZoneHolder.get().getId());
         jdbcTemplate.update(ADD_MEMBER_SQL, indirectId, directId, "GROUP", "MEMBER");
         jdbcTemplate.update(ADD_MEMBER_SQL, directId, joe.getId(), "USER", "MEMBER");
-
 
         evaluateNestedJoe(jdbcUaaUserDatabase, defaultAuthorities);
 
@@ -269,7 +273,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void updatePreviousAndLastLogonTime() {
+    void updatePreviousAndLastLogonTime() {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         jdbcUaaUserDatabase.updateLastLogonTime(JOE_ID);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserById(JOE_ID);
@@ -283,26 +287,25 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         assertEquals((long) joe.getLastLogonTime(), 2000L);
     }
 
-    @Test(expected = UsernameNotFoundException.class)
-    public void getValidUserInDefaultZoneFromOtherZoneFails() {
+    @Test
+    void getValidUserInDefaultZoneFromOtherZoneFails() {
         IdentityZoneHolder.set(otherIdentityZone);
-        getValidUserSucceeds();
-        fail("Should have thrown an exception.");
+        assertThrows(UsernameNotFoundException.class, this::getValidUserSucceeds);
     }
 
     @Test
-    public void getValidUserInOtherZoneFromOtherZone() {
+    void getValidUserInOtherZoneFromOtherZone() {
         IdentityZoneHolder.set(otherIdentityZone);
-        getValidUserInOtherZoneFromDefaultZoneFails();
-    }
-
-    @Test(expected = UsernameNotFoundException.class)
-    public void getValidUserInOtherZoneFromDefaultZoneFails() {
-        jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA);
+        assertDoesNotThrow(() -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA));
     }
 
     @Test
-    public void retrieveUserByEmail_also_isCaseInsensitive() {
+    void getValidUserInOtherZoneFromDefaultZoneFails() {
+        assertThrows(UsernameNotFoundException.class, () -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA));
+    }
+
+    @Test
+    void retrieveUserByEmail_also_isCaseInsensitive() {
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByEmail("JOE@test.org", OriginKeys.UAA);
         validateJoe(joe);
         assertNull(joe.getSalt());
@@ -311,16 +314,16 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     @Test
-    public void null_if_noUserWithEmail() {
+    void null_if_noUserWithEmail() {
         assertNull(jdbcUaaUserDatabase.retrieveUserByEmail("email@doesnot.exist", OriginKeys.UAA));
     }
 
     @Test
-    public void null_if_userWithEmail_in_differentZone() {
+    void null_if_userWithEmail_in_differentZone() {
         assertNull(jdbcUaaUserDatabase.retrieveUserByEmail("alice@test.org", OriginKeys.UAA));
     }
 
-    private static boolean isMySQL(MockEnvironment environment) {
+    private static boolean isMySQL(Environment environment) {
         for (String s : environment.getActiveProfiles()) {
             if (s.contains("mysql")) {
                 return true;
@@ -330,13 +333,13 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     private static void evaluateNestedJoe(JdbcUaaUserDatabase db, Set<SimpleGrantedAuthority> defaultAuthorities) {
-        UaaUser joe;
-        joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         Set<GrantedAuthority> compareTo = new HashSet<>(defaultAuthorities);
         compareTo.add(new SimpleGrantedAuthority("direct"));
         compareTo.add(new SimpleGrantedAuthority("uaa.user"));
         compareTo.add(new SimpleGrantedAuthority("indirect"));
-        assertThat(joe.getAuthorities(), containsInAnyOrder(compareTo.toArray(new SimpleGrantedAuthority[0])));
+        compareTo.forEach(authority ->
+                assertThat(joe.getAuthorities().contains(authority), is(true)));
     }
 
     private static void addUser(
