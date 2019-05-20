@@ -1,0 +1,37 @@
+apply plugin: 'war'
+apply plugin: 'eclipse-wtp'
+eclipse {
+	wtp {
+	    component {
+	      contextPath = 'api'
+	    }
+	}
+}
+
+description = 'Sample resource server for Cloudfoundry Identity Services'
+dependencies {
+  Project identityParent = parent.parent
+  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+
+  compile identityServer
+
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
+  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
+    exclude(module: 'spring-jdbc')
+    exclude(module: 'spring-tx')
+  }
+  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion
+
+  testCompile identityServer.configurations.testCompile.dependencies
+  testCompile identityServer.sourceSets.test.output
+}
+
+test {
+  exclude 'org/cloudfoundry/identity/api/web/*IntegrationTests.class'
+}
+
+integrationTest {
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.api.web.*IntegrationTests"
+  }
+}

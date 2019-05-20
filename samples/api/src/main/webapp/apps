@@ -1,0 +1,122 @@
+[
+  {
+    "runningInstances": 1,
+    "name": "stocks101",
+    "instances": 1,
+    "env": [
+
+    ],
+    "meta": {
+      "version": 31,
+      "created": 1319630546
+    },
+    "resources": {
+      "memory": 512,
+      "disk": 2048,
+      "fds": 256
+    },
+    "uris": [
+      "stocks101.cloudfoundry.com"
+    ],
+    "version": "79898d2aa6dc843849b5dcb03f13cd0b2ed3c627-1",
+    "services": [
+      "rabbitmq",
+      "redis"
+    ],
+    "staging": {
+      "model": "spring",
+      "stack": "java"
+    },
+    "state": "STARTED"
+  },
+  {
+    "runningInstances": 1,
+    "name": "app",
+    "instances": 1,
+    "env": [
+
+    ],
+    "meta": {
+      "version": 2,
+      "debug": null,
+      "created": 1319630546
+    },
+    "resources": {
+      "memory": 512,
+      "disk": 2048,
+      "fds": 256
+    },
+    "uris": [
+      "dsyerapp.cloudfoundry.com"
+    ],
+    "version": "a88aa22f6b64fc83ea24566e2b7d0aa53220a3de-1",
+    "services": [
+
+    ],
+    "staging": {
+      "model": "spring",
+      "stack": "java"
+    },
+    "state": "STARTED"
+  },
+  {
+    "runningInstances": 1,
+    "name": "auth",
+    "instances": 1,
+    "env": [
+
+    ],
+    "meta": {
+      "version": 3,
+      "debug": null,
+      "created": 1319630546
+    },
+    "resources": {
+      "memory": 512,
+      "disk": 2048,
+      "fds": 256
+    },
+    "uris": [
+      "dsyerauth.cloudfoundry.com"
+    ],
+    "version": "85b52e02b889d0911a2660ecaa5a37cc1e7fa94c-1",
+    "services": [
+      "mysql"
+    ],
+    "staging": {
+      "model": "spring",
+      "stack": "java"
+    },
+    "state": "STARTED"
+  },
+  {
+    "runningInstances": 1,
+    "name": "api",
+    "instances": 1,
+    "env": [
+
+    ],
+    "meta": {
+      "version": 3,
+      "debug": null,
+      "created": 1319630546
+    },
+    "resources": {
+      "memory": 512,
+      "disk": 2048,
+      "fds": 256
+    },
+    "uris": [
+      "dsyerapi.cloudfoundry.com"
+    ],
+    "version": "d540cc11eb1379fa3c74e40efdd18a399da5bc27-1",
+    "services": [
+      "mysql"
+    ],
+    "staging": {
+      "model": "spring",
+      "stack": "java"
+    },
+    "state": "STARTED"
+  }
+]
