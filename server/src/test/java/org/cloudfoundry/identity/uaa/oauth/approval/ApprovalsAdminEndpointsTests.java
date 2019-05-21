@@ -88,7 +88,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         testAccounts = UaaTestAccounts.standard(null);
         String userId = testAccounts.addRandomUser(jdbcTemplate);
 
-        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl());
+        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false);
 
         jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);

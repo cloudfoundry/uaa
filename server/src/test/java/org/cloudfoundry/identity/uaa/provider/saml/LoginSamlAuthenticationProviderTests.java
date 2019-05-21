@@ -227,7 +227,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
 
         TimeService timeService = mock(TimeService.class);
-        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
+        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false);
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 

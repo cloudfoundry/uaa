@@ -70,7 +70,7 @@ class JdbcUaaUserDatabaseTests {
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("some-other-zone-id");
 
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false);
 
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", JOE_ID);
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", MABEL_ID);
@@ -161,29 +161,29 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void is_the_right_query_used() {
-        JdbcTemplate template = mock(JdbcTemplate.class);
-        jdbcUaaUserDatabase.setJdbcTemplate(template);
+        JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false);
 
         String username = new RandomValueStringGenerator().generate() + "@test.org";
 
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
-        verify(template).queryForObject(eq(DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
-        verify(template).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        verify(mockJdbcTemplate).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
 
-        jdbcUaaUserDatabase.setCaseInsensitive(true);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true);
 
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
-        verify(template).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
-        verify(template).query(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        verify(mockJdbcTemplate).query(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
     }
 
     @Test
     void getValidUserCaseInsensitive() {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
-                jdbcUaaUserDatabase.setCaseInsensitive(caseInsensitive);
+                jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, caseInsensitive);
                 UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("JOE", OriginKeys.UAA);
                 validateJoe(joe);
                 joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
@@ -237,10 +237,10 @@ class JdbcUaaUserDatabaseTests {
     void getUserWithMultipleExtraAuthorities() {
         addAuthority("additional", jdbcTemplate);
         addAuthority("anotherOne", jdbcTemplate);
-        JdbcTemplate spy = Mockito.spy(jdbcTemplate);
-        jdbcUaaUserDatabase.setJdbcTemplate(spy);
+        JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
-        verify(spy, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
+        verify(spiedJdbcTemplate, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
                 "authorities does not contain uaa.user");
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("additional")),

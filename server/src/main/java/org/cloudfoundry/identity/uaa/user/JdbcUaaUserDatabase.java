@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,31 +39,25 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
 
     private static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
-    private final TimeService timeService;
 
-    private JdbcTemplate jdbcTemplate;
+    private final TimeService timeService;
+    private final JdbcTemplate jdbcTemplate;
+    private final boolean caseInsensitive;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
-
-    private boolean caseInsensitive = false;
-
-    public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
-    void setCaseInsensitive(boolean caseInsensitive) {
-        this.caseInsensitive = caseInsensitive;
-    }
 
     RowMapper<UaaUser> getMapper() {
         return mapper;
     }
 
-    public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate, TimeService timeService) {
-        Assert.notNull(jdbcTemplate, "jdbcTemplate is required");
+    public JdbcUaaUserDatabase(
+            final JdbcTemplate jdbcTemplate,
+            final TimeService timeService,
+            @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
+        this.caseInsensitive = caseInsensitive;
     }
 
     @Override

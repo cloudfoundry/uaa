@@ -628,11 +628,7 @@
         <value>cloud_controller_service_permissions.read</value>
     </util:set>
 
-    <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="timeService" ref="timeService" />
-        <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>
-    </bean>
+    <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase" />
 
     <bean id="userLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
