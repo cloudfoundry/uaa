@@ -88,7 +88,13 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         testAccounts = UaaTestAccounts.standard(null);
         String userId = testAccounts.addRandomUser(jdbcTemplate);
 
-        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false);
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
+        when(mockIdentityZone.getConfig()).thenReturn(IdentityZone.getUaa().getConfig());
+
+        userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager);
 
         jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);
@@ -98,9 +104,6 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);
-
-        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, new FakePasswordEncoder());
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",

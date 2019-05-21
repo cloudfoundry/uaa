@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,7 +14,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
@@ -43,6 +42,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final TimeService timeService;
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
+    private final IdentityZoneManager identityZoneManager;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
@@ -54,17 +54,19 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public JdbcUaaUserDatabase(
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
-            @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive) {
+            @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
+            final IdentityZoneManager identityZoneManager) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @Override
     public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
         try {
             String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
-            return jdbcTemplate.queryForObject(sql, mapper, username.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
+            return jdbcTemplate.queryForObject(sql, mapper, username.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(username);
         }
@@ -73,7 +75,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true, IdentityZoneHolder.get().getId());
+            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true, identityZoneManager.getCurrentIdentityZoneId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(id);
         }
@@ -82,7 +84,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
         String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
-        List<UaaUser> results = jdbcTemplate.query(sql, mapper, email.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
+        List<UaaUser> results = jdbcTemplate.query(sql, mapper, email.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
         if (results.size() == 0) {
             return null;
         } else if (results.size() == 1) {
@@ -122,7 +124,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public void updateLastLogonTime(String userId) {
-        jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON, timeService.getCurrentTimeMillis(), userId, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON, timeService.getCurrentTimeMillis(), userId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     private final class UserInfoRowMapper implements RowMapper<UserInfo> {
@@ -176,7 +178,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Collections.singletonList(userId));
-            authorities.addAll(IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups());
+            authorities.addAll(identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getDefaultGroups());
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
@@ -191,7 +193,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             }
             dynamicAuthoritiesQuery.append("?);");
 
-            Object[] parameterList = ArrayUtils.addAll(new Object[]{IdentityZoneHolder.get().getId()}, memberIdList.toArray());
+            Object[] parameterList = ArrayUtils.addAll(new Object[]{identityZoneManager.getCurrentIdentityZoneId()}, memberIdList.toArray());
 
             results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
             List<String> newMemberIdList = new ArrayList<>();
