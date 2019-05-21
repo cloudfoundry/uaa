@@ -340,7 +340,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         @Bean
         public ResourceBundleMessageSource messageSource() {
             ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
-            resourceBundleMessageSource.setBasename("messages");
+            resourceBundleMessageSource.setBasename("mail-messages");
             return resourceBundleMessageSource;
         }
 
