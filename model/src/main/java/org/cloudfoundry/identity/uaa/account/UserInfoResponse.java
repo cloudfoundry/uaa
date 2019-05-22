@@ -7,7 +7,6 @@ import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
@@ -60,7 +59,7 @@ public class UserInfoResponse {
     @JsonProperty(NAME)
     public String getFullName() {
         return (givenName != null ? givenName : "")
-            + (familyName != null ? " " + familyName : "");
+                + (familyName != null ? " " + familyName : "");
     }
 
     @JsonProperty(SUB)
