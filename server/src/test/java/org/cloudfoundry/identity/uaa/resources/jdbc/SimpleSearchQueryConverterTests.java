@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import com.unboundid.scim.sdk.InvalidResourceException;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,10 +28,10 @@ class SimpleSearchQueryConverterTests {
         String query = ModelTestUtils.getResourceAsString(this.getClass(), "testQuery.scimFilter");
 
         String message =
-                assertThrows(InvalidResourceException.class, () -> converter.scimFilter(query))
+                assertThrows(IllegalArgumentException.class, () -> converter.convert(query, null, false, "foo"))
                         .getMessage();
 
-        assertThat(message, startsWith("Invalid filter attributes"));
+        assertThat(message, containsString("Message: Invalid filter attributes"));
         assertThat(message, containsString("an/**/invalid/**/attribute/**/and/**/1"));
         assertThat(message, containsString("1"));
         assertThat(message, containsString("\"1\""));

@@ -9,10 +9,14 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -29,10 +33,11 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
@@ -90,11 +95,11 @@ class JdbcScimGroupProvisioningTests {
         g3Id = "g3";
 
         group1Description = "u" + generator.generate();
-        g1 = addGroup(g1Id, group1Description);
+        g1 = addGroup(g1Id, group1Description, zoneId);
         group2Description = "u" + generator.generate();
-        g2 = addGroup(g2Id, group2Description);
+        g2 = addGroup(g2Id, group2Description, zoneId);
         group3Description = "op" + generator.generate();
-        g3 = addGroup(g3Id, group3Description);
+        g3 = addGroup(g3Id, group3Description, zoneId);
 
         validateGroupCountInZone(3, zoneId);
     }
@@ -309,7 +314,7 @@ class JdbcScimGroupProvisioningTests {
 
     @Test
     void deleteGroupWithNestedMembers() {
-        ScimGroup appUsers = addGroup("appuser", "app.user");
+        ScimGroup appUsers = addGroup("appuser", "app.user", zoneId);
         addGroupToGroup(appUsers.getId(), g1.getId());
         dao.delete(appUsers.getId(), 0, zoneId);
 
@@ -327,11 +332,52 @@ class JdbcScimGroupProvisioningTests {
         List<String> groups = dao.retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
         ZoneManagementScopes.getSystemScopes()
                 .stream()
-                .forEach(
-                        scope ->
-                                assertTrue("Scope:" + scope + " should have been bootstrapped into the new zone", groups.contains(scope))
+                .forEach(scope ->
+                        assertTrue(groups.contains(scope), "Scope:" + scope + " should have been bootstrapped into the new zone")
                 );
+    }
 
+    @Nested
+    @WithDatabaseContext
+    class WithGroupsAlsoInAnotherIdentityZone {
+        private String secondZoneId;
+
+        @BeforeEach
+        void addGroupToAnotherZone() {
+            secondZoneId = generator.generate();
+            addGroup(generator.generate(), generator.generate(), secondZoneId);
+            validateGroupCountInZone(1, secondZoneId);
+        }
+
+        @Test
+        void queryOnlyReturnsGroupsFromTheSpecifiedIdentityZone_whenThereIsNoFilter() {
+            List<ScimGroup> groups = dao.query("", secondZoneId);
+            assertThat(groups, hasSize(1));
+            assertThat(groups.get(0).getZoneId(), is(secondZoneId));
+        }
+
+        @Test
+        void queryOnlyReturnsGroupsFromTheSpecifiedIdentityZone_whenThereIsAFilter() {
+            List<ScimGroup> groups = dao.query("id pr", secondZoneId);
+            assertThat(groups, hasSize(1));
+            assertThat(groups.get(0).getZoneId(), is(secondZoneId));
+        }
+
+        @Test
+        void throwsInvalidScimFilter() {
+            IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
+                    () -> dao.query("id pr or", zoneId));
+
+            assertThat(illegalArgumentException.getMessage(), containsString("Invalid SCIM Filter"));
+        }
+
+        @Test
+        void doesNotAllowScimQueryInjectionToBeUsedToGainVisibilityIntoAnotherIdentityZone() {
+            IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
+                    () -> dao.query("id pr ) or identity_zone_id pr or ( id pr", zoneId));
+
+            assertThat(illegalArgumentException.getMessage(), containsString("No opening parenthesis matching closing parenthesis"));
+        }
     }
 
     @Test
@@ -403,7 +449,7 @@ class JdbcScimGroupProvisioningTests {
         }
     }
 
-    private ScimGroup addGroup(String id, String name) {
+    private ScimGroup addGroup(String id, String name, String zoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
         jdbcTemplate.update(JdbcScimGroupProvisioning.ADD_GROUP_SQL,
                 id,
