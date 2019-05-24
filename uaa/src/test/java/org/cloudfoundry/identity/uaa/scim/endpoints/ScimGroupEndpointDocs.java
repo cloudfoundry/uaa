@@ -240,14 +240,15 @@ class ScimGroupEndpointDocs extends EndpointDocs {
 
         mockMvc.perform(getList).andExpect(status().isOk())
                 .andDo(document("{ClassName}/listScimGroups",
+                        preprocessRequest(prettyPrint()),
                         preprocessResponse(prettyPrint()),
-                        requestParameters,
                         requestHeaders(
                                 headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
                                 headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id."),
                                 IDENTITY_ZONE_ID_HEADER,
                                 IDENTITY_ZONE_SUBDOMAIN_HEADER
                         ),
+                        requestParameters,
                         listGroupResponseFields));
 
         // Check Membership
