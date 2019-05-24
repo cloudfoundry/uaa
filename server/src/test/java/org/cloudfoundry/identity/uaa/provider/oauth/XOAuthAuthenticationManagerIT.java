@@ -81,6 +81,7 @@ import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.not;
@@ -88,9 +89,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -262,7 +261,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void unknown_config_class() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> {
                     xoAuthAuthenticationManager.getResponseType(new AbstractXOAuthIdentityProviderDefinition() {
                         @Override
                         public URL getAuthUrl() {
@@ -270,7 +269,7 @@ public class XOAuthAuthenticationManagerIT {
                         }
                     });
                 },
-                "Unknown type for provider.");
+                is("Unknown type for provider."));
     }
 
     @Test
@@ -348,9 +347,9 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void when_a_null_id_token_is_provided_resolveOriginProvider_should_throw_a_jwt_validation_exception() {
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.resolveOriginProvider(null),
-                "Unable to decode expected id_token");
+                is("Unable to decode expected id_token"));
     }
 
     @Test
@@ -360,9 +359,9 @@ public class XOAuthAuthenticationManagerIT {
         String zoneId = IdentityZoneHolder.get().getId();
         when(provisioning.retrieveAll(eq(true), eq(zoneId))).thenReturn(emptyList());
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Unable to map issuer, %s , to a single registered provider", claims.get(ISS))
+                is(String.format("Unable to map issuer, %s , to a single registered provider", claims.get(ISS)))
         );
     }
 
@@ -372,9 +371,9 @@ public class XOAuthAuthenticationManagerIT {
         CompositeToken token = getCompositeAccessToken(Collections.singletonList(ISS));
         xCodeToken = new XOAuthCodeToken(null, null, null, token.getIdTokenValue(), null, null);
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Issuer is missing in id_token")
+                is(String.format("Issuer is missing in id_token"))
         );
     }
 
@@ -857,9 +856,9 @@ public class XOAuthAuthenticationManagerIT {
         claims.remove("sub");
         mockToken();
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Unable to map claim to a username")
+                is(String.format("Unable to map claim to a username"))
         );
     }
 

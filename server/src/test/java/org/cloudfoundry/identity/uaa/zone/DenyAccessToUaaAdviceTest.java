@@ -5,8 +5,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DenyAccessToUaaAdviceTest {
 
@@ -27,17 +28,17 @@ class DenyAccessToUaaAdviceTest {
 
         @Test
         void checkIdentityZone() {
-            assertThrows(AccessDeniedException.class,
+            assertThrowsWithMessageThat(AccessDeniedException.class,
                     () -> denyAccessToUaaAdvice.checkIdentityZone(identityZone),
-                    "Access to UAA is not allowed.");
+                    is("Access to UAA is not allowed."));
         }
 
         @Test
         void checkIdentityZoneId() {
 
-            assertThrows(AccessDeniedException.class,
+            assertThrowsWithMessageThat(AccessDeniedException.class,
                     () -> denyAccessToUaaAdvice.checkIdentityZoneId(identityZone.getId()),
-                    "Access to UAA is not allowed.");
+                    is("Access to UAA is not allowed."));
         }
     }
 

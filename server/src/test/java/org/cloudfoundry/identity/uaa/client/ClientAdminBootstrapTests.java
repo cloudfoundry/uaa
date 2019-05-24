@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.client;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -30,12 +29,10 @@ import org.yaml.snakeyaml.Yaml;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @WithDatabaseContext
@@ -493,10 +490,10 @@ class ClientAdminBootstrapTests {
         map.put("authorities", "uaa.none");
         clients.put((String) map.get("id"), map);
 
-        InvalidClientDetailsException exception = assertThrows(InvalidClientDetailsException.class,
-                () -> clientAdminBootstrap.afterPropertiesSet());
-
-        assertThat(exception.getMessage(), containsString("Client must have at least one authorized-grant-type"));
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class,
+                () -> clientAdminBootstrap.afterPropertiesSet(),
+                containsString("Client must have at least one authorized-grant-type")
+        );
     }
 
     private static ClientDetails doSimpleTest(

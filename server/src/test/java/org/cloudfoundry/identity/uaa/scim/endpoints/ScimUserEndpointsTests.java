@@ -55,6 +55,8 @@ import org.springframework.web.servlet.View;
 import java.util.*;
 
 import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -747,20 +749,17 @@ class ScimUserEndpointsTests {
 
     @Test
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> endpoints.setUserMaxCount(0));
-        assertTrue(thrown.getMessage().contains("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
+        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> endpoints.setUserMaxCount(0), containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
     @Test
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> endpoints.setUserMaxCount(-1));
-        assertTrue(thrown.getMessage().contains("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
+        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> endpoints.setUserMaxCount(-1), containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
     @Test
     void testInvalidFilterExpression() {
-        ScimException thrown = assertThrows(ScimException.class, () -> endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1, 100));
-        assertTrue(thrown.getMessage().contains("Invalid filter"));
+        assertThrowsWithMessageThat(ScimException.class, () -> endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1, 100), containsString("Invalid filter"));
     }
 
     @Test
@@ -771,8 +770,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void testInvalidOrderByExpression() {
-        ScimException thrown = assertThrows(ScimException.class, () -> endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100));
-        assertTrue(thrown.getMessage().contains("Invalid filter"));
+        assertThrowsWithMessageThat(ScimException.class, () -> endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100), containsString("Invalid filter"));
     }
 
     @Test
@@ -1142,10 +1140,9 @@ class ScimUserEndpointsTests {
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.org"));
         when(identityProviderProvisioning.retrieveActive(anyString())).thenReturn(asList(ldapProvider, oidcProvider));
 
-        ScimException thrown = assertThrows(ScimException.class, () -> {
-                endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        });
-        assertTrue(thrown.getMessage().contains("The user account is set up for single sign-on. Please use one of these origin(s) : [ldap, oidc1]"));
+        assertThrowsWithMessageThat(ScimException.class, () -> endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse()),
+                containsString("The user account is set up for single sign-on. Please use one of these origin(s) : [ldap, oidc1]")
+        );
         verify(identityProviderProvisioning).retrieveActive(anyString());
     }
 

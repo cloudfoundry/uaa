@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -138,28 +140,28 @@ class JdbcScimGroupProvisioningTests {
 
     @Test
     void get_by_invalid_name() {
-        assertThrows(
+        assertThrowsWithMessageThat(
                 IncorrectResultSizeDataAccessException.class,
                 () -> dao.getByName("invalid-group-name", zoneId),
-                "Invalid result size found for"
+                Matchers.startsWith("Invalid result size found for")
         );
     }
 
     @Test
     void get_by_empty_name() {
-        assertThrows(
+        assertThrowsWithMessageThat(
                 IncorrectResultSizeDataAccessException.class,
                 () -> dao.getByName("", zoneId),
-                "group name must contain text"
+                Matchers.startsWith("group name must contain text")
         );
     }
 
     @Test
     void get_by_null_name() {
-        assertThrows(
+        assertThrowsWithMessageThat(
                 IncorrectResultSizeDataAccessException.class,
                 () -> dao.getByName(null, zoneId),
-                "group name must contain text"
+                Matchers.startsWith("group name must contain text")
         );
     }
 
@@ -365,19 +367,25 @@ class JdbcScimGroupProvisioningTests {
 
         @Test
         void throwsInvalidScimFilter() {
-            IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
-                    () -> dao.query("id pr or", zoneId));
-
-            assertThat(illegalArgumentException.getMessage(), containsString("Invalid SCIM Filter"));
+            assertThrowsWithMessageThat(IllegalArgumentException.class,
+                    () -> dao.query("id pr or", zoneId),
+                    containsString("Invalid SCIM Filter"));
         }
 
         @Test
         void doesNotAllowScimQueryInjectionToBeUsedToGainVisibilityIntoAnotherIdentityZone() {
-            IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
-                    () -> dao.query("id pr ) or identity_zone_id pr or ( id pr", zoneId));
-
-            assertThat(illegalArgumentException.getMessage(), containsString("No opening parenthesis matching closing parenthesis"));
+            assertThrowsWithMessageThat(IllegalArgumentException.class,
+                    () -> dao.query("id pr ) or identity_zone_id pr or ( id pr", zoneId),
+                    containsString("No opening parenthesis matching closing parenthesis"));
         }
+    }
+
+    @Test
+    void sqlInjectionAttackInSortByFieldFails() {
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> dao.query("id pr", "id; select * from oauth_client_details order by id", true, zoneId),
+                Matchers.startsWith("Invalid sort field:")
+        );
     }
 
     @Test

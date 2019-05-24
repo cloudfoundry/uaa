@@ -71,9 +71,9 @@ import java.util.*;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -928,10 +928,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         LinkedMultiValueMap<String, String> attributes = new LinkedMultiValueMap<>();
 
-        assertThrows(
+        assertThrowsWithMessageThat(
                 BadCredentialsException.class,
                 () -> authprovider.getUser(principal, attributes),
-                "Cannot determine username from credentials supplied"
+                is("Cannot determine username from credentials supplied")
         );
     }
 

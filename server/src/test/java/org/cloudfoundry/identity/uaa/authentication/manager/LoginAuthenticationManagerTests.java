@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -140,10 +141,10 @@ class LoginAuthenticationManagerTests {
         @Test
         void uaaOriginNotAllowedForExternalLogin() {
             AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest("user", true);
-            assertThrows(
+            assertThrowsWithMessageThat(
                     BadCredentialsException.class,
                     () -> manager.getUser(req1, Collections.singletonMap(OriginKeys.ORIGIN, OriginKeys.UAA)),
-                    "uaa origin not allowed for external login server"
+                    is("uaa origin not allowed for external login server")
             );
         }
 

@@ -41,8 +41,10 @@ import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.Cha
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
@@ -629,7 +631,7 @@ class ClientAdminEndpointsTests {
         change.setSecret("newpassword");
         change.setOldSecret("hash1");
         change.setChangeMode(ADD);
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "client secret is either empty or client already has two secrets.");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("client secret is either empty or client already has two secrets."));
     }
 
     @Test
@@ -662,7 +664,7 @@ class ClientAdminEndpointsTests {
         SecretChangeRequest change = new SecretChangeRequest();
         change.setChangeMode(DELETE);
 
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "client secret is either empty or client has only one secret.");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("client secret is either empty or client has only one secret."));
     }
 
     @Test
@@ -678,7 +680,7 @@ class ClientAdminEndpointsTests {
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
         change.setSecret("newpassword");
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "Only a client");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Only a client can change client secret"));
     }
 
     @Test
@@ -694,7 +696,7 @@ class ClientAdminEndpointsTests {
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "Not permitted to change");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Bad request. Not permitted to change another client's secret"));
 
     }
 
@@ -712,7 +714,7 @@ class ClientAdminEndpointsTests {
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
         change.setChangeMode(ADD);
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "Not permitted to change");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Bad request. Not permitted to change another client's secret"));
     }
 
     @Test
@@ -732,7 +734,7 @@ class ClientAdminEndpointsTests {
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
-        assertThrows(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), "Previous secret is required");
+        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Previous secret is required and must be valid"));
 
     }
 
@@ -838,8 +840,8 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testClientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
-        assertThrows(IllegalArgumentException.class, () -> endpoints.setClientMaxCount(0),
-                "Invalid \"clientMaxCount\" value (got 0). Should be positive number."
+        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> endpoints.setClientMaxCount(0),
+                is("Invalid \"clientMaxCount\" value (got 0). Should be positive number.")
         );
     }
 
@@ -1010,7 +1012,6 @@ class ClientAdminEndpointsTests {
         assertTrue(created.isAutoApprove("foo.read"));
         assertTrue(created.isAutoApprove("foo.write"));
     }
-
 
     @Test
     void testUpdateClientWithAutoapproveScopesList() throws Exception {

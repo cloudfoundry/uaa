@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -284,8 +286,7 @@ class UaaAuthorizationRequestManagerTests {
     void testEmptyScopeFailsClientWithScopes() {
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not empty
-        InvalidScopeException thrown = assertThrows(InvalidScopeException.class, () -> factory.createAuthorizationRequest(parameters));
-        assertTrue(thrown.getMessage().contains("[one, two] is invalid. This user is not allowed any of the requested scopes"));
+        assertThrowsWithMessageThat(InvalidScopeException.class, () -> factory.createAuthorizationRequest(parameters), Matchers.containsString("[one, two] is invalid. This user is not allowed any of the requested scopes"));
     }
 
     @Test
@@ -303,15 +304,19 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testScopesInvValidWithWildcard() {
         parameters.put("scope","read write space.1.developer space.2.developer space.1.admin");
-        InvalidScopeException thrown = assertThrows(InvalidScopeException.class, () -> factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)));
-        assertTrue(thrown.getMessage().contains("space.1.admin is invalid. Please use a valid scope name in the request"));
+        assertThrowsWithMessageThat(InvalidScopeException.class,
+                () -> factory.validateParameters(parameters,
+                        new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)),
+                Matchers.containsString("space.1.admin is invalid. Please use a valid scope name in the request"));
     }
 
     @Test
     void testScopesInvalid() {
         parameters.put("scope", "admin");
-        InvalidScopeException thrown = assertThrows(InvalidScopeException.class, () -> factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null)));
-        assertTrue(thrown.getMessage().contains("admin is invalid. Please use a valid scope name in the request"));
+        assertThrowsWithMessageThat(InvalidScopeException.class,
+                () -> factory.validateParameters(parameters,
+                        new BaseClientDetails("foo", null, "read,write", "implicit", null)),
+                Matchers.containsString("admin is invalid. Please use a valid scope name in the request"));
     }
 
     @Test

@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -617,10 +618,9 @@ class LegacyRedirectResolverTest {
         void clientMissingRedirectUri() {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(new HashSet<>());
 
-            RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails));
-
-            assertThat(exception.getMessage(), containsString("Client registration is missing redirect_uri"));
+            assertThrowsWithMessageThat(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails),
+                    containsString("Client registration is missing redirect_uri"));
         }
 
         @Test

@@ -28,6 +28,7 @@ import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -504,10 +505,9 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     void deleteClientSecretForInvalidClient() {
-        NoSuchClientException exception = assertThrows(NoSuchClientException.class,
-                () -> service.deleteClientSecret("invalid_client_id", currentZoneId));
-
-        assertThat(exception.getMessage(), containsString("No client with requested id: invalid_client_id"));
+        assertThrowsWithMessageThat(NoSuchClientException.class,
+                () -> service.deleteClientSecret("invalid_client_id", currentZoneId),
+                containsString("No client with requested id: invalid_client_id"));
     }
 
     @Test
