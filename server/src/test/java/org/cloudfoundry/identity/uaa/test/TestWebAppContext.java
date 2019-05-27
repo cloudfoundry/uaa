@@ -18,6 +18,11 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.util.Map;
 
+/**
+ * @Deprecated. Use {@link org.cloudfoundry.identity.uaa.DefaultTestContext} instead.
+ * This is part of the uaa module, so move it to the server module if you need it
+ */
+@Deprecated
 @Configuration
 @PropertySource(value = {
   "file:../uaa/src/test/resources/test/bootstrap/all-properties-set.yml"

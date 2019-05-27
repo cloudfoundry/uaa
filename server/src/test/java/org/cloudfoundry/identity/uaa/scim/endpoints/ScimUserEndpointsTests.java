@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.unboundid.scim.sdk.AttributePath;
+import com.unboundid.scim.sdk.SCIMFilter;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.annotations.WithSpring;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
@@ -9,8 +12,6 @@ import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisionin
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.*;
@@ -21,21 +22,21 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
-import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationVersion;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -43,10 +44,9 @@ import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
@@ -66,57 +66,50 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+@WithSpring
 @ExtendWith(PollutionPreventionExtension.class)
 class ScimUserEndpointsTests {
 
     private static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
 
-    private ScimUser joel;
-
-    private ScimUser dale;
-
+    @Autowired
     private ScimUserEndpoints scimUserEndpoints;
 
+    @Autowired
     private ScimGroupEndpoints scimGroupEndpoints;
 
+    @Autowired
+    private JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
+
+    @Autowired
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
 
-    private JdbcUserGoogleMfaCredentialsProvisioning mockJdbcUserGoogleMfaCredentialsProvisioning;
-
-    private JdbcIdentityProviderProvisioning mockJdbcIdentityProviderProvisioning;
-
+    @Autowired
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
+    @Autowired
     private JdbcApprovalStore jdbcApprovalStore;
 
-    private static EmbeddedDatabase embeddedDatabase;
-    private PasswordValidator mockPasswordValidator;
-
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    @Autowired
     private JdbcTemplate jdbcTemplate;
-    private FakePasswordEncoder fakePasswordEncoder;
 
-    @BeforeAll
-    static void setUpDatabase() {
-        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-        embeddedDatabase = builder.build();
-        Flyway flyway = new Flyway();
-        flyway.setBaselineVersion(MigrationVersion.fromVersion("1.5.2"));
-        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
-        flyway.setDataSource(embeddedDatabase);
-        flyway.migrate();
-    }
+    @Autowired
+    @Qualifier("nonCachingPasswordEncoder")
+    private PasswordEncoder passwordEncoder;
+
+    private RandomValueStringGenerator generator;
+    private ScimUser joel;
+    private ScimUser dale;
+
+    private PasswordValidator mockPasswordValidator;
+    private JdbcUserGoogleMfaCredentialsProvisioning mockJdbcUserGoogleMfaCredentialsProvisioning;
+    private JdbcIdentityProviderProvisioning mockJdbcIdentityProviderProvisioning;
 
     @BeforeEach
     void setUp() {
-        scimUserEndpoints = new ScimUserEndpoints();
-        scimUserEndpoints.setUserMaxCount(5);
+        generator = new RandomValueStringGenerator();
 
         IdentityZoneHolder.clear();
-        jdbcTemplate = new JdbcTemplate(embeddedDatabase);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        fakePasswordEncoder = new FakePasswordEncoder();
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, fakePasswordEncoder);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -126,30 +119,27 @@ class ScimUserEndpointsTests {
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
-        mockJdbcIdentityProviderProvisioning = Mockito.mock(JdbcIdentityProviderProvisioning.class);
+        mockJdbcIdentityProviderProvisioning = mock(JdbcIdentityProviderProvisioning.class);
+        mockJdbcUserGoogleMfaCredentialsProvisioning = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
+        mockPasswordValidator = mock(PasswordValidator.class);
 
-        mockJdbcUserGoogleMfaCredentialsProvisioning = Mockito.mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
         scimUserEndpoints.setMfaCredentialsProvisioning(mockJdbcUserGoogleMfaCredentialsProvisioning);
-
         scimUserEndpoints.setScimUserProvisioning(jdbcScimUserProvisioning);
         scimUserEndpoints.setIdentityProviderProvisioning(mockJdbcIdentityProviderProvisioning);
+        scimUserEndpoints.setApplicationEventPublisher(null);
 
-        mockPasswordValidator = mock(PasswordValidator.class);
         doThrow(new InvalidPasswordException("Password must be at least 1 characters in length."))
                 .when(mockPasswordValidator).validate(null);
         doThrow(new InvalidPasswordException("Password must be at least 1 characters in length."))
                 .when(mockPasswordValidator).validate(eq(""));
         scimUserEndpoints.setPasswordValidator(mockPasswordValidator);
 
-        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         jdbcScimGroupMembershipManager.setScimUserProvisioning(jdbcScimUserProvisioning);
-        JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        jdbcScimGroupMembershipManager.setScimGroupProvisioning(gdao);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
-        gdao.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+        jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
-        scimGroupEndpoints = new ScimGroupEndpoints(gdao, jdbcScimGroupMembershipManager);
         scimGroupEndpoints.setGroupMaxCount(5);
+        scimUserEndpoints.setUserMaxCount(5);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
@@ -167,17 +157,9 @@ class ScimUserEndpointsTests {
         map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
         scimUserEndpoints.setStatuses(map);
 
-        jdbcApprovalStore = new JdbcApprovalStore(jdbcTemplate);
         scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
 
         scimUserEndpoints.setIsSelfCheck(new IsSelfCheck(null));
-    }
-
-    @AfterAll
-    static void tearDown() {
-        if (embeddedDatabase != null) {
-            embeddedDatabase.shutdown();
-        }
     }
 
     @AfterEach
@@ -221,13 +203,9 @@ class ScimUserEndpointsTests {
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         assertNotNull(created);
         verify(mockPasswordValidator, verificationMode).validate("password");
-        checkCreatedPassword(created, expectedPassword);
-    }
-
-    private void checkCreatedPassword(ScimUser created, String expectedPassword) {
         jdbcTemplate.query("select password from users where id=?",
                 rs -> {
-                    assertTrue(fakePasswordEncoder.matches(expectedPassword, rs.getString(1)));
+                    assertTrue(passwordEncoder.matches(expectedPassword, rs.getString(1)));
                 },
                 created.getId());
     }
@@ -290,8 +268,6 @@ class ScimUserEndpointsTests {
 
     @Test
     void approvalsIsSyncedCorrectlyOnUpdate() {
-
-
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setPassword("password");
@@ -369,7 +345,6 @@ class ScimUserEndpointsTests {
         verify(mockPasswordValidator).validate("some bad password");
     }
 
-
     @Test
     void userWithNoEmailNotAllowed() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
@@ -382,7 +357,6 @@ class ScimUserEndpointsTests {
             String message = e.getMessage();
             assertTrue("Wrong message: " + message, message.contains("email"));
         }
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(embeddedDatabase);
         int count = jdbcTemplate.queryForObject("select count(*) from users where userName=?", new Object[]{"dave"}, Integer.class);
         assertEquals(0, count);
     }
@@ -414,7 +388,6 @@ class ScimUserEndpointsTests {
         assertEquals("bla bla", passwords.getAllValues().get(0));
         assertEquals("", passwords.getAllValues().get(1));
     }
-
 
     private void create_user_when_internal_user_management_is_disabled(String origin) {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
@@ -460,10 +433,9 @@ class ScimUserEndpointsTests {
         ReflectionTestUtils.setField(user, "password", "foo");
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(embeddedDatabase);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
                 created.getId());
-        assertTrue(fakePasswordEncoder.matches("foo", password));
+        assertTrue(passwordEncoder.matches("foo", password));
     }
 
     @Test
@@ -586,11 +558,25 @@ class ScimUserEndpointsTests {
 
     @Test
     void testFindGroupsAndApprovals() {
-        ScimUserEndpoints spy = spy(scimUserEndpoints);
-        SearchResults<?> results = spy.findUsers("id,groups,approvals", "id pr", null, "ascending", 1, 100);
+        ScimGroupMembershipManager mockScimGroupMembershipManager = mock(ScimGroupMembershipManager.class);
+        scimUserEndpoints.setScimGroupMembershipManager(mockScimGroupMembershipManager);
+
+        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
+        scimUserEndpoints.setApprovalStore(mockApprovalStore);
+
+        String isJoelOrDaleFilter = SCIMFilter.createOrFilter(asList(
+                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), joel.getId()),
+                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), dale.getId()))).toString();
+
+        SearchResults<?> results = scimUserEndpoints.findUsers("id,groups,approvals", isJoelOrDaleFilter, null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        verify(spy, times(2)).syncGroups(any(ScimUser.class));
-        verify(spy, times(2)).syncApprovals(any(ScimUser.class));
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), false, IdentityZoneHolder.get().getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), true, IdentityZoneHolder.get().getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), false, IdentityZoneHolder.get().getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), true, IdentityZoneHolder.get().getId());
+
+        verify(mockApprovalStore).getApprovalsForUser(joel.getId(), IdentityZoneHolder.get().getId());
+        verify(mockApprovalStore).getApprovalsForUser(dale.getId(), IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -686,8 +672,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
         verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
-
-        scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
     }
 
     @Test
@@ -697,8 +681,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
         verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
-
-        scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
     }
 
     @Test
@@ -708,8 +690,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         verifyZeroInteractions(mockgroupMembershipManager);
-
-        scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
     }
 
     @Test
@@ -719,8 +699,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
         verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
-
-        scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 
     @Test
@@ -730,8 +708,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
         verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
-
-        scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 
     @Test
@@ -741,8 +717,6 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         verifyZeroInteractions(mockApprovalStore);
-
-        scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 
     @Test
