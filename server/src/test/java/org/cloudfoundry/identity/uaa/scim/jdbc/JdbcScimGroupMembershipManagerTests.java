@@ -135,12 +135,12 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     private void addGroup(String id, String name, String zoneId) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name, zoneId));
     }
 
     private void addUser(String id, String password, String zoneId) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, "", zoneId));
     }
 

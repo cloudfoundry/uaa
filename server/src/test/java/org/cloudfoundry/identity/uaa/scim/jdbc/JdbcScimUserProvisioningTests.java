@@ -118,7 +118,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private void addUser(String id, String username, String password, String email, String givenName,
                          String familyName, String phoneNumber, String identityProviderId, String identityZoneId) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, username, password, email, givenName, familyName,
             phoneNumber, identityZoneId));
     }

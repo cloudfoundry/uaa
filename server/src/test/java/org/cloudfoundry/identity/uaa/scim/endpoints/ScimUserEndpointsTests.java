@@ -181,8 +181,8 @@ class ScimUserEndpointsTests {
     }
 
     @AfterEach
-    void cleanUp() throws Exception {
-        TestUtils.deleteFrom(database, "group_membership", "users", "groups", "authz_approvals");
+    void cleanUp() {
+        TestUtils.deleteFrom(jdbcTemplate, "group_membership", "users", "groups", "authz_approvals");
         IdentityZoneHolder.clear();
     }
 

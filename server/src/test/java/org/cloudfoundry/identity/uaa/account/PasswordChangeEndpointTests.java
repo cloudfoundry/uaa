@@ -95,8 +95,8 @@ public class PasswordChangeEndpointTests {
     }
 
     @AfterClass
-    public static void tearDown() throws Exception {
-        TestUtils.deleteFrom(database, "users", "groups", "group_membership");
+    public static void tearDown() {
+        TestUtils.deleteFrom(new JdbcTemplate(database), "users", "groups", "group_membership");
         if (database != null) {
             database.shutdown();
         }

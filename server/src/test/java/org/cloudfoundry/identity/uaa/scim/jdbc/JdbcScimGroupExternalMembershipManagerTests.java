@@ -75,7 +75,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     }
 
     private void addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name, IdentityZoneHolder.get().getId()));
     }
 

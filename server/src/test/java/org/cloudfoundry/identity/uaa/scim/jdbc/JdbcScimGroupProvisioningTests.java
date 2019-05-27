@@ -461,7 +461,7 @@ class JdbcScimGroupProvisioningTests {
     }
 
     private ScimGroup addGroup(String id, String name, String zoneId) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.update(JdbcScimGroupProvisioning.ADD_GROUP_SQL,
                 id,
                 name,

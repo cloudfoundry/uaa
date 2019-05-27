@@ -112,7 +112,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
 
     @Before
     public  void initScimGroupEndpointsTests() throws Exception {
-        TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
+        TestUtils.deleteFrom(jdbcTemplate, "users", "groups", "group_membership");
         JdbcTemplate template = jdbcTemplate;
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, LimitSqlAdapterFactory.getLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
