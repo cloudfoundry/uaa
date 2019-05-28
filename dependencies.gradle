@@ -49,7 +49,7 @@ ext {
 
 def versions = [:]
 
-versions.jacksonVersion = '2.9.8'
+versions.jacksonVersion = '2.9.9'
 
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
