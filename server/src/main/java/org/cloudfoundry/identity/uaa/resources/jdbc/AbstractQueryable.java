@@ -9,9 +9,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.google.common.primitives.Ints.tryParse;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
@@ -95,29 +97,30 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     protected abstract void validateOrderBy(String orderBy) throws IllegalArgumentException;
 
-    protected void validateOrderBy(String orderBy, String fields) throws IllegalArgumentException {
-        if (!StringUtils.hasText(orderBy)) {
+    protected void validateOrderBy(final String csvRequestedOrderBy, final String csvAllowedFields) throws IllegalArgumentException {
+        if (!StringUtils.hasText(csvRequestedOrderBy)) {
             return;
         }
-        String[] input = StringUtils.commaDelimitedListToStringArray(orderBy);
-        Set<String> compare = new HashSet<>();
-        StringUtils.commaDelimitedListToSet(fields)
-                .stream()
-                .forEach(p -> compare.add(p.toLowerCase().trim()));
-        boolean allints = true;
-        for (String s : input) {
-            try {
-                Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                allints = false;
-                if (!compare.contains(s.toLowerCase().trim())) {
-                    throw new IllegalArgumentException("Invalid sort field:" + s);
-                }
-            }
-        }
-        if (allints) {
-            return;
-        }
-    }
 
+        Set<String> lowerCaseRequestedOrderBy = StringUtils.commaDelimitedListToSet(csvRequestedOrderBy)
+                .stream()
+                .map(String::toLowerCase)
+                .map(String::trim)
+                .collect(Collectors.toSet());
+
+        Set<String> lowerCaseAllowedFields = StringUtils.commaDelimitedListToSet(csvAllowedFields)
+                .stream()
+                .map(String::toLowerCase)
+                .map(String::trim)
+                .collect(Collectors.toSet());
+
+        lowerCaseRequestedOrderBy
+                .stream()
+                .filter(s -> null == tryParse(s)) // non-integers
+                .filter(s -> !lowerCaseAllowedFields.contains(s))
+                .findFirst()
+                .ifPresent(s -> {
+                    throw new IllegalArgumentException("Invalid sort field: " + s);
+                });
+    }
 }

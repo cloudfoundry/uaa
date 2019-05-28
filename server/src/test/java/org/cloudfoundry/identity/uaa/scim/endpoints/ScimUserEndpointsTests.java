@@ -770,7 +770,18 @@ class ScimUserEndpointsTests {
 
     @Test
     void testInvalidOrderByExpression() {
-        assertThrowsWithMessageThat(ScimException.class, () -> endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100), containsString("Invalid filter"));
+        assertThrowsWithMessageThat(
+                ScimException.class,
+                () -> endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100),
+                containsString("Invalid filter"));
+    }
+
+    @Test
+    void cannotOrderBySalt() {
+        assertThrowsWithMessageThat(
+                ScimException.class,
+                () -> endpoints.findUsers("id", "", "salt", "ascending", 1, 100),
+                containsString("Invalid filter"));
     }
 
     @Test

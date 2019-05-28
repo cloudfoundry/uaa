@@ -504,7 +504,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
-        super.validateOrderBy(orderBy, USER_FIELDS);
+        super.validateOrderBy(orderBy, USER_FIELDS.replace(",salt", ""));
     }
 
     @Override

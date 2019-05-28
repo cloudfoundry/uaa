@@ -45,30 +45,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -941,6 +926,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void canRetrieveUsersWithSortBy() {
         assertEquals(2 + existingUserCount, db.query("username pr", "username", true, IdentityZoneHolder.get().getId()).size());
+    }
+
+    @Test
+    public void throwsExceptionWhenSortByIncludesThePrivateFieldSalt() {
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> db.query("id pr", "ID,     salt     ", true, IdentityZoneHolder.get().getId()).size(),
+                is("Invalid sort field: salt")
+        );
     }
 
     @Test

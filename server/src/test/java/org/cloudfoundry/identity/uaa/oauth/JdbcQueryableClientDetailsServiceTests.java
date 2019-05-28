@@ -22,6 +22,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 
 public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
@@ -89,5 +91,13 @@ public class JdbcQueryableClientDetailsServiceTests extends JdbcTestBase {
         IdentityZoneHolder.set(otherZone);
         testQueryExists();
         assertEquals(8,delegate.getTotalCount());
+    }
+
+    @Test
+    public void throwsExceptionWhenSortByIncludesPrivateFieldClientSecret() {
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> service.query("client_id pr", "client_id,client_secret", true, IdentityZoneHolder.get().getId()).size(),
+                is("Invalid sort field: client_secret")
+        );
     }
 }
