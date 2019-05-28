@@ -30,8 +30,8 @@ dependencies {
         exclude(module: 'jna')
     }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
-    runtime group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
-    runtime group: 'org.springframework.retry', name: 'spring-retry', version: parent.springRetryVersion
+    runtime libraries.springSecurityConfig
+    runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
     providedCompile libraries.javaxServletApi
@@ -55,10 +55,10 @@ dependencies {
     testCompile libraries.zxing
     testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
     testCompile group: 'org.skyscreamer', name: 'jsonassert', version: '0.9.0'
-    testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-    testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
+    testCompile libraries.springTest
+    testCompile libraries.springSecurityTest
     testCompile libraries.mockito
-    testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version: parent.tomcatJdbcPoolVersion
+    testCompile libraries.tomcatJdbc
     testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
 }
 

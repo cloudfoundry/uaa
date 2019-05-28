@@ -4,26 +4,26 @@ dependencies {
 
     compile project(':cloudfoundry-identity-model')
 
-    compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version: parent.tomcatJdbcPoolVersion
+    compile libraries.tomcatJdbc
     provided libraries.javaxServletApi
     compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
     compile libraries.commonsLogging
     compile libraries.jsonPath
     compile libraries.zxing
-    compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
-    compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
-    compile group: 'org.springframework', name: 'spring-tx', version: parent.springVersion
-    compile group: 'org.springframework', name: 'spring-jdbc', version: parent.springVersion
-    compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
-    compile group: 'org.springframework', name: 'spring-context-support', version: springVersion
-    compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
-    compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
+    compile libraries.springBeans
+    compile libraries.springContext
+    compile libraries.springContextSupport
+    compile libraries.springTx
+    compile libraries.springJdbc
+    compile libraries.springWeb
+    compile libraries.springSecurityCore
+    compile libraries.springSecurityJwt
     compile libraries.apacheHttpClient
-    compile group: 'org.springframework.security', name: 'spring-security-web', version: parent.springSecurityVersion
-    compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version: parent.springSecuritySamlVersion
+    compile libraries.springSecurityWeb
+    compile libraries.springSecuritySaml
 
-    compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
+    compile(libraries.springSecurityOauth) {
         exclude(module: 'commons-codec')
         exclude(module: 'jackson-mapper-asl')
         exclude(module: 'spring-security-web')
@@ -37,9 +37,9 @@ dependencies {
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
 
-    compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
-    compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
-    compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
+    compile libraries.thymeleafSpring4
+    compile libraries.thymeleafDialect
+    compile libraries.thymeleafExtrasSpringSecurity4
     compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.2'
 
     compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.18') {
@@ -56,9 +56,9 @@ dependencies {
 
     compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
 
-    compile group: 'org.springframework.security', name: 'spring-security-ldap', version: parent.springSecurityVersion
-    compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version: parent.springSecurityLdapVersion
-    compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version: parent.springSecurityLdapVersion
+    compile libraries.springSecurityLdap
+    compile libraries.springLdapCore
+    compile libraries.springLdapCoreTiger
     compile(libraries.apacheLdapApi) {
         exclude(module: 'slf4j-api')
     }
@@ -76,7 +76,7 @@ dependencies {
 
     testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
-    testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+    testCompile libraries.springTest
 
     testCompile(libraries.junit) {
         exclude(module: 'hamcrest-core')
@@ -90,9 +90,9 @@ dependencies {
     testCompile libraries.powermockJunit4
     testCompile libraries.powermockMockito
 
-    testCompile group: 'org.apache.tomcat', name: 'tomcat-el-api', version: parent.tomcatJdbcPoolVersion
-    testCompile group: 'org.apache.tomcat', name: 'tomcat-jasper-el', version: parent.tomcatJdbcPoolVersion
-    testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version: parent.tomcatJdbcPoolVersion
+    testCompile libraries.tomcatElApi
+    testCompile libraries.tomcatJasperEl
+    testCompile libraries.tomcatJdbc
 
     testCompile libraries.jsonPathAssert
 }

@@ -17,7 +17,7 @@ dependencies {
 
     providedCompile libraries.javaxServletApi
     runtime group: 'javax.servlet', name: 'jstl', version: '1.2'
-    runtime(group: 'org.springframework.security', name: 'spring-security-config', version: identityParent.springSecurityVersion) {
+    runtime(libraries.springSecurityConfig) {
         exclude(module: 'spring-aop')
     }
 
