@@ -2,44 +2,44 @@ description = 'CloudFoundry Identity Model JAR'
 
 dependencies {
 
-  compile project(':cloudfoundry-identity-metrics-data')
+    compile project(':cloudfoundry-identity-metrics-data')
 
-  compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
+    compile group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
 
-  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
-  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
-  compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
+    compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+    compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
+    compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
 
-  compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
-    exclude(module: 'jackson-mapper-asl')
-    exclude(module: 'spring-security-web')
-  }
+    compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
+        exclude(module: 'jackson-mapper-asl')
+        exclude(module: 'spring-security-web')
+    }
 
-  compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 
-  testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
-    exclude(module: 'hamcrest-core')
-  }
+    testCompile(libraries.junit) {
+        exclude(module: 'hamcrest-core')
+    }
 
-  compileOnly 'org.projectlombok:lombok:1.18.6'
-  annotationProcessor 'org.projectlombok:lombok:1.18.6'
-  testCompile 'org.skyscreamer:jsonassert:1.5.0'
+    compileOnly 'org.projectlombok:lombok:1.18.6'
+    annotationProcessor 'org.projectlombok:lombok:1.18.6'
+    testCompile 'org.skyscreamer:jsonassert:1.5.0'
 }
 
 apply from: file('build_properties.gradle')
 
 configurations.all {
-   exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    exclude group: 'org.slf4j', module: 'slf4j-log4j12'
 }
 
 processResources {
-  //maven replaces project.artifactId in the log4j.properties file
-  //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-model') : line }
+    //maven replaces project.artifactId in the log4j.properties file
+    //https://www.pivotaltracker.com/story/show/74344574
+    filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-model') : line }
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any
-  false
+    false
 }

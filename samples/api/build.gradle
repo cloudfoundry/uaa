@@ -15,7 +15,7 @@ dependencies {
 
   compile identityServer
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
+  providedCompile libraries.javaxServletApi
   compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')

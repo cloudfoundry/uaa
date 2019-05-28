@@ -29,12 +29,12 @@ dependencies {
     compile(project(':cloudfoundry-identity-server')) {
         exclude(module: 'jna')
     }
-    compile group: 'cglib', name: 'cglib', version: parent.cglibVersion
+    compile group: 'cglib', name: 'cglib', version: '3.2.5'
     runtime group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
     runtime group: 'org.springframework.retry', name: 'spring-retry', version: parent.springRetryVersion
-    runtime group: 'org.aspectj', name: 'aspectjweaver', version: parent.aspectJVersion
-    runtime group: 'org.postgresql', name: 'postgresql', version: parent.postgresqlVersion
-    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+    runtime libraries.aspectJWeaver
+    runtime libraries.postgresql
+    providedCompile libraries.javaxServletApi
 
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
@@ -49,15 +49,15 @@ dependencies {
         exclude(module: 'slf4j-api')
         exclude(module: 'slf4j-log4j12')
     }
-    testCompile group: 'junit', name: 'junit', version: parent.junitVersion
-    testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: parent.seleniumJavaVersion
+    testCompile libraries.junit
+    testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '3.9.1'
     testCompile group: 'dumbster', name: 'dumbster', version: '1.6'
-    testCompile group: 'com.google.zxing', name: 'core', version: parent.zxingVersion
+    testCompile libraries.zxing
     testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
     testCompile group: 'org.skyscreamer', name: 'jsonassert', version: '0.9.0'
     testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
     testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
-    testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
+    testCompile libraries.mockito
     testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version: parent.tomcatJdbcPoolVersion
     testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
 }

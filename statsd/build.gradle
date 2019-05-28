@@ -22,10 +22,10 @@ dependencies {
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: parent.springBootVersion
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-log4j2', version: parent.springBootVersion
     compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+    compile libraries.apacheHttpClient
+    providedCompile libraries.javaxServletApi
     providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
-    testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
+    testCompile libraries.mockito
     testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
 
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.3'
