@@ -14,10 +14,9 @@ package org.cloudfoundry.identity.statsd;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.management.LazyCompositeData;
 
 import javax.management.*;
-import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularDataSupport;
 import java.util.*;
 
@@ -97,17 +96,9 @@ public class MBeanMap extends AbstractMap<String, Object>{
 	}
 
 	private Object getCompositeWrapper(Object value, boolean prettifyKeys) {
-		if (value instanceof CompositeDataSupport) {
-			Map<Object, Object> map = new HashMap<Object, Object>();
-			CompositeDataSupport composite = (CompositeDataSupport) value;
-			for (String key : composite.getCompositeType().keySet()) {
-				safePut(map, key, composite.get(key));
-			}
-			return map;
-		}
-		if (value instanceof LazyCompositeData) {
-			Map<Object, Object> map = new HashMap<Object, Object>();
-			LazyCompositeData composite = (LazyCompositeData) value;
+		if (value instanceof CompositeData) {
+			Map<Object, Object> map = new HashMap<>();
+			CompositeData composite = (CompositeData) value;
 			for (String key : composite.getCompositeType().keySet()) {
 				safePut(map, key, composite.get(key));
 			}
