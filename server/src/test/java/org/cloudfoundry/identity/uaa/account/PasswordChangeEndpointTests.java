@@ -13,17 +13,18 @@ import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-public class PasswordChangeEndpointTests {
+class PasswordChangeEndpointTests {
 
     private ScimUser joel;
 
@@ -33,8 +34,8 @@ public class PasswordChangeEndpointTests {
 
     private static EmbeddedDatabase database;
 
-    @BeforeClass
-    public static void init() {
+    @BeforeAll
+    static void init() {
         IdentityZoneHolder.clear();
 
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
@@ -46,8 +47,8 @@ public class PasswordChangeEndpointTests {
         flyway.migrate();
     }
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(
                 jdbcTemplate,
@@ -65,8 +66,8 @@ public class PasswordChangeEndpointTests {
         dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
     }
 
-    @After
-    public void clean() {
+    @AfterEach
+    void clean() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         if (joel != null) {
             jdbcTemplate.update("delete from users where id=?", joel.getId());
@@ -76,8 +77,8 @@ public class PasswordChangeEndpointTests {
         }
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @AfterAll
+    static void tearDown() {
         TestUtils.deleteFrom(new JdbcTemplate(database), "users", "groups", "group_membership");
         if (database != null) {
             database.shutdown();
@@ -92,7 +93,7 @@ public class PasswordChangeEndpointTests {
     }
 
     @Test
-    public void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
+    void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
@@ -101,7 +102,7 @@ public class PasswordChangeEndpointTests {
     }
 
     @Test
-    public void passwordIsValidated() {
+    void passwordIsValidated() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordValidator mockPasswordValidator = mock(PasswordValidator.class);
         endpoints.setPasswordValidator(mockPasswordValidator);
@@ -112,17 +113,17 @@ public class PasswordChangeEndpointTests {
         verify(mockPasswordValidator).validate("newpassword");
     }
 
-    @Test(expected = ScimException.class)
-    public void userCantChangeAnotherUsersPassword() {
+    @Test
+    void userCantChangeAnotherUsersPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
-        endpoints.changePassword(dale.getId(), change);
+        assertThrows(ScimException.class, () -> endpoints.changePassword(dale.getId(), change));
     }
 
     @Test
-    public void adminCanChangeAnotherUsersPassword() {
+    void adminCanChangeAnotherUsersPassword() {
         SecurityContextAccessor sca = mockSecurityContext(dale);
         when(sca.isAdmin()).thenReturn(true);
         endpoints.setSecurityContextAccessor(sca);
@@ -131,24 +132,24 @@ public class PasswordChangeEndpointTests {
         endpoints.changePassword(joel.getId(), change);
     }
 
-    @Test(expected = ScimException.class)
-    public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
+    @Test
+    void changePasswordRequestFailsForUserWithoutCurrentPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
-        endpoints.changePassword(joel.getId(), change);
-    }
-
-    @Test(expected = ScimException.class)
-    public void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
-        endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-        PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword("newpassword");
-        endpoints.changePassword(joel.getId(), change);
+        assertThrows(ScimException.class, () -> endpoints.changePassword(joel.getId(), change));
     }
 
     @Test
-    public void clientCanChangeUserPasswordWithoutCurrentPassword() {
+    void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
+        endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
+        PasswordChangeRequest change = new PasswordChangeRequest();
+        change.setPassword("newpassword");
+        assertThrows(ScimException.class, () -> endpoints.changePassword(joel.getId(), change));
+    }
+
+    @Test
+    void clientCanChangeUserPasswordWithoutCurrentPassword() {
         SecurityContextAccessor sca = mockSecurityContext(joel);
         when(sca.isClient()).thenReturn(true);
         endpoints.setSecurityContextAccessor(sca);
@@ -157,27 +158,24 @@ public class PasswordChangeEndpointTests {
         endpoints.changePassword(joel.getId(), change);
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
+    @Test
+    void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         change.setOldPassword("wrongpassword");
-        endpoints.changePassword(joel.getId(), change);
+        assertThrows(BadCredentialsException.class, () -> endpoints.changePassword(joel.getId(), change));
     }
 
     @Test
-    public void changePasswordFailsForNewPasswordIsSameAsCurrentPassword() {
+    void changePasswordFailsForNewPasswordIsSameAsCurrentPassword() {
         endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("password");
         change.setOldPassword("password");
-        try {
-            endpoints.changePassword(joel.getId(), change);
-            fail();
-        } catch (InvalidPasswordException e) {
-            assertEquals("Your new password cannot be the same as the old password.", e.getLocalizedMessage());
-        }
+        assertThrowsWithMessageThat(InvalidPasswordException.class,
+                () -> endpoints.changePassword(joel.getId(), change),
+                is("Your new password cannot be the same as the old password."));
     }
 
 }
