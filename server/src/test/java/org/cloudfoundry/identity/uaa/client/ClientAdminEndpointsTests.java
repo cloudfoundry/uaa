@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.beans.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +65,7 @@ class ClientAdminEndpointsTests {
 
     private QueryableResourceManager<ClientDetails> clientDetailsService = null;
 
-    private SecurityContextAccessor securityContextAccessor = null;
+    private SecurityContextAccessor mockSecurityContextAccessor;
 
     private MultitenantClientServices clientRegistrationService = null;
 
@@ -99,13 +98,13 @@ class ClientAdminEndpointsTests {
         clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
         when(clientDetailsService.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         ResourceMonitor clientDetailsResourceMonitor = mock(ResourceMonitor.class);
-        securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
+        mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(MultitenantClientServices.class, withSettings().extraInterfaces(SystemDeletable.class));
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         ApprovalStore approvalStore = mock(ApprovalStore.class);
         clientDetailsValidator = new ClientAdminEndpointsValidator();
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
-        clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
+        clientDetailsValidator.setSecurityContextAccessor(mockSecurityContextAccessor);
         clientDetailsValidator.setClientSecretValidator(
                 new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)));
 
@@ -115,7 +114,7 @@ class ClientAdminEndpointsTests {
         endpoints.setClientMaxCount(5);
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
-        endpoints.setSecurityContextAccessor(securityContextAccessor);
+        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor);
         endpoints.setAuthenticationManager(authenticationManager);
         endpoints.setApprovalStore(approvalStore);
         endpoints.setClientDetailsValidator(clientDetailsValidator);
@@ -185,11 +184,6 @@ class ClientAdminEndpointsTests {
     @AfterEach
     void tearDown() {
         IdentityZoneHolder.clear();
-    }
-
-    private void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        endpoints.setSecurityContextAccessor(securityContextAccessor);
-        clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
     }
 
     @Test
@@ -585,10 +579,8 @@ class ClientAdminEndpointsTests {
         when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn(detail.getClientId());
-        when(sca.isClient()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -600,11 +592,9 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testAddSecret() {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
@@ -618,11 +608,9 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testAddingThirdSecretForClient() {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         detail.setClientSecret("hash1 hash2");
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
@@ -636,11 +624,9 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testDeleteSecret() {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         detail.setClientSecret("hash1 hash2");
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
@@ -653,11 +639,9 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testDeleteSecretWhenOnlyOneSecret() {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         detail.setClientSecret("hash1");
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
@@ -672,10 +656,8 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn(detail.getClientId());
-        when(sca.isClient()).thenReturn(false);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(false);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -688,11 +670,9 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(false);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -705,11 +685,9 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("bar");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(false);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -726,11 +704,9 @@ class ClientAdminEndpointsTests {
         when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
 
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn(detail.getClientId());
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(false);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -743,11 +719,9 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("admin");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("admin");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -765,11 +739,9 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), testZone.getId())).thenReturn(detail);
 
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn("admin");
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
-        setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("admin");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -779,7 +751,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testRemoveClientDetailsAdminCaller() throws Exception {
-        Mockito.when(securityContextAccessor.isAdmin()).thenReturn(true);
+        Mockito.when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
         Mockito.when(clientDetailsService.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(detail);
         ClientDetails result = endpoints.removeClientDetails("foo");
         assertNull(result.getClientSecret());
@@ -798,12 +770,7 @@ class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public String getClientId() {
-                return "caller";
-            }
-        });
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setScope(Collections.singletonList("some"));
         assertThrows(InvalidClientDetailsException.class, () -> endpoints.createClientDetails(detail));
     }
@@ -813,12 +780,7 @@ class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public String getClientId() {
-                return "caller";
-            }
-        });
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setScope(Collections.singletonList("none"));
         endpoints.createClientDetails(detail);
     }
@@ -828,12 +790,7 @@ class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public String getClientId() {
-                return "caller";
-            }
-        });
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setScope(Collections.singletonList(detail.getClientId() + ".read"));
         endpoints.createClientDetails(detail);
     }
@@ -850,12 +807,7 @@ class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public String getClientId() {
-                return "caller";
-            }
-        });
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.some"));
         assertThrows(InvalidClientDetailsException.class, () -> endpoints.createClientDetails(detail));
     }
@@ -865,12 +817,7 @@ class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public String getClientId() {
-                return "caller";
-            }
-        });
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         endpoints.createClientDetails(detail);
     }
@@ -908,12 +855,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void implicitAndAuthorizationCodeClientIsRejectedForAdmin() {
-        setSecurityContextAccessor(new StubSecurityContextAccessor() {
-            @Override
-            public boolean isAdmin() {
-                return true;
-            }
-        });
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
         detail.setAuthorizedGrantTypes(Arrays.asList("implicit", GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret("hello");
         assertThrows(InvalidClientDetailsException.class, () -> endpoints.createClientDetails(detail));
@@ -928,7 +870,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateNonImplicitClientWithEmptySecretIsOk() throws Exception {
-        Mockito.when(securityContextAccessor.isAdmin()).thenReturn(true);
+        Mockito.when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
         detail.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret(null);
         endpoints.updateClientDetails(detail, detail.getClientId());
