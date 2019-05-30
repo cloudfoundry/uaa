@@ -10,11 +10,12 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.is;
@@ -29,27 +30,28 @@ class PasswordChangeEndpointTests {
 
     private PasswordChangeEndpoint passwordChangeEndpoint;
 
-    @BeforeAll
-    static void init() {
-        IdentityZoneHolder.clear();
-    }
-
     @BeforeEach
     void setup(@Autowired JdbcTemplate jdbcTemplate) {
-        JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(
+        final JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
                 new FakePasswordEncoder());
 
-        passwordChangeEndpoint = new PasswordChangeEndpoint();
-        passwordChangeEndpoint.setScimUserProvisioning(dao);
+        final RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+        final String currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
+        final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+
+        passwordChangeEndpoint = new PasswordChangeEndpoint(mockIdentityZoneManager);
+        passwordChangeEndpoint.setScimUserProvisioning(jdbcScimUserProvisioning);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail("jdsa@vmware.com");
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
-        joel = dao.createUser(joel, "password", IdentityZoneHolder.get().getId());
-        dale = dao.createUser(dale, "password", IdentityZoneHolder.get().getId());
+        joel = jdbcScimUserProvisioning.createUser(joel, "password", currentIdentityZoneId);
+        dale = jdbcScimUserProvisioning.createUser(dale, "password", currentIdentityZoneId);
     }
 
     @AfterEach
