@@ -197,14 +197,12 @@
     </bean>
 
     <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="passwordValidator" ref="uaaPasswordValidator" />
-        <property name="messageConverters">
+        <constructor-arg>
             <list>
                 <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
-        </property>
+        </constructor-arg>
     </bean>
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"

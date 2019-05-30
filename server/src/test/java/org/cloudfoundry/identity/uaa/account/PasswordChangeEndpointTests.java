@@ -29,10 +29,13 @@ class PasswordChangeEndpointTests {
     private ScimUser dale;
 
     private PasswordChangeEndpoint passwordChangeEndpoint;
+    private IdentityZoneManager mockIdentityZoneManager;
+    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    private PasswordValidator mockPasswordValidator;
 
     @BeforeEach
     void setup(@Autowired JdbcTemplate jdbcTemplate) {
-        final JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
                 new FakePasswordEncoder());
@@ -40,11 +43,15 @@ class PasswordChangeEndpointTests {
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
         final String currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
-        final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
 
-        passwordChangeEndpoint = new PasswordChangeEndpoint(mockIdentityZoneManager);
-        passwordChangeEndpoint.setScimUserProvisioning(jdbcScimUserProvisioning);
+        mockPasswordValidator = mock(PasswordValidator.class);
+        passwordChangeEndpoint = new PasswordChangeEndpoint(
+                mockIdentityZoneManager,
+                mockPasswordValidator,
+                jdbcScimUserProvisioning,
+                null);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail("jdsa@vmware.com");
@@ -64,13 +71,6 @@ class PasswordChangeEndpointTests {
         }
     }
 
-    private SecurityContextAccessor mockSecurityContext(ScimUser user) {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        String id = user.getId();
-        when(sca.getUserId()).thenReturn(id);
-        return sca;
-    }
-
     @Test
     void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
         passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
@@ -83,8 +83,6 @@ class PasswordChangeEndpointTests {
     @Test
     void passwordIsValidated() {
         passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
-        PasswordValidator mockPasswordValidator = mock(PasswordValidator.class);
-        passwordChangeEndpoint.setPasswordValidator(mockPasswordValidator);
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
@@ -155,6 +153,13 @@ class PasswordChangeEndpointTests {
         assertThrowsWithMessageThat(InvalidPasswordException.class,
                 () -> passwordChangeEndpoint.changePassword(joel.getId(), change),
                 is("Your new password cannot be the same as the old password."));
+    }
+
+    private static SecurityContextAccessor mockSecurityContext(ScimUser user) {
+        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+        String id = user.getId();
+        when(sca.getUserId()).thenReturn(id);
+        return sca;
     }
 
 }

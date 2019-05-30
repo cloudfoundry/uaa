@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -21,7 +20,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
@@ -31,35 +29,22 @@ public class PasswordChangeEndpoint {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final IdentityZoneManager identityZoneManager;
-
-    private ScimUserProvisioning scimUserProvisioning;
-
-    private PasswordValidator passwordValidator = new NullPasswordValidator();
+    private final PasswordValidator passwordValidator;
+    private final ScimUserProvisioning scimUserProvisioning;
+    private final HttpMessageConverter<?>[] messageConverters;
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-            new HttpMessageConverter<?>[0]);
-
-    public PasswordChangeEndpoint(IdentityZoneManager identityZoneManager) {
-        this.identityZoneManager = identityZoneManager;
-    }
-
-    public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
-        this.scimUserProvisioning = provisioning;
-    }
-
-    public void setPasswordValidator(PasswordValidator passwordValidator) {
-        this.passwordValidator = passwordValidator;
-    }
-
     /**
-     * Set the message body converters to use.
-     * <p>
-     * These converters are used to convert from and to HTTP requests and
-     * responses.
+     * @param messageConverters Used to convert from and to HTTP requests and responses.
      */
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+    public PasswordChangeEndpoint(final IdentityZoneManager identityZoneManager,
+                                  final PasswordValidator passwordValidator,
+                                  final ScimUserProvisioning scimUserProvisioning,
+                                  final HttpMessageConverter<?>[] messageConverters) {
+        this.identityZoneManager = identityZoneManager;
+        this.passwordValidator = passwordValidator;
+        this.scimUserProvisioning = scimUserProvisioning;
         this.messageConverters = messageConverters;
     }
 
