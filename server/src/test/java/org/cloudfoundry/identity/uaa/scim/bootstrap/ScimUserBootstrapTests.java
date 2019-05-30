@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class ScimUserBootstrapTests extends JdbcTestBase {
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         jdbcScimGroupMembershipManager.setScimUserProvisioning(jdbcScimUserProvisioning);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
-        scimUserEndpoints = new ScimUserEndpoints();
+        scimUserEndpoints = new ScimUserEndpoints(new IdentityZoneManagerImpl());
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
         scimUserEndpoints.setScimUserProvisioning(jdbcScimUserProvisioning);

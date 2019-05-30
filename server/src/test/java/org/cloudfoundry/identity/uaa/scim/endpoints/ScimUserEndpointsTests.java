@@ -18,16 +18,16 @@ import org.cloudfoundry.identity.uaa.scim.exception.*;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
-import org.junit.jupiter.api.AfterEach;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +68,7 @@ import static org.mockito.Mockito.*;
 
 @WithSpring
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(ZoneSeederExtension.class)
 class ScimUserEndpointsTests {
 
     private static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
@@ -96,6 +97,9 @@ class ScimUserEndpointsTests {
     @Autowired
     @Qualifier("nonCachingPasswordEncoder")
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     private ScimUser joel;
     private ScimUser dale;
@@ -132,9 +136,17 @@ class ScimUserEndpointsTests {
         exceptionToStatusMap.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
     }
 
+    private IdentityZone identityZone;
+
     @BeforeEach
-    void setUp() {
-        IdentityZoneHolder.clear();
+    void setUp(final ZoneSeeder zoneSeeder) {
+        zoneSeeder.withDefaults().afterSeeding(zs -> setUpAfterSeeding(zs.getIdentityZone()));
+    }
+
+    void setUpAfterSeeding(final IdentityZone identityZone) {
+        this.identityZone = identityZone;
+        identityZoneManager.setCurrentIdentityZone(this.identityZone);
+        this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
 
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
@@ -147,12 +159,11 @@ class ScimUserEndpointsTests {
         doThrow(new InvalidPasswordException("Password must be at least 1 characters in length."))
                 .when(mockPasswordValidator).validate(eq(""));
 
-        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
-        jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+        jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZone.getId()), identityZone.getId());
         scimGroupEndpoints.setGroupMaxCount(5);
 
-        joel = jdbcScimUserProvisioning.createUser(joel, "password", IdentityZoneHolder.get().getId());
-        dale = jdbcScimUserProvisioning.createUser(dale, "password", IdentityZoneHolder.get().getId());
+        joel = jdbcScimUserProvisioning.createUser(joel, "password", identityZone.getId());
+        dale = jdbcScimUserProvisioning.createUser(dale, "password", identityZone.getId());
 
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
@@ -164,12 +175,6 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setStatuses(exceptionToStatusMap);
         scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
         scimUserEndpoints.setIsSelfCheck(new IsSelfCheck(null));
-    }
-
-    @AfterEach
-    void cleanUp() {
-        TestUtils.deleteFrom(jdbcTemplate, "group_membership", "users", "groups", "authz_approvals");
-        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -219,7 +224,7 @@ class ScimUserEndpointsTests {
 
         validateUserGroups(created, "uaa.user");
 
-        ScimGroup g = new ScimGroup(null, "test1", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "test1", identityZone.getId());
         g.setMembers(Collections.singletonList(new ScimGroupMember(created.getId())));
         scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
 
@@ -260,13 +265,13 @@ class ScimUserEndpointsTests {
                 .setClientId("c1")
                 .setScope("s1")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(Approval.ApprovalStatus.APPROVED), identityZone.getId());
         jdbcApprovalStore.addApproval(new Approval()
                 .setUserId(created.getId())
                 .setClientId("c1")
                 .setScope("s2")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(Approval.ApprovalStatus.DENIED), identityZone.getId());
 
         created.setApprovals(Collections.singleton(new Approval()
                 .setUserId("vidya")
@@ -287,13 +292,13 @@ class ScimUserEndpointsTests {
                 .setClientId("c1")
                 .setScope("s1")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(Approval.ApprovalStatus.APPROVED), identityZone.getId());
         jdbcApprovalStore.addApproval(new Approval()
                 .setUserId(joel.getId())
                 .setClientId("c1")
                 .setScope("s2")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(Approval.ApprovalStatus.DENIED), identityZone.getId());
 
         assertEquals(2, scimUserEndpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }
@@ -303,7 +308,7 @@ class ScimUserEndpointsTests {
         doThrow(new InvalidPasswordException("whaddup")).when(mockPasswordValidator).validate(anyString());
         ScimUserProvisioning mockScimUserProvisioning = mock(ScimUserProvisioning.class);
         scimUserEndpoints.setScimUserProvisioning(mockScimUserProvisioning);
-        String zoneId = IdentityZoneHolder.get().getId();
+        String zoneId = identityZone.getId();
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(new ScimUser());
 
         String userName = "user@example.com";
@@ -410,7 +415,7 @@ class ScimUserEndpointsTests {
     void deleteIsAllowedWithCorrectVersionInEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         scimUserEndpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()),
                 new MockHttpServletRequest(), new MockHttpServletResponse());
     }
@@ -419,7 +424,7 @@ class ScimUserEndpointsTests {
     void deleteIsAllowedWithQuotedEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         scimUserEndpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
@@ -438,7 +443,7 @@ class ScimUserEndpointsTests {
     void deleteIsNotAllowedWithWrongVersionInEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
         exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         final String exGuyId = exGuy.getId();
         final ScimMeta exGuyMeta = exGuy.getMeta();
         assertThrows(OptimisticLockingFailureException.class, () ->
@@ -453,7 +458,7 @@ class ScimUserEndpointsTests {
     void deleteIsAllowedWithNullEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         scimUserEndpoints.deleteUser(exGuy.getId(), null, new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
@@ -461,9 +466,9 @@ class ScimUserEndpointsTests {
     void deleteUserUpdatesGroupMembership() {
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
 
-        ScimGroup g = new ScimGroup(null, "test1", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "test1", identityZone.getId());
         g.setMembers(Collections.singletonList(new ScimGroupMember(exGuy.getId())));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
@@ -474,19 +479,14 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteUserInZoneUpdatesGroupMembership() {
-        IdentityZone zone = new IdentityZone();
-        zone.setId("not-uaa");
-        zone.setSubdomain("not-uaa");
-        zone.setName("not-uaa");
-        zone.setDescription("not-uaa");
-        IdentityZoneHolder.set(zone);
+        identityZone.setId("not-uaa");
 
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
-        assertEquals(IdentityZoneHolder.get().getId(), exGuy.getZoneId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
+        assertEquals(identityZone.getId(), exGuy.getZoneId());
 
-        ScimGroup g = new ScimGroup(null, "test1", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "test1", identityZone.getId());
         g.setMembers(Collections.singletonList(new ScimGroupMember(exGuy.getId())));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
@@ -515,13 +515,13 @@ class ScimUserEndpointsTests {
 
         SearchResults<?> results = scimUserEndpoints.findUsers("id,groups,approvals", isJoelOrDaleFilter, null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), false, IdentityZoneHolder.get().getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), true, IdentityZoneHolder.get().getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), false, IdentityZoneHolder.get().getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), true, IdentityZoneHolder.get().getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), false, identityZone.getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), true, identityZone.getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), false, identityZone.getId());
+        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), true, identityZone.getId());
 
-        verify(mockApprovalStore).getApprovalsForUser(joel.getId(), IdentityZoneHolder.get().getId());
-        verify(mockApprovalStore).getApprovalsForUser(dale.getId(), IdentityZoneHolder.get().getId());
+        verify(mockApprovalStore).getApprovalsForUser(joel.getId(), identityZone.getId());
+        verify(mockApprovalStore).getApprovalsForUser(dale.getId(), identityZone.getId());
     }
 
     @Test
@@ -616,7 +616,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
     }
 
     @Test
@@ -625,7 +625,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         scimUserEndpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()));
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
     }
 
     @Test
@@ -643,7 +643,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setApprovalStore(mockApprovalStore);
 
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(identityZone.getId()));
     }
 
     @Test
@@ -652,7 +652,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setApprovalStore(mockApprovalStore);
 
         scimUserEndpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
-        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(IdentityZoneHolder.get().getId()));
+        verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(identityZone.getId()));
     }
 
     @Test
@@ -882,12 +882,8 @@ class ScimUserEndpointsTests {
 
     @Test
     void zeroUsersInADifferentIdentityZone() {
-        IdentityZone zone = new IdentityZone();
-        zone.setId("not-uaa");
-        zone.setSubdomain("not-uaa");
-        zone.setName("not-uaa");
-        zone.setDescription("not-uaa");
-        IdentityZoneHolder.set(zone);
+        identityZone.setId("not-uaa");
+
         SearchResults<?> results = scimUserEndpoints.findUsers("id",
                 "id pr", null, "ascending", 1, 100);
         assertEquals(0, results.getTotalResults());
@@ -1085,7 +1081,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteMfaRegistration() {
-        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
         scimUserEndpoints.deleteMfaRegistration(dale.getId());
 
         verify(mockJdbcUserGoogleMfaCredentialsProvisioning).delete(dale.getId());
@@ -1098,13 +1094,14 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteMfaRegistrationNoMfaConfigured() {
-        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
         scimUserEndpoints.deleteMfaRegistration(dale.getId());
     }
 
     @Test
     void deleteMfaRegistrationMfaNotEnabledInZone() {
-        IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
+        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
+
         scimUserEndpoints.deleteMfaRegistration(dale.getId());
     }
 
@@ -1150,7 +1147,7 @@ class ScimUserEndpointsTests {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.setOrigin(origin);
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
-        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", IdentityZoneHolder.get().getId());
+        exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         scimUserEndpoints.deleteUser(exGuy.getId(), "\"*", request, new MockHttpServletResponse());
     }
 

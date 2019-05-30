@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -130,7 +131,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         endpoints.setExternalMembershipManager(em);
         endpoints.setGroupMaxCount(20);
 
-        userEndpoints = new ScimUserEndpoints();
+        userEndpoints = new ScimUserEndpoints(new IdentityZoneManagerImpl());
         userEndpoints.setUserMaxCount(5);
         userEndpoints.setScimUserProvisioning(udao);
         userEndpoints.setIdentityProviderProvisioning(mock(JdbcIdentityProviderProvisioning.class));
