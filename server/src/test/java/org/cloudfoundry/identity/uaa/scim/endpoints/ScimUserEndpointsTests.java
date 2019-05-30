@@ -48,6 +48,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
@@ -69,6 +70,8 @@ import static org.mockito.Mockito.*;
 @WithSpring
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+// TODO: Stop using @WithSpring. It's messing up UaaTokenServicesTests.
 class ScimUserEndpointsTests {
 
     private static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
