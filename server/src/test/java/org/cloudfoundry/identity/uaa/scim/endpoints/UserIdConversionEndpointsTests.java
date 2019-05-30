@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Rule;

@@ -11,13 +11,17 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-package org.cloudfoundry.identity.uaa.security;
+package org.cloudfoundry.identity.uaa.security.beans;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import org.springframework.security.core.GrantedAuthority;
 
+/**
+ * @Deprecated. Use a mock instead.
+ */
+@Deprecated
 public class StubSecurityContextAccessor implements SecurityContextAccessor {
 
     @Override

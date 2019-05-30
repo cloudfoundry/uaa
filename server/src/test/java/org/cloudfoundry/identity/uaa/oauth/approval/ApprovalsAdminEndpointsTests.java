@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
