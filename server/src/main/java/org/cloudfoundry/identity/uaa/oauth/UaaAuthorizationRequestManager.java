@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -75,7 +74,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private String scopeSeparator = ".";
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
 
     public OAuth2RequestFactory getRequestFactory() {
         return requestFactory;
@@ -91,22 +90,15 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private IdentityProviderProvisioning providerProvisioning;
 
-    public UaaAuthorizationRequestManager(MultitenantClientServices clientDetailsService,
-                                          UaaUserDatabase userDatabase,
-                                          IdentityProviderProvisioning providerProvisioning) {
+    public UaaAuthorizationRequestManager(final MultitenantClientServices clientDetailsService,
+                                          final SecurityContextAccessor securityContextAccessor,
+                                          final UaaUserDatabase userDatabase,
+                                          final IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;
+        this.securityContextAccessor = securityContextAccessor;
         this.uaaUserDatabase = userDatabase;
         this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         this.providerProvisioning = providerProvisioning;
-    }
-
-    /**
-     * A helper to pull stuff out of the current security context.
-     *
-     * @param securityContextAccessor the securityContextAccessor to set
-     */
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        this.securityContextAccessor = securityContextAccessor;
     }
 
     /**

@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
@@ -69,7 +68,11 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
+
+    public ApprovalsAdminEndpoints(final SecurityContextAccessor securityContextAccessor) {
+        this.securityContextAccessor = securityContextAccessor;
+    }
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
@@ -77,10 +80,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
         this.messageConverters = messageConverters;
-    }
-
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        this.securityContextAccessor = securityContextAccessor;
     }
 
     public void setApprovalStore(ApprovalStore approvalStore) {

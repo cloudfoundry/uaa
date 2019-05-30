@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -82,6 +81,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     private ApprovalsAdminEndpoints endpoints;
 
     private Random random = new Random(System.currentTimeMillis());
+    private MultitenantJdbcClientDetailsService clientDetailsService;
+    private SecurityContextAccessor mockSecurityContextAccessor;
 
     @Before
     public void initApprovalsAdminEndpointsTests() {
@@ -101,18 +102,21 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertNotNull(marissa);
 
         dao = new JdbcApprovalStore(jdbcTemplate);
-        endpoints = new ApprovalsAdminEndpoints();
+        mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
+        when(mockSecurityContextAccessor.getUserName()).thenReturn(marissa.getUsername());
+        when(mockSecurityContextAccessor.getUserId()).thenReturn(marissa.getId());
+        when(mockSecurityContextAccessor.isUser()).thenReturn(true);
+
+        endpoints = new ApprovalsAdminEndpoints(mockSecurityContextAccessor);
         endpoints.setApprovalStore(dao);
         endpoints.setUaaUserDatabase(userDao);
 
-        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, new FakePasswordEncoder());
+        clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, new FakePasswordEncoder());
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                         "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Arrays.asList("true"));
         clientDetailsService.addClientDetails(details);
         endpoints.setClientDetailsService(clientDetailsService);
-
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername(), marissa.getId()));
     }
 
 
@@ -343,7 +347,9 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
         addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
         addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor("vidya", "123456"));
+
+        when(mockSecurityContextAccessor.getUserName()).thenReturn("vidya");
+        when(mockSecurityContextAccessor.getUserId()).thenReturn("123456");
         endpoints.updateApprovals(new Approval[] {new Approval()
             .setUserId(marissa.getId())
             .setClientId("c1")

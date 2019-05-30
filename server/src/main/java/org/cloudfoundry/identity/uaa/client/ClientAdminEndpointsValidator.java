@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
@@ -70,21 +69,19 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
-
+    private final SecurityContextAccessor securityContextAccessor;
 
     private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
+    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor) {
+        this.securityContextAccessor = securityContextAccessor;
+    }
 
     /**
      * @param clientDetailsService the clientDetailsService to set
      */
     public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        this.securityContextAccessor = securityContextAccessor;
     }
 
     @Override

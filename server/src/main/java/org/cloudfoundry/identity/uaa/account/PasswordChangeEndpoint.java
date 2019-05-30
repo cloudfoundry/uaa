@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
@@ -32,8 +31,7 @@ public class PasswordChangeEndpoint {
     private final PasswordValidator passwordValidator;
     private final ScimUserProvisioning scimUserProvisioning;
     private final HttpMessageConverter<?>[] messageConverters;
-
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
 
     /**
      * @param messageConverters Used to convert from and to HTTP requests and responses.
@@ -41,14 +39,12 @@ public class PasswordChangeEndpoint {
     public PasswordChangeEndpoint(final IdentityZoneManager identityZoneManager,
                                   final PasswordValidator passwordValidator,
                                   final ScimUserProvisioning scimUserProvisioning,
-                                  final HttpMessageConverter<?>[] messageConverters) {
+                                  final HttpMessageConverter<?>[] messageConverters,
+                                  final SecurityContextAccessor securityContextAccessor) {
         this.identityZoneManager = identityZoneManager;
         this.passwordValidator = passwordValidator;
         this.scimUserProvisioning = scimUserProvisioning;
         this.messageConverters = messageConverters;
-    }
-
-    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
 

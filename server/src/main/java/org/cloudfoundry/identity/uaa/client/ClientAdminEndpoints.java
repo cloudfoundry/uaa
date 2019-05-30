@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -108,7 +107,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
                     Collections.<String, String> emptyMap());
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
 
     private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
 
@@ -127,6 +126,10 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     private AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
     private int clientMaxCount;
+
+    public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor) {
+        this.securityContextAccessor = securityContextAccessor;
+    }
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
         return restrictedScopesValidator;
@@ -168,10 +171,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
      */
     public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        this.securityContextAccessor = securityContextAccessor;
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")

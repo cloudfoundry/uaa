@@ -45,9 +45,9 @@ public class UserIdConversionEndpointsTests {
 
     private IdentityProviderProvisioning provisioning = Mockito.mock(IdentityProviderProvisioning.class);
 
-    private UserIdConversionEndpoints endpoints = new UserIdConversionEndpoints(provisioning);
+    private UserIdConversionEndpoints endpoints;
 
-    private SecurityContextAccessor securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
+    private SecurityContextAccessor mockSecurityContextAccessor;
 
     private ScimUserEndpoints scimUserEndpoints = Mockito.mock(ScimUserEndpoints.class);
 
@@ -58,12 +58,13 @@ public class UserIdConversionEndpointsTests {
     @SuppressWarnings("unchecked")
     @Before
     public void init() {
+        mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor);
         endpoints.setScimUserEndpoints(scimUserEndpoints);
         endpoints.setEnabled(true);
-        when(securityContextAccessor.getAuthorities()).thenReturn(authorities);
-        when(securityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
+        when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
         when(provisioning.retrieveActive(anyString())).thenReturn(Collections.singletonList(MultitenancyFixture.identityProvider("test-origin", "uaa")));
-        endpoints.setSecurityContextAccessor(securityContextAccessor);
     }
 
     @Test

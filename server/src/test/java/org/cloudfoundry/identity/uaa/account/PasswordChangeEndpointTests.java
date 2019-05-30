@@ -32,6 +32,7 @@ class PasswordChangeEndpointTests {
     private IdentityZoneManager mockIdentityZoneManager;
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
     private PasswordValidator mockPasswordValidator;
+    private SecurityContextAccessor mockSecurityContextAccessor;
 
     @BeforeEach
     void setup(@Autowired JdbcTemplate jdbcTemplate) {
@@ -47,11 +48,12 @@ class PasswordChangeEndpointTests {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
 
         mockPasswordValidator = mock(PasswordValidator.class);
+        mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
         passwordChangeEndpoint = new PasswordChangeEndpoint(
                 mockIdentityZoneManager,
                 mockPasswordValidator,
                 jdbcScimUserProvisioning,
-                null);
+                null, mockSecurityContextAccessor);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail("jdsa@vmware.com");
@@ -59,6 +61,7 @@ class PasswordChangeEndpointTests {
         dale.addEmail("olds@vmware.com");
         joel = jdbcScimUserProvisioning.createUser(joel, "password", currentIdentityZoneId);
         dale = jdbcScimUserProvisioning.createUser(dale, "password", currentIdentityZoneId);
+        when(mockSecurityContextAccessor.getUserId()).thenReturn(joel.getId());
     }
 
     @AfterEach
@@ -73,7 +76,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
@@ -82,7 +84,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void passwordIsValidated() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
@@ -92,7 +93,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void userCantChangeAnotherUsersPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
@@ -101,9 +101,8 @@ class PasswordChangeEndpointTests {
 
     @Test
     void adminCanChangeAnotherUsersPassword() {
-        SecurityContextAccessor sca = mockSecurityContext(dale);
-        when(sca.isAdmin()).thenReturn(true);
-        passwordChangeEndpoint.setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.getUserId()).thenReturn(dale.getId());
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         passwordChangeEndpoint.changePassword(joel.getId(), change);
@@ -111,7 +110,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void changePasswordRequestFailsForUserWithoutCurrentPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         assertThrows(ScimException.class, () -> passwordChangeEndpoint.changePassword(joel.getId(), change));
@@ -119,7 +117,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         assertThrows(ScimException.class, () -> passwordChangeEndpoint.changePassword(joel.getId(), change));
@@ -127,9 +124,7 @@ class PasswordChangeEndpointTests {
 
     @Test
     void clientCanChangeUserPasswordWithoutCurrentPassword() {
-        SecurityContextAccessor sca = mockSecurityContext(joel);
-        when(sca.isClient()).thenReturn(true);
-        passwordChangeEndpoint.setSecurityContextAccessor(sca);
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         passwordChangeEndpoint.changePassword(joel.getId(), change);
@@ -137,7 +132,6 @@ class PasswordChangeEndpointTests {
 
     @Test
     void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         change.setOldPassword("wrongpassword");
@@ -146,20 +140,12 @@ class PasswordChangeEndpointTests {
 
     @Test
     void changePasswordFailsForNewPasswordIsSameAsCurrentPassword() {
-        passwordChangeEndpoint.setSecurityContextAccessor(mockSecurityContext(joel));
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("password");
         change.setOldPassword("password");
         assertThrowsWithMessageThat(InvalidPasswordException.class,
                 () -> passwordChangeEndpoint.changePassword(joel.getId(), change),
                 is("Your new password cannot be the same as the old password."));
-    }
-
-    private static SecurityContextAccessor mockSecurityContext(ScimUser user) {
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        String id = user.getId();
-        when(sca.getUserId()).thenReturn(id);
-        return sca;
     }
 
 }

@@ -77,21 +77,19 @@ public class ClientAdminEndpointsValidatorTests {
         client = new BaseClientDetails("newclient","","","client_credentials","");
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
-        validator = new ClientAdminEndpointsValidator();
+        SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
+        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
         secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));
         validator.setClientSecretValidator(secretValidator);
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
-        SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);
-        when(accessor.isAdmin()).thenReturn(false);
-        when(accessor.getScopes()).thenReturn(Arrays.asList("clients.write"));
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);
+        when(mockSecurityContextAccessor.getScopes()).thenReturn(Arrays.asList("clients.write"));
         String clientId = caller.getClientId();
-        when(accessor.getClientId()).thenReturn(clientId);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(clientId);
         String zoneId = IdentityZoneHolder.get().getId();
         when(clientDetailsService.retrieve(eq(clientId), eq(zoneId))).thenReturn(caller);
         validator.setClientDetailsService(clientDetailsService);
-        validator.setSecurityContextAccessor(accessor);
-
     }
 
     @Test

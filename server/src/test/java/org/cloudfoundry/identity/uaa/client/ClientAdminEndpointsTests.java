@@ -93,18 +93,17 @@ class ClientAdminEndpointsTests {
     @BeforeEach
     void setUp() throws Exception {
         testZone.setId("testzone");
-        endpoints = spy(new ClientAdminEndpoints());
+        mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
+        endpoints = spy(new ClientAdminEndpoints(mockSecurityContextAccessor));
 
         clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
         when(clientDetailsService.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         ResourceMonitor clientDetailsResourceMonitor = mock(ResourceMonitor.class);
-        mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(MultitenantClientServices.class, withSettings().extraInterfaces(SystemDeletable.class));
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         ApprovalStore approvalStore = mock(ApprovalStore.class);
-        clientDetailsValidator = new ClientAdminEndpointsValidator();
+        clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
-        clientDetailsValidator.setSecurityContextAccessor(mockSecurityContextAccessor);
         clientDetailsValidator.setClientSecretValidator(
                 new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)));
 
@@ -114,7 +113,6 @@ class ClientAdminEndpointsTests {
         endpoints.setClientMaxCount(5);
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor);
         endpoints.setAuthenticationManager(authenticationManager);
         endpoints.setApprovalStore(approvalStore);
         endpoints.setClientDetailsValidator(clientDetailsValidator);

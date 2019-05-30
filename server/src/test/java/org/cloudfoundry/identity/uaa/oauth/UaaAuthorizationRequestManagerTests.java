@@ -18,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -75,8 +74,7 @@ class UaaAuthorizationRequestManagerTests {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
-        factory.setSecurityContextAccessor(mockSecurityContextAccessor);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, mockSecurityContextAccessor, uaaUserDatabase, providerProvisioning);
         when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(client);
         user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaaZoneId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
@@ -207,7 +205,6 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void testEmptyScopeFailsClientWithScopes() {
-        factory.setSecurityContextAccessor(mockSecurityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not empty
         assertThrowsWithMessageThat(InvalidScopeException.class, () -> factory.createAuthorizationRequest(parameters), Matchers.containsString("[one, two] is invalid. This user is not allowed any of the requested scopes"));
     }

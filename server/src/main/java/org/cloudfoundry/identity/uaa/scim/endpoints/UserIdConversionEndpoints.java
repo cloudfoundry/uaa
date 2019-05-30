@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
 
     private ScimUserEndpoints scimUserEndpoints;
 
@@ -60,11 +60,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     private boolean enabled = true;
 
-    public UserIdConversionEndpoints(IdentityProviderProvisioning provisioning) {
+    public UserIdConversionEndpoints(final IdentityProviderProvisioning provisioning,
+                                     final SecurityContextAccessor securityContextAccessor) {
         this.provisioning = provisioning;
-    }
-
-    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
 

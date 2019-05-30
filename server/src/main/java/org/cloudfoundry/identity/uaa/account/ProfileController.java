@@ -57,14 +57,9 @@ public class ProfileController {
     private final MultitenantClientServices clientDetailsService;
     private final SecurityContextAccessor securityContextAccessor;
 
-    public ProfileController(ApprovalStore approvalsService,
-                             MultitenantClientServices clientDetailsService) {
-        this(approvalsService, clientDetailsService, new DefaultSecurityContextAccessor());
-    }
-
-    public ProfileController(ApprovalStore approvalsService,
-                             MultitenantClientServices clientDetailsService,
-                             SecurityContextAccessor securityContextAccessor) {
+    public ProfileController(final ApprovalStore approvalsService,
+                             final MultitenantClientServices clientDetailsService,
+                             final SecurityContextAccessor securityContextAccessor) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;

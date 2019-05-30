@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.After;
@@ -117,7 +118,8 @@ public class Saml2TokenGranterTest {
         granter = new Saml2TokenGranter(
             tokenServices,
             clientDetailsService,
-            requestFactory);
+            requestFactory,
+            new DefaultSecurityContextAccessor());
         samltoken = new SAMLAuthenticationToken(samlcontext);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

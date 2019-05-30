@@ -89,13 +89,7 @@ public class ScimGroupEndpoints {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
-
     private int groupMaxCount;
-
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-        this.securityContextAccessor = securityContextAccessor;
-    }
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
