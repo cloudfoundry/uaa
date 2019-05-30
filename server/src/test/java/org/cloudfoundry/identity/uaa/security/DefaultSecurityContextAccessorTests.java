@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,9 +31,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultSecurityContextAccessorTests {
 
+    private DefaultSecurityContextAccessor defaultSecurityContextAccessor;
+
     @AfterEach
     void clearContext() {
         SecurityContextHolder.clearContext();
+    }
+
+    @BeforeEach
+    void setUp() {
+        defaultSecurityContextAccessor = new DefaultSecurityContextAccessor();
     }
 
     @Test
@@ -40,7 +48,7 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("client", "secret", UaaAuthority.ADMIN_AUTHORITIES));
 
-        assertFalse(new DefaultSecurityContextAccessor().isUser());
+        assertFalse(defaultSecurityContextAccessor.isUser());
     }
 
     @Test
@@ -48,7 +56,7 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 UaaAuthenticationTestFactory.getAuthentication("1234", "user", "user@test.org"));
 
-        assertTrue(new DefaultSecurityContextAccessor().isUser());
+        assertTrue(defaultSecurityContextAccessor.isUser());
     }
 
     @Test
@@ -56,7 +64,7 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("user", "password", UaaAuthority.ADMIN_AUTHORITIES));
 
-        assertTrue(new DefaultSecurityContextAccessor().isAdmin());
+        assertTrue(defaultSecurityContextAccessor.isAdmin());
     }
 
     @Test
@@ -65,7 +73,7 @@ class DefaultSecurityContextAccessorTests {
         authorizationRequest.setScope(UaaAuthority.ADMIN_AUTHORITIES.stream().map(UaaAuthority::getAuthority).collect(Collectors.toList()));
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
 
-        assertTrue(new DefaultSecurityContextAccessor().isAdmin());
+        assertTrue(defaultSecurityContextAccessor.isAdmin());
     }
 
     @Test
@@ -82,7 +90,7 @@ class DefaultSecurityContextAccessorTests {
         authorizationRequest.setResourceIdsAndAuthoritiesFromClientDetails(client);
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
 
-        assertTrue(new DefaultSecurityContextAccessor().isAdmin());
+        assertTrue(defaultSecurityContextAccessor.isAdmin());
     }
 
     @Test
@@ -99,7 +107,7 @@ class DefaultSecurityContextAccessorTests {
         authorizationRequest.setResourceIdsAndAuthoritiesFromClientDetails(client);
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
 
-        assertFalse(new DefaultSecurityContextAccessor().isAdmin());
+        assertFalse(defaultSecurityContextAccessor.isAdmin());
     }
 
     @Test
@@ -112,6 +120,6 @@ class DefaultSecurityContextAccessorTests {
         authentication.setDetails(new OAuth2AuthenticationDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        assertTrue(new DefaultSecurityContextAccessor().isAdmin());
+        assertTrue(defaultSecurityContextAccessor.isAdmin());
     }
 }
