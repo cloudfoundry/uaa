@@ -4,8 +4,6 @@ import org.cloudfoundry.identity.uaa.annotations.WithSpring;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -18,10 +16,12 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +54,7 @@ import static org.mockito.Mockito.*;
 
 @WithSpring
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 // TODO: Stop using @WithSpring. It's messing up UaaTokenServicesTests.
 class ScimGroupEndpointsTests {
@@ -82,12 +83,22 @@ class ScimGroupEndpointsTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private IdentityZone identityZone;
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
+
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp(final ZoneSeeder zoneSeeder) {
+        zoneSeeder.withDefaults().afterSeeding(zs -> setUpAfterSeeding(zs.getIdentityZone()));
+    }
+
+    private void setUpAfterSeeding(final IdentityZone identityZone) throws Exception {
+        this.identityZone = identityZone;
+        identityZoneManager.setCurrentIdentityZone(this.identityZone);
         TestUtils.deleteFrom(jdbcTemplate, "users", "groups", "group_membership");
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
-        jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+        this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
+        jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
 
         scimGroupEndpoints.setGroupMaxCount(20);
 
@@ -123,11 +134,15 @@ class ScimGroupEndpointsTests {
         externalGroupBootstrap.afterPropertiesSet();
     }
 
+    private void setUpAfterSeeding() {
+
+    }
+
     private String addGroup(String name, List<ScimGroupMember> m) {
-        ScimGroup g = new ScimGroup(null, name, IdentityZoneHolder.get().getId());
-        g = jdbcScimGroupProvisioning.create(g, IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, name, identityZoneManager.getCurrentIdentityZoneId());
+        g = jdbcScimGroupProvisioning.create(g, identityZoneManager.getCurrentIdentityZoneId());
         for (ScimGroupMember member : m) {
-            jdbcScimGroupMembershipManager.addMember(g.getId(), member, IdentityZoneHolder.get().getId());
+            jdbcScimGroupMembershipManager.addMember(g.getId(), member, identityZoneManager.getCurrentIdentityZoneId());
         }
         return g.getId();
     }
@@ -138,16 +153,16 @@ class ScimGroupEndpointsTests {
             id = scimUserEndpoints.createUser(TestUtils.scimUserInstance(id), new MockHttpServletRequest(), new MockHttpServletResponse()).getId();
             userIds.add(id);
         } else {
-            id = jdbcScimGroupProvisioning.create(new ScimGroup(null, id, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId()).getId();
+            id = jdbcScimGroupProvisioning.create(new ScimGroup(null, id, identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId()).getId();
             groupIds.add(id);
         }
         return new ScimGroupMember(id, t);
     }
 
     private void deleteGroup(String name) {
-        for (ScimGroup g : jdbcScimGroupProvisioning.query("displayName eq \"" + name + "\"", IdentityZoneHolder.get().getId())) {
-            jdbcScimGroupProvisioning.delete(g.getId(), g.getVersion(), IdentityZoneHolder.get().getId());
-            jdbcScimGroupMembershipManager.removeMembersByGroupId(g.getId(), IdentityZoneHolder.get().getId());
+        for (ScimGroup g : jdbcScimGroupProvisioning.query("displayName eq \"" + name + "\"", identityZoneManager.getCurrentIdentityZoneId())) {
+            jdbcScimGroupProvisioning.delete(g.getId(), g.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
+            jdbcScimGroupMembershipManager.removeMembersByGroupId(g.getId(), identityZoneManager.getCurrentIdentityZoneId());
         }
     }
 
@@ -184,7 +199,7 @@ class ScimGroupEndpointsTests {
     @Test
     void testListGroupsWithAttributesWithoutMembersDoesNotQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager);
         scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
         scimGroupEndpoints.setGroupMaxCount(20);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
@@ -195,7 +210,7 @@ class ScimGroupEndpointsTests {
     void testListGroupsWithAttributesWithMembersDoesQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
         when(memberManager.getMembers(anyString(), eq(false), eq("uaa"))).thenReturn(Collections.emptyList());
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager);
         scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
         scimGroupEndpoints.setGroupMaxCount(20);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,members", "id pr", "created", "ascending", 1, 100), 11);
@@ -377,7 +392,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testCreateGroup() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = scimGroupEndpoints.createGroup(g, httpServletResponse);
@@ -391,7 +406,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testCreateExistingGroupFails() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         try {
@@ -406,7 +421,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testCreateGroupWithInvalidMemberFails() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)));
 
         try {
@@ -420,7 +435,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroup() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -436,7 +451,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupQuotedEtag() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -452,7 +467,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupRemoveMembers() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -468,7 +483,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupNullEtag() {
-        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
         validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
@@ -481,7 +496,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupNoEtag() {
-        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
         validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
@@ -494,7 +509,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupInvalidEtag() {
-        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
         validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
@@ -507,11 +522,11 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateNonUniqueDisplayNameFails() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
-        ScimGroup g2 = new ScimGroup(null, "clients.write", IdentityZoneHolder.get().getId());
+        ScimGroup g2 = new ScimGroup(null, "clients.write", identityZoneManager.getCurrentIdentityZoneId());
         g2.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g2 = scimGroupEndpoints.createGroup(g2, new MockHttpServletResponse());
 
@@ -530,7 +545,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateWithInvalidMemberFails() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
@@ -556,7 +571,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateInvalidVersionFails() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
@@ -575,7 +590,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupWithNullEtagFails() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
@@ -594,7 +609,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateWithQuotedVersionSucceeds() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
@@ -610,7 +625,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateWrongVersionFails() {
-        ScimGroup g1 = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
@@ -628,7 +643,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testUpdateGroupWithNoMembers() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -643,7 +658,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testDeleteGroup() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -661,9 +676,9 @@ class ScimGroupEndpointsTests {
     void testDeleteGroupRemovesMembershipsInZone() {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         zone.getConfig().getUserConfig().setDefaultGroups(emptyList());
-        IdentityZoneHolder.set(zone);
+        identityZoneManager.setCurrentIdentityZone(zone);
 
-        ScimGroup group = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup group = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         ScimGroupMember member = createMember(ScimGroupMember.Type.GROUP);
         group.setMembers(Collections.singletonList(member));
 
@@ -677,7 +692,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testDeleteWrongVersionFails() {
-        ScimGroup g = new ScimGroup(null, "clients.read", IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
 
@@ -731,10 +746,10 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testPatch() {
-        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         g1.setDescription("description");
 
-        g1 = jdbcScimGroupProvisioning.create(g1, IdentityZoneHolder.get().getId());
+        g1 = jdbcScimGroupProvisioning.create(g1, identityZoneManager.getCurrentIdentityZoneId());
 
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(g1.getId());
@@ -747,7 +762,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testPatchInvalidResourceFails() {
-        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         g1.setDescription("description");
 
         assertThrows(ScimException.class,
@@ -756,10 +771,10 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testPatchAddMembers() {
-        ScimGroup g1 = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        ScimGroup g1 = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         g1.setDescription("description");
 
-        g1 = jdbcScimGroupProvisioning.create(g1, IdentityZoneHolder.get().getId());
+        g1 = jdbcScimGroupProvisioning.create(g1, identityZoneManager.getCurrentIdentityZoneId());
 
         ScimGroup patch = new ScimGroup();
         assertNull(g1.getMembers());
@@ -776,10 +791,10 @@ class ScimGroupEndpointsTests {
 
     @Test
     void testPatchIncorrectEtagFails() {
-        ScimGroup scimGroup = new ScimGroup(null, "name", IdentityZoneHolder.get().getId());
+        ScimGroup scimGroup = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setDescription("description");
 
-        final ScimGroup createdScimGroup = jdbcScimGroupProvisioning.create(scimGroup, IdentityZoneHolder.get().getId());
+        final ScimGroup createdScimGroup = jdbcScimGroupProvisioning.create(scimGroup, identityZoneManager.getCurrentIdentityZoneId());
 
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(scimGroup.getId());
