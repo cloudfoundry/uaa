@@ -432,8 +432,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Object accessToken = tokens.get(ACCESS_TOKEN);
         Object jti = tokens.get(JTI);
         assertNotNull(accessToken);
-        assertNotNull(JTI);
-
+        assertNotNull(jti);
     }
 
     @Test
