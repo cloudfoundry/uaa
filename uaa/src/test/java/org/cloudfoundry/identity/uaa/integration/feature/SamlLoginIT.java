@@ -51,8 +51,6 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.logging.LogType;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,7 +78,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
@@ -96,7 +93,6 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -255,14 +251,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        // We need to verify the last request URL through the performance log because the redirect
-        // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
-        // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
-
-        List<LogEntry> logEntries = webDriver.manage().logs().get(LogType.PERFORMANCE).getAll();
-        List<String> logMessages = logEntries.stream().map(logEntry -> logEntry.getMessage()).collect(Collectors.toList());
-
-        assertThat(logMessages, hasItem(containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.")));
+        assertThat(webDriver.getCurrentUrl(), containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
 
     @Test

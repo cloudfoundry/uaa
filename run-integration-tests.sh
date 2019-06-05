@@ -33,7 +33,7 @@ esac
 if [[ -z "${DOCKER_IMAGE+x}" ]]; then
     DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
-
+echo "Using docker image: ${DOCKER_IMAGE}"
 docker run --privileged -t -i --shm-size=1G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
