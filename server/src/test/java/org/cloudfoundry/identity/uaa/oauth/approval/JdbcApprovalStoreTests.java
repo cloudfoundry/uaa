@@ -1,25 +1,28 @@
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
@@ -28,11 +31,11 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class JdbcApprovalStoreTests extends JdbcTestBase {
+@WithDatabaseContext
+class JdbcApprovalStoreTests {
 
     private JdbcApprovalStore jdbcApprovalStore;
 
@@ -42,15 +45,17 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
+    @BeforeEach
+    void setUp() {
         IdentityZoneHolder.clear();
         otherZone = MultitenancyFixture.identityZone("other-zone", "other-domain");
-        for (String userId : Arrays.asList("u1", "u2", "u3")) {
-            testAccounts.addRandomUser(jdbcTemplate, userId);
-        }
+
+        Stream.of("u1", "u2", "u3").forEach(
+                userId -> testAccounts.addRandomUser(jdbcTemplate, userId)
+        );
 
         jdbcApprovalStore = spy(new JdbcApprovalStore(jdbcTemplate));
 
@@ -62,8 +67,14 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         addApproval(jdbcTemplate, jdbcApprovalStore, "u2", "c1", "openid", 6000, APPROVED, UAA);
     }
 
+    @AfterEach
+    void tearDown() {
+        jdbcTemplate.execute("delete from users");
+        jdbcTemplate.execute("delete from authz_approvals");
+    }
+
     @Test
-    public void deleteZoneDeletesApprovals() {
+    void deleteZoneDeletesApprovals() {
         String zoneId = IdentityZoneHolder.getUaaZone().getId();
         assertEquals(3, countZoneApprovals(jdbcTemplate, zoneId));
         jdbcApprovalStore.deleteByIdentityZone(zoneId);
@@ -71,7 +82,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteOtherZone() {
+    void deleteOtherZone() {
         String zoneId = otherZone.getId();
         String uaaZoneID = IdentityZoneHolder.getUaaZone().getId();
 
@@ -83,7 +94,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteProviderDeletesApprovals() {
+    void deleteProviderDeletesApprovals() {
         addApproval(jdbcTemplate, jdbcApprovalStore, "u4", "c1", "openid", 6000, APPROVED, LDAP);
         String zoneId = IdentityZoneHolder.getUaaZone().getId();
         assertEquals(4, countZoneApprovals(jdbcTemplate, zoneId));
@@ -92,7 +103,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteOtherProvider() {
+    void deleteOtherProvider() {
         addApproval(jdbcTemplate, jdbcApprovalStore, "u4", "c1", "openid", 6000, APPROVED, LDAP);
         String zoneId = otherZone.getId();
         String uaaZoneID = IdentityZoneHolder.getUaaZone().getId();
@@ -105,7 +116,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteClient() {
+    void deleteClient() {
         String zoneId = IdentityZoneHolder.getUaaZone().getId();
         String otherZoneId = otherZone.getId();
         assertEquals(2, countClientApprovals(jdbcTemplate, "c1", zoneId));
@@ -119,7 +130,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteUser() {
+    void deleteUser() {
         String zoneId = IdentityZoneHolder.getUaaZone().getId();
         String otherZoneId = otherZone.getId();
         assertEquals(2, countUserApprovals(jdbcTemplate, "u1", zoneId));
@@ -133,7 +144,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void addAndGetApproval() {
+    void addAndGetApproval() {
         String userId = "user";
         String clientId = "client";
         String scope = "uaa.user";
@@ -163,7 +174,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetApprovals() {
+    void canGetApprovals() {
         assertEquals(2, jdbcApprovalStore.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size());
         assertEquals(1, jdbcApprovalStore.getApprovals("u2", "c1", IdentityZoneHolder.get().getId()).size());
         assertEquals(0, jdbcApprovalStore.getApprovals("u2", "c2", IdentityZoneHolder.get().getId()).size());
@@ -171,7 +182,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void canAddApproval() {
+    void canAddApproval() {
         assertTrue(jdbcApprovalStore.addApproval(new Approval()
                 .setUserId("u2")
                 .setClientId("c2")
@@ -187,7 +198,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void approvalsIsZoneAware() {
+    void approvalsIsZoneAware() {
         assertThat(jdbcApprovalStore.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size(), equalTo(2));
         assertThat(jdbcApprovalStore.getApprovalsForClient("c2", IdentityZoneHolder.get().getId()).size(), equalTo(1));
         assertThat(jdbcApprovalStore.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size(), equalTo(0));
@@ -210,14 +221,14 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRevokeApprovals() {
+    void canRevokeApprovals() {
         assertEquals(2, jdbcApprovalStore.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
         assertTrue(jdbcApprovalStore.revokeApprovalsForUser("u1", IdentityZoneHolder.get().getId()));
         assertEquals(0, jdbcApprovalStore.getApprovalsForUser("u1", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
-    public void canRevokeSingleApproval() {
+    void canRevokeSingleApproval() {
         List<Approval> approvals = jdbcApprovalStore.getApprovalsForUser("u1", IdentityZoneHolder.get().getId());
         assertEquals(2, approvals.size());
 
@@ -230,7 +241,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void addSameApprovalRepeatedlyUpdatesExpiry() {
+    void addSameApprovalRepeatedlyUpdatesExpiry() {
         Date timeFromNow = Approval.timeFromNow(6000);
         assertTrue(jdbcApprovalStore.addApproval(new Approval()
                 .setUserId("u2")
@@ -255,7 +266,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void refreshApprovalCallsGetZoneId() {
+    void refreshApprovalCallsGetZoneId() {
         Approval app = jdbcApprovalStore.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         IdentityZone spy = spy(IdentityZoneHolder.get());
         IdentityZoneHolder.set(spy);
@@ -264,7 +275,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRefreshApproval() {
+    void canRefreshApproval() {
         Approval app = jdbcApprovalStore.getApprovals("u1", "c1", IdentityZoneHolder.get().getId()).iterator().next();
         Date now = new Date();
 
@@ -279,7 +290,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void canPurgeExpiredApprovals() throws InterruptedException {
+    void canPurgeExpiredApprovals() throws InterruptedException {
         assertEquals(0, jdbcApprovalStore.getApprovalsForClient("c3", IdentityZoneHolder.get().getId()).size());
         assertEquals(0, jdbcApprovalStore.getApprovalsForUser("u3", IdentityZoneHolder.get().getId()).size());
         assertEquals(2, jdbcApprovalStore.getApprovalsForClient("c1", IdentityZoneHolder.get().getId()).size());
@@ -301,7 +312,7 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void addingAndUpdatingAnApprovalPublishesEvents() {
+    void addingAndUpdatingAnApprovalPublishesEvents() {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
         Approval approval = new Approval()
@@ -318,24 +329,24 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
         jdbcApprovalStore.addApproval(approval, IdentityZoneHolder.get().getId());
 
-        Assert.assertEquals(1, eventPublisher.getEventCount());
+        assertEquals(1, eventPublisher.getEventCount());
 
         ApprovalModifiedEvent addEvent = eventPublisher.getLatestEvent();
-        Assert.assertEquals(approval, addEvent.getSource());
-        Assert.assertEquals(authentication, addEvent.getAuthentication());
-        Assert.assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"APPROVED\"}", addEvent.getAuditEvent().getData());
+        assertEquals(approval, addEvent.getSource());
+        assertEquals(authentication, addEvent.getAuthentication());
+        assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"APPROVED\"}", addEvent.getAuditEvent().getData());
 
         approval.setStatus(DENIED);
 
         eventPublisher.clearEvents();
         jdbcApprovalStore.addApproval(approval, IdentityZoneHolder.get().getId());
 
-        Assert.assertEquals(1, eventPublisher.getEventCount());
+        assertEquals(1, eventPublisher.getEventCount());
 
         ApprovalModifiedEvent modifyEvent = eventPublisher.getLatestEvent();
-        Assert.assertEquals(approval, modifyEvent.getSource());
-        Assert.assertEquals(authentication, modifyEvent.getAuthentication());
-        Assert.assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"DENIED\"}", addEvent.getAuditEvent().getData());
+        assertEquals(approval, modifyEvent.getSource());
+        assertEquals(authentication, modifyEvent.getAuthentication());
+        assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"DENIED\"}", addEvent.getAuditEvent().getData());
     }
 
     private static void addApproval(
