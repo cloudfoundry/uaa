@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -112,7 +111,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public boolean addApproval(final Approval approval, final String zoneId) {
         logger.debug(String.format("adding approval: [%s]", approval));
         try {
-            refreshApproval(approval, IdentityZoneHolder.get().getId()); // try to refresh the approval
+            refreshApproval(approval, zoneId); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
             // approval. add it.
             int count = jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
