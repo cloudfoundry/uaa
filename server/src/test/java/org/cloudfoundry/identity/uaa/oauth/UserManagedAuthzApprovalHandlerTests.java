@@ -30,9 +30,10 @@ import static org.mockito.Mockito.when;
 
 public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
-    private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
+    private UserManagedAuthzApprovalHandler handler;
 
     private ApprovalStore approvalStore;
+    private BaseClientDetails mockBaseClientDetails;
 
     private String userId;
 
@@ -47,19 +48,17 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     @Before
     public void initUserManagedAuthzApprovalHandlerTests() {
         approvalStore = new JdbcApprovalStore(jdbcTemplate);
-        handler.setApprovalStore(approvalStore);
-        handler.setClientDetailsService(
-                mockClientDetailsService(
-                        "foo",
-                        new String[]{
-                                "cloud_controller.read",
-                                "cloud_controller.write",
-                                "openid",
-                                "space.*.developer"
-                        },
-                        Collections.emptySet()
-                )
-        );
+        QueryableResourceManager<ClientDetails> mockClientDetailsService = mock(QueryableResourceManager.class);
+        mockBaseClientDetails = mock(BaseClientDetails.class);
+        when(mockClientDetailsService.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(mockBaseClientDetails);
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid",
+                "space.*.developer")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(Collections.emptySet());
+        handler = new UserManagedAuthzApprovalHandler(approvalStore, mockClientDetailsService);
+
         userId = "userId-" + new RandomValueStringGenerator().generate();
         mockAuthentication = mock(AuthenticationWithGetId.class);
         when(mockAuthentication.isAuthenticated()).thenReturn(true);
@@ -204,17 +203,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        handler.setClientDetailsService(
-                mockClientDetailsService(
-                        "foo",
-                        new String[]{
-                                "cloud_controller.read",
-                                "cloud_controller.write",
-                                "openid"
-                        },
-                        singleton("true")
-                )
-        );
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -357,14 +350,11 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        handler.setClientDetailsService(mockClientDetailsService(
-                "foo",
-                new String[]{
-                        "cloud_controller.read",
-                        "cloud_controller.write",
-                        "openid"
-                },
-                singleton("cloud_controller.write")));
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("cloud_controller.write"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -413,14 +403,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         autoApprovedScopes.add("space.*.developer");
         autoApprovedScopes.add("cloud_controller.write");
 
-        handler.setClientDetailsService(mockClientDetailsService(
-                "foo",
-                new String[]{
-                        "cloud_controller.read",
-                        "cloud_controller.write",
-                        "openid",
-                        "space.*.developer"
-                }, autoApprovedScopes));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -471,15 +454,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        handler.setClientDetailsService(mockClientDetailsService(
-                "foo",
-                new String[]{
-                        "cloud_controller.read",
-                        "cloud_controller.write",
-                        "openid",
-                        "space.*.developer"
-                },
-                singleton("true")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -546,16 +521,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         // requested
         assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Collections.singletonList("openid")), request.getScope());
-    }
-
-    private static QueryableResourceManager<ClientDetails> mockClientDetailsService(String id, String[] scope, Set<String> autoApprovedScopes) {
-        @SuppressWarnings("unchecked")
-        QueryableResourceManager<ClientDetails> service = mock(QueryableResourceManager.class);
-        BaseClientDetails details = mock(BaseClientDetails.class);
-        when(service.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(details);
-        when(details.getScope()).thenReturn(new HashSet<>(Arrays.asList(scope)));
-        when(details.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
-        return service;
     }
 
 }
