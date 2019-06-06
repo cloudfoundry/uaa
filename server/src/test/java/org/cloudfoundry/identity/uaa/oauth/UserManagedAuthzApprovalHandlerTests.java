@@ -1,15 +1,17 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -24,11 +26,13 @@ import java.util.*;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
+@WithDatabaseContext
+class UserManagedAuthzApprovalHandlerTests {
 
     private UserManagedAuthzApprovalHandler handler;
 
@@ -45,8 +49,8 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     private Date nextWeek;
 
-    @Before
-    public void initUserManagedAuthzApprovalHandlerTests() {
+    @BeforeEach
+    void setUp(@Autowired JdbcTemplate jdbcTemplate) {
         approvalStore = new JdbcApprovalStore(jdbcTemplate);
         QueryableResourceManager<ClientDetails> mockClientDetailsService = mock(QueryableResourceManager.class);
         mockBaseClientDetails = mock(BaseClientDetails.class);
@@ -70,13 +74,13 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 .atZone(ZoneId.systemDefault()).toEpochSecond() * 1000);
     }
 
-    @After
-    public void cleanupDataSource() {
+    @AfterEach
+    void tearDown(@Autowired JdbcTemplate jdbcTemplate) {
         jdbcTemplate.update("delete from authz_approvals");
     }
 
     @Test
-    public void noScopeApproval() {
+    void noScopeApproval() {
         AuthorizationRequest request = new AuthorizationRequest("testclient", Collections.emptySet());
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
@@ -85,7 +89,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void noPreviouslyApprovedScopes() {
+    void noPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -100,7 +104,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void authzApprovedButNoPreviouslyApprovedScopes() {
+    void authzApprovedButNoPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -115,7 +119,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void noRequestedScopesButSomeApprovedScopes() {
+    void noRequestedScopesButSomeApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest("foo", new HashSet<>());
         request.setApproved(false);
 
@@ -138,7 +142,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesDontMatchApprovalsAtAll() {
+    void requestedScopesDontMatchApprovalsAtAll() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -166,7 +170,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void onlySomeRequestedScopeMatchesApproval() {
+    void onlySomeRequestedScopeMatchesApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -194,7 +198,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void onlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
+    void onlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -227,7 +231,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesMatchApprovalButAdditionalScopesRequested() {
+    void requestedScopesMatchApprovalButAdditionalScopesRequested() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -259,7 +263,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void allRequestedScopesMatchApproval() {
+    void allRequestedScopesMatchApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -298,7 +302,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesMatchApprovalButSomeDenied() {
+    void requestedScopesMatchApprovalButSomeDenied() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -337,7 +341,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
+    void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -385,7 +389,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
+    void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -440,7 +444,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void requestedScopesMatchByWildcard() {
+    void requestedScopesMatchByWildcard() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(
@@ -491,7 +495,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
     }
 
     @Test
-    public void someRequestedScopesMatchApproval() {
+    void someRequestedScopesMatchApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
                 "foo",
                 new HashSet<>(Collections.singletonList("openid"))
