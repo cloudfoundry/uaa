@@ -44,11 +44,8 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
     private static final String ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities ,identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s','%s')";
-
     private static final String ADD_GROUP_SQL_FORMAT = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
-
     private static final String ADD_MEMBER_SQL_FORMAT = "insert into group_membership (group_id, member_id, member_type, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s')";
-
     private static final String ADD_EXTERNAL_MAP_SQL = "insert into external_group_mapping (group_id, external_group, added, origin, identity_zone_id) values (?, ?, ?, ?, ?)";
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -89,58 +86,6 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             mapExternalGroup(g3, g3 + "-external", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
         }
         validateCount(0, jdbcTemplate);
-    }
-
-    private static void mapExternalGroup(String gId, String external, String origin, JdbcTemplate jdbcTemplate, String zoneId) {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        jdbcTemplate.update(ADD_EXTERNAL_MAP_SQL, gId, external, now, origin, zoneId);
-    }
-
-    private static void addMember(String gId, String mId, String mType, String origin, JdbcTemplate jdbcTemplate, String zoneId) {
-        gId = IdentityZone.getUaaZoneId().equals(zoneId) ? gId : zoneId + "-" + gId;
-        mId = IdentityZone.getUaaZoneId().equals(zoneId) ? mId : zoneId + "-" + mId;
-        jdbcTemplate.execute(String.format(ADD_MEMBER_SQL_FORMAT, gId, mId, mType, origin, zoneId));
-    }
-
-    private static void addGroup(String id, String name, String zoneId, JdbcTemplate jdbcTemplate) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.execute(String.format(ADD_GROUP_SQL_FORMAT, id, name, zoneId));
-    }
-
-    private static void addUser(String id, String password, String zoneId, JdbcTemplate jdbcTemplate) {
-        TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, id, password, id, id, id, id, "", zoneId));
-    }
-
-    private static void validateCount(int expected, JdbcTemplate jdbcTemplate) {
-        validateCount(expected, "No message given.", jdbcTemplate, IdentityZoneHolder.get().getId());
-    }
-
-    private static void validateCount(int expected, String msg, JdbcTemplate jdbcTemplate, String zoneId) {
-        int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from groups g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id", new Object[]{zoneId}, Integer.class);
-        assertEquals(msg, expected, existingMemberCount);
-    }
-
-    private static void validateUserGroups(String id, JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager, String zoneId, String... gNm) {
-        Set<ScimGroup> directGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(id, false, zoneId);
-        assertNotNull(directGroups);
-        Set<ScimGroup> indirectGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(id, true, zoneId);
-        indirectGroups.removeAll(directGroups);
-        assertNotNull(indirectGroups);
-
-        Set<String> expectedAuthorities = Collections.emptySet();
-        if (gNm != null) {
-            expectedAuthorities = new HashSet<>(Arrays.asList(gNm));
-        }
-        expectedAuthorities.add("uaa.user");
-
-        assertEquals(expectedAuthorities.size(), directGroups.size() + indirectGroups.size());
-        for (ScimGroup group : directGroups) {
-            assertTrue(expectedAuthorities.contains(group.getDisplayName()));
-        }
-        for (ScimGroup group : indirectGroups) {
-            assertTrue(expectedAuthorities.contains(group.getDisplayName() + ".i"));
-        }
     }
 
     @After
@@ -189,7 +134,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canDeleteWithOrigin() {
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         validateCount(0, jdbcTemplate);
@@ -197,7 +142,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canDeleteWithOrigin2() {
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.ORIGIN, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
@@ -205,7 +150,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canDeleteWithOrigin3() {
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.removeMembersByMemberId("m3", OriginKeys.UAA);
         validateCount(2, jdbcTemplate);
@@ -214,7 +159,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     @Test
     public void cannotDeleteWithFilterOutsideZone() {
         String id = generator.generate();
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         IdentityZone zone = MultitenancyFixture.identityZone(id, id);
         IdentityZoneHolder.set(zone);
@@ -225,7 +170,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canGetGroupsForMember() {
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
 
         Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember("g2", false, IdentityZoneHolder.get().getId());
         assertNotNull(groups);
@@ -234,17 +179,6 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         groups = jdbcScimGroupMembershipManager.getGroupsWithMember("m3", true, IdentityZoneHolder.get().getId());
         assertNotNull(groups);
         assertEquals(3, groups.size());
-    }
-
-    private void addMembers(String origin) {
-        addMember("g1", "m3", "USER", origin, jdbcTemplate, IdentityZoneHolder.get().getId());
-        addMember("g1", "g2", "GROUP", origin, jdbcTemplate, IdentityZoneHolder.get().getId());
-        addMember("g3", "m2", "USER", origin, jdbcTemplate, IdentityZoneHolder.get().getId());
-        addMember("g2", "m3", "USER", origin, jdbcTemplate, IdentityZoneHolder.get().getId());
-    }
-
-    private void addMembers() {
-        addMembers(OriginKeys.UAA);
     }
 
     @Test
@@ -257,7 +191,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             String userId = this.zone.getId().equals(zone.getId()) ? zone.getId() + "-" + "m3" : "m3";
             UaaUser user = new UaaUser(prototype.withId(userId).withZoneId(zone.getId()));
             IdentityZoneHolder.set(zone);
-            addMembers(OriginKeys.LDAP);
+            addMembers(OriginKeys.LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
             validateCount(4, jdbcTemplate);
             IdentityZoneHolder.clear();
             jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(user, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
@@ -270,7 +204,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void zoneDeleteClearsMemberships() {
         for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
             IdentityZoneHolder.set(zone);
-            addMembers(OriginKeys.LDAP);
+            addMembers(OriginKeys.LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
             validateCount(4, jdbcTemplate);
             IdentityZoneHolder.clear();
             jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(zone, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
@@ -282,7 +216,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     public void providerDeleteClearsMemberships() {
         for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
             IdentityZoneHolder.set(zone);
-            addMembers(OriginKeys.LDAP);
+            addMembers(OriginKeys.LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
             validateCount(4, "ZoneID: " + zone.getId(), jdbcTemplate, IdentityZoneHolder.get().getId());
             IdentityZoneHolder.clear();
             IdentityProvider provider = new IdentityProvider()
@@ -302,7 +236,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
 
         IdentityZoneHolder.set(zone);
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(3));
         assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(3));
@@ -319,7 +253,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     @Test
     public void providerDeleted() {
         IdentityZoneHolder.set(zone);
-        addMembers(LOGIN_SERVER);
+        addMembers(LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         mapExternalGroup("g1", "some-external-group", LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         mapExternalGroup("g1", "some-external-group", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?) and origin=?", new Object[]{IdentityZoneHolder.get().getId(), LOGIN_SERVER}, Integer.class), is(4));
@@ -339,7 +273,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void cannotDeleteUaaZone() {
-        addMembers();
+        addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, IdentityZoneHolder.getCurrentZoneId()));
@@ -350,7 +284,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     @Test
     public void cannotDeleteUaaProvider() {
         IdentityZoneHolder.set(zone);
-        addMembers(LOGIN_SERVER);
+        addMembers(LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(3));
         IdentityProvider loginServer =
@@ -592,6 +526,97 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         List<String> groupIds = groups.stream().map(ScimGroup::getId).collect(Collectors.toList());
         assertThat(groupIds, hasItem("g1"));
         assertThat(groupIds, hasItem("g2"));
+    }
+
+    private static void mapExternalGroup(
+            final String gId,
+            final String external,
+            final String origin,
+            final JdbcTemplate jdbcTemplate,
+            final String zoneId) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        jdbcTemplate.update(ADD_EXTERNAL_MAP_SQL, gId, external, now, origin, zoneId);
+    }
+
+    private static void addMember(
+            final String gId,
+            final String mId, final String mType,
+            final String origin,
+            final JdbcTemplate jdbcTemplate,
+            final String zoneId) {
+        final String gId_withZone = IdentityZone.getUaaZoneId().equals(zoneId) ? gId : zoneId + "-" + gId;
+        final String mId_WithZone = IdentityZone.getUaaZoneId().equals(zoneId) ? mId : zoneId + "-" + mId;
+        jdbcTemplate.execute(String.format(ADD_MEMBER_SQL_FORMAT, gId_withZone, mId_WithZone, mType, origin, zoneId));
+    }
+
+    private static void addGroup(
+            final String id,
+            final String name,
+            final String zoneId,
+            final JdbcTemplate jdbcTemplate) {
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
+        jdbcTemplate.execute(String.format(ADD_GROUP_SQL_FORMAT, id, name, zoneId));
+    }
+
+    private static void addUser(
+            final String id,
+            final String password,
+            final String zoneId,
+            final JdbcTemplate jdbcTemplate) {
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
+        jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, id, password, id, id, id, id, "", zoneId));
+    }
+
+    private static void validateCount(
+            final int expected,
+            final JdbcTemplate jdbcTemplate) {
+        validateCount(expected, "No message given.", jdbcTemplate, IdentityZoneHolder.get().getId());
+    }
+
+    private static void validateCount(
+            final int expected,
+            final String msg,
+            final JdbcTemplate jdbcTemplate,
+            final String zoneId) {
+        int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from groups g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id", new Object[]{zoneId}, Integer.class);
+        assertEquals(msg, expected, existingMemberCount);
+    }
+
+    private static void validateUserGroups(
+            final String memberId,
+            final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager,
+            final String zoneId,
+            final String... gNm) {
+        Set<ScimGroup> directGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(memberId, false, zoneId);
+        assertNotNull(directGroups);
+        Set<ScimGroup> indirectGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(memberId, true, zoneId);
+        indirectGroups.removeAll(directGroups);
+        assertNotNull(indirectGroups);
+
+        Set<String> expectedAuthorities = Collections.emptySet();
+        if (gNm != null) {
+            expectedAuthorities = new HashSet<>(Arrays.asList(gNm));
+        }
+        expectedAuthorities.add("uaa.user");
+
+        assertEquals(expectedAuthorities.size(), directGroups.size() + indirectGroups.size());
+        for (ScimGroup group : directGroups) {
+            assertTrue(expectedAuthorities.contains(group.getDisplayName()));
+        }
+        for (ScimGroup group : indirectGroups) {
+            assertTrue(expectedAuthorities.contains(group.getDisplayName() + ".i"));
+        }
+    }
+
+    private static void addMembers(final String origin, JdbcTemplate jdbcTemplate, final String zoneId) {
+        addMember("g1", "m3", "USER", origin, jdbcTemplate, zoneId);
+        addMember("g1", "g2", "GROUP", origin, jdbcTemplate, zoneId);
+        addMember("g3", "m2", "USER", origin, jdbcTemplate, zoneId);
+        addMember("g2", "m3", "USER", origin, jdbcTemplate, zoneId);
+    }
+
+    private static void addMembers(final JdbcTemplate jdbcTemplate, final String zoneId) {
+        addMembers(OriginKeys.UAA, jdbcTemplate, zoneId);
     }
 
 }
