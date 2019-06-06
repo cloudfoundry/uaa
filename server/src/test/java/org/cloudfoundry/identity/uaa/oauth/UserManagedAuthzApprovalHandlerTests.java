@@ -5,38 +5,44 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
-    private ApprovalStore approvalStore = null;
+    private ApprovalStore approvalStore;
 
-    private String userId = null;
-    private TestAuthentication userAuthentication;
+    private String userId;
+
+    private interface AuthenticationWithGetId extends Authentication {
+        String getId();
+    }
+
+    private AuthenticationWithGetId mockAuthentication;
+
+    private Date nextWeek;
 
     @Before
     public void initUserManagedAuthzApprovalHandlerTests() {
@@ -54,15 +60,20 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                         Collections.emptySet()
                 )
         );
-        userId = new RandomValueStringGenerator().generate();
-        testAccounts.addUser(jdbcTemplate, userId, IdentityZoneHolder.get().getId());
-        userAuthentication = new TestAuthentication(userId, testAccounts.getUserName(), true);
+        userId = "userId-" + new RandomValueStringGenerator().generate();
+        mockAuthentication = mock(AuthenticationWithGetId.class);
+        when(mockAuthentication.isAuthenticated()).thenReturn(true);
+        when(mockAuthentication.getId()).thenReturn(userId);
+
+        nextWeek = new Date(LocalDateTime
+                .now()
+                .plus(Duration.ofDays(7))
+                .atZone(ZoneId.systemDefault()).toEpochSecond() * 1000);
     }
 
     @After
     public void cleanupDataSource() {
-        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
+        jdbcTemplate.update("delete from authz_approvals");
     }
 
     @Test
@@ -71,7 +82,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
         // also not approved any scopes. Approved.
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -86,7 +97,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -101,7 +112,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -109,24 +120,21 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         AuthorizationRequest request = new AuthorizationRequest("foo", new HashSet<>());
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
                 .setStatus(APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
                 .setStatus(DENIED), IdentityZoneHolder.get().getId());
 
         // The request is approved because the user has not requested any scopes
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(0, request.getScope().size());
     }
 
@@ -140,17 +148,14 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
                 .setStatus(APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
@@ -158,7 +163,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has not yet approved the
         // scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -171,17 +176,14 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
                 .setStatus(APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
@@ -189,7 +191,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -201,9 +203,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         handler.setClientDetailsService(
                 mockClientDetailsService(
@@ -218,19 +217,19 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
 
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
                 .setStatus(DENIED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
                 .setStatus(DENIED), IdentityZoneHolder.get().getId());
 
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Arrays.asList("cloud_controller.read", "openid")), request.getScope());
     }
 
@@ -248,17 +247,14 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         );
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
                 .setStatus(APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-                .setUserId(userAuthentication.getId())
+                .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
@@ -266,7 +262,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
@@ -282,8 +278,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -306,7 +300,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Arrays.asList("openid", "cloud_controller.read", "cloud_controller.write")), request.getScope());
     }
 
@@ -323,8 +317,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -347,7 +339,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is approved because the user has acted on all requested
         // scopes
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Arrays.asList("openid", "cloud_controller.read")), request.getScope());
     }
 
@@ -364,8 +356,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         handler.setClientDetailsService(mockClientDetailsService(
                 "foo",
@@ -397,7 +387,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
                 request.getScope(),
                 Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write")
@@ -419,8 +409,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
         Set<String> autoApprovedScopes = new HashSet<>();
         autoApprovedScopes.add("space.*.developer");
         autoApprovedScopes.add("cloud_controller.write");
@@ -461,7 +449,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
                 request.getScope(),
                 Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write", "space.1.developer", "space.2.developer")
@@ -482,8 +470,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         handler.setClientDetailsService(mockClientDetailsService(
                 "foo",
@@ -522,7 +508,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
                 request.getScope(),
                 Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write", "space.1.developer")
@@ -536,8 +522,6 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 new HashSet<>(Collections.singletonList("openid"))
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -560,7 +544,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Collections.singletonList("openid")), request.getScope());
     }
 
@@ -568,50 +552,10 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
         @SuppressWarnings("unchecked")
         QueryableResourceManager<ClientDetails> service = mock(QueryableResourceManager.class);
         BaseClientDetails details = mock(BaseClientDetails.class);
-        Mockito.when(service.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(details);
-        Mockito.when(details.getScope()).thenReturn(new HashSet<>(Arrays.asList(scope)));
-        Mockito.when(details.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
+        when(service.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(details);
+        when(details.getScope()).thenReturn(new HashSet<>(Arrays.asList(scope)));
+        when(details.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
         return service;
-    }
-
-    @SuppressWarnings("serial")
-    protected static class TestAuthentication extends AbstractAuthenticationToken {
-        private final String principal;
-
-        private String name;
-        private String id;
-
-        TestAuthentication(String id, String name, boolean authenticated) {
-            super(null);
-            setAuthenticated(authenticated);
-            this.principal = name;
-            this.name = name;
-            this.id = id;
-        }
-
-        @Override
-        public Object getCredentials() {
-            return null;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return this.principal;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getId() {
-            return id;
-        }
-
     }
 
 }
