@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -17,7 +5,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -40,13 +28,16 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     private final ApprovalStore approvalStore;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
     private final int approvalExpiryInMillis;
 
     UserManagedAuthzApprovalHandler(
             final ApprovalStore approvalStore,
-            final QueryableResourceManager<ClientDetails> clientDetailsService) {
+            final QueryableResourceManager<ClientDetails> clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.approvalStore = approvalStore;
         this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
         this.approvalExpiryInMillis = -1;
     }
 
@@ -68,13 +59,14 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         // Factor in auto approved scopes
         Set<String> autoApprovedScopes = new HashSet<>();
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId(), identityZoneManager.getCurrentIdentityZoneId());
         if (client != null && requestedScopes != null) {
             autoApprovedScopes.addAll(client.getAutoApproveScopes());
             autoApprovedScopes = UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
         }
         //translate scope to user scopes - including wild cards
 
+        // TODO: the "true" case is not tested
         if (userApproval) {
             // Store the scopes that have been approved / denied
             Date expiry = computeExpiry();
@@ -102,7 +94,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                                 .setScope(requestedScope)
                                 .setExpiresAt(expiry)
                                 .setStatus(APPROVED);
-                        approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
+                        approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
                     } else {
                         Approval approval = new Approval()
                                 .setUserId(getUserId(userAuthentication))
@@ -110,7 +102,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                                 .setScope(requestedScope)
                                 .setExpiresAt(expiry)
                                 .setStatus(DENIED);
-                        approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
+                        approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
                     }
                 }
 
@@ -125,7 +117,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                                 .setScope(requestedScope)
                                 .setExpiresAt(expiry)
                                 .setStatus(DENIED);
-                        approvalStore.addApproval(approval, IdentityZoneHolder.get().getId());
+                        approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
                     }
                 }
             }
@@ -136,7 +128,10 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         } else {
             // Find the stored approvals for that user and client
-            List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication), authorizationRequest.getClientId(), IdentityZoneHolder.get().getId());
+            List<Approval> userApprovals = approvalStore.getApprovals(
+                    getUserId(userAuthentication),
+                    authorizationRequest.getClientId(),
+                    identityZoneManager.getCurrentIdentityZoneId());
 
             // Look at the scopes and see if they have expired
             Set<String> validUserApprovedScopes = new HashSet<>();

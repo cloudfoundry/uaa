@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,24 +47,32 @@ class UserManagedAuthzApprovalHandlerTests {
     }
 
     private AuthenticationWithGetId mockAuthentication;
-
     private Date nextWeek;
+    private String currentIdentityZoneId;
 
     @BeforeEach
     void setUp(@Autowired JdbcTemplate jdbcTemplate) {
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
         approvalStore = new JdbcApprovalStore(jdbcTemplate);
+
         QueryableResourceManager<ClientDetails> mockClientDetailsService = mock(QueryableResourceManager.class);
         mockBaseClientDetails = mock(BaseClientDetails.class);
-        when(mockClientDetailsService.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(mockBaseClientDetails);
+        when(mockClientDetailsService.retrieve("foo",
+                currentIdentityZoneId)).thenReturn(mockBaseClientDetails);
         when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
                 "cloud_controller.read",
                 "cloud_controller.write",
                 "openid",
                 "space.*.developer")));
         when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(Collections.emptySet());
-        handler = new UserManagedAuthzApprovalHandler(approvalStore, mockClientDetailsService);
 
-        userId = "userId-" + new RandomValueStringGenerator().generate();
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+
+        handler = new UserManagedAuthzApprovalHandler(approvalStore, mockClientDetailsService, mockIdentityZoneManager);
+
+        userId = "userId-" + generator.generate();
         mockAuthentication = mock(AuthenticationWithGetId.class);
         when(mockAuthentication.isAuthenticated()).thenReturn(true);
         when(mockAuthentication.getId()).thenReturn(userId);
@@ -128,13 +137,15 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has not requested any scopes
         assertTrue(handler.isApproved(request, mockAuthentication));
@@ -156,13 +167,15 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has not yet approved the
         // scopes requested
@@ -184,13 +197,15 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
@@ -218,13 +233,15 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(new HashSet<>(Arrays.asList("cloud_controller.read", "openid")), request.getScope());
@@ -249,13 +266,15 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
@@ -281,19 +300,22 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has approved all the scopes
         // requested
@@ -320,19 +342,22 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has acted on all requested
         // scopes
@@ -365,19 +390,22 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
@@ -414,25 +442,29 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("space.1.developer")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
@@ -465,25 +497,29 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("space.1.developer")
                 .setExpiresAt(nextWeek)
-                .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
@@ -507,19 +543,22 @@ class UserManagedAuthzApprovalHandlerTests {
                 .setClientId("foo")
                 .setScope("openid")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.read")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
                 .setClientId("foo")
                 .setScope("cloud_controller.write")
                 .setExpiresAt(nextWeek)
-                .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has approved all the scopes
         // requested
