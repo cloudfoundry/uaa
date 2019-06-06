@@ -1,25 +1,27 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -30,14 +32,16 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
+@WithDatabaseContext
+class JdbcScimGroupMembershipManagerTests {
 
     private JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
 
@@ -52,15 +56,19 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private IdentityZone zone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
 
-    @Before
-    public void initJdbcScimGroupMembershipManagerTests() {
-        JdbcTemplate template = new JdbcTemplate(dataSource);
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(template, pagingListFactory, new FakePasswordEncoder());
-        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(template, pagingListFactory);
+    @Autowired
+    private LimitSqlAdapter limitSqlAdapter;
 
-        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(template);
+    @BeforeEach
+    void setUp() {
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, new FakePasswordEncoder());
+        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+
+        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
         jdbcScimGroupMembershipManager.setScimUserProvisioning(jdbcScimUserProvisioning);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
@@ -88,13 +96,17 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateCount(0, jdbcTemplate);
     }
 
-    @After
-    public void cleanupDataSource() {
+    @AfterEach
+    void tearDown() {
+        jdbcTemplate.execute("delete from groups");
+        jdbcTemplate.execute("delete from users");
+        jdbcTemplate.execute("delete from external_group_mapping");
+        jdbcTemplate.execute("delete from group_membership");
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void defaultGroupsAreCached() {
+    void defaultGroupsAreCached() {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         List<String> defaultGroups = Arrays.asList("g1", "g2", "g3");
         zone.getConfig().getUserConfig().setDefaultGroups(defaultGroups);
@@ -109,7 +121,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteByMember() {
+    void deleteByMember() {
         addMember("g1", "m3", "USER", LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g1", "g2", "GROUP", LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g3", "m2", "USER", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -120,7 +132,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void deleteByMemberAndOrigin() {
+    void deleteByMemberAndOrigin() {
         addMember("g1", "m3", "USER", LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g1", "g2", "GROUP", LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g3", "m2", "USER", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -133,7 +145,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canDeleteWithOrigin() {
+    void canDeleteWithOrigin() {
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -141,7 +153,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canDeleteWithOrigin2() {
+    void canDeleteWithOrigin2() {
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.ORIGIN, IdentityZoneHolder.get().getId());
@@ -149,7 +161,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canDeleteWithOrigin3() {
+    void canDeleteWithOrigin3() {
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
         jdbcScimGroupMembershipManager.removeMembersByMemberId("m3", OriginKeys.UAA);
@@ -157,7 +169,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotDeleteWithFilterOutsideZone() {
+    void cannotDeleteWithFilterOutsideZone() {
         String id = generator.generate();
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(4, jdbcTemplate);
@@ -169,7 +181,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetGroupsForMember() {
+    void canGetGroupsForMember() {
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
 
         Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember("g2", false, IdentityZoneHolder.get().getId());
@@ -182,7 +194,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void userDeleteClearsMemberships() {
+    void userDeleteClearsMemberships() {
         UaaUserPrototype prototype = new UaaUserPrototype()
                 .withUsername("username")
                 .withEmail("test@test.com");
@@ -201,7 +213,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void zoneDeleteClearsMemberships() {
+    void zoneDeleteClearsMemberships() {
         for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
             IdentityZoneHolder.set(zone);
             addMembers(OriginKeys.LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -213,7 +225,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void providerDeleteClearsMemberships() {
+    void providerDeleteClearsMemberships() {
         for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
             IdentityZoneHolder.set(zone);
             addMembers(OriginKeys.LDAP, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -230,7 +242,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void zoneDeleted() {
+    void zoneDeleted() {
         String zoneAdminId = generator.generate();
         addGroup(zoneAdminId, "zones." + zone.getId() + ".admin", IdentityZone.getUaaZoneId(), jdbcTemplate);
         addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -251,7 +263,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void providerDeleted() {
+    void providerDeleted() {
         IdentityZoneHolder.set(zone);
         addMembers(LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         mapExternalGroup("g1", "some-external-group", LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -272,7 +284,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotDeleteUaaZone() {
+    void cannotDeleteUaaZone() {
         addMembers(jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         assertThat(jdbcTemplate.queryForObject("select count(*) from groups where identity_zone_id=?", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
@@ -282,7 +294,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotDeleteUaaProvider() {
+    void cannotDeleteUaaProvider() {
         IdentityZoneHolder.set(zone);
         addMembers(LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(4));
@@ -298,7 +310,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetGroupsForMemberEvenWhenCycleExistsInGroupHierarchy() {
+    void canGetGroupsForMemberEvenWhenCycleExistsInGroupHierarchy() {
         addMember("g1", "m3", "USER", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g1", "g2", "GROUP", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g2", "g3", "GROUP", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -310,7 +322,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canAddMember() {
+    void canAddMember() {
         validateCount(0, jdbcTemplate);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         ScimGroupMember m2 = jdbcScimGroupMembershipManager.addMember("g2", m1, IdentityZoneHolder.get().getId());
@@ -320,19 +332,20 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateUserGroups("m1", jdbcScimGroupMembershipManager, IdentityZoneHolder.get().getId(), "test2");
     }
 
-    @Test(expected = ScimResourceNotFoundException.class)
-    public void addMemberInDifferentZoneCausesIssues() {
+    @Test
+    void addMemberInDifferentZoneCausesIssues() {
         String subdomain = generator.generate();
         IdentityZone otherZone = MultitenancyFixture.identityZone(subdomain, subdomain);
         otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherZone);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
-        jdbcScimGroupMembershipManager.addMember("g2", m1, IdentityZoneHolder.get().getId());
+        assertThrows(ScimResourceNotFoundException.class,
+                () -> jdbcScimGroupMembershipManager.addMember("g2", m1, IdentityZoneHolder.get().getId()));
     }
 
-    @Test(expected = ScimResourceNotFoundException.class)
-    public void canAddMemberValidateOriginAndZoneId() {
+    @Test
+    void canAddMemberValidateOriginAndZoneId() {
         String subdomain = generator.generate();
         IdentityZone otherZone = MultitenancyFixture.identityZone(subdomain, subdomain);
         otherZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
@@ -340,11 +353,12 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateCount(0, jdbcTemplate);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
-        jdbcScimGroupMembershipManager.addMember("g2", m1, IdentityZoneHolder.get().getId());
+        assertThrows(ScimResourceNotFoundException.class,
+                () -> jdbcScimGroupMembershipManager.addMember("g2", m1, IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void canAddNestedGroupMember() {
+    void canAddNestedGroupMember() {
         addMember("g2", "m1", "USER", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
 
         ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP);
@@ -354,14 +368,15 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         validateUserGroups("m1", jdbcScimGroupMembershipManager, IdentityZoneHolder.get().getId(), "test1.i", "test2");
     }
 
-    @Test(expected = InvalidScimResourceException.class)
-    public void cannotNestGroupWithinItself() {
+    @Test
+    void cannotNestGroupWithinItself() {
         ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP);
-        jdbcScimGroupMembershipManager.addMember("g2", g2, IdentityZoneHolder.get().getId());
+        assertThrows(InvalidScimResourceException.class,
+                () -> jdbcScimGroupMembershipManager.addMember("g2", g2, IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void canGetMembers() {
+    void canGetMembers() {
         addMember("g1", "m1", "USER", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g1", "g2", "GROUP", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g3", "m2", "USER", "READER,WRITER", jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -377,7 +392,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetMembers_Fails_In_Other_Zone() {
+    void canGetMembers_Fails_In_Other_Zone() {
         addMember("g1", "m1", "USER", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g1", "g2", "GROUP", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g3", "m2", "USER", "READER,WRITER", jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -386,7 +401,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canReadNullFromAuthoritiesColumn() {
+    void canReadNullFromAuthoritiesColumn() {
         String addNullAuthoritySQL =
                 "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', NULL, '%s', '%s')";
         jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "uaa", IdentityZoneHolder.get().getId()));
@@ -397,7 +412,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canReadNonNullFromAuthoritiesColumn() {
+    void canReadNonNullFromAuthoritiesColumn() {
         String addNullAuthoritySQL =
                 "insert into group_membership (group_id, member_id, member_type, authorities, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s', '%s')";
         jdbcTemplate.execute(String.format(addNullAuthoritySQL, "g1", "m1", "USER", "ANYTHING", "uaa", IdentityZoneHolder.get().getId()));
@@ -408,14 +423,14 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetDefaultGroupsUsingGetGroupsForMember() {
+    void canGetDefaultGroupsUsingGetGroupsForMember() {
         Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember("m1", false, IdentityZoneHolder.get().getId());
         assertNotNull(groups);
         assertEquals(1, groups.size());
     }
 
     @Test
-    public void canGetMemberById() {
+    void canGetMemberById() {
         addMember("g3", "m2", "USER", "READER,WRITER", jdbcTemplate, IdentityZoneHolder.get().getId());
 
         ScimGroupMember m = jdbcScimGroupMembershipManager.getMemberById("g3", "m2", IdentityZoneHolder.get().getId());
@@ -423,7 +438,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canUpdateOrAddMembers() {
+    void canUpdateOrAddMembers() {
         String zoneId = IdentityZoneHolder.get().getId();
 
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), zoneId);
@@ -458,7 +473,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRemoveMemberById() {
+    void canRemoveMemberById() {
         addMember("g1", "m1", "USER", "READER", jdbcTemplate, IdentityZoneHolder.get().getId());
         validateCount(1, jdbcTemplate);
 
@@ -473,7 +488,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRemoveNestedGroupMember() {
+    void canRemoveNestedGroupMember() {
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), IdentityZoneHolder.get().getId());
         jdbcScimGroupMembershipManager.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
@@ -494,7 +509,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canRemoveAllMembers() {
+    void canRemoveAllMembers() {
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), IdentityZoneHolder.get().getId());
         jdbcScimGroupMembershipManager.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), IdentityZoneHolder.get().getId());
@@ -515,7 +530,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void canGetGroupsWithExternalMember() {
+    void canGetGroupsWithExternalMember() {
         addMember("g1", "m1", "MEMBER", zone.getId(), jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g2", "m1", "MEMBER", zone.getId(), jdbcTemplate, IdentityZoneHolder.get().getId());
 
@@ -579,7 +594,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             final JdbcTemplate jdbcTemplate,
             final String zoneId) {
         int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from groups g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id", new Object[]{zoneId}, Integer.class);
-        assertEquals(msg, expected, existingMemberCount);
+        assertEquals(expected, existingMemberCount, msg);
     }
 
     private static void validateUserGroups(
