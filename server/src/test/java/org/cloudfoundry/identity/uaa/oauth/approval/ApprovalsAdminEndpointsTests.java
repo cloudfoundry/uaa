@@ -37,26 +37,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.lang.reflect.Method;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.INSERT_BARE_BONE_USER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -87,7 +75,8 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     @Before
     public void initApprovalsAdminEndpointsTests() {
         testAccounts = UaaTestAccounts.standard(null);
-        String userId = testAccounts.addRandomUser(jdbcTemplate);
+        String id = UUID.randomUUID().toString();
+        String userId = testAccounts.addUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
@@ -367,104 +356,6 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         assertEquals(3, endpoints.getApprovals("user_id pr", 1, 100).size());
         assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
         assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
-    }
-
-    public void revokeApprovalsCountForUser(String userId) {
-        assertTrue(dao.revokeApprovalsForClient(userId, IdentityZoneHolder.get().getId()));
-    }
-
-    public void revokeApprovalsCountForClient(String clientId) {
-        assertTrue(dao.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId()));
-    }
-
-    public void revokeApprovalsCountForClientAndUser(String clientId, String userId) {
-        assertTrue(dao.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId()));
-    }
-
-    public int getApprovalsCountForUser(String userId) {
-        return dao.getApprovalsForUser(userId, IdentityZoneHolder.get().getId()).size();
-    }
-
-    public int getApprovalsCountForClient(String clientId) {
-        return dao.getApprovalsForClient(clientId, IdentityZoneHolder.get().getId()).size();
-    }
-
-    public int getApprovalsCount(String clientId, String userId) {
-        return dao.getApprovals(userId, clientId, IdentityZoneHolder.get().getId()).size();
-    }
-
-    public void rebuildIndices() {
-        sqlNoError("OPTIMIZE TABLE users");
-        sqlNoError("OPTIMIZE TABLE authz_approvals");
-        sqlNoError("REINDEX TABLE users");
-        sqlNoError("REINDEX TABLE authz_approvals");
-        sqlNoError("DBCC DBREINDEX ('users')");
-        sqlNoError("DBCC DBREINDEX ('authz_approvals')");
-    }
-
-    public void sqlNoError(String sql) {
-        try {
-            jdbcTemplate.update(sql);
-            System.err.println("Succeeded: "+sql);
-        } catch (Exception e) {
-            System.err.println("Unsuccessful: "+sql);
-        }
-    }
-
-
-    public double doWithTiming(String methodName, Object... args) throws Exception {
-        Method method = this.getClass().getMethod(methodName, Arrays.stream(args).map(a -> a.getClass()).collect(Collectors.toList()).toArray(new Class[0]));
-        double start = System.currentTimeMillis();
-        method.invoke(this, args);
-        double stop = System.currentTimeMillis();
-        double timing = (stop - start) / 1000d;
-        System.err.println(String.format("\nPerformed %s(%s) in %.4f seconds", methodName, Arrays.toString(args), timing));
-        return timing;
-    }
-
-
-
-    public void addUsers(final Integer startIndex, final Integer size) throws Exception {
-        jdbcTemplate.batchUpdate(INSERT_BARE_BONE_USER, new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
-                String userId = "user-"+(i+startIndex);
-                int pos = 1;
-                ps.setString(pos++, userId);
-                ps.setString(pos++, userId);
-                ps.setString(pos++, userId);
-                ps.setString(pos++, userId + "@test.com");
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
-            }
-
-            @Override
-            public int getBatchSize() {
-                return size;
-            }
-        });
-    }
-
-
-    public void addApprovals(final Integer minUserId, final Integer maxUserId, final Integer countPerUser) throws Exception {
-        jdbcTemplate.batchUpdate("insert into authz_approvals (user_id, client_id, scope, expiresat, status, lastmodifiedat) values (?,?,?,?,?,?)", new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
-                int index = (i+minUserId) / countPerUser;
-                String userId = "user-"+(minUserId+index);
-                int pos = 1;
-                ps.setString(pos++, userId);
-                ps.setString(pos++, "c"+random.nextInt(200));
-                ps.setString(pos++, "uaa.user."+i);
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()+300000));
-                ps.setString(pos++, "APPROVED");
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-            }
-
-            @Override
-            public int getBatchSize() {
-                return (maxUserId - minUserId) * countPerUser;
-            }
-        });
     }
 
 }

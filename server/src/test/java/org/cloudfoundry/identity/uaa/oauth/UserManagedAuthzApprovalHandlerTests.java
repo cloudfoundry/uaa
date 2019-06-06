@@ -74,7 +74,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
             )
         );
         userId = new RandomValueStringGenerator().generate();
-        testAccounts.addRandomUser(jdbcTemplate, userId);
+        testAccounts.addUser(jdbcTemplate, userId, IdentityZoneHolder.get().getId());
         userAuthentication = new TestAuthentication(userId, testAccounts.getUserName(), true);
     }
 
