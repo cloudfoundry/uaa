@@ -92,6 +92,7 @@ public interface ScimGroupMembershipManager {
 
     Set<ScimGroup> getGroupsWithExternalMember(
             final String memberId,
-            final String origin) throws ScimResourceNotFoundException;
+            final String origin,
+            final String zoneId) throws ScimResourceNotFoundException;
 
 }

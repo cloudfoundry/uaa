@@ -261,7 +261,7 @@ public class ScimUserBootstrap implements
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
             if (!OriginKeys.UAA.equals(origin)) {
-                Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin);
+                Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin, IdentityZoneHolder.get().getId());
                 Map<String, ScimGroup> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, Function.identity()));
                 Collection<? extends GrantedAuthority> externalAuthorities = exEvent.getExternalAuthorities();
                 for (GrantedAuthority authority : externalAuthorities) {

@@ -534,7 +534,7 @@ class JdbcScimGroupMembershipManagerTests {
         addMember("g1", "m1", "MEMBER", zone.getId(), jdbcTemplate, IdentityZoneHolder.get().getId());
         addMember("g2", "m1", "MEMBER", zone.getId(), jdbcTemplate, IdentityZoneHolder.get().getId());
 
-        Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithExternalMember("m1", zone.getId());
+        Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithExternalMember("m1", zone.getId(), IdentityZoneHolder.get().getId());
 
         assertThat(groups.size(), equalTo(2));
 

@@ -266,12 +266,12 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public Set<ScimGroup> getGroupsWithExternalMember(final String memberId, final String origin) throws ScimResourceNotFoundException {
+    public Set<ScimGroup> getGroupsWithExternalMember(final String memberId, final String origin, String zoneId) throws ScimResourceNotFoundException {
         List<ScimGroup> results;
 
         try {
             results = jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_MEMBER_SQL, ps -> {
-                ps.setString(1, IdentityZoneHolder.get().getId());
+                ps.setString(1, zoneId);
                 ps.setString(2, memberId);
                 ps.setString(3, origin);
             }, new ScimGroupRowMapper());
