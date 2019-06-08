@@ -22,7 +22,7 @@ versions.springSecurityJwtVersion = '1.0.8.RELEASE'
 versions.springSecurityOAuthVersion = '2.3.5.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
 versions.springSecurityVersion = '4.2.11.RELEASE'
-versions.springVersion = '4.3.22.RELEASE'
+versions.springVersion = '5.1.7.RELEASE'
 versions.tomcatJdbcPoolVersion = '8.5.32'
 
 // Dependencies relying on shared versions
