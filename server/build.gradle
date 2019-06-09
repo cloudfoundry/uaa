@@ -42,7 +42,7 @@ dependencies {
     compile libraries.thymeleafExtrasSpringSecurity4
     compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.2'
 
-    compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.18') {
+    compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.21') {
         exclude(module: 'servlet-api')
         exclude(module: 'commons-logging')
         exclude(module: 'httpclient')
