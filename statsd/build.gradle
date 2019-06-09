@@ -21,7 +21,7 @@ dependencies {
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     compile libraries.springBootStarterLog4j2
-    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
+    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.1.0'
     compile libraries.apacheHttpClient
     providedCompile libraries.javaxServletApi
     providedRuntime libraries.springBootStarterTomcat
