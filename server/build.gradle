@@ -32,7 +32,7 @@ dependencies {
     compile libraries.bouncyCastleProv
     compile libraries.bouncyCastlePkix
 
-    compile group: 'com.google.guava', name: 'guava', version: '24.1.1-jre'
+    compile group: 'com.google.guava', name: 'guava', version: '27.1-jre'
 
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
