@@ -5,11 +5,18 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.cloudfoundry.identity.uaa.mock.ldap.LdapMockMvcTests.getRandomPort;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.NONE;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.SIMPLE;
 
 class LdapMockMvcTests {
-    // See below for actual tests. This class is just to set the filename.
+    private static AtomicInteger portOffset = new AtomicInteger(0);
+
+    synchronized static int getRandomPort() {
+        return 44389 + portOffset.getAndIncrement();
+    }
 }
 
 // All of the copied and pasted code between the three classes below
@@ -25,8 +32,8 @@ class LdapMockMvcTests {
 
 class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     private static ApacheDsSSLContainer apacheDs;
-    private static int ldapPort = 44389;
-    private static int ldapSPort = 44336;
+    private static int ldapPort = getRandomPort();
+    private static int ldapSPort = getRandomPort();
 
     LdapSimpleBindTest() {
         super(
@@ -74,8 +81,8 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
 
 class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     private static ApacheDsSSLContainer apacheDs;
-    private static int ldapPort = 44390;
-    private static int ldapSPort = 44337;
+    private static int ldapPort = getRandomPort();
+    private static int ldapSPort = getRandomPort();
 
     LdapSearchAndCompareTest() {
         super(
@@ -123,8 +130,8 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
 
 class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     private static ApacheDsSSLContainer apacheDs;
-    private static int ldapPort = 44391;
-    private static int ldapSPort = 44338;
+    private static int ldapPort = getRandomPort();
+    private static int ldapSPort = getRandomPort();
 
     LdapSearchAndBindTest() {
         super(
