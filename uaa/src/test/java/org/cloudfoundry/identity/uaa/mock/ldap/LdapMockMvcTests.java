@@ -15,7 +15,7 @@ class LdapMockMvcTests {
     private static AtomicInteger portOffset = new AtomicInteger(0);
 
     synchronized static int getRandomPort() {
-        return 44300 + portOffset.getAndIncrement();
+        return 44302 + portOffset.getAndIncrement();
     }
 }
 
