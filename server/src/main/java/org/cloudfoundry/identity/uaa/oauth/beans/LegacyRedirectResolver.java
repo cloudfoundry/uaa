@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import lombok.SneakyThrows;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
@@ -10,13 +11,17 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,21 +43,19 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     @Override
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
         try {
-            URI requestedRedirectURI = URI.create(requestedRedirect);
             ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(clientRedirect);
 
             if (!clientRedirectUri.isValidRedirect()) {
                 logger.error(String.format("Invalid redirect uri: %s", clientRedirect));
                 return false;
             }
-
-            if (clientRedirectUri.isWildcard(clientRedirect) &&
-                    clientRedirectUri.isSafeRedirect(requestedRedirectURI) &&
-                    clientRedirectUri.match(requestedRedirectURI)) {
-                return true;
+            Predicate<String> matcher;
+            if (isWildcard(clientRedirect)) {
+                matcher = req -> clientRedirectUri.isSafeRedirect(req) && clientRedirectUri.match(req);
+            } else {
+                matcher = req -> super.redirectMatches(req, clientRedirect);
             }
-
-            return super.redirectMatches(requestedRedirect, clientRedirect);
+            return matches(matcher, requestedRedirect);
         } catch (IllegalArgumentException e) {
             logger.error(
                     String.format("Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)",
@@ -61,6 +64,31 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                     e);
             return false;
         }
+    }
+
+    //todo: logging?
+    private boolean matches(Predicate<String> matcher, String requestedRedirect) { //todo: name
+        int hadEnough = 5; //todo
+        for (int i = 1; i <= hadEnough; i++) {
+            if (!matcher.test(requestedRedirect)) {
+                return false;
+            }
+            String decoded = urlDecodeAndNormalize(requestedRedirect); //todo: optimize by only normalizing at end?
+            if (decoded.equals(requestedRedirect)) { //todo: move to for loop?
+                return true;
+            }
+            requestedRedirect = decoded;
+        }
+        return false;
+    }
+
+    private String urlDecodeAndNormalize(String url) {
+        return StringUtils.cleanPath(urlDecode(url));
+    }
+
+    @SneakyThrows
+    private String urlDecode(String url) {
+        return URLDecoder.decode(url, StandardCharsets.UTF_8.name());
     }
 
     @Override
@@ -136,6 +164,11 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         }
     }
 
+    private static boolean isWildcard(String configuredRedirectPattern) {
+        return configuredRedirectPattern.contains("*");
+    }
+
+
     private class SpecCompliantRedirectMatcher {
         private final CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff matcher =
                 new CurrentVersionOfSpringResolverWithMethodExposedAndSubdomainsOff();
@@ -182,10 +215,10 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             }
         }
 
-        boolean isSafeRedirect(URI requestedRedirect) {
+        boolean isSafeRedirect(String requestedRedirect) {
             // We iterate backwards through the hosts to make sure the TLD and domain match
             String[] configuredRedirectHost = splitAndReverseHost(getHost());
-            String[] requestedRedirectHost = splitAndReverseHost(requestedRedirect.getHost());
+            String[] requestedRedirectHost = splitAndReverseHost(URI.create(requestedRedirect).getHost());
 
             if (requestedRedirectHost.length < configuredRedirectHost.length) {
                 return false;
@@ -203,12 +236,8 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             return isValidRedirect;
         }
 
-        boolean match(URI requestedRedirect) {
-            return matcher.match(redirectUri, requestedRedirect.toString());
-        }
-
-        private boolean isWildcard(String configuredRedirectPattern) {
-            return configuredRedirectPattern.contains("*");
+        boolean match(String requestedRedirect) {
+            return matcher.match(redirectUri, requestedRedirect);
         }
 
         private String getHost() {
