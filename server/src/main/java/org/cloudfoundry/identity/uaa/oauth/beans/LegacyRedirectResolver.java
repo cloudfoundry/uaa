@@ -70,24 +70,37 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         }
     }
 
-    //todo: logging?
-    private boolean matches(Predicate<String> matcher, String requestedRedirect) { //todo: name
-        int hadEnough = 5; //todo
-        for (int i = 1; i <= hadEnough; i++) {
+    /**
+     * Repeatedly:
+     * <ol>
+     *     <li>checks for a match</li>
+     *     <li>url decodes the requested path</li>
+     * </ol>
+     * until path cannot be url decoded any further. Then normalizes the path before the final check.
+     * <p>
+     *     For example, if example.com/foo is the registered url and example.com/foo/%252e./bar is the requested url,
+     *     checks a match for:
+     *     <ol>
+     *         <li>example.com/foo/%252e./bar</li>
+     *         <li>example.com/foo/%2e./bar</li>
+     *         <li>example.com/foo/../bar</li>
+     *         <li>example.com/bar</li>
+     *     </ol>
+     * </p>
+     */
+    private boolean matches(Predicate<String> matcher, String requestedRedirect) {
+        for (int i = 1; i <= 5; i++) {
             if (!matcher.test(requestedRedirect)) {
                 return false;
             }
-            String decoded = urlDecodeAndNormalize(requestedRedirect); //todo: optimize by only normalizing at end?
-            if (decoded.equals(requestedRedirect)) { //todo: move to for loop?
-                return true;
+            String decoded = urlDecode(requestedRedirect);
+            if (decoded.equals(requestedRedirect)) {
+                return matcher.test(StringUtils.cleanPath(decoded));
             }
             requestedRedirect = decoded;
         }
+        logger.debug("aborted url decoding loop to mitigate DOS attack that sends a repeatedly url-encoded path");
         return false;
-    }
-
-    private String urlDecodeAndNormalize(String url) {
-        return StringUtils.cleanPath(urlDecode(url));
     }
 
     @SneakyThrows
