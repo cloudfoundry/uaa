@@ -72,7 +72,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     protected static final String DELETE_USER_APPROVALS = "delete from authz_approvals where user_id = ? and identity_zone_id = ?";
 
-    public static final String DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ? and origin = ?)";
+    public static final String DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where origin = ? and identity_zone_id = ?)";
 
 
     private boolean handleRevocationsAsExpiry = false;

@@ -97,8 +97,7 @@ class JdbcApprovalStoreTests {
         testAccounts.addUser(jdbcTemplate, userId, zoneId, origin);
         addApproval(jdbcApprovalStore, userId, "c1", "openid", 6000, APPROVED, zoneId);
 
-        // TODO: The parameters to deleteByOrigin are backwards in the SQL query!
-        jdbcApprovalStore.deleteByOrigin(zoneId, origin);
+        jdbcApprovalStore.deleteByOrigin(origin, zoneId);
 
         Integer actual = jdbcTemplate.queryForObject(
                 "select count(*) from authz_approvals where user_id = ?",
