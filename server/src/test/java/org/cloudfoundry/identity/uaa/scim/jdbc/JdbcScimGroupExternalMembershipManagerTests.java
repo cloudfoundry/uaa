@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -58,6 +59,14 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+
+        JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), null, null);
+        jdbcScimGroupMembershipManager.setScimGroupProvisioning(gdao);
+        gdao.setJdbcScimGroupMembershipManager(jdbcScimGroupMembershipManager);
+
+        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(gdao);
+        gdao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
 
         edao = new JdbcScimGroupExternalMembershipManager(template);
         edao.setScimGroupProvisioning(gdao);

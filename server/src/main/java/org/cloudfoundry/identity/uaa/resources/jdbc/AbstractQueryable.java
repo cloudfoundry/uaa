@@ -17,24 +17,26 @@ import static com.google.common.primitives.Ints.tryParse;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     private JdbcPagingListFactory pagingListFactory;
 
-    private RowMapper<T> rowMapper;
+    protected RowMapper<T> rowMapper;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private SearchQueryConverter queryConverter = null;
+    private SearchQueryConverter queryConverter;
 
     private int pageSize = 200;
 
-    protected AbstractQueryable(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory,
-                                RowMapper<T> rowMapper) {
-        queryConverter = new SimpleSearchQueryConverter();
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+    protected AbstractQueryable(final JdbcTemplate jdbcTemplate,
+                                final JdbcPagingListFactory pagingListFactory,
+                                final RowMapper<T> rowMapper) {
+        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         this.pagingListFactory = pagingListFactory;
         this.rowMapper = rowMapper;
+
+        queryConverter = new SimpleSearchQueryConverter();
     }
 
     public void setQueryConverter(SearchQueryConverter queryConverter) {
@@ -74,7 +76,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
                 result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
             } else {
-                result = jdbcTemplate.query(completeSql, where.getParams(), rowMapper);
+                result = namedParameterJdbcTemplate.query(completeSql, where.getParams(), rowMapper);
             }
             return result;
         } catch (DataAccessException e) {

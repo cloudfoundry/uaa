@@ -20,7 +20,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 
 import java.sql.Timestamp;
@@ -33,10 +32,6 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         implements ScimGroupProvisioning, SystemDeletable {
-
-    private JdbcScimGroupExternalMembershipManager externalGroupMappingManager;
-    private JdbcTemplate jdbcTemplate;
-    private JdbcScimGroupMembershipManager membershipManager;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -126,19 +121,25 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             GROUP_MEMBERSHIP_TABLE
     );
 
-    private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
+    private final JdbcTemplate jdbcTemplate;
 
-    public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+    private JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager;
+    private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+
+    public JdbcScimGroupProvisioning(
+            final JdbcTemplate jdbcTemplate,
+            final JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
-        this.membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
-        this.membershipManager.setScimGroupProvisioning(this);
-        this.externalGroupMappingManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
-        this.externalGroupMappingManager.setScimGroupProvisioning(this);
-
-        Assert.notNull(jdbcTemplate, "jdbcTemplate cannot be null");
         this.jdbcTemplate = jdbcTemplate;
-        setQueryConverter(new SimpleSearchQueryConverter());
+    }
+
+    public void setJdbcScimGroupExternalMembershipManager(final JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager) {
+        this.jdbcScimGroupExternalMembershipManager = jdbcScimGroupExternalMembershipManager;
+    }
+
+    public void setJdbcScimGroupMembershipManager(final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) {
+        this.jdbcScimGroupMembershipManager = jdbcScimGroupMembershipManager;
     }
 
     void createAndIgnoreDuplicate(final String name, final String zoneId) {
@@ -262,8 +263,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup delete(String id, int version, String zoneId) throws ScimResourceNotFoundException {
         ScimGroup group = retrieve(id, zoneId);
-        membershipManager.removeMembersByGroupId(id, zoneId);
-        externalGroupMappingManager.unmapAll(id, zoneId);
+        jdbcScimGroupMembershipManager.removeMembersByGroupId(id, zoneId);
+        jdbcScimGroupExternalMembershipManager.unmapAll(id, zoneId);
         int deleted;
         if (version > 0) {
             deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, zoneId, version);

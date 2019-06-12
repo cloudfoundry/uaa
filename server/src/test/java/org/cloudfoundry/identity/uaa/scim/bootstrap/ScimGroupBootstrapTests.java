@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,9 +55,8 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(template, pagingListFactory, new FakePasswordEncoder());
-        mDB = new JdbcScimGroupMembershipManager(template);
+        mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null);
         mDB.setScimGroupProvisioning(gDB);
-        mDB.setScimUserProvisioning(uDB);
 
         uDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());
         gDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());

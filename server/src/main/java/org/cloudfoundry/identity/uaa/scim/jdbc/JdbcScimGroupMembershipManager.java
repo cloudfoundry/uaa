@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.*;
 import org.cloudfoundry.identity.uaa.util.TimeBasedExpiringValueMap;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -17,7 +16,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.util.Assert;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,11 +27,7 @@ import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.util.StringUtils.hasText;
 
-public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager, InitializingBean {
-
-    private JdbcTemplate jdbcTemplate;
-
-    private TimeService timeService = new TimeServiceImpl();
+public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -67,19 +61,28 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                     " from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
             MEMBERSHIP_TABLE, GROUP_TABLE);
 
-    private ScimUserProvisioning userProvisioning;
+    private final JdbcTemplate jdbcTemplate;
+    private final ScimUserProvisioning userProvisioning;
+    private final IdentityZoneProvisioning zoneProvisioning;
+    private final ScimGroupMemberRowMapper rowMapper;
+    private final TimeBasedExpiringValueMap<String, ScimGroup> defaultGroupCache;
 
-    private ScimGroupProvisioning groupProvisioning;
+    private ScimGroupProvisioning scimGroupProvisioning;
 
-    private IdentityZoneProvisioning zoneProvisioning;
-
-    private ScimGroupMemberRowMapper rowMapper;
-
-    private TimeBasedExpiringValueMap<String, ScimGroup> defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);
-
-    @Override
-    public void afterPropertiesSet() {
+    public JdbcScimGroupMembershipManager(
+            final JdbcTemplate jdbcTemplate,
+            final TimeService timeService,
+            final ScimUserProvisioning userProvisioning,
+            final IdentityZoneProvisioning zoneProvisioning) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.userProvisioning = userProvisioning;
+        this.zoneProvisioning = zoneProvisioning;
+        rowMapper = new ScimGroupMemberRowMapper();
         defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);
+    }
+
+    public void setScimGroupProvisioning(final ScimGroupProvisioning groupProvisioning) {
+        this.scimGroupProvisioning = groupProvisioning;
     }
 
     private Set<ScimGroup> getDefaultUserGroups(String zoneId) {
@@ -101,33 +104,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         String key = zoneId + displayName;
         ScimGroup group = defaultGroupCache.get(key);
         if (group == null) {
-            group = groupProvisioning.createOrGet(new ScimGroup(null, displayName, zoneId), zoneId);
+            group = scimGroupProvisioning.createOrGet(new ScimGroup(null, displayName, zoneId), zoneId);
             defaultGroupCache.put(key, group);
         }
         return group;
-    }
-
-
-    public void setZoneProvisioning(IdentityZoneProvisioning zoneProvisioning) {
-        this.zoneProvisioning = zoneProvisioning;
-    }
-
-    public void setScimUserProvisioning(ScimUserProvisioning userProvisioning) {
-        this.userProvisioning = userProvisioning;
-    }
-
-    public void setScimGroupProvisioning(ScimGroupProvisioning groupProvisioning) {
-        this.groupProvisioning = groupProvisioning;
-    }
-
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
-    }
-
-    public JdbcScimGroupMembershipManager(JdbcTemplate jdbcTemplate) {
-        Assert.notNull(jdbcTemplate, "jdbcTemplate cannot be null");
-        this.jdbcTemplate = jdbcTemplate;
-        rowMapper = new ScimGroupMemberRowMapper();
     }
 
     private boolean isDefaultGroup(String groupId, String zoneId) {
@@ -181,7 +161,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                     ScimUser user = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
                     member.setEntity(user);
                 } else if (member.getType().equals(ScimGroupMember.Type.GROUP)) {
-                    ScimGroup group = groupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
+                    ScimGroup group = scimGroupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
                     member.setEntity(group);
                 }
             }
@@ -218,7 +198,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         for (String groupId : groupIds) {
             ScimGroup group;
             try {
-                group = groupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+                group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
             } catch (ScimResourceNotFoundException ex) {
                 continue;
             }
@@ -376,12 +356,12 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
         // check if the group exists and the member-id is a valid group or user
         // id
-        ScimGroup group = groupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId()); // this will throw a ScimException
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId()); // this will throw a ScimException
         String memberZoneId;
         // if the group does not exist
         // this will throw a ScimException if the group or user does not exist
         if (member.getType() == ScimGroupMember.Type.GROUP) {
-            memberZoneId = groupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
+            memberZoneId = scimGroupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
         } else {
             memberZoneId = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
         }

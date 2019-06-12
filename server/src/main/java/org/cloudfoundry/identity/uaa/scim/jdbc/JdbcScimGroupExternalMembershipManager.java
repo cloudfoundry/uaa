@@ -99,14 +99,20 @@ public class JdbcScimGroupExternalMembershipManager
                       EXTERNAL_GROUP_MAPPING_TABLE
         );
 
-    private final RowMapper<ScimGroupExternalMember> rowMapper = new ScimGroupExternalMemberRowMapper();
+    private RowMapper<ScimGroupExternalMember> rowMapper;
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
-    public JdbcScimGroupExternalMembershipManager(JdbcTemplate jdbcTemplate) {
-        Assert.notNull(jdbcTemplate);
+    public JdbcScimGroupExternalMembershipManager(final JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+
+        this.rowMapper = new ScimGroupExternalMemberRowMapper();
     }
+
+    public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
+        this.scimGroupProvisioning = scimGroupProvisioning;
+    }
+
     @Override
     public ScimGroupExternalMember mapExternalGroup(final String groupId,
                                                     final String externalGroup,
@@ -292,10 +298,6 @@ public class JdbcScimGroupExternalMembershipManager
             result.getMeta().setLastModified(added);
             return result;
         }
-    }
-
-    public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
-        this.scimGroupProvisioning = scimGroupProvisioning;
     }
 
 }

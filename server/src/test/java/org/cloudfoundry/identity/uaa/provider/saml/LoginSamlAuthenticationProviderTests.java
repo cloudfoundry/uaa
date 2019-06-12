@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.*;
 import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -203,9 +204,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null, UAA_SAML_ADMIN, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
         ScimGroup uaaSamlTest = groupProvisioning.create(new ScimGroup(null, UAA_SAML_TEST, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
 
-        JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
+        JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), userProvisioning, null);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
-        membershipManager.setScimUserProvisioning(userProvisioning);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.EMPTY_LIST);
 
         externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);

@@ -106,20 +106,16 @@
     </aop:config>
 
     <bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
-        <constructor-arg ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
+        <property name="jdbcScimGroupExternalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="jdbcScimGroupMembershipManager" ref="groupMembershipManager" />
     </bean>
 
     <bean id="groupMembershipManager"
           class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="zoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
