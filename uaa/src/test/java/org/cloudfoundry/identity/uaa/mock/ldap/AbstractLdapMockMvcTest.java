@@ -18,6 +18,8 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -58,7 +60,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
@@ -82,14 +86,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.beust.jcommander.internal.Lists.newArrayList;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -108,9 +117,12 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
@@ -118,6 +130,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -918,6 +931,128 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
         IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(12);
         assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
+    }
+
+    // see also similar test for SAML in SamlAuthenticationMockMvcTests.java
+    @Test
+    void passcodeGrantIdTokenContainsExternalGroupsAsRolesClaim() throws Exception {
+        assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml") || ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
+
+        LdapIdentityProviderDefinition definition = provider.getConfig();
+        // External groups will only appear as roles if they are whitelisted
+        definition.setExternalGroupsWhitelist(newArrayList("*"));
+        // External groups are currently only stored in the db if StoreCustomAttributes is true
+        definition.setStoreCustomAttributes(true);
+        provider.setConfig(definition);
+        updateLdapProvider();
+
+        // This user, their password, and their group membership are all defined in ldap_init.ldif
+        String username = "marissa";
+        String password = "koala";
+        String[] expectedGroups = new String[]{"marissagroup1", "marissagroup2"};
+
+        // You need the openid scope in order to get an id_token,
+        // and you need the roles scope in order to have the "roles" claim included into the id_token,
+        // so we put both of these scopes on the client.
+        String clientId = "roles_test_client";
+        createClient(getWebApplicationContext(),
+                new BaseClientDetails(clientId, null, "roles,openid", "password,refresh_token", null),
+                zone.getZone().getIdentityZone()
+        );
+
+        // Log in to the UI to get a session cookie as the user
+        MockHttpSession session = (MockHttpSession) getMockMvc().perform(
+                post("/login.do").accept(TEXT_HTML_VALUE)
+                        .header(HOST, host)
+                        .with(cookieCsrf())
+                        .param("username", username)
+                        .param("password", password)
+        )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/"))
+                .andExpect(authenticated())
+                .andReturn().getRequest().getSession(false);
+
+        // Using the user's session cookie, get a one-time passcode
+        String content = mockMvc.perform(
+                get("/passcode")
+                        .session(session)
+                        .header(HOST, host)
+                        .accept(APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String passcode = JsonUtils.readValue(content, String.class);
+
+        // Using the passcode, perform a password grant to get back tokens
+        String response = mockMvc.perform(
+                post("/oauth/token")
+                        .param("client_id", clientId)
+                        .param("client_secret", "")
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                        .param("passcode", passcode)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .header(HOST, host)
+        )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
+        });
+
+        String accessToken = (String) tokens.get(ACCESS_TOKEN);
+        Jwt accessTokenJwt = JwtHelper.decode(accessToken);
+        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> accessTokenScopes = (List<String>) accessTokenClaims.get("scope");
+        // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
+        assertThat(accessTokenScopes, hasItem("roles"));
+
+        Jwt idTokenJwt = JwtHelper.decode((String) tokens.get("id_token"));
+        Map<String, Object> claims = JsonUtils.readValue(idTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> idTokenRoles = (List<String>) claims.get("roles");
+        assertThat(idTokenRoles, containsInAnyOrder(expectedGroups));
+
+        // As an aside, the /userinfo endpoint should also return the user's roles
+        String userInfoContent = mockMvc.perform(
+                get("/userinfo")
+                        .header(HOST, host)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .accept(APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Map<String, Object> userInfo = JsonUtils.readValue(userInfoContent, new TypeReference<Map<String, Object>>() {
+        });
+        List<String> userInfoRoles = (List<String>) userInfo.get("roles");
+        assertThat(userInfoRoles, containsInAnyOrder(expectedGroups));
+
+        // We also got back a refresh token. When they use it, the refreshed id_token should also have the roles claim.
+        String refreshToken = (String) tokens.get(REFRESH_TOKEN);
+        String refreshTokenResponse = mockMvc.perform(
+                post("/oauth/token")
+                        .param("client_id", clientId)
+                        .param("client_secret", "")
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN)
+                        .param("refresh_token", refreshToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .header(HOST, host)
+        )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> refreshedTokens = JsonUtils.readValue(refreshTokenResponse, new TypeReference<Map<String, Object>>() {
+        });
+        Jwt refreshedIdTokenJwt = JwtHelper.decode((String) refreshedTokens.get("id_token"));
+        Map<String, Object> refreshedClaims = JsonUtils.readValue(refreshedIdTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> refreshedIdTokenRoles = (List<String>) refreshedClaims.get("roles");
+        assertThat(refreshedIdTokenRoles, containsInAnyOrder(expectedGroups));
     }
 
     @Test

@@ -463,12 +463,14 @@ public class ExternalLoginAuthenticationManagerTest  {
         when(uaaPrincipal.getId()).thenReturn("id");
         when(uaaAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
         when(uaaAuthentication.getUserAttributes()).thenReturn(userAttributes);
-        when(uaaAuthentication.getExternalGroups()).thenReturn(new HashSet<>(externalGroups));
+        HashSet<String> externalGroupsOnAuthentication = new HashSet<>(externalGroups);
+        when(uaaAuthentication.getExternalGroups()).thenReturn(externalGroupsOnAuthentication);
 
         providerDefinition.setStoreCustomAttributes(false);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
+        // when there are both attributes and groups, store them
         providerDefinition.setStoreCustomAttributes(true);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         UserInfo userInfo = new UserInfo()
@@ -476,16 +478,27 @@ public class ExternalLoginAuthenticationManagerTest  {
             .setRoles(externalGroups);
         verify(manager.getUserDatabase(), times(1)).storeUserInfo(eq("id"), eq(userInfo));
 
-        //null provider does not store it
+        // when provider is null do not store anything
         reset(manager.getUserDatabase());
         manager.setProviderProvisioning(null);
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
 
         manager.setProviderProvisioning(providerProvisioning);
-        //empty attributes does not store it
+
+        // when attributes is empty but roles have contents, store it
         reset(manager.getUserDatabase());
         userAttributes.clear();
+        manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
+        userInfo = new UserInfo()
+                .setUserAttributes(userAttributes)
+                .setRoles(externalGroups);
+        verify(manager.getUserDatabase(), times(1)).storeUserInfo(eq("id"), eq(userInfo));
+
+        // when attributes and roles are both empty, do not store anything
+        reset(manager.getUserDatabase());
+        userAttributes.clear();
+        externalGroupsOnAuthentication.clear();
         manager.populateAuthenticationAttributes(uaaAuthentication, mock(Authentication.class), null);
         verify(manager.getUserDatabase(), never()).storeUserInfo(anyString(), any());
     }

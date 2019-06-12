@@ -612,10 +612,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Set<String> modifiableUserScopes = new LinkedHashSet<>(userScopes);
 
-        Set<String> externalGroupsForIdToken = Sets.newHashSet();
         Map<String,List<String>> userAttributesForIdToken = Maps.newHashMap();
         if (authentication.getUserAuthentication() instanceof UaaAuthentication) {
-            externalGroupsForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getExternalGroups();
             userAttributesForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getUserAttributes();
         }
 
@@ -630,7 +628,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authenticationMethods,
                 authNContextClassRef,
                 modifiableUserScopes,
-                externalGroupsForIdToken,
+                rolesAsSet(userId),
                 userAttributesForIdToken,
                 nonce,
                 grantType,
