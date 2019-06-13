@@ -22,7 +22,7 @@ versions.springSecurityJwtVersion = '1.0.8.RELEASE'
 versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
 versions.springSecurityVersion = '4.2.11.RELEASE'
-versions.springVersion = '4.3.22.RELEASE'
+versions.springVersion = '5.1.7.RELEASE'
 versions.tomcatVersion = '9.0.21'
 
 // Dependencies relying on shared versions
@@ -32,6 +32,7 @@ libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk15on:${versions.bouncyC
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyCastleVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
+libraries.javaxServletApi = "javax.servlet:javax.servlet-api:3.1.0"
 libraries.jsonPath = "com.jayway.jsonpath:json-path:${versions.jsonPathVersion}"
 libraries.jsonPathAssert = "com.jayway.jsonpath:json-path-assert:${versions.jsonPathVersion}"
 libraries.junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api:${versions.junit5JupiterVersion}"
