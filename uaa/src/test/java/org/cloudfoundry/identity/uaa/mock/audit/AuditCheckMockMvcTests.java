@@ -790,7 +790,7 @@ class AuditCheckMockMvcTests {
 
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
-        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_client_id=%s\"]",
+        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
                 scimUser.getUserName(),
                 testAccounts.getAdminClientId());
@@ -853,7 +853,7 @@ class AuditCheckMockMvcTests {
             ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(zoneSeeder.getIdentityZoneId())
                     .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
 
-            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_user_id=%s\",\"created_by_username=%s\"]'): ",
+            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\"]'): ",
                     createdUser.getId(),
                     scimUser.getUserName(),
                     scimWriteUser.getId(),
@@ -897,7 +897,7 @@ class AuditCheckMockMvcTests {
 
             assertNumberOfAuditEventsReceived(2);
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_user_id=%s\",\"deleted_by_username=%s\"]",
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
                     scimUser.getUserName(),
                     scimWriteUser.getId(),
@@ -954,7 +954,7 @@ class AuditCheckMockMvcTests {
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
 
-        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=login-server\",\"created_by_client_id=%s\"]",
+        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
                 username,
                 "login");
@@ -1052,7 +1052,7 @@ class AuditCheckMockMvcTests {
             assertEquals(UserDeletedEvent, userDeletedEvent.getAuditEvent().getType());
             assertTrue(userDeletedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_client_id=%s\"]",
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
                     scimUser.getUserName(),
                     testAccounts.getAdminClientId());

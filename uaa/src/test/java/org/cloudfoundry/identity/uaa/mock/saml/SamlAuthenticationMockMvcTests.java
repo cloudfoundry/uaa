@@ -236,8 +236,8 @@ class SamlAuthenticationMockMvcTests {
 
         String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
         String expectedMessage = String.format(
-                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa\",\"user_origin=%s\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
-                createdUser.getId(), idpZone.getSubdomain(), createdUser.getId(), spZone.getId()
+                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
+                createdUser.getId(), createdUser.getId(), spZone.getId()
         );
 
         assertThat(userCreatedLogMessage, is(expectedMessage));

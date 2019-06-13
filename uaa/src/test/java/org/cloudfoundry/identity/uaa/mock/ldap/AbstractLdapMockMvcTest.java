@@ -920,7 +920,7 @@ public abstract class AbstractLdapMockMvcTest {
                 .stream().filter(dbUser -> dbUser.getUserName().equals("marissa2")).findFirst().get();
         String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
         String expectedMessage = String.format(
-                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\",\"user_origin=ldap\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
+                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
                 createdUser.getId(), createdUser.getId(), zoneId
         );
         assertThat(userCreatedLogMessage, is(expectedMessage));
