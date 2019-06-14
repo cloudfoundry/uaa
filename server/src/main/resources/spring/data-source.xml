@@ -15,8 +15,11 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:tx="http://www.springframework.org/schema/tx"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 
     <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
         <constructor-arg name="databaseType" value="#{@platform}"/>
@@ -73,7 +76,9 @@
 
     <bean class="org.springframework.jmx.export.MBeanExporter">
         <property name="server" ref="mbeanServer" />
-        <property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING" />
+        <property name="registrationPolicy">
+          <util:constant static-field="org.springframework.jmx.support.RegistrationPolicy.REPLACE_EXISTING"/>
+        </property>
         <property name="beans">
             <map>
                 <entry key="spring.application:type=DataSource,name=dataSource" value-ref="dataSource" />
