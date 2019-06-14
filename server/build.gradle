@@ -49,7 +49,7 @@ dependencies {
         exclude(module: 'wink-client-apache-httpclient')
     }
 
-    compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.15.Final"
+    compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.17.Final"
     compile libraries.flywayCore
     compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.2.0'
     compile group: 'org.hsqldb', name: 'hsqldb', version: "2.5.0"
