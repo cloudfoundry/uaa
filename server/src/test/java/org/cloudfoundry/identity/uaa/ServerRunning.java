@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
@@ -23,6 +21,8 @@ import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -42,7 +42,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -379,9 +378,6 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
                     }
                 }
                 return new URI(builder.toString());
-            } catch (UnsupportedEncodingException ex) {
-                // should not happen, UTF-8 is always supported
-                throw new IllegalStateException(ex);
             } catch (URISyntaxException ex) {
                 throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
             }
