@@ -23,7 +23,7 @@ versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
 versions.springSecurityVersion = '4.2.11.RELEASE'
 versions.springVersion = '4.3.22.RELEASE'
-versions.tomcatJdbcPoolVersion = '8.5.32'
+versions.tomcatVersion = '9.0.21'
 
 // Dependencies relying on shared versions
 libraries.aspectJRt = "org.aspectj:aspectjrt:${versions.aspectJVersion}"
@@ -32,7 +32,6 @@ libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk15on:${versions.bouncyC
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyCastleVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
-libraries.javaxServletApi = "javax.servlet:javax.servlet-api:3.1.0"
 libraries.jsonPath = "com.jayway.jsonpath:json-path:${versions.jsonPathVersion}"
 libraries.jsonPathAssert = "com.jayway.jsonpath:json-path-assert:${versions.jsonPathVersion}"
 libraries.junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api:${versions.junit5JupiterVersion}"
@@ -68,9 +67,10 @@ libraries.springTest = "org.springframework:spring-test:${versions.springVersion
 libraries.springTx = "org.springframework:spring-tx:${versions.springVersion}"
 libraries.springWeb = "org.springframework:spring-web:${versions.springVersion}"
 libraries.springWebMvc = "org.springframework:spring-webmvc:${versions.springVersion}"
-libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatJdbcPoolVersion}"
-libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatJdbcPoolVersion}"
-libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatJdbcPoolVersion}"
+libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersion}"
+libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatVersion}"
+libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
+libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
 
 // Dependencies shared between projects which do not rely on shared versions
 libraries.apacheHttpClient = 'org.apache.httpcomponents:httpclient:4.5.3'

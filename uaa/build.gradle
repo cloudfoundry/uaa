@@ -34,7 +34,7 @@ dependencies {
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
-    providedCompile libraries.javaxServletApi
+    providedCompile libraries.tomcatEmbed
 
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output

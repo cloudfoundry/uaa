@@ -15,7 +15,7 @@ dependencies {
 
     compile identityServer
 
-    providedCompile libraries.javaxServletApi
+    providedCompile libraries.tomcatEmbed
     runtime group: 'javax.servlet', name: 'jstl', version: '1.2'
     runtime(libraries.springSecurityConfig) {
         exclude(module: 'spring-aop')

@@ -15,7 +15,7 @@ dependencies {
 
   compile identityServer
 
-  providedCompile libraries.javaxServletApi
+  providedCompile libraries.tomcatEmbed
   compile(libraries.springSecurityTaglibs) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
