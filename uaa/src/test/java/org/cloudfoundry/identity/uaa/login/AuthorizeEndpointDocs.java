@@ -127,7 +127,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
         mockMvc.perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        requestParameters).snippets(requestHeaders(
+                        requestParameters).document(requestHeaders(
                         headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
     }
 
