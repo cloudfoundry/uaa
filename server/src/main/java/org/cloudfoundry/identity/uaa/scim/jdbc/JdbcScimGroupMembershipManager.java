@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
@@ -197,10 +198,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         List<ScimGroup> groups;
         try {
             StringBuilder builder = new StringBuilder(DYNAMIC_GET_GROUPS_BY_MEMBER_SQL_BASE);
-            builder.append("?");
-            for (int i = 1; i < memberId.size(); i++) {
-                builder.append(", ?");
-            }
+            builder.append(memberId.stream().map(s -> "?").collect(Collectors.joining(", ")));
             builder.append(");");
             Object[] parameterList = ArrayUtils.addAll(new Object[]{zoneId},memberId.toArray());
             groups = jdbcTemplate.query(builder.toString(), new ScimGroupRowMapper(), parameterList);
