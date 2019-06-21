@@ -136,7 +136,7 @@ public class UaaAuthorizationEndpointTest {
 
         assertThat(result, containsString("http://example.com/somepath#"));
         assertThat(result, containsString("token_type=bearer"));
-        assertThat(result, containsString("access_token=TOKEN_VALUE%2B%3D"));
+        assertThat(result, containsString("access_token=TOKEN_VALUE+%3D"));
         assertThat(result, containsString("id_token=idTokenValue"));
         assertThat(result, containsString("code=ABCD"));
         assertThat(result, containsString("state=California"));

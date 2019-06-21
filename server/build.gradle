@@ -37,9 +37,9 @@ dependencies {
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
 
-    compile libraries.thymeleafSpring4
+    compile libraries.thymeleafSpring5
     compile libraries.thymeleafDialect
-    compile libraries.thymeleafExtrasSpringSecurity4
+    compile libraries.thymeleafExtrasSpringSecurity5
     compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.2'
 
     compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.18') {

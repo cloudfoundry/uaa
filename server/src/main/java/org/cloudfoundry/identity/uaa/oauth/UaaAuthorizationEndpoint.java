@@ -19,8 +19,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -72,7 +72,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.Principal;
 import java.util.*;
@@ -644,12 +643,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     }
 
     private String encode(String value) {
-        try {
-            //return URLEncoder.encode(value,"UTF-8");
-            return UriUtils.encodeQueryParam(value, "UTF-8");
-        } catch (UnsupportedEncodingException x) {
-            throw new IllegalArgumentException(x);
-        }
+        return UriUtils.encodeQueryParam(value, "UTF-8");
     }
 
     private String getSuccessfulRedirect(AuthorizationRequest authorizationRequest, String authorizationCode) {

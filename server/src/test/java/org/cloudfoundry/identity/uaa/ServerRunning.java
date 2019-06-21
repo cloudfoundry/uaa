@@ -42,7 +42,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -379,9 +378,6 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
                     }
                 }
                 return new URI(builder.toString());
-            } catch (UnsupportedEncodingException ex) {
-                // should not happen, UTF-8 is always supported
-                throw new IllegalStateException(ex);
             } catch (URISyntaxException ex) {
                 throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
             }

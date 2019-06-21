@@ -47,7 +47,7 @@ subprojects {
     apply plugin: 'java'
 
     dependencies {
-        testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
+        testCompile(libraries.springTest)
         testCompile group: "org.hamcrest", name: "hamcrest-all", version: '1.3'
         testCompile(libraries.junit5JupiterApi)
         testCompile(libraries.junit5JupiterParams)

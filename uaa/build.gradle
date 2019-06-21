@@ -59,7 +59,7 @@ dependencies {
     testCompile libraries.springSecurityTest
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
-    testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
+    testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:2.0.3.RELEASE'
 }
 
 node {

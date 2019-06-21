@@ -157,11 +157,11 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
 
     Snippet responseFields = responseFields(
       fieldWithPath("[].clientId").description(CLIENT_ID_DESC),
-      fieldWithPath("[].clientName").description(CLIENT_NAME_DESC),
+      fieldWithPath("[].clientName").optional().description(CLIENT_NAME_DESC),
       fieldWithPath("[].showOnHomePage").description(SHOW_ON_HOME_PAGE_DESC),
-      fieldWithPath("[].appLaunchUrl").description(APP_LAUNCH_URL_DESC),
+      fieldWithPath("[].appLaunchUrl").optional().description(APP_LAUNCH_URL_DESC),
       fieldWithPath("[].appIcon").description(APP_ICON_DESC),
-      fieldWithPath("[].createdBy").description(RESOURCE_OWNER_GUID)
+      fieldWithPath("[].createdBy").optional().description(RESOURCE_OWNER_GUID)
     );
 
     mockMvc.perform(get("/oauth/clients/meta")

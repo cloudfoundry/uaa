@@ -275,7 +275,7 @@ class UaaUrlUtilsTest {
     }
 
     @Test
-    void xForwardedPrefixUrls() {
+    void xForwardedPrefixHeaderIsIgnored() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -286,7 +286,7 @@ class UaaUrlUtilsTest {
         RequestContextHolder.setRequestAttributes(attrs);
 
         String url = UaaUrlUtils.getUaaUrl("/something", IdentityZone.getUaa());
-        assertThat(url, is("http://login.localhost/prefix/something"));
+        assertThat(url, is("http://login.localhost/something"));
     }
 
     @Test

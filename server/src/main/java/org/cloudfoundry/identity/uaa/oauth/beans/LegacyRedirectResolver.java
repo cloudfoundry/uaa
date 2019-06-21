@@ -120,7 +120,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                 .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        builder.queryParams(new LinkedMultiValueMap<>(redactedParams));
+        builder.replaceQueryParams(new LinkedMultiValueMap<>(redactedParams));
     }
 
     private static void redactUserInfo(UriComponentsBuilder builder) {
