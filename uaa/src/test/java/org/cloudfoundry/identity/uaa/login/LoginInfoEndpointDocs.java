@@ -99,7 +99,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
                 parameterWithName("X-Uaa-Csrf").required().type(STRING).description("Automatically configured by the server upon /login. Must match the value of the X-Uaa-Csrf cookie.")
         );
         Snippet requestHeaders = requestHeaders(
-                headerWithName("Cookie").required().type(STRING).description("Must contain the a value for the cookie X-Uaa-Csrf and that must match the request parameter of the same name")
+                headerWithName("Cookie").optional(null).type(STRING).description("*Required* Must contain the a value for the cookie X-Uaa-Csrf and that must match the request parameter of the same name")
         );
 
         mockMvc.perform(
