@@ -282,6 +282,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     public void testInstructions() throws Exception {
         mockMvc.perform(get("/email_sent").param("code", "reset_password"))
             .andExpect(status().isOk())
+            .andExpect(header().string("Content-Security-Policy", "frame-ancestors 'none'"))
             .andExpect(model().attribute("code", "reset_password"));
     }
 
