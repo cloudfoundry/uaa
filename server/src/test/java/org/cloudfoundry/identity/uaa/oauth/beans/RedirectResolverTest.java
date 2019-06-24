@@ -96,6 +96,19 @@ class RedirectResolverTest {
     }
 
     @Test
+    void allSubpathsMatchUsingLegacyMatcher() {
+        mockRegisteredRedirectUri("http://example.com/foo");
+
+        assertResolveRedirect("http://example.com/foo", is("http://example.com/foo"));
+        assertResolveRedirect("http://example.com/foo/", is("http://example.com/foo/"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/bar", is("http://example.com/foo/bar"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/bar/baz", is("http://example.com/foo/bar/baz"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/../foo/../foo", is("http://example.com/foo/../foo/../foo"), is("http://example.com/foo"));
+        assertResolveRedirect("http://example.com/foo/..", shouldThrow());
+        assertResolveRedirect("http://example.com/bar", shouldThrow());
+    }
+
+    @Test
     void resolveClientWithUrlWhichHasPortAndHasNoWildcardsAndDoesNotEndInSlash() {
         mockRegisteredRedirectUri("http://uaa.com:8080");
 
