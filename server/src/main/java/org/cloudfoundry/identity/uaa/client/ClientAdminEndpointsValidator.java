@@ -170,34 +170,25 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 // New scopes are allowed if they are for the caller or the new
                 // client.
                 String callerPrefix = callerId + ".";
-                String clientPrefix = clientId + ".";
 
 
                 Set<String> validScope = caller.getScope();
                 for (String scope : client.getScope()) {
-                    if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
+                    if (scope.startsWith(callerPrefix)) {
                         // Allowed
                         continue;
                     }
                     if (!validScope.contains(scope)) {
                         throw new InvalidClientDetailsException(scope + " is not an allowed scope for caller="
-                                        + callerId + ". Must have prefix in [" + callerPrefix + "," + clientPrefix
-                                        + "] or be one of: " + validScope.toString());
+                                + callerId + ". Must have prefix in [" + callerPrefix + "] or be one of: "
+                                + validScope.toString());
                     }
                 }
 
             }
             else {
-                // New scopes are allowed if they are for the caller or the new
-                // client.
-                String clientPrefix = clientId + ".";
-
-                for (String scope : client.getScope()) {
-                    if (!scope.startsWith(clientPrefix)) {
-                        throw new InvalidClientDetailsException(scope
-                                        + " is not an allowed scope for null caller and client_id=" + clientId
-                                        + ". Must start with '" + clientPrefix + "'");
-                    }
+                if (!client.getScope().isEmpty()) {
+                    throw new InvalidClientDetailsException("No scopes alllowed for null caller and client_id=" + clientId + ".");
                 }
             }
 
