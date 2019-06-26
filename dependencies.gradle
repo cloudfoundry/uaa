@@ -21,7 +21,7 @@ versions.springRetryVersion = '1.2.1.RELEASE'
 versions.springSecurityJwtVersion = '1.0.8.RELEASE'
 versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
-versions.springSecurityVersion = '4.2.11.RELEASE'
+versions.springSecurityVersion = '4.2.12.RELEASE'
 versions.springVersion = '5.1.7.RELEASE'
 versions.tomcatVersion = '9.0.21'
 
