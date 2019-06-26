@@ -83,6 +83,7 @@ task jasmineTests {
 ext {
     snippetsDir = file('build/generated-snippets')
 }
+
 test {
     exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
     exclude '**/*IT.class'
@@ -105,6 +106,7 @@ task customizeSlate(type: Copy) {
 task docsTestRestDocs(type: Test) {
     useJUnitPlatform()
     include '**/*Docs.class'
+    systemProperty "docs.build.generated.snippets.dir", snippetsDir.getPath()
 }
 
 task(bundleInstall, type: Exec) {
