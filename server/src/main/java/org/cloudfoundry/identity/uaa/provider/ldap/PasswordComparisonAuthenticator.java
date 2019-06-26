@@ -21,11 +21,11 @@ import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.core.support.BaseLdapPathContextSource;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.encoding.LdapShaPasswordEncoder;
-import org.springframework.security.authentication.encoding.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.codec.Utf8;
+import org.springframework.security.crypto.password.LdapShaPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 import org.springframework.security.ldap.authentication.AbstractLdapAuthenticator;
 
@@ -86,7 +86,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         if (isLocalCompare()) {
             localCompareAuthenticate(user, password);
         } else {
-            String encodedPassword = passwordEncoder.encodePassword(password, null);
+            String encodedPassword = passwordEncoder.encode(password);
             byte[] passwordBytes = Utf8.encode(encodedPassword);
             searchAuthenticate(user, passwordBytes, ldapTemplate);
         }
@@ -111,7 +111,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
                         byte[] stored = (byte[]) valObject;
                         match = ((DynamicPasswordComparator) passwordEncoder).comparePasswords(received, stored);
                     } else {
-                        String encodedPassword = passwordEncoder.encodePassword(password, null);
+                        String encodedPassword = passwordEncoder.encode(password);
                         byte[] passwordBytes = Utf8.encode(encodedPassword);
                         match = Arrays.equals(passwordBytes, (byte[]) valObject);
                     }
