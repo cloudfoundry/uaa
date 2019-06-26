@@ -160,7 +160,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-core</artifactId>
-      <version>4.2.11.RELEASE</version>
+      <version>4.2.12.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -196,7 +196,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-web</artifactId>
-      <version>4.2.11.RELEASE</version>
+      <version>4.2.12.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -440,7 +440,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-ldap</artifactId>
-      <version>4.2.11.RELEASE</version>
+      <version>4.2.12.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
