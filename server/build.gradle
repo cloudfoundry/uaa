@@ -74,6 +74,9 @@ dependencies {
 
     compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
 
+    compileOnly libraries.lombok
+    annotationProcessor libraries.lombok
+
     testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
     testCompile libraries.springTest
@@ -95,6 +98,9 @@ dependencies {
     testCompile libraries.tomcatJdbc
 
     testCompile libraries.jsonPathAssert
+
+    testCompileOnly libraries.lombok
+    testAnnotationProcessor libraries.lombok
 }
 
 configurations.all {
