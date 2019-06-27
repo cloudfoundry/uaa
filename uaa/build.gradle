@@ -60,6 +60,8 @@ dependencies {
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
     testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
+    testCompileOnly libraries.lombok
+    testAnnotationProcessor libraries.lombok
 }
 
 node {
