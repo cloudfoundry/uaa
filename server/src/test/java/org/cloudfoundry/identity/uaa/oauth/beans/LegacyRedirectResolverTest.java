@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -602,6 +604,37 @@ class LegacyRedirectResolverTest {
             String clientRedirectUri = "http://{foo:.*}.domain.com/";
             assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
         }
+    }
+
+    @Nested
+    @DisplayName("integrity check bypass")
+    class IntegrityCheckBypass {
+
+        private static final String REGISTERED_REDIRECT_URI = "http://example.com/foo";
+
+        @ParameterizedTest(name = "{index} " + REGISTERED_REDIRECT_URI + "{0} shoud not match")
+        @ValueSource(strings = {
+                "/../bar",
+                "/%2e./bar",        //%2e is . url encoded
+                "/%252e./bar",      //%25 is % url encoded
+                "/%2525252e./bar",  //path may be url decoded multiple times when passing through web servers, proxies and browser
+                "/%25252525252525252525252e./bar",
+        })
+        void doubleDotTraversal(String suffix) {
+            assertFalse(resolver.redirectMatches(REGISTERED_REDIRECT_URI + suffix, REGISTERED_REDIRECT_URI));
+        }
+
+        @ParameterizedTest(name = "{index} " + REGISTERED_REDIRECT_URI + "{0} shoud match")
+        @ValueSource(strings = {
+                "/./bar",
+                "/%2e/bar",
+                "/%252e/bar",
+                "/%2525252e/bar",
+        })
+        void singleDotTraversal(String suffix) {
+            assertTrue(resolver.redirectMatches(REGISTERED_REDIRECT_URI + suffix, REGISTERED_REDIRECT_URI));
+        }
+
     }
 
     @Nested
