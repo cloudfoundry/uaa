@@ -59,7 +59,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             } else {
                 matcher = req -> super.redirectMatches(req, normalizedClientRedirect);
             }
-            return matches(matcher, normalizedRequestedRedirect);
+            return matchesAfterNormalization(matcher, normalizedRequestedRedirect);
         } catch (IllegalArgumentException e) {
             logger.error(
                     String.format("Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)",
@@ -88,7 +88,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
      *     </ol>
      * </p>
      */
-    private boolean matches(Predicate<String> matcher, String requestedRedirect) {
+    private boolean matchesAfterNormalization(Predicate<String> matcher, String requestedRedirect) {
         int maxDecodeAttempts = 5;
         for (int i = 1; i <= maxDecodeAttempts; i++) {
             if (!matcher.test(requestedRedirect)) {
