@@ -14,13 +14,13 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -54,16 +54,20 @@ import static org.mockito.Mockito.*;
         ThymeleafConfig.class
 })
 class EmailChangeEmailServiceTest {
-    private static final String IDENTITY_ZONE_NAME = "IZ Inc";
     private EmailChangeEmailService emailChangeEmailService;
     private ScimUserProvisioning mockScimUserProvisioning;
     private ExpiringCodeStore mockExpiringCodeStore;
     private MessageService mockEmailService;
     private MultitenantClientServices mockMultitenantClientServices;
+    private IdentityZoneManager mockIdentityZoneManager;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
     private SpringTemplateEngine templateEngine;
+
+    private IdentityZone identityZone;
+    private String zoneId;
+    private String zoneName;
 
     @BeforeEach
     void setUp() {
@@ -72,54 +76,38 @@ class EmailChangeEmailServiceTest {
         mockExpiringCodeStore = mock(ExpiringCodeStore.class);
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockEmailService = mock(EmailService.class);
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
         emailChangeEmailService = new EmailChangeEmailService(
                 templateEngine,
                 mockEmailService,
                 mockScimUserProvisioning,
                 mockExpiringCodeStore,
-                mockMultitenantClientServices);
+                mockMultitenantClientServices,
+                mockIdentityZoneManager);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        identityZone = new IdentityZone();
+        zoneId = "zoneId-" + RandomStringUtils.random(10);
+        zoneName = "zoneName-" + RandomStringUtils.random(10);
+        identityZone.setId(zoneId);
+        identityZone.setName(zoneName);
+
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(identityZone);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
+        when(mockIdentityZoneManager.isCurrentZoneUaa()).thenReturn(false);
     }
 
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
-        IdentityZoneHolder.clear();
     }
 
     @Test
     void beginEmailChange() {
-        setUpForBeginEmailChange();
-
-        Mockito.verify(mockEmailService).sendMessage(
-                eq("new@example.com"),
-                eq(MessageType.CHANGE_EMAIL),
-                eq(String.format("%s Email change verification", IDENTITY_ZONE_NAME)),
-                contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
-        );
-    }
-
-    @Test
-    void beginEmailChangeWithUsernameConflict() {
-        ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
-        user.setPrimaryEmail("user@example.com");
-        when(mockScimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
-
-        Assertions.assertThrows(UaaException.class,
-                () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
-    }
-
-    @Test
-    void beginEmailChangeWithCompanyNameConfigured() {
-
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, mockEmailService, mockScimUserProvisioning, mockExpiringCodeStore, mockMultitenantClientServices);
-
         ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
         Map<String, String> codeData = new HashMap<>();
@@ -127,18 +115,6 @@ class EmailChangeEmailServiceTest {
         codeData.put("client_id", "app");
         codeData.put("redirect_uri", "http://app.com");
         codeData.put("email", "new@example.com");
-
-        IdentityZone identityZone = IdentityZoneHolder.get();
-        String zoneId = identityZone.getId();
-
-        BrandingInformation branding = new BrandingInformation();
-        branding.setCompanyName("Best Company");
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        config.setBranding(branding);
-
-        identityZone.setConfig(config);
-
-        IdentityZoneHolder.set(identityZone);
 
         when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
         when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
@@ -149,8 +125,69 @@ class EmailChangeEmailServiceTest {
 
         verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
 
+        verify(mockEmailService).sendMessage(
+                eq("new@example.com"),
+                eq(MessageType.CHANGE_EMAIL),
+                eq(String.format("%s Email change verification", zoneName)),
+                contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
+        );
+    }
+
+    @Test
+    void beginEmailChangeWithUsernameConflict() {
+        ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
+        user.setPrimaryEmail("user@example.com");
+        when(mockScimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
+        when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
+
+        Assertions.assertThrows(UaaException.class,
+                () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
+    }
+
+    @Test
+    void beginEmailChangeWithCompanyNameConfigured() {
+
+        emailChangeEmailService = new EmailChangeEmailService(
+                templateEngine,
+                mockEmailService,
+                mockScimUserProvisioning,
+                mockExpiringCodeStore,
+                mockMultitenantClientServices,
+                mockIdentityZoneManager);
+
+        ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
+        user.setPrimaryEmail("user@example.com");
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", "user-001");
+        codeData.put("client_id", "app");
+        codeData.put("redirect_uri", "http://app.com");
+        codeData.put("email", "new@example.com");
+
+        identityZone = IdentityZone.getUaa();
+        zoneId = identityZone.getId();
+        when(mockIdentityZoneManager.isCurrentZoneUaa()).thenReturn(true);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(identityZone.getId());
+
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Best Company");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+
+        identityZone.setConfig(config);
+
+        when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
+        when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
+        String data = JsonUtils.writeValueAsString(codeData);
+        when(mockExpiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
+
+        setIdentityZoneHolder(identityZone);
+
+        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
+
+        verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
+
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(mockEmailService).sendMessage(
+        verify(mockEmailService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
                 eq("Best Company Email change verification"),
@@ -161,6 +198,16 @@ class EmailChangeEmailServiceTest {
 
         assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
         assertThat(emailBody, containsString("a Best Company account"));
+    }
+
+    /**
+     * @Deprecated
+     * We need this because {@link MergedZoneBrandingInformation#getProductLogo} calls {@link IdentityZoneHolder#get}
+     *
+     */
+    @Deprecated
+    private void setIdentityZoneHolder(IdentityZone identityZone) {
+        IdentityZoneHolder.set(identityZone);
     }
 
     @Test
@@ -195,16 +242,15 @@ class EmailChangeEmailServiceTest {
 
     @Test
     void completeVerificationWithInvalidCode() {
-        when(mockExpiringCodeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(null);
+        when(mockExpiringCodeStore.retrieveCode("invalid_code", zoneId)).thenReturn(null);
 
         Assertions.assertThrows(UaaException.class,
                 () -> emailChangeEmailService.completeVerification("invalid_code"));
-
     }
 
     @Test
     void completeVerificationWithInvalidIntent() {
-        when(mockExpiringCodeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
+        when(mockExpiringCodeStore.retrieveCode("invalid_code", zoneId)).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
 
         Assertions.assertThrows(UaaException.class,
                 () -> emailChangeEmailService.completeVerification("invalid_code"));
@@ -217,12 +263,12 @@ class EmailChangeEmailServiceTest {
         codeData.put("client_id", "invalid-client");
         codeData.put("email", "new@example.com");
 
-        when(mockExpiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", "user@example.com", "", "");
         user.setPrimaryEmail("user@example.com");
-        when(mockScimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
+        when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
 
-        doThrow(new NoSuchClientException("no such client")).when(mockMultitenantClientServices).loadClientByClientId("invalid-client", "uaa");
+        doThrow(new NoSuchClientException("no such client")).when(mockMultitenantClientServices).loadClientByClientId("invalid-client", zoneId);
         Map<String, String> response = null;
         try {
             response = emailChangeEmailService.completeVerification("the_secret_code");
@@ -258,53 +304,25 @@ class EmailChangeEmailServiceTest {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
-        when(mockExpiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");
         user.setPrimaryEmail("user@example.com");
-        when(mockScimUserProvisioning.retrieve("user-001", IdentityZoneHolder.get().getId())).thenReturn(user);
+        when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
 
-        when(mockMultitenantClientServices.loadClientByClientId(clientId, "uaa")).thenReturn(clientDetails);
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
         Map<String, String> response = emailChangeEmailService.completeVerification("the_secret_code");
 
         ScimUser updatedUser = new ScimUser("user-001", "new@example.com", "", "");
         user.setPrimaryEmail("new@example.com");
 
-        verify(mockScimUserProvisioning).update("user-001", updatedUser, IdentityZoneHolder.get().getId());
+        verify(mockScimUserProvisioning).update("user-001", updatedUser, zoneId);
         return response;
-    }
-
-    private void setUpForBeginEmailChange() {
-        ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
-        user.setPrimaryEmail("user@example.com");
-        Map<String, String> codeData = new HashMap<>();
-        codeData.put("user_id", "user-001");
-        codeData.put("client_id", "app");
-        codeData.put("redirect_uri", "http://app.com");
-        codeData.put("email", "new@example.com");
-
-        IdentityZone identityZone = new IdentityZone();
-        String zoneId = RandomStringUtils.random(10);
-        identityZone.setId(zoneId);
-        identityZone.setName(IDENTITY_ZONE_NAME);
-
-        IdentityZoneHolder.set(identityZone);
-
-        when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
-        when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
-        String data = JsonUtils.writeValueAsString(codeData);
-        when(mockExpiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), anyString())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
-
-        emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
-
-        verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
     }
 
     void beginEmailChangeInOtherZone(String zoneName) {
 
-        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
-        zone.setName(zoneName);
-        IdentityZoneHolder.set(zone);
+        identityZone.setName(zoneName);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -321,8 +339,6 @@ class EmailChangeEmailServiceTest {
         codeData.put("redirect_uri", "http://app.com");
         codeData.put("email", "new@example.com");
 
-        String zoneId = IdentityZoneHolder.get().getId();
-
         when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
         when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
@@ -333,7 +349,7 @@ class EmailChangeEmailServiceTest {
         verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()), eq(zoneId));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(mockEmailService).sendMessage(
+        verify(mockEmailService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
                 eq(zoneName + " Email change verification"),
