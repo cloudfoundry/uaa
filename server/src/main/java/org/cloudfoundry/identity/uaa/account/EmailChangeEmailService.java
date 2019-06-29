@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,9 +11,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
@@ -33,16 +21,14 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
 public class EmailChangeEmailService implements ChangeEmailService {
+
+    static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
 
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
@@ -50,7 +36,6 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final ExpiringCodeStore codeStore;
     private final MultitenantClientServices clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
-    public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
 
     public EmailChangeEmailService(TemplateEngine templateEngine,
                                    MessageService messageService,
@@ -78,7 +63,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
         String code = generateExpiringCode(userId, newEmail, clientId, redirectUri);
         String htmlContent = getEmailChangeEmailHtml(email, newEmail, code);
 
-        if(htmlContent != null) {
+        if (htmlContent != null) {
             String subject = getSubjectText();
             messageService.sendMessage(newEmail, MessageType.CHANGE_EMAIL, subject, htmlContent);
         }
@@ -101,7 +86,8 @@ public class EmailChangeEmailService implements ChangeEmailService {
             throw new UaaException("Error", 400);
         }
 
-        Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+        });
         String userId = codeData.get("user_id");
         String email = codeData.get("email");
         ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
@@ -125,10 +111,11 @@ public class EmailChangeEmailService implements ChangeEmailService {
                         clientDetails.getRegisteredRedirectUri();
                 String changeEmailRedirectUrl = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
                 redirectLocation = findMatchingRedirectUri(redirectUris, redirectUri, changeEmailRedirectUrl);
-            } catch (NoSuchClientException nsce) {}
+            } catch (NoSuchClientException nsce) {
+            }
         }
 
-        Map<String,String> result = new HashMap<>();
+        Map<String, String> result = new HashMap<>();
         result.put("userId", user.getId());
         result.put("username", user.getUserName());
         result.put("email", user.getPrimaryEmail());
@@ -140,8 +127,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
         if (IdentityZoneHolder.isUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
-        }
-        else {
+        } else {
             return IdentityZoneHolder.get().getName() + " Email change verification";
         }
     }
@@ -154,8 +140,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
             ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
-        }
-        else {
+        } else {
             ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
             ctx.setVariable("servicePhrase", IdentityZoneHolder.get().getName());
         }
