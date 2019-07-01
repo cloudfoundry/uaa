@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
-      <version>5.1.7.RELEASE</version>
+      <version>5.1.8.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -64,7 +64,7 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
-      <version>5.1.7.RELEASE</version>
+      <version>5.1.8.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -120,7 +120,7 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
-      <version>5.1.7.RELEASE</version>
+      <version>5.1.8.RELEASE</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
