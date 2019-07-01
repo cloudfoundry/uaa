@@ -17,7 +17,6 @@ import org.yaml.snakeyaml.introspector.Property;
 import org.yaml.snakeyaml.introspector.PropertyUtils;
 import org.yaml.snakeyaml.nodes.NodeId;
 
-import java.beans.IntrospectionException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,17 +54,13 @@ public class CustomPropertyConstructor extends Constructor {
             properties.put(type, typeMap);
         }
 
-        try {
-            typeMap.put(alias, propertyUtils.getProperty(type, name));
-        } catch (IntrospectionException e) {
-            throw new RuntimeException(e);
-        }
+        typeMap.put(alias, propertyUtils.getProperty(type, name));
     }
 
     class CustomPropertyConstructMapping extends ConstructMapping {
 
         @Override
-        protected Property getProperty(Class<?> type, String name) throws IntrospectionException {
+        protected Property getProperty(Class<?> type, String name) {
             Property p = lookupProperty(type, name);
 
             return p != null ? p : super.getProperty(type, name);
