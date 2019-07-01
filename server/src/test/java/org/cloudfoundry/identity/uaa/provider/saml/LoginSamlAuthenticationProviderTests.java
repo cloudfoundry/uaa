@@ -206,7 +206,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), userProvisioning, null);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
-        ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.EMPTY_LIST);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.emptyList(), false, Collections.emptyList());
 
         externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         externalManager.setScimGroupProvisioning(groupProvisioning);

@@ -1881,18 +1881,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
 
-        ScimUserBootstrap bootstrap = webApplicationContext.getBean(ScimUserBootstrap.class);
-        boolean isOverride = bootstrap.isOverride();
-        bootstrap.setOverride(true);
-        bootstrap.afterPropertiesSet();
-        bootstrap.setOverride(isOverride);
-
         //ensure we can do scim.read with the existing token
         mockMvc.perform(get("/Users")
                 .header("Authorization", "Bearer " + accessToken)
                 .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
-
     }
 
     @Test
