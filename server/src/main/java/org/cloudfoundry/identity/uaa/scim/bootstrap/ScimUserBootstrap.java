@@ -67,7 +67,7 @@ public class ScimUserBootstrap implements
                              final ScimGroupMembershipManager membershipManager,
                              final Collection<UaaUser> users,
                              @Value("${scim.user.override:false}") final boolean override,
-                             @Value("${delete.users}") final List<String> usersToDelete) {
+                             @Value("${delete.users:#{null}}") final List<String> usersToDelete) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.membershipManager = membershipManager;
