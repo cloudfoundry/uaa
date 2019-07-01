@@ -5,6 +5,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
@@ -210,5 +211,20 @@ public abstract class UaaUrlUtils {
         } catch (MalformedURLException e) {
             return false;
         }
+    }
+
+    /* Host and scheme should be case-insensitive, path should be case-sensitive, per RFC 3986 */
+    public static String normalizeUri(String uri) {
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
+        UriComponents nonNormalizedUri = uriComponentsBuilder.build();
+
+        try {
+            uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
+            uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+        } catch (NullPointerException e) {
+            throw new IllegalArgumentException("URI host and scheme must not be null");
+        }
+
+        return uriComponentsBuilder.build().toString();
     }
 }

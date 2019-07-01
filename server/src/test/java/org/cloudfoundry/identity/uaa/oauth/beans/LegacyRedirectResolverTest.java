@@ -605,6 +605,51 @@ class LegacyRedirectResolverTest {
     }
 
     @Nested
+    @DisplayName("with caps")
+    class RedirectMatchesCaps {
+        @Test
+        void withClientHostCaps() {
+            final String clientRedirectUri = "http://SubDomain.Domain.com";
+            final String clientRedirectUriPort = "http://SubDomain.Domain.com:8080";
+            final String clientRedirectUriPath = "http://SubDomain.Domain.com/bee/Bop";
+            final String clientRedirectUriQuery = "http://SubDomain.Domain.com?rock=Steady";
+            final String clientRedirectUriFragment = "http://SubDomain.Domain.com";
+
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com:8080", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/bee/Bop", clientRedirectUriPath));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com?rock=Steady", clientRedirectUriQuery));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com#Shredder", clientRedirectUriFragment));
+        }
+
+        @Test
+        void withRequestedHostCaps() {
+            final String clientRedirectUri = "http://subdomain.domain.com";
+            final String clientRedirectUriPort = "http://subdomain.domain.com:8080";
+            final String clientRedirectUriPath = "http://subdomain.domain.com/bee/Bop";
+            final String clientRedirectUriQuery = "http://subdomain.domain.com?rock=Steady";
+            final String clientRedirectUriFragment = "http://subdomain.domain.com";
+
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop", clientRedirectUriPath));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com?rock=Steady", clientRedirectUriQuery));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com#Shredder", clientRedirectUriFragment));
+        }
+
+        @Test
+        void withWildCardHostCaps() {
+            final String clientRedirectUri = "http://SubDomain.Domain.com/**";
+            final String clientRedirectUriPort = "http://SubDomain.Domain.com:8080/**";
+            final String clientRedirectUriPath = "http://SubDomain.Domain.com/bee/Bop/**";
+
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080/", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop/", clientRedirectUriPath));
+        }
+    }
+
+    @Nested
     class ResolveRedirect {
         private ClientDetails mockClientDetails;
 

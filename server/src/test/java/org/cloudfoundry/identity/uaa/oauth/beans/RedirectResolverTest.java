@@ -41,6 +41,24 @@ class RedirectResolverTest {
     }
 
     @Test
+    void resolveWithDifferentHostCase() {
+        mockRegisteredRedirectUri("http://ALL.CAPS.example.com");
+
+        assertResolveRedirect("http://all.caps.example.com",
+                is("http://all.caps.example.com"),
+                is("http://ALL.CAPS.example.com"));
+    }
+
+    @Test
+    void resolveWithDifferentSchemeCase() {
+        mockRegisteredRedirectUri("HTTP://example.com");
+
+        assertResolveRedirect("http://example.com",
+                is("http://example.com"),
+                is("HTTP://example.com"));
+    }
+
+    @Test
     void resolveClientWithUrlWhichHasNoWildcardsAndDoesNotEndInSlash() {
         mockRegisteredRedirectUri("http://uaa.com");
 
