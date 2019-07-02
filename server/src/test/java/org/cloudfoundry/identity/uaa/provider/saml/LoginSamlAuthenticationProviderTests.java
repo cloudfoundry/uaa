@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -73,6 +72,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.SAMLCredential;
@@ -126,7 +126,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
-public class LoginSamlAuthenticationProviderTests {
+class LoginSamlAuthenticationProviderTests {
     private static final String SAML_USER = "saml.user";
     private static final String SAML_ADMIN = "saml.admin";
     private static final String SAML_TEST = "saml.test";
@@ -160,6 +160,9 @@ public class LoginSamlAuthenticationProviderTests {
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void configureProvider() throws SAMLException, SecurityException, DecryptionException, ValidationException {
         identityZoneManager = new IdentityZoneManagerImpl();
@@ -174,7 +177,7 @@ public class LoginSamlAuthenticationProviderTests {
         groupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZone().getId()), identityZoneManager.getCurrentIdentityZone().getId());
         providerDefinition = new SamlIdentityProviderDefinition();
 
-        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), new FakePasswordEncoder());
+        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder);
 
 
         uaaSamlUser = groupProvisioning.create(new ScimGroup(null, UAA_SAML_USER, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
@@ -455,11 +458,10 @@ public class LoginSamlAuthenticationProviderTests {
 
     private ScimUser getInvitedUser() {
         ScimUser invitedUser = new ScimUser(null, "marissa.invited@test.org", "Marissa", "Bloggs");
-        invitedUser.setPassword("a");
         invitedUser.setVerified(false);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
         invitedUser.setOrigin(OriginKeys.UAA);
-        ScimUser scimUser = userProvisioning.create(invitedUser, identityZoneManager.getCurrentIdentityZone().getId());
+        ScimUser scimUser = userProvisioning.createUser(invitedUser, "getInvitedUser-password", identityZoneManager.getCurrentIdentityZone().getId());
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
         attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);

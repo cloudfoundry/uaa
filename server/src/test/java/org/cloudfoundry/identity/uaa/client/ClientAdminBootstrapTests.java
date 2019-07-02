@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -19,6 +18,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -26,25 +26,53 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
 class ClientAdminBootstrapTests {
 
     private ClientAdminBootstrap clientAdminBootstrap;
-
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
     private ClientMetadataProvisioning clientMetadataProvisioning;
     private ApplicationEventPublisher mockApplicationEventPublisher;
     private RandomValueStringGenerator randomValueStringGenerator;
-    private FakePasswordEncoder fakePasswordEncoder;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -56,12 +84,10 @@ class ClientAdminBootstrapTests {
     void setUpClientAdminTests() {
         randomValueStringGenerator = new RandomValueStringGenerator();
 
-        fakePasswordEncoder = new FakePasswordEncoder();
-
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
-        multitenantJdbcClientDetailsService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, fakePasswordEncoder));
+        multitenantJdbcClientDetailsService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder));
 
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
@@ -69,7 +95,7 @@ class ClientAdminBootstrapTests {
         clients = new HashMap<>();
 
         clientAdminBootstrap = new ClientAdminBootstrap(
-                fakePasswordEncoder,
+                passwordEncoder,
                 multitenantJdbcClientDetailsService,
                 clientMetadataProvisioning,
                 true,
@@ -87,7 +113,7 @@ class ClientAdminBootstrapTests {
         @BeforeEach
         void setUp() {
             clientAdminBootstrap = new ClientAdminBootstrap(
-                    fakePasswordEncoder,
+                    passwordEncoder,
                     multitenantJdbcClientDetailsService,
                     clientMetadataProvisioning,
                     true,
@@ -122,7 +148,7 @@ class ClientAdminBootstrapTests {
             clientIdToDelete = "clientIdToDelete" + randomValueStringGenerator.generate();
 
             clientAdminBootstrap = new ClientAdminBootstrap(
-                    fakePasswordEncoder,
+                    passwordEncoder,
                     multitenantJdbcClientDetailsService,
                     clientMetadataProvisioning,
                     true,
@@ -278,7 +304,7 @@ class ClientAdminBootstrapTests {
         void setUp() {
             mockClientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
             clientAdminBootstrap = new ClientAdminBootstrap(
-                    fakePasswordEncoder,
+                    passwordEncoder,
                     multitenantJdbcClientDetailsService,
                     mockClientMetadataProvisioning,
                     true,
@@ -336,7 +362,7 @@ class ClientAdminBootstrapTests {
             @BeforeEach
             void setUp() {
                 clientAdminBootstrap = new ClientAdminBootstrap(
-                        fakePasswordEncoder,
+                        passwordEncoder,
                         multitenantJdbcClientDetailsService,
                         mockClientMetadataProvisioning,
                         false,
@@ -457,13 +483,13 @@ class ClientAdminBootstrapTests {
         ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(passwordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         map.put("secret", "bar1");
         created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(fakePasswordEncoder.matches("bar1", details.getClientSecret()), "Password should match bar1:");
-        assertFalse(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should not match bar:");
+        assertTrue(passwordEncoder.matches("bar1", details.getClientSecret()), "Password should match bar1:");
+        assertFalse(passwordEncoder.matches("bar", details.getClientSecret()), "Password should not match bar:");
     }
 
     @Test
@@ -472,12 +498,12 @@ class ClientAdminBootstrapTests {
         ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         ClientDetails details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(passwordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         String hash = details.getClientSecret();
         created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
         details = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertTrue(fakePasswordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
+        assertTrue(passwordEncoder.matches("bar", details.getClientSecret()), "Password should match bar:");
         assertEquals(hash, details.getClientSecret(), "Password hash must not change on an update:");
     }
 

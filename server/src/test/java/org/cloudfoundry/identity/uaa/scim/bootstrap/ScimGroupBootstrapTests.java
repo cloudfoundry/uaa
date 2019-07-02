@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -20,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -53,12 +53,15 @@ class ScimGroupBootstrapTests {
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void initScimGroupBootstrapTests() {
         JdbcTemplate template = jdbcTemplate;
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
-        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, new FakePasswordEncoder());
+        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder);
         mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null);
         mDB.setScimGroupProvisioning(gDB);
 

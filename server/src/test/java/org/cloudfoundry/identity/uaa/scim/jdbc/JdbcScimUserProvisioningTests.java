@@ -15,7 +15,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,42 +27,53 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
 class JdbcScimUserProvisioningTests {
 
-    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
-
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
-
     private static final String OLD_ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s', '%s', '%s')";
-
     private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
-
     private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin, identity_zone_id) values (?,?,?,?,?,?,?)";
 
+    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
     private RandomValueStringGenerator generator;
     private JdbcPagingListFactory pagingListFactory;
-    private FakePasswordEncoder fakePasswordEncoder;
-
     private String joeId;
+    private String currentIdentityZoneId;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    private String currentIdentityZoneId;
 
     @BeforeEach
     void setUp(@Autowired LimitSqlAdapter limitSqlAdapter) {
@@ -74,8 +84,7 @@ class JdbcScimUserProvisioningTests {
 
         currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
 
-        fakePasswordEncoder = new FakePasswordEncoder();
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, fakePasswordEncoder);
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -85,8 +94,8 @@ class JdbcScimUserProvisioningTests {
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
-        addUser(jdbcTemplate, joeId, "joe", fakePasswordEncoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
-        addUser(jdbcTemplate, mabelId, "mabel", fakePasswordEncoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", currentIdentityZoneId);
+        addUser(jdbcTemplate, joeId, "joe", passwordEncoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
+        addUser(jdbcTemplate, mabelId, "mabel", passwordEncoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", currentIdentityZoneId);
     }
 
     @AfterEach
@@ -356,7 +365,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, new FakePasswordEncoder()) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
@@ -467,14 +476,14 @@ class JdbcScimUserProvisioningTests {
     void canChangePasswordWithoutOldPassword() {
         jdbcScimUserProvisioning.changePassword(joeId, null, "koala123$marissa", currentIdentityZoneId);
         String storedPassword = jdbcTemplate.queryForObject("SELECT password from users where ID=?", String.class, joeId);
-        assertTrue(fakePasswordEncoder.matches("koala123$marissa", storedPassword));
+        assertTrue(passwordEncoder.matches("koala123$marissa", storedPassword));
     }
 
     @Test
     void canChangePasswordWithCorrectOldPassword() {
         jdbcScimUserProvisioning.changePassword(joeId, "joespassword", "koala123$marissa", currentIdentityZoneId);
         String storedPassword = jdbcTemplate.queryForObject("SELECT password from users where ID=?", String.class, joeId);
-        assertTrue(fakePasswordEncoder.matches("koala123$marissa", storedPassword));
+        assertTrue(passwordEncoder.matches("koala123$marissa", storedPassword));
     }
 
     @Test
