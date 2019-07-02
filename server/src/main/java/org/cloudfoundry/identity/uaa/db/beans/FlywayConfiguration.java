@@ -9,6 +9,9 @@ import javax.sql.DataSource;
 
 @Configuration
 public class FlywayConfiguration {
+
+    public static final String VERSION_TABLE = "schema_version";
+
     @Bean
     public Flyway flyway(
             DataSource dataSource,
@@ -19,6 +22,7 @@ public class FlywayConfiguration {
                 .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
                 .baselineVersion("1.5.2")
                 .validateOnMigrate(false)
+                .table(VERSION_TABLE)
                 .load();
         flyway.migrate();
         return flyway;
