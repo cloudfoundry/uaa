@@ -405,6 +405,46 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
     }
 
+    @Test
+    void aUserCanRevokeTheirOwnToken() throws Exception{
+        BaseClientDetails client = getAClientWithClientsRead();
+        ScimUser user = setUpUser(generator.generate().toLowerCase()+"@test.org");
+        user.setPassword("secret");
+
+        String userInfoToken = getUserOAuthAccessToken(
+                mockMvc,
+                client.getClientId(),
+                client.getClientSecret(),
+                user.getUserName(),
+                user.getPassword(),
+                "openid"
+        );
+
+        //ensure our token works
+        mockMvc.perform(
+                get("/userinfo").header("Authorization", "Bearer "+userInfoToken)
+        ).andExpect(status().isOk());
+
+        //revoke our own token
+        mockMvc.perform(
+                get("/oauth/token/revoke/user/"+user.getId()).header("Authorization", "Bearer "+userInfoToken)
+        ).andExpect(status().isOk());
+
+        assertEquals(1, tokenRevocationEventListener.getEventCount());
+        assertEquals(user.getId(), tokenRevocationEventListener.getEvents().get(0).getUserId());
+        assertNull(tokenRevocationEventListener.getEvents().get(0).getClientId());
+        assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getData(), containsString(user.getId()));
+        assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getData(), not(containsString("ClientID")));
+        assertThat(tokenRevocationEventListener.getEvents().get(0).getAuditEvent().getOrigin(), containsString(user.getUserName()));
+
+        //should fail with 401
+        mockMvc.perform(
+                get("/userinfo").header("Authorization", "Bearer "+userInfoToken)
+        )
+        .andExpect(status().isUnauthorized())
+        .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+    }
+
     private void revokeUserClientCombinationTokenWithAuth() throws Exception{
         BaseClientDetails client = getAClientWithClientsRead();
         BaseClientDetails otherClient = getAClientWithClientsRead();
