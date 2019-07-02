@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -58,7 +59,9 @@ class CachingPasswordEncoderTest {
 
     @Test
     void matchesButExpires() throws Exception {
-        cachingPasswordEncoder.setExpiryInSeconds(1);
+        Duration shortTTL = Duration.ofSeconds(1);
+        ReflectionTestUtils.setField(cachingPasswordEncoder, "CACHE_TTL", shortTTL);
+        cachingPasswordEncoder.buildCache();
         String encoded = cachingPasswordEncoder.encode(password);
         String cacheKey = cachingPasswordEncoder.cacheEncode(password);
 
@@ -68,7 +71,7 @@ class CachingPasswordEncoderTest {
         assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() > 0,
                 "Password is no longer cached when we expected it to be cached");
 
-        Thread.sleep(1001);
+        Thread.sleep(shortTTL.toMillis() + 100);
 
         assertEquals(0, cachingPasswordEncoder.getOrCreateHashList(cacheKey).size(), "Password is still cached when we expected it to be expired");
     }
@@ -119,13 +122,8 @@ class CachingPasswordEncoderTest {
     }
 
     @Test
+    // TODO: This test takes a long time to run :(
     void ensureNoMemoryLeak() {
-        int maxKeys = 10;
-        int maxPasswords = 4;
-        cachingPasswordEncoder.setMaxKeys(maxKeys);
-        assertEquals(maxKeys, cachingPasswordEncoder.getMaxKeys());
-        cachingPasswordEncoder.setMaxEncodedPasswords(4);
-        assertEquals(maxPasswords, cachingPasswordEncoder.getMaxEncodedPasswords());
         assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
         for (int i = 0; i < cachingPasswordEncoder.getMaxKeys(); i++) {
             String password = new RandomValueStringGenerator().generate();
@@ -134,7 +132,7 @@ class CachingPasswordEncoderTest {
                 assertTrue(cachingPasswordEncoder.matches(password, encoded));
             }
         }
-        assertEquals(maxKeys, cachingPasswordEncoder.getNumberOfKeys());
+        assertEquals(cachingPasswordEncoder.getMaxKeys(), cachingPasswordEncoder.getNumberOfKeys());
         String password = new RandomValueStringGenerator().generate();
         String encoded = cachingPasswordEncoder.encode(password);
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
@@ -151,33 +149,8 @@ class CachingPasswordEncoderTest {
         assertNotNull(cache);
         Set<String> passwords = cache.get(cachingPasswordEncoder.cacheEncode(password));
         assertNotNull(passwords);
-        assertEquals(maxPasswords, passwords.size());
+        assertEquals(cachingPasswordEncoder.getMaxEncodedPasswords(), passwords.size());
         cachingPasswordEncoder.matches(password, cachingPasswordEncoder.encode(password));
         assertEquals(1, passwords.size());
-    }
-
-    @Test
-    void disabledMatchesSpeedTest() {
-        int iterations = 15;
-        cachingPasswordEncoder.setEnabled(false);
-        assertFalse(cachingPasswordEncoder.isEnabled());
-
-        String password = new RandomValueStringGenerator().generate();
-        String encodedBCrypt = cachingPasswordEncoder.encode(password);
-        long nanoStart = System.nanoTime();
-        for (int i = 0; i < iterations; i++) {
-            assertTrue(passwordEncoder.matches(password, encodedBCrypt));
-        }
-        long nanoStop = System.nanoTime();
-        long bCryptTime = nanoStop - nanoStart;
-        nanoStart = System.nanoTime();
-        for (int i = 0; i < iterations; i++) {
-            assertTrue(cachingPasswordEncoder.matches(password, encodedBCrypt));
-        }
-        nanoStop = System.nanoTime();
-        long cacheTime = nanoStop - nanoStart;
-        //assert that the cache is at least 10 times faster
-        assertFalse(bCryptTime > (10 * cacheTime));
-        assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
     }
 }

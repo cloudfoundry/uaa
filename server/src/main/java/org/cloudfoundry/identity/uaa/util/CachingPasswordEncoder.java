@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -30,20 +31,11 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private final MessageDigest messageDigest;
     private final byte[] secret;
     private final byte[] salt;
-    private final int iterations;
 
-    private int maxKeys = 1000;
-    private int maxEncodedPasswords = 5;
-    private boolean enabled = true;
-    private int expiryInSeconds = 300;
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+    private final int ITERATIONS = 25;
+    private final int MAX_KEYS = 1000;
+    private final int MAX_ENCODED_PASSWORDS = 5;
+    private final Duration CACHE_TTL = Duration.ofMinutes(5L);
 
     private volatile Cache<CharSequence, Set<String>> cache = null;
 
@@ -51,10 +43,9 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
         this.passwordEncoder = passwordEncoder;
-        messageDigest = MessageDigest.getInstance("SHA-256");
+        this.messageDigest = MessageDigest.getInstance("SHA-256");
         this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
         this.salt = KeyGenerators.secureRandom().generateKey();
-        iterations = 25;
         buildCache();
     }
 
@@ -66,18 +57,16 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) throws AuthenticationException {
-        if (isEnabled()) {
-            String cacheKey = cacheEncode(rawPassword);
-            return internalMatches(cacheKey, rawPassword, encodedPassword);
-        } else {
-            return passwordEncoder.matches(rawPassword, encodedPassword);
-        }
+        String cacheKey = cacheEncode(rawPassword);
+        return internalMatches(cacheKey, rawPassword, encodedPassword);
     }
+
+    // internal helpers
 
     Set<String> getOrCreateHashList(String cacheKey) {
         Set<String> result = cache.getIfPresent(cacheKey);
         if (result == null) {
-            if (cache.size() >= getMaxKeys()) {
+            if (cache.size() >= MAX_KEYS) {
                 cache.invalidateAll();
             }
             cache.put(cacheKey, Collections.synchronizedSet(new LinkedHashSet<>()));
@@ -100,7 +89,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
             if (cacheValue != null) {
                 //this list should never grow very long.
                 //Only if you store multiple versions of the same password more than once
-                if (cacheValue.size() >= getMaxEncodedPasswords()) {
+                if (cacheValue.size() >= MAX_ENCODED_PASSWORDS) {
                     cacheValue.clear();
                 }
                 cacheValue.add(encodedPassword);
@@ -122,7 +111,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private byte[] digest(byte[] value) {
         synchronized (messageDigest) {
-            for (int i = 0; i < iterations; i++) {
+            for (int i = 0; i < ITERATIONS; i++) {
                 value = messageDigest.digest(value);
             }
             return value;
@@ -145,21 +134,11 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     }
 
     int getMaxKeys() {
-        return maxKeys;
-    }
-
-    public void setMaxKeys(int maxKeys) {
-        this.maxKeys = maxKeys;
-        buildCache();
+        return MAX_KEYS;
     }
 
     int getMaxEncodedPasswords() {
-        return maxEncodedPasswords;
-    }
-
-    public void setMaxEncodedPasswords(int maxEncodedPasswords) {
-        this.maxEncodedPasswords = maxEncodedPasswords;
-        buildCache();
+        return MAX_ENCODED_PASSWORDS;
     }
 
     long getNumberOfKeys() {
@@ -170,14 +149,9 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         return cache.asMap();
     }
 
-    public void setExpiryInSeconds(int expiryInSeconds) {
-        this.expiryInSeconds = expiryInSeconds;
-        buildCache();
-    }
-
-    private void buildCache() {
+    void buildCache() {
         cache = CacheBuilder.newBuilder()
-                .expireAfterWrite(expiryInSeconds, TimeUnit.SECONDS)
+                .expireAfterWrite(CACHE_TTL.getSeconds(), TimeUnit.SECONDS)
                 .build();
     }
 }
