@@ -1,23 +1,7 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
@@ -65,7 +49,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private final PasswordEncoder passwordEncoder;
 
-    public CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
+    CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
         this.passwordEncoder = passwordEncoder;
         messageDigest = MessageDigest.getInstance("SHA-256");
         this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
@@ -76,7 +60,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     @Override
     public String encode(CharSequence rawPassword) throws AuthenticationException {
-        //we always use the Bcrypt mechanism, we never store repeated information
+        // we always use the BCrypt mechanism, we never store repeated information
         return passwordEncoder.encode(rawPassword);
     }
 
@@ -90,10 +74,10 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         }
     }
 
-    protected Set<String> getOrCreateHashList(String cacheKey) {
+    Set<String> getOrCreateHashList(String cacheKey) {
         Set<String> result = cache.getIfPresent(cacheKey);
-        if (result==null) {
-            if (cache.size()>=getMaxKeys()) {
+        if (result == null) {
+            if (cache.size() >= getMaxKeys()) {
                 cache.invalidateAll();
             }
             cache.put(cacheKey, Collections.synchronizedSet(new LinkedHashSet<>()));
@@ -104,31 +88,29 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private boolean internalMatches(String cacheKey, CharSequence rawPassword, String encodedPassword) {
         Set<String> cacheValue = cache.getIfPresent(cacheKey);
         boolean result = false;
-        List<String> searchList = (cacheValue!=null ? new ArrayList(cacheValue) : Collections.<String>emptyList());
+        List<String> searchList = (cacheValue != null ? new ArrayList<>(cacheValue) : Collections.emptyList());
         for (String encoded : searchList) {
             if (hashesEquals(encoded, encodedPassword)) {
                 return true;
             }
         }
-        if (!result) {
-            if (passwordEncoder.matches(rawPassword, encodedPassword)) {
-                result = true;
-                cacheValue = getOrCreateHashList(cacheKey);
-                if (cacheValue!=null) {
-                    //this list should never grow very long.
-                    //Only if you store multiple versions of the same password more than once
-                    if (cacheValue.size() >= getMaxEncodedPasswords()) {
-                        cacheValue.clear();
-                    }
-                    cacheValue.add(encodedPassword);
+        if (passwordEncoder.matches(rawPassword, encodedPassword)) {
+            result = true;
+            cacheValue = getOrCreateHashList(cacheKey);
+            if (cacheValue != null) {
+                //this list should never grow very long.
+                //Only if you store multiple versions of the same password more than once
+                if (cacheValue.size() >= getMaxEncodedPasswords()) {
+                    cacheValue.clear();
                 }
+                cacheValue.add(encodedPassword);
             }
         }
         return result;
     }
 
 
-    protected String cacheEncode(CharSequence rawPassword) {
+    String cacheEncode(CharSequence rawPassword) {
         byte[] digest = digest(rawPassword);
         return new String(Hex.encode(digest));
     }
@@ -162,7 +144,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         return ret == 0;
     }
 
-    public int getMaxKeys() {
+    int getMaxKeys() {
         return maxKeys;
     }
 
@@ -171,7 +153,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         buildCache();
     }
 
-    public int getMaxEncodedPasswords() {
+    int getMaxEncodedPasswords() {
         return maxEncodedPasswords;
     }
 
@@ -180,16 +162,12 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         buildCache();
     }
 
-    public long getNumberOfKeys() {
+    long getNumberOfKeys() {
         return cache.size();
     }
 
-    public ConcurrentMap<CharSequence, Set<String>> asMap() {
+    ConcurrentMap<CharSequence, Set<String>> asMap() {
         return cache.asMap();
-    }
-
-    public int getExpiryInSeconds() {
-        return expiryInSeconds;
     }
 
     public void setExpiryInSeconds(int expiryInSeconds) {
@@ -197,9 +175,9 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         buildCache();
     }
 
-    protected void buildCache() {
+    private void buildCache() {
         cache = CacheBuilder.newBuilder()
-            .expireAfterWrite(expiryInSeconds, TimeUnit.SECONDS)
-            .build();
+                .expireAfterWrite(expiryInSeconds, TimeUnit.SECONDS)
+                .build();
     }
 }
