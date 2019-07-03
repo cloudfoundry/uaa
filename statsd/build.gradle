@@ -29,7 +29,7 @@ dependencies {
     testCompile libraries.springBootStarterTest
 
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.9'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
 }
 
 test {
