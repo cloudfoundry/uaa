@@ -103,9 +103,7 @@
         <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
-    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">
-        <constructor-arg ref="jdbcClientDetailsService" />
-    </bean>
+    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher" />
 
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAdminEventPublisher">

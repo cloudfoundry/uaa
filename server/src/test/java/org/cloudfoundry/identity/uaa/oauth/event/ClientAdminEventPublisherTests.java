@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.event.*;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class ClientAdminEventPublisherTests {
     @BeforeEach
     void setUp() {
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
-        subject = new ClientAdminEventPublisher(mockMultitenantClientServices);
+        subject = new ClientAdminEventPublisher(mockMultitenantClientServices, mock(IdentityZoneManager.class));
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
 
         subject.setApplicationEventPublisher(mockApplicationEventPublisher);
