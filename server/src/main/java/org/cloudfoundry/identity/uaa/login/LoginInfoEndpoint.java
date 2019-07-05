@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSucce
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -53,6 +55,7 @@ import java.net.URLDecoder;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -77,7 +80,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 public class LoginInfoEndpoint {
 
     private static final String MFA_CODE = "mfaCode";
-    private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
 
     private static final String CREATE_ACCOUNT_LINK = "createAccountLink";
     private static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
@@ -89,96 +92,73 @@ public class LoginInfoEndpoint {
                     Arrays.asList(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW)
             );
     private static final String PASSCODE = "passcode";
-    static final String SHOW_LOGIN_LINKS = "showLoginLinks";
+    private static final String SHOW_LOGIN_LINKS = "showLoginLinks";
     private static final String LINKS = "links";
     private static final String ZONE_NAME = "zone_name";
     private static final String ENTITY_ID = "entityID";
-    static final String IDP_DEFINITIONS = "idpDefinitions";
-    static final String OAUTH_LINKS = "oauthLinks";
+    private static final String IDP_DEFINITIONS = "idpDefinitions";
+    private static final String OAUTH_LINKS = "oauthLinks";
 
-    private Properties gitProperties = new Properties();
+    private final AuthenticationManager authenticationManager;
+    private final String baseUrl;
+    private final String entityID;
+    private final SamlIdentityProviderConfigurator idpDefinitions;
+    private final MultitenantClientServices clientDetailsService;
+    private final ExpiringCodeStore expiringCodeStore;
+    private final String externalLoginUrl;
+    private final IdentityProviderProvisioning providerProvisioning;
+    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private final Links globalLinks;
+    private final MfaChecker mfaChecker;
+    private final Properties gitProperties;
+    private final Properties buildProperties;
+    private final Duration codeExpiration;
+    private final MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector;
 
-    private Properties buildProperties = new Properties();
-
-    private String baseUrl;
-
-    private String externalLoginUrl;
-
-    private String samlSPBaseUrl;
-
-    private String uaaHost;
-
-    private SamlIdentityProviderConfigurator idpDefinitions;
-
-    private long codeExpirationMillis = 5 * 60 * 1000;
-
-    private AuthenticationManager authenticationManager;
-
-    private ExpiringCodeStore expiringCodeStore;
-    private MultitenantClientServices clientDetailsService;
-
-    private IdentityProviderProvisioning providerProvisioning;
-    private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
-            new MapCollector<>(
-                    IdentityProvider::getOriginKey,
-                    idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
-            );
-
-    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
-
-    private Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
-
-    private MfaChecker mfaChecker;
-
-    public void setGlobalLinks(Links globalLinks) {
-        this.globalLinks = globalLinks;
-    }
-
-    public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
-        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
-        return this;
-    }
-
-    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
-        this.expiringCodeStore = expiringCodeStore;
-    }
-
-    private long getCodeExpirationMillis() {
-        return codeExpirationMillis;
-    }
-
-    public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
-        this.idpDefinitions = idpDefinitions;
-    }
-
-    public AuthenticationManager getAuthenticationManager() {
-        return authenticationManager;
-    }
-
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+    LoginInfoEndpoint(
+            @Qualifier("zoneAwareAuthzAuthenticationManager") final AuthenticationManager authenticationManager,
+            @Qualifier("uaaUrl") final String baseUrl,
+            @Qualifier("samlEntityID") final String entityID,
+            final SamlIdentityProviderConfigurator idpDefinitions,
+            final MultitenantClientServices clientDetailsService,
+            final ExpiringCodeStore expiringCodeStore,
+            @Value("${login.url:''}") final String externalLoginUrl,
+            @Qualifier("identityProviderProvisioning") final IdentityProviderProvisioning providerProvisioning,
+            final XOAuthProviderConfigurator xoAuthProviderConfigurator,
+            final Links globalLinks,
+            final MfaChecker mfaChecker
+    ) {
         this.authenticationManager = authenticationManager;
-    }
-
-    private String entityID = "";
-
-    public void setEntityID(String entityID) {
+        this.baseUrl = baseUrl;
         this.entityID = entityID;
-    }
-
-    public void setMfaChecker(MfaChecker mfaChecker) {
+        this.idpDefinitions = idpDefinitions;
+        this.clientDetailsService = clientDetailsService;
+        this.expiringCodeStore = expiringCodeStore;
+        this.externalLoginUrl = externalLoginUrl;
+        this.providerProvisioning = providerProvisioning;
+        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
+        this.globalLinks = globalLinks;
         this.mfaChecker = mfaChecker;
+        this.gitProperties = tryLoadProperties("git.properties");
+        this.buildProperties = tryLoadProperties("build.properties");
+        try {
+            new URI(baseUrl);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
+        }
+        this.codeExpiration = Duration.ofMinutes(5);
+        this.idpsMapCollector =
+                new MapCollector<>(
+                        IdentityProvider::getOriginKey,
+                        idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
+                );
     }
 
-    LoginInfoEndpoint() {
+    private Properties tryLoadProperties(final String fileName) {
         try {
-            gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
+            return PropertiesLoaderUtils.loadAllProperties(fileName);
         } catch (IOException e) {
-            // Ignore
-        }
-        try {
-            buildProperties = PropertiesLoaderUtils.loadAllProperties("build.properties");
-        } catch (IOException e) {
-            // Ignore
+            return new Properties();
         }
     }
 
@@ -714,7 +694,7 @@ public class LoginInfoEndpoint {
             Prompt p = new Prompt(
                     MFA_CODE,
                     "password",
-                    "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl() + " )", IdentityZoneHolder.get().getSubdomain())
+                    "MFA Code ( Register at " + addSubdomainToUrl(baseUrl + " )", IdentityZoneHolder.get().getSubdomain())
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
@@ -902,7 +882,7 @@ public class LoginInfoEndpoint {
 
         ExpiringCode code = expiringCodeStore.generateCode(
                 JsonUtils.writeValueAsString(pi),
-                new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
+                new Timestamp(System.currentTimeMillis() + codeExpiration.toMillis()),
                 intent, IdentityZoneHolder.get().getId());
 
         model.put(PASSCODE, code.getCode());
@@ -913,13 +893,13 @@ public class LoginInfoEndpoint {
     private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
-        if (getBaseUrl().contains("localhost:")) {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
-        } else if (hasText(getExternalLoginUrl())) {
-            model.put("login", getExternalLoginUrl());
+        model.put(OriginKeys.UAA, addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+        if (baseUrl.contains("localhost:")) {
+            model.put("login", addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+        } else if (hasText(externalLoginUrl)) {
+            model.put("login", externalLoginUrl);
         } else {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
+            model.put("login", addSubdomainToUrl(baseUrl.replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
         }
         model.putAll(getSelfServiceLinks());
         return model;
@@ -960,85 +940,6 @@ public class LoginInfoEndpoint {
             }
         }
         return selfServiceLinks;
-    }
-
-    public void setUaaBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-        try {
-            URI uri = new URI(baseUrl);
-            setUaaHost(uri.getHost());
-            if (uri.getPort() != 443 && uri.getPort() != 80 && uri.getPort() > 0) {
-                //append non standard ports to the hostname
-                setUaaHost(getUaaHost() + ":" + uri.getPort());
-            }
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
-        }
-    }
-
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-    private String getUaaBaseUrl() {
-        return baseUrl;
-    }
-
-    private String getUaaHost() {
-        return uaaHost;
-    }
-
-    private void setUaaHost(String uaaHost) {
-        this.uaaHost = uaaHost;
-    }
-
-    public void setExternalLoginUrl(String baseUrl) {
-        this.externalLoginUrl = baseUrl;
-    }
-
-    private String getExternalLoginUrl() {
-        return externalLoginUrl;
-    }
-
-    public String getSamlSPBaseUrl() {
-        return samlSPBaseUrl;
-    }
-
-    public void setSamlSPBaseUrl(String samlSPBaseUrl) {
-        this.samlSPBaseUrl = samlSPBaseUrl;
-    }
-
-    protected String extractPath(HttpServletRequest request) {
-        String query = request.getQueryString();
-        try {
-            query = query == null ? "" : "?" + URLDecoder.decode(query, UTF_8.name());
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Cannot decode query string: " + query);
-        }
-        String path = request.getRequestURI() + query;
-        String context = request.getContextPath();
-        path = path.substring(context.length());
-        if (path.startsWith("/")) {
-            // In the root context we have to remove this as well
-            path = path.substring(1);
-        }
-        return path;
-    }
-
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
-        this.clientDetailsService = clientDetailsService;
-    }
-
-    public IdentityProviderProvisioning getProviderProvisioning() {
-        return providerProvisioning;
-    }
-
-    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

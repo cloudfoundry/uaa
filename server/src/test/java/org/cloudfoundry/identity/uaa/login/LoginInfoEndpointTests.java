@@ -27,10 +27,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
@@ -46,8 +48,6 @@ import java.util.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.*;
-import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
-import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -62,6 +62,7 @@ import static org.mockito.Mockito.*;
 class LoginInfoEndpointTests {
 
     private static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
+    private final String BASE_URL = "http://someurl";
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
     private ExtendedModelMap model;
@@ -70,7 +71,7 @@ class LoginInfoEndpointTests {
     private IdentityProviderProvisioning identityProviderProvisioning;
     private IdentityProvider uaaProvider;
     private IdentityZoneConfiguration originalConfiguration;
-    private XOAuthProviderConfigurator configurator;
+    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
     private MfaChecker mfaChecker;
 
     @BeforeEach
@@ -90,7 +91,7 @@ class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         OidcMetadataFetcher oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher);
+        xoAuthProviderConfigurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher);
         mfaChecker = spy(new MfaChecker(mock(IdentityZoneProvisioning.class)));
         model = new ExtendedModelMap();
     }
@@ -300,7 +301,7 @@ class LoginInfoEndpointTests {
         validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
 
         //null config with globals
-        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
+        setGlobalLinks(endpoint, new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals
@@ -309,7 +310,7 @@ class LoginInfoEndpointTests {
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals using variables
-        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
+        setGlobalLinks(endpoint, new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
         validateSelfServiceLinks("/signup?domain=" + zone.getSubdomain(), "/passwd?id=" + zone.getId(), endpoint.getSelfServiceLinks());
 
         //zone config overrides global
@@ -413,20 +414,20 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         String baseUrl = "http://uaa.domain.com";
-        endpoint.setBaseUrl(baseUrl);
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        setBaseUrl(endpoint, baseUrl);
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
         assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login"), IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         String loginBaseUrl = "http://external-login.domain.com";
-        endpoint.setExternalLoginUrl(loginBaseUrl);
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        ReflectionTestUtils.setField(endpoint, "externalLoginUrl", loginBaseUrl);
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
         assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
         assertEquals("Temporary Authentication Code ( Get one at " + addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA, IdentityZoneHolder.get().getSubdomain()) + "/passcode )", ((String[]) mapPrompts.get("passcode"))[1]);
@@ -440,7 +441,7 @@ class LoginInfoEndpointTests {
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("register"));
@@ -450,15 +451,15 @@ class LoginInfoEndpointTests {
     @Test
     void no_ui_links_for_json() {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("linkCreateAccountShow"));
         assertNull(links.get("fieldUsernameShow"));
         assertNull(links.get("forgotPasswordLink"));
         assertNull(links.get("createAccountLink"));
-        assertEquals("http://someurl", links.get("login"));
-        assertEquals("http://someurl", links.get("uaa"));
+        assertEquals(BASE_URL, links.get("login"));
+        assertEquals(BASE_URL, links.get("uaa"));
         assertEquals("/create_account", links.get("register"));
         assertEquals("/forgot_password", links.get("passwd"));
     }
@@ -466,14 +467,13 @@ class LoginInfoEndpointTests {
     @Test
     void saml_links_for_json() {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
         when(mockIDPConfigurator.getIdentityProviderDefinitions(any(), any())).thenReturn(idps);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
-        assertEquals("http://someurl", links.get("login"));
-        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Map);
-        Map<String, String> idpDefinitions = (Map<String, String>) model.get(LoginInfoEndpoint.IDP_DEFINITIONS);
+        assertEquals(BASE_URL, links.get("login"));
+        assertTrue(model.get("idpDefinitions") instanceof Map);
+        Map<String, String> idpDefinitions = (Map<String, String>) model.get("idpDefinitions");
         for (SamlIdentityProviderDefinition def : idps) {
             assertEquals(
                     "http://someurl/saml/discovery?returnIDParam=idp&entityID=" + endpoint.getZonifiedEntityId() + "&idp=" + def.getIdpEntityAlias() + "&isPassive=true",
@@ -485,12 +485,12 @@ class LoginInfoEndpointTests {
     @Test
     void saml_links_for_html() throws HttpMediaTypeNotAcceptableException {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", BASE_URL), null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
-        assertEquals("http://someurl", links.get("login"));
-        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Collection);
+        assertEquals(BASE_URL, links.get("login"));
+        assertTrue(model.get("idpDefinitions") instanceof Collection);
     }
 
     @Test
@@ -499,7 +499,7 @@ class LoginInfoEndpointTests {
         uaaIdentityProviderDefinition.setDisableInternalUserManagement(true);
         uaaProvider.setConfig(uaaIdentityProviderDefinition);
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("register"));
@@ -523,9 +523,9 @@ class LoginInfoEndpointTests {
         when(identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
 
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", BASE_URL), null);
         assertFalse((Boolean) model.get("fieldUsernameShow"));
     }
 
@@ -534,7 +534,7 @@ class LoginInfoEndpointTests {
         Map<String, Object> model = new HashMap<>();
         ExpiringCodeStore store = new InMemoryExpiringCodeStore();
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setExpiringCodeStore(store);
+        ReflectionTestUtils.setField(endpoint, "expiringCodeStore", store);
         assertEquals("passcode", endpoint.generatePasscode(model, marissa));
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
         assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
@@ -559,7 +559,7 @@ class LoginInfoEndpointTests {
     void _PromptLogic() throws HttpMediaTypeNotAcceptableException {
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), singletonList(MediaType.TEXT_HTML));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest("GET", BASE_URL), singletonList(MediaType.TEXT_HTML));
         assertNotNull(model.get("prompts"), "prompts attribute should be present");
         assertTrue(model.get("prompts") instanceof Map, "prompts should be a Map for Html content");
         Map mapPrompts = (Map) model.get("prompts");
@@ -570,7 +570,7 @@ class LoginInfoEndpointTests {
         assertNull(mapPrompts.get("mfaCode"));
 
         model.clear();
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         assertNotNull(model.get("prompts"), "prompts attribute should be present");
         assertTrue(model.get("prompts") instanceof Map, "prompts should be a Map for JSON content");
         mapPrompts = (Map) model.get("prompts");
@@ -583,8 +583,8 @@ class LoginInfoEndpointTests {
         //add a SAML IDP, should make the passcode prompt appear
         model.clear();
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         assertNotNull(model.get("prompts"), "prompts attribute should be present");
         assertTrue(model.get("prompts") instanceof Map, "prompts should be a Map for JSON content");
         mapPrompts = (Map) model.get("prompts");
@@ -605,7 +605,7 @@ class LoginInfoEndpointTests {
         when(identityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
         model.clear();
-        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         assertNotNull(model.get("prompts"), "prompts attribute should be present");
         mapPrompts = (Map) model.get("prompts");
         assertNull(mapPrompts.get("username"));
@@ -627,7 +627,7 @@ class LoginInfoEndpointTests {
         when(mockIDPConfigurator.getIdentityProviderDefinitions(isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -652,7 +652,7 @@ class LoginInfoEndpointTests {
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
         endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -691,8 +691,8 @@ class LoginInfoEndpointTests {
         when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(IdentityZone.getUaa()))).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setClientDetailsService(clientDetailsService);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setClientDetailsService(endpoint, clientDetailsService);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -730,8 +730,8 @@ class LoginInfoEndpointTests {
 
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setClientDetailsService(clientDetailsService);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setClientDetailsService(endpoint, clientDetailsService);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
         Collection<SamlIdentityProviderDefinition> idpDefinitions = (Collection<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -757,10 +757,10 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.set(zone);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
         // mock SamlIdentityProviderConfigurator
         SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
-        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        setSamlIdentityProviderConfigurator(endpoint, mockIDPConfigurator);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
         verify(mockIDPConfigurator).getIdentityProviderDefinitions(null, zone);
     }
@@ -787,10 +787,10 @@ class LoginInfoEndpointTests {
         when(identityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
         endpoint.loginForHtml(model, null, request, Collections.singletonList(MediaType.TEXT_HTML));
 
-        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get(OAUTH_LINKS);
+        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
     }
 
@@ -808,7 +808,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertThat(model.get(SHOW_LOGIN_LINKS), equalTo(true));
+        assertThat(model.get("showLoginLinks"), equalTo(true));
     }
 
     @Test
@@ -822,7 +822,7 @@ class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.infoForLoginJson(model, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForLoginJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
 
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
@@ -911,7 +911,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(Collections.singletonList(mockProvider));
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
@@ -931,7 +931,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
@@ -950,7 +950,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
@@ -965,7 +965,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8")});
@@ -989,7 +989,7 @@ class LoginInfoEndpointTests {
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
@@ -1012,7 +1012,7 @@ class LoginInfoEndpointTests {
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
@@ -1037,7 +1037,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
@@ -1058,7 +1058,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"invalidorigin\"}"});
@@ -1080,7 +1080,7 @@ class LoginInfoEndpointTests {
 
         mockOidcProvider();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
@@ -1102,7 +1102,7 @@ class LoginInfoEndpointTests {
 
         mockOidcProvider();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
@@ -1123,7 +1123,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
@@ -1153,7 +1153,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
 
         endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
@@ -1181,7 +1181,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
 
         endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
@@ -1205,7 +1205,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
 
         endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
@@ -1233,7 +1233,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
 
         endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
@@ -1256,7 +1256,7 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
 
         MultitenantClientServices clientDetailsService = mockClientService();
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
@@ -1274,7 +1274,7 @@ class LoginInfoEndpointTests {
         mockOidcProvider();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
@@ -1292,7 +1292,7 @@ class LoginInfoEndpointTests {
         mockOidcProvider();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         endpoint.infoForLoginJson(model, null, mockHttpServletRequest);
 
@@ -1314,7 +1314,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         mockHttpServletRequest.setParameter("discoveryPerformed", "true");
 
@@ -1334,7 +1334,7 @@ class LoginInfoEndpointTests {
 
         mockOidcProvider();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
@@ -1355,7 +1355,7 @@ class LoginInfoEndpointTests {
 
         MultitenantClientServices clientDetailsService = mockClientService();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"ldap\"}"});
@@ -1373,7 +1373,7 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("invalid");
 
         MultitenantClientServices clientDetailsService = mockClientService();
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
@@ -1396,7 +1396,7 @@ class LoginInfoEndpointTests {
         mockOidcProvider();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("ldap");
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
@@ -1418,7 +1418,7 @@ class LoginInfoEndpointTests {
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
@@ -1441,14 +1441,14 @@ class LoginInfoEndpointTests {
 
         mockOidcProvider();
 
-        endpoint.setClientDetailsService(clientDetailsService);
+        setClientDetailsService(endpoint, clientDetailsService);
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
         assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
         assertEquals("login", redirect);
 
-        Map<String, String> oauthLinks = (Map<String, String>) model.get(OAUTH_LINKS);
+        Map<String, String> oauthLinks = (Map<String, String>) model.get("oauthLinks");
         assertEquals(1, oauthLinks.size());
     }
 
@@ -1465,27 +1465,36 @@ class LoginInfoEndpointTests {
     }
 
     private LoginInfoEndpoint getEndpoint() {
-        LoginInfoEndpoint endpoint = new LoginInfoEndpoint();
-        endpoint.setBaseUrl("http://someurl");
-        SamlIdentityProviderConfigurator emptyConfigurator = mock(SamlIdentityProviderConfigurator.class);
-        when(emptyConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.EMPTY_LIST);
-        when(emptyConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(Collections.EMPTY_LIST);
-        endpoint.setIdpDefinitions(emptyConfigurator);
+        SamlIdentityProviderConfigurator mockSamlIdentityProviderConfigurator = mock(SamlIdentityProviderConfigurator.class);
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.emptyList());
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(Collections.emptyList());
         IdentityZoneHolder.get().getConfig().setPrompts(prompts);
-        endpoint.setProviderProvisioning(identityProviderProvisioning);
-        endpoint.setXoAuthProviderConfigurator(configurator);
-        endpoint.setMfaChecker(mfaChecker);
-        return endpoint;
+
+        Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
+
+        return new LoginInfoEndpoint(null,
+                BASE_URL,
+                null,
+                mockSamlIdentityProviderConfigurator,
+                null,
+                null,
+                null,
+                identityProviderProvisioning,
+                xoAuthProviderConfigurator,
+                globalLinks,
+                mfaChecker);
     }
 
-    private List<SamlIdentityProviderDefinition> getIdps() {
+    private static List<SamlIdentityProviderDefinition> getIdps() {
         List<SamlIdentityProviderDefinition> idps = new LinkedList<>();
-        idps.add(createIdentityProviderDefinition("awesome-idp", "uaa"));
-        idps.add(createIdentityProviderDefinition("my-client-awesome-idp", "uaa"));
+        idps.add(createIdentityProviderDefinition("awesome-idp", IdentityZone.getUaaZoneId()));
+        idps.add(createIdentityProviderDefinition("my-client-awesome-idp", IdentityZone.getUaaZoneId()));
         return idps;
     }
 
-    private SamlIdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
+    private static SamlIdentityProviderDefinition createIdentityProviderDefinition(
+            final String idpEntityAlias,
+            final String zoneId) {
         SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation("metadataLocation for " + idpEntityAlias)
                 .setIdpEntityAlias(idpEntityAlias)
@@ -1523,7 +1532,6 @@ class LoginInfoEndpointTests {
         return clientDetailsService;
     }
 
-
     private void mockOidcProvider() throws MalformedURLException {
         IdentityProvider mockProvider = mock(IdentityProvider.class);
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
@@ -1535,5 +1543,25 @@ class LoginInfoEndpointTests {
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(Collections.singletonList(mockProvider));
+    }
+
+    private static void setBaseUrl(final LoginInfoEndpoint loginInfoEndpoint,
+                                   final String baseUrl) {
+        ReflectionTestUtils.setField(loginInfoEndpoint, "baseUrl", baseUrl);
+    }
+
+    private static void setGlobalLinks(final LoginInfoEndpoint loginInfoEndpoint,
+                                       final Links globalLinks) {
+        ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", globalLinks);
+    }
+
+    private static void setClientDetailsService(final LoginInfoEndpoint loginInfoEndpoint,
+                                                final ClientDetailsService clientDetailsService) {
+        ReflectionTestUtils.setField(loginInfoEndpoint, "clientDetailsService", clientDetailsService);
+    }
+
+    private static void setSamlIdentityProviderConfigurator(final LoginInfoEndpoint loginInfoEndpoint,
+                                                            final SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
+        ReflectionTestUtils.setField(loginInfoEndpoint, "idpDefinitions", samlIdentityProviderConfigurator);
     }
 }

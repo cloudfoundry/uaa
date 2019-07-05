@@ -60,6 +60,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -163,7 +164,7 @@ public class LoginMockMvcTests {
             @Autowired HomeController homeController
     ) {
         jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
-        loginInfoEndpoint.setGlobalLinks(globalLinks);
+        ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", globalLinks);
         homeController.setGlobalLinks(globalLinks);
     }
 
@@ -260,13 +261,12 @@ public class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
                 .andExpect(content().string(containsString("/create_account")));
 
-        loginInfoEndpoint.setGlobalLinks(
-                new Links().setSelfService(
-                        new Links.SelfService()
-                                .setPasswd("/passwd?id={zone.id}")
-                                .setSignup("/signup?subdomain={zone.subdomain}")
-                )
-        );
+
+        ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
+                new Links.SelfService()
+                        .setPasswd("/passwd?id={zone.id}")
+                        .setSignup("/signup?subdomain={zone.subdomain}")
+        ));
 
         mockMvc.perform(
                 get("/login")
@@ -2596,11 +2596,11 @@ public class LoginMockMvcTests {
             IdentityZone zone) throws Exception {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(metadata)
-            .setIdpEntityAlias(originKey)
-            .setLinkText("Active SAML Provider")
-            .setZoneId(zone.getId())
-            .setEmailDomain(Collections.singletonList("test.org"));
+                .setMetaDataLocation(metadata)
+                .setIdpEntityAlias(originKey)
+                .setLinkText("Active SAML Provider")
+                .setZoneId(zone.getId())
+                .setEmailDomain(Collections.singletonList("test.org"));
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
         identityProvider.setType(OriginKeys.SAML);
