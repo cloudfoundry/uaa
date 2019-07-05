@@ -1,23 +1,10 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.client.event;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
@@ -27,23 +14,16 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
  * Event publisher for client registration changes with the resulting event type
- * varying according to the input and
- * outcome. Can be used as an aspect intercepting calls to a component that
- * changes client details.
- *
- * @author Dave Syer
- *
+ * varying according to the input and outcome. Can be used as an aspect intercepting
+ * calls to a component that changes client details.
  */
 public class ClientAdminEventPublisher implements ApplicationEventPublisherAware {
 
-    private MultitenantClientServices clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
 
     private ApplicationEventPublisher publisher;
 
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public ClientAdminEventPublisher(MultitenantClientServices clientDetailsService) {
+    public ClientAdminEventPublisher(final MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -71,7 +51,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     }
 
     public void updateTx(ClientDetails[] clients) {
-        for (ClientDetails client:clients) {
+        for (ClientDetails client : clients) {
             publish(new ClientUpdateEvent(client, getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
         }
     }
@@ -83,13 +63,13 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     }
 
     public void deleteTx(ClientDetails[] clients) {
-        for (ClientDetails client:clients) {
+        for (ClientDetails client : clients) {
             publish(new ClientDeleteEvent(client, getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
         }
     }
 
     public void modifyTx(ClientDetailsModification[] clients) {
-        for (ClientDetailsModification client:clients) {
+        for (ClientDetailsModification client : clients) {
             if (ClientDetailsModification.ADD.equals(client.getAction())) {
                 publish(new ClientCreateEvent(client, getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
             } else if (ClientDetailsModification.UPDATE.equals(client.getAction())) {
@@ -112,7 +92,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     }
 
     public void secretTx(ClientDetailsModification[] clients) {
-        for (ClientDetailsModification client:clients) {
+        for (ClientDetailsModification client : clients) {
             publish(new ClientDeleteEvent(client, getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
             if (client.isApprovalsDeleted()) {
                 publish(new ClientApprovalsDeletedEvent(client, getPrincipal(), IdentityZoneHolder.getCurrentZoneId()));
