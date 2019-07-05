@@ -1,19 +1,5 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents wit
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -24,30 +10,17 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
-import org.cloudfoundry.identity.uaa.util.ColorHash;
-import org.cloudfoundry.identity.uaa.util.DomainFilter;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
-import org.cloudfoundry.identity.uaa.util.MapCollector;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -65,13 +38,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -86,15 +53,8 @@ import java.net.URLDecoder;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -112,31 +72,29 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
  * authenticate.
- *
- * @author Dave Syer
  */
 @Controller
 public class LoginInfoEndpoint {
 
-    public static final String MFA_CODE = "mfaCode";
+    private static final String MFA_CODE = "mfaCode";
     private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
 
-    public static final String CREATE_ACCOUNT_LINK = "createAccountLink";
-    public static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
-    public static final String LINK_CREATE_ACCOUNT_SHOW = "linkCreateAccountShow";
-    public static final String FIELD_USERNAME_SHOW = "fieldUsernameShow";
+    private static final String CREATE_ACCOUNT_LINK = "createAccountLink";
+    private static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
+    private static final String LINK_CREATE_ACCOUNT_SHOW = "linkCreateAccountShow";
+    private static final String FIELD_USERNAME_SHOW = "fieldUsernameShow";
 
-    public static final List<String> UI_ONLY_ATTRIBUTES =
+    private static final List<String> UI_ONLY_ATTRIBUTES =
             Collections.unmodifiableList(
                     Arrays.asList(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW)
             );
-    public static final String PASSCODE = "passcode";
-    public static final String SHOW_LOGIN_LINKS = "showLoginLinks";
-    public static final String LINKS = "links";
-    public static final String ZONE_NAME = "zone_name";
-    public static final String ENTITY_ID = "entityID";
-    public static final String IDP_DEFINITIONS = "idpDefinitions";
-    public static final String OAUTH_LINKS = "oauthLinks";
+    private static final String PASSCODE = "passcode";
+    static final String SHOW_LOGIN_LINKS = "showLoginLinks";
+    private static final String LINKS = "links";
+    private static final String ZONE_NAME = "zone_name";
+    private static final String ENTITY_ID = "entityID";
+    static final String IDP_DEFINITIONS = "idpDefinitions";
+    static final String OAUTH_LINKS = "oauthLinks";
 
     private Properties gitProperties = new Properties();
 
@@ -162,7 +120,7 @@ public class LoginInfoEndpoint {
     private IdentityProviderProvisioning providerProvisioning;
     private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
-                    idp -> idp.getOriginKey(),
+                    IdentityProvider::getOriginKey,
                     idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
             );
 
@@ -185,12 +143,8 @@ public class LoginInfoEndpoint {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    public long getCodeExpirationMillis() {
+    private long getCodeExpirationMillis() {
         return codeExpirationMillis;
-    }
-
-    public void setCodeExpirationMillis(long codeExpirationMillis) {
-        this.codeExpirationMillis = codeExpirationMillis;
     }
 
     public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
@@ -215,7 +169,7 @@ public class LoginInfoEndpoint {
         this.mfaChecker = mfaChecker;
     }
 
-    public LoginInfoEndpoint() {
+    LoginInfoEndpoint() {
         try {
             gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
         } catch (IOException e) {
@@ -239,9 +193,12 @@ public class LoginInfoEndpoint {
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
+        /**
+         * For some unknown reason this must be public
+         */
         public int red, green, blue;
 
-        public void assignColors(Color color) {
+        void assignColors(Color color) {
             red = color.getRed();
             blue = color.getBlue();
             green = color.getGreen();
@@ -284,12 +241,12 @@ public class LoginInfoEndpoint {
                         return null;
                     }
                 })
-                .filter(c -> c != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private static String decodeCookieValue(String inValue) {
-        String out = null;
+        String out;
         try {
             out = URLDecoder.decode(inValue, UTF_8.name());
         } catch (Exception e) {
@@ -304,7 +261,7 @@ public class LoginInfoEndpoint {
         return "invalid_request";
     }
 
-    protected String getZonifiedEntityId() {
+    String getZonifiedEntityId() {
         return SamlRedirectUtils.getZonifiedEntityId(entityID, IdentityZoneHolder.get());
     }
 
@@ -631,12 +588,12 @@ public class LoginInfoEndpoint {
         return xoAuthProviderConfigurator.getCompleteAuthorizationURI(alias, UaaUrlUtils.getBaseURL(request), definition);
     }
 
-    protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
+    private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
         List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
         return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getIdpEntityAlias, idp -> idp));
     }
 
-    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
+    Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
 
         List<IdentityProvider> identityProviders =
                 xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
@@ -647,7 +604,7 @@ public class LoginInfoEndpoint {
         return identityProviderDefinitions;
     }
 
-    protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
+    private boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
         if (session == null || session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE) == null) {
             return false;
         }
@@ -660,7 +617,7 @@ public class LoginInfoEndpoint {
         return false;
     }
 
-    public Map<String, Object> getClientInfo(HttpSession session) {
+    private Map<String, Object> getClientInfo(HttpSession session) {
         if (!hasSavedOauthAuthorizeRequest(session)) {
             return null;
         }
@@ -773,7 +730,7 @@ public class LoginInfoEndpoint {
             "((https?|ftp|gopher|telnet|file):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)",
             Pattern.CASE_INSENSITIVE);
 
-    public String extractUrlFromString(String s) {
+    private String extractUrlFromString(String s) {
         Matcher matcher = urlPattern.matcher(s);
         if (matcher.find()) {
             int matchStart = matcher.start(0);
@@ -953,7 +910,7 @@ public class LoginInfoEndpoint {
         return PASSCODE;
     }
 
-    protected Map<String, ?> getLinksInfo() {
+    private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
@@ -968,7 +925,7 @@ public class LoginInfoEndpoint {
         return model;
     }
 
-    protected Map<String, String> getSelfServiceLinks() {
+    Map<String, String> getSelfServiceLinks() {
         Map<String, String> selfServiceLinks = new HashMap<>();
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -1027,15 +984,15 @@ public class LoginInfoEndpoint {
         this.baseUrl = baseUrl;
     }
 
-    protected String getUaaBaseUrl() {
+    private String getUaaBaseUrl() {
         return baseUrl;
     }
 
-    public String getUaaHost() {
+    private String getUaaHost() {
         return uaaHost;
     }
 
-    public void setUaaHost(String uaaHost) {
+    private void setUaaHost(String uaaHost) {
         this.uaaHost = uaaHost;
     }
 
@@ -1043,7 +1000,7 @@ public class LoginInfoEndpoint {
         this.externalLoginUrl = baseUrl;
     }
 
-    public String getExternalLoginUrl() {
+    private String getExternalLoginUrl() {
         return externalLoginUrl;
     }
 
@@ -1085,7 +1042,7 @@ public class LoginInfoEndpoint {
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
-    public static final class UnknownPrincipalException extends RuntimeException {
+    static final class UnknownPrincipalException extends RuntimeException {
     }
 
 }
