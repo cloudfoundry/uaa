@@ -34,7 +34,7 @@ public class IdentityZoneConfiguration {
     private List<Prompt> prompts = Arrays.asList(
         new Prompt("username", "text", "Email"),
         new Prompt("password", "password", "Password"),
-        new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)")
+        new Prompt("passcode", "password", "Temporary Authentication Code (Get one at /passcode)")
     );
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;

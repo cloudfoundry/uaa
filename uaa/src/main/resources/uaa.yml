@@ -359,7 +359,7 @@ login:
 #            text: MyPassword
 #          - name: passcode
 #            type: password
-#            text: MyTemporary Authentication Code (Get on at /passcode)
+#            text: MyTemporary Authentication Code (Get one at /passcode)
   url: http://localhost:8080/uaa
 #  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true

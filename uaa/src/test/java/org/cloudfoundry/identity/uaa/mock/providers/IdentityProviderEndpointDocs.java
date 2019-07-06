@@ -565,7 +565,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setExternalGroupsWhitelist(Arrays.asList("uaa.user"));
         List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
                 new Prompt("password", "password", "Password"),
-                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get one at /passcode)"));
         definition.setPrompts(prompts);
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
