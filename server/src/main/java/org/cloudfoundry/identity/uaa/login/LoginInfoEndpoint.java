@@ -347,7 +347,7 @@ public class LoginInfoEndpoint {
         excludedPrompts = new LinkedList<>(excludedPrompts);
         String origin = request != null ? request.getParameter("origin") : null;
         populatePrompts(model, excludedPrompts, origin, samlIdentityProviders, oauthIdentityProviders,
-                excludedPrompts, returnLoginPrompts);
+                returnLoginPrompts);
 
         if (principal == null) {
             return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed);
@@ -623,11 +623,10 @@ public class LoginInfoEndpoint {
 
     private void populatePrompts(
             Model model,
-            List<String> exclude,
+            List<String> promptsToExclude,
             String origin,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
             Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
-            List<String> excludedPrompts,
             boolean returnLoginPrompts
     ) {
         boolean noIdpsPresent = true;
@@ -647,11 +646,11 @@ public class LoginInfoEndpoint {
         }
         //make the list writeable
         if (noIdpsPresent) {
-            excludedPrompts.add(PASSCODE);
+            promptsToExclude.add(PASSCODE);
         }
         if (!returnLoginPrompts) {
-            excludedPrompts.add("username");
-            excludedPrompts.add("password");
+            promptsToExclude.add("username");
+            promptsToExclude.add("password");
         }
 
         List<Prompt> prompts;
@@ -698,7 +697,7 @@ public class LoginInfoEndpoint {
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
-        for (String excludeThisPrompt : exclude) {
+        for (String excludeThisPrompt : promptsToExclude) {
             map.remove(excludeThisPrompt);
         }
         model.addAttribute("prompts", map);
