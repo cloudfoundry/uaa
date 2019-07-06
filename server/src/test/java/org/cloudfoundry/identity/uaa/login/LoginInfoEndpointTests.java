@@ -81,7 +81,7 @@ class LoginInfoEndpointTests {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "Temporary Authentication Code ( Get one at " + HTTP_LOCALHOST_8080_UAA + "/passcode )"));
+        prompts.add(new Prompt("passcode", "text", "Temporary Authentication Code (Get one at " + HTTP_LOCALHOST_8080_UAA + "/passcode)"));
         mockSamlIdentityProviderConfigurator = mock(SamlIdentityProviderConfigurator.class);
         mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaProvider = new IdentityProvider();
@@ -433,7 +433,7 @@ class LoginInfoEndpointTests {
         endpoint.infoForJson(model, null, new MockHttpServletRequest("GET", BASE_URL));
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
-        assertEquals("Temporary Authentication Code ( Get one at " + addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA, IdentityZoneHolder.get().getSubdomain()) + "/passcode )", ((String[]) mapPrompts.get("passcode"))[1]);
+        assertEquals("Temporary Authentication Code (Get one at " + addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA, IdentityZoneHolder.get().getSubdomain()) + "/passcode)", ((String[]) mapPrompts.get("passcode"))[1]);
         return baseUrl;
     }
 
@@ -1142,7 +1142,7 @@ class LoginInfoEndpointTests {
         List<Prompt> customPrompts = new ArrayList<>();
         customPrompts.add(new Prompt("username", "text", "MyEmail"));
         customPrompts.add(new Prompt("password", "password", "MyPassword"));
-        customPrompts.add(new Prompt("passcode", "text", "MyTemporary Authentication Code ( Get one at " + HTTP_LOCALHOST_8080_UAA + "/passcode )"));
+        customPrompts.add(new Prompt("passcode", "text", "MyTemporary Authentication Code (Get one at " + HTTP_LOCALHOST_8080_UAA + "/passcode)"));
 
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("origin", "OIDC-without-prompts");
