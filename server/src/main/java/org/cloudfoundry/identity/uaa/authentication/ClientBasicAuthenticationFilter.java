@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.util.Assert;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -24,9 +25,13 @@ import java.util.Base64;
 
 
 /**
- * This class is an extension of Spring Framework BasicAuthenticationFilter that observes
- * the client lockout policy and throws ClientLockoutException when the client attempting
- * to authenticate is locked out.
+ * A filter which implements basic auth according to the requirements laid out in RFC6749.
+ * https://tools.ietf.org/html/rfc6749#section-2.3.1
+ *
+ * This filter properly decodes a basic auth header of the form:
+ * Authentication: Basic base64encode(urlencode(client_id):urlencode(client_secret))
+ *
+ * Fun fact: this class is almost an exact copy of the Spring Framework {@link BasicAuthenticationFilter} version 5.1.5.RELEASE.
  */
 public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
