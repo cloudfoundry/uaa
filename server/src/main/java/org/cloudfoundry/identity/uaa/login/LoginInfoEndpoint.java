@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.util.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -110,6 +111,7 @@ public class LoginInfoEndpoint {
     private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
     private final Links globalLinks;
     private final MfaChecker mfaChecker;
+    private final IdentityZoneManager identityZoneManager;
     private final Properties gitProperties;
     private final Properties buildProperties;
     private final Duration codeExpiration;
@@ -126,7 +128,8 @@ public class LoginInfoEndpoint {
             @Qualifier("identityProviderProvisioning") final IdentityProviderProvisioning providerProvisioning,
             final XOAuthProviderConfigurator xoAuthProviderConfigurator,
             final Links globalLinks,
-            final MfaChecker mfaChecker
+            final MfaChecker mfaChecker,
+            final IdentityZoneManager identityZoneManager
     ) {
         this.authenticationManager = authenticationManager;
         this.baseUrl = baseUrl;
@@ -139,6 +142,7 @@ public class LoginInfoEndpoint {
         this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
         this.globalLinks = globalLinks;
         this.mfaChecker = mfaChecker;
+        this.identityZoneManager = identityZoneManager;
         this.gitProperties = tryLoadProperties("git.properties");
         this.buildProperties = tryLoadProperties("build.properties");
         try {
@@ -279,7 +283,7 @@ public class LoginInfoEndpoint {
         } catch (EmptyResultDataAccessException e) {
         }
         IdentityProvider uaaIdentityProvider =
-                providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+                providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
         // ldap and uaa disabled removes username/password input boxes
         if (!uaaIdentityProvider.isActive()) {
             if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
@@ -300,9 +304,9 @@ public class LoginInfoEndpoint {
         idpForRedirect = evaluateLoginHint(model, session, samlIdentityProviders,
                 oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, request);
 
-        boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
+        boolean discoveryEnabled = identityZoneManager.getCurrentIdentityZone().getConfig().isIdpDiscoveryEnabled();
         boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
-        String defaultIdentityProviderName = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
+        String defaultIdentityProviderName = identityZoneManager.getCurrentIdentityZone().getConfig().getDefaultIdentityProvider();
 
         idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
                 allIdentityProviders, allowedIdentityProviderKeys, idpForRedirect, discoveryEnabled, discoveryPerformed, defaultIdentityProviderName);
@@ -340,7 +344,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute(LINKS, links);
         setCommitInfo(model);
-        model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
+        model.addAttribute(ZONE_NAME, identityZoneManager.getCurrentIdentityZone().getName());
         // Entity ID to start the discovery
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
 
@@ -569,14 +573,14 @@ public class LoginInfoEndpoint {
     }
 
     private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
-        List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+        List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, identityZoneManager.getCurrentIdentityZone());
         return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getIdpEntityAlias, idp -> idp));
     }
 
     Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
 
         List<IdentityProvider> identityProviders =
-                xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
+                xoAuthProviderConfigurator.retrieveAll(true, identityZoneManager.getCurrentIdentityZoneId());
 
         Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
                 .filter(p -> allowedIdps == null || allowedIdps.contains(p.getOriginKey()))
@@ -604,7 +608,7 @@ public class LoginInfoEndpoint {
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String[] client_ids = savedRequest.getParameterValues("client_id");
         try {
-            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], identityZoneManager.getCurrentIdentityZoneId());
             return clientDetails.getAdditionalInformation();
         } catch (NoSuchClientException x) {
             return null;
@@ -654,7 +658,7 @@ public class LoginInfoEndpoint {
         }
 
         List<Prompt> prompts;
-        IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
+        IdentityZoneConfiguration zoneConfiguration = identityZoneManager.getCurrentIdentityZone().getConfig();
         if (isNull(zoneConfiguration)) {
             zoneConfiguration = new IdentityZoneConfiguration();
         }
@@ -662,7 +666,7 @@ public class LoginInfoEndpoint {
         if (origin != null) {
             IdentityProvider providerForOrigin = null;
             try {
-                providerForOrigin = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
+                providerForOrigin = providerProvisioning.retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
             } catch (DataAccessException e) {
             }
             if (providerForOrigin != null) {
@@ -678,22 +682,22 @@ public class LoginInfoEndpoint {
         Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : prompts) {
             String[] details = prompt.getDetails();
-            if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
+            if (PASSCODE.equals(prompt.getName()) && !identityZoneManager.isCurrentZoneUaa()) {
                 String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
                 if (hasText(urlInPasscode)) {
                     String[] newDetails = new String[details.length];
                     System.arraycopy(details, 0, newDetails, 0, details.length);
-                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode, IdentityZoneHolder.get().getSubdomain()));
+                    newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode, identityZoneManager.getCurrentIdentityZone().getSubdomain()));
                     details = newDetails;
                 }
             }
             map.put(prompt.getName(), details);
         }
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
+        if (mfaChecker.isMfaEnabled(identityZoneManager.getCurrentIdentityZone())) {
             Prompt p = new Prompt(
                     MFA_CODE,
                     "password",
-                    "MFA Code ( Register at " + addSubdomainToUrl(baseUrl + " )", IdentityZoneHolder.get().getSubdomain())
+                    "MFA Code ( Register at " + addSubdomainToUrl(baseUrl + " )", identityZoneManager.getCurrentIdentityZone().getSubdomain())
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
@@ -739,7 +743,7 @@ public class LoginInfoEndpoint {
         if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.get(0);
             if (matchedIdp.getType().equals(UAA)) {
-                model.addAttribute("login_hint", new UaaLoginHint("uaa").toString());
+                model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.UAA).toString());
                 return goToPasswordPage(email, model);
             } else {
                 String redirectUrl;
@@ -808,7 +812,11 @@ public class LoginInfoEndpoint {
                 codeData.put(OriginKeys.ORIGIN, p.getOrigin());
             }
         }
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(
+                JsonUtils.writeValueAsString(codeData),
+                new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000),
+                ExpiringCodeType.AUTOLOGIN.name(),
+                IdentityZoneHolder.get().getId());
 
         return new AutologinResponse(expiringCode.getCode());
     }
@@ -877,12 +885,12 @@ public class LoginInfoEndpoint {
 
         String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
 
-        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
+        expiringCodeStore.expireByIntent(intent, identityZoneManager.getCurrentIdentityZoneId());
 
         ExpiringCode code = expiringCodeStore.generateCode(
                 JsonUtils.writeValueAsString(pi),
                 new Timestamp(System.currentTimeMillis() + codeExpiration.toMillis()),
-                intent, IdentityZoneHolder.get().getId());
+                intent, identityZoneManager.getCurrentIdentityZoneId());
 
         model.put(PASSCODE, code.getCode());
 
@@ -892,13 +900,13 @@ public class LoginInfoEndpoint {
     private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+        model.put(OriginKeys.UAA, addSubdomainToUrl(baseUrl, identityZoneManager.getCurrentIdentityZone().getSubdomain()));
         if (baseUrl.contains("localhost:")) {
-            model.put("login", addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+            model.put("login", addSubdomainToUrl(baseUrl, identityZoneManager.getCurrentIdentityZone().getSubdomain()));
         } else if (hasText(externalLoginUrl)) {
             model.put("login", externalLoginUrl);
         } else {
-            model.put("login", addSubdomainToUrl(baseUrl.replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
+            model.put("login", addSubdomainToUrl(baseUrl.replaceAll(OriginKeys.UAA, "login"), identityZoneManager.getCurrentIdentityZone().getSubdomain()));
         }
         model.putAll(getSelfServiceLinks());
         return model;
@@ -906,8 +914,8 @@ public class LoginInfoEndpoint {
 
     Map<String, String> getSelfServiceLinks() {
         Map<String, String> selfServiceLinks = new HashMap<>();
-        IdentityZone zone = IdentityZoneHolder.get();
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig() != null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
 
         boolean selfServiceLinksEnabled = (zone.getConfig() != null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
@@ -928,12 +936,12 @@ public class LoginInfoEndpoint {
 
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             if (hasText(signup)) {
-                signup = UaaStringUtils.replaceZoneVariables(signup, IdentityZoneHolder.get());
+                signup = UaaStringUtils.replaceZoneVariables(signup, zone);
                 selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
                 selfServiceLinks.put("register", signup);
             }
             if (hasText(passwd)) {
-                passwd = UaaStringUtils.replaceZoneVariables(passwd, IdentityZoneHolder.get());
+                passwd = UaaStringUtils.replaceZoneVariables(passwd, zone);
                 selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
                 selfServiceLinks.put("passwd", passwd);
             }
