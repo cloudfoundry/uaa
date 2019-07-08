@@ -11,8 +11,8 @@ import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
@@ -53,6 +54,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -84,27 +88,33 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
 
         @Bean
         ApprovalStore approvalsService() {
-            return Mockito.mock(ApprovalStore.class);
+            return mock(ApprovalStore.class);
         }
 
         @Bean
         MultitenantClientServices clientService() {
-            return Mockito.mock(MultitenantClientServices.class);
+            return mock(MultitenantClientServices.class);
+        }
+
+        @Bean
+        IdentityZoneManager identityZoneManager() {
+            return mock(IdentityZoneManager.class);
         }
 
         @Bean
         SecurityContextAccessor securityContextAccessor() {
-            SecurityContextAccessor result = Mockito.mock(SecurityContextAccessor.class);
-            Mockito.when(result.isUser()).thenReturn(true);
-            Mockito.when(result.getUserId()).thenReturn(USER_ID);
+            SecurityContextAccessor result = mock(SecurityContextAccessor.class);
+            when(result.isUser()).thenReturn(true);
+            when(result.getUserId()).thenReturn(USER_ID);
             return result;
         }
 
         @Bean
         ProfileController profileController(ApprovalStore approvalsService,
                                             MultitenantClientServices clientDetailsService,
-                                            SecurityContextAccessor securityContextAccessor) {
-            return new ProfileController(approvalsService, clientDetailsService, securityContextAccessor);
+                                            SecurityContextAccessor securityContextAccessor,
+                                            IdentityZoneManager identityZoneManager) {
+            return new ProfileController(approvalsService, clientDetailsService, securityContextAccessor, identityZoneManager);
         }
     }
 
@@ -120,10 +130,17 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
     @Autowired
     private ApprovalStore approvalStore;
 
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
+
     private MockMvc mockMvc;
+
+    private String currentIdentityZoneId;
 
     @BeforeEach
     void setUp() {
+        currentIdentityZoneId = "currentIdentityZoneId-" + UUID.randomUUID().toString();
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
@@ -154,15 +171,15 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
         List<DescribedApproval> allDescApprovals = Arrays.asList(otherApproval, readApproval, writeApproval);
         List<Approval> allApprovals = new LinkedList<>(allDescApprovals);
 
-        Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(allApprovals);
+        when(approvalStore.getApprovalsForUser(anyString(), eq(currentIdentityZoneId))).thenReturn(allApprovals);
 
         BaseClientDetails appClient = new BaseClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
-        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
+        when(clientDetailsService.loadClientByClientId("app", currentIdentityZoneId)).thenReturn(appClient);
 
         BaseClientDetails otherClient = new BaseClientDetails("other-client", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
-        Mockito.when(clientDetailsService.loadClientByClientId("other-client", "uaa")).thenReturn(otherClient);
+        when(clientDetailsService.loadClientByClientId("other-client", currentIdentityZoneId)).thenReturn(otherClient);
     }
 
     @AfterEach
@@ -172,21 +189,21 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
 
     @Test
     void getProfile() throws Exception {
-        getProfile(mockMvc, THE_ULTIMATE_APP);
+        getProfile(mockMvc, THE_ULTIMATE_APP, currentIdentityZoneId);
     }
 
     @Test
     void getProfileNoAppName() throws Exception {
         BaseClientDetails appClient = new BaseClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
-        Mockito.when(clientDetailsService.loadClientByClientId("app", "uaa")).thenReturn(appClient);
-        getProfile(mockMvc, "app");
+        when(clientDetailsService.loadClientByClientId("app", currentIdentityZoneId)).thenReturn(appClient);
+        getProfile(mockMvc, "app", currentIdentityZoneId);
     }
 
     @Test
     void specialMessageWhenNoAppsAreAuthorized() throws Exception {
-        Mockito.when(approvalStore.getApprovalsForUser(anyString(), anyString())).thenReturn(Collections.emptyList());
+        when(approvalStore.getApprovalsForUser(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.emptyList());
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -198,7 +215,7 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
 
     @Test
     void passwordLinkHiddenWhenUsersOriginIsNotUaa() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.LDAP, "dnEntryForLdapUser", IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.LDAP, "dnEntryForLdapUser", currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -224,7 +241,7 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
         assertEquals(6, args.getAllValues().size());
 
         ArgumentCaptor<DescribedApproval> captor = ArgumentCaptor.forClass(DescribedApproval.class);
-        Mockito.verify(approvalStore, Mockito.times(2)).addApproval(captor.capture(), anyString());
+        Mockito.verify(approvalStore, Mockito.times(2)).addApproval(captor.capture(), eq(currentIdentityZoneId));
 
         assertEquals(2, captor.getAllValues().size());
 
@@ -252,12 +269,11 @@ class ProfileControllerMockMvcTests extends TestClassNullifier {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile"));
 
-        String zoneId = IdentityZoneHolder.get().getId();
-        Mockito.verify(approvalStore, Mockito.times(1)).revokeApprovalsForClientAndUser("app", USER_ID, zoneId);
+        Mockito.verify(approvalStore, Mockito.times(1)).revokeApprovalsForClientAndUser("app", USER_ID, currentIdentityZoneId);
     }
 
-    private static void getProfile(final MockMvc mockMvc, final String name) throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
+    private static void getProfile(final MockMvc mockMvc, final String name, final String currentIdentityZoneId) throws Exception {
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))

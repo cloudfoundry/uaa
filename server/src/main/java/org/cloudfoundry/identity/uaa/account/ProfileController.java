@@ -7,8 +7,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -42,13 +42,16 @@ public class ProfileController {
     private final ApprovalStore approvalsService;
     private final MultitenantClientServices clientDetailsService;
     private final SecurityContextAccessor securityContextAccessor;
+    private final IdentityZoneManager identityZoneManager;
 
     public ProfileController(final ApprovalStore approvalsService,
                              final MultitenantClientServices clientDetailsService,
-                             final SecurityContextAccessor securityContextAccessor) {
+                             final SecurityContextAccessor securityContextAccessor,
+                             final IdentityZoneManager identityZoneManager) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -110,7 +113,7 @@ public class ProfileController {
     private Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
         Map<String, String> clientNames = new LinkedHashMap<>();
         for (String clientId : approvals.keySet()) {
-            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
             String name = details.getClientId();
             if (details.getAdditionalInformation() != null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME) != null) {
                 name = (String) details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
@@ -136,7 +139,7 @@ public class ProfileController {
 
     private Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
         Map<String, List<DescribedApproval>> result = new HashMap<>();
-        List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
+        List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, identityZoneManager.getCurrentIdentityZoneId());
 
         List<DescribedApproval> approvals = new ArrayList<>();
         for (Approval approval : approvalsResponse) {
@@ -168,7 +171,7 @@ public class ProfileController {
     }
 
     private void updateApprovals(List<DescribedApproval> approvals) {
-        String zoneId = IdentityZoneHolder.get().getId();
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         for (DescribedApproval approval : approvals) {
             approvalsService.revokeApprovalsForClientAndUser(approval.getClientId(), approval.getUserId(), zoneId);
         }
@@ -179,7 +182,7 @@ public class ProfileController {
 
     private void deleteApprovalsForClient(String userId, String clientId) {
         clientDetailsService.loadClientByClientId(clientId);
-        approvalsService.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
+        approvalsService.revokeApprovalsForClientAndUser(clientId, userId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     private String getCurrentUserId() {
