@@ -74,7 +74,7 @@ public class ProfileController {
         Map<String, String> clientNames = getClientNames(approvals);
         model.addAttribute("clientnames", clientNames);
         model.addAttribute("approvals", approvals);
-        model.addAttribute("isUaaManagedUser", isUaaManagedUser(authentication));
+        extractUaaUserAttributes(authentication, model);
         return "approvals";
     }
 
@@ -135,12 +135,18 @@ public class ProfileController {
         return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
     }
 
-    private boolean isUaaManagedUser(Authentication authentication) {
+    private void extractUaaUserAttributes(Authentication authentication, Model model) {
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
             UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-            return OriginKeys.UAA.equals(principal.getOrigin());
+            boolean isUaaManagedUser = OriginKeys.UAA.equals(principal.getOrigin());
+            model.addAttribute("isUaaManagedUser", isUaaManagedUser);
+            if (isUaaManagedUser) {
+                model.addAttribute("email", principal.getEmail());
+            }
+            return;
         }
-        return false;
+
+        model.addAttribute("isUaaManagedUser", false);
     }
 
     public Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {

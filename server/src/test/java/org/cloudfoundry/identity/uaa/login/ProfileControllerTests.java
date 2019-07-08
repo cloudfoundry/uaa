@@ -158,6 +158,7 @@ public class ProfileControllerTests extends TestClassNullifier {
             .andExpect(model().attribute("clientnames", hasKey("app")))
             .andExpect(model().attribute("clientnames", hasValue(is(name))))
             .andExpect(model().attribute("isUaaManagedUser", true))
+            .andExpect(model().attribute("email", "email@example.com"))
             .andExpect(model().attribute("approvals", hasKey("app")))
             .andExpect(model().attribute("approvals", hasValue(hasSize(2))))
             .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
@@ -190,6 +191,7 @@ public class ProfileControllerTests extends TestClassNullifier {
         mockMvc.perform(get("/profile").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("isUaaManagedUser", false))
+                .andExpect(model().attributeDoesNotExist("email"))
                 .andExpect(content().string(not(containsString("Change Password"))));
     }
 
