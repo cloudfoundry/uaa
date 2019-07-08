@@ -1,29 +1,16 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -39,7 +26,6 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -78,19 +64,6 @@ public class ProfileController {
         return "approvals";
     }
 
-    protected Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
-        Map<String, String> clientNames = new LinkedHashMap<>();
-        for (String clientId : approvals.keySet()) {
-            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            String name = details.getClientId();
-            if (details.getAdditionalInformation()!=null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME)!=null) {
-                name = (String)details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
-            }
-            clientNames.put(clientId, name);
-        }
-        return clientNames;
-    }
-
     /**
      * Handle form post for revoking chosen approvals
      */
@@ -121,8 +94,7 @@ public class ProfileController {
                 }
             }
             updateApprovals(allApprovals);
-        }
-        else if (null != delete) {
+        } else if (null != delete) {
             deleteApprovalsForClient(userId, clientId);
         }
 
@@ -131,8 +103,21 @@ public class ProfileController {
 
     @ExceptionHandler
     public View handleException(NoSuchClientException nsce) {
-        logger.debug("Unable to find client for approvals:"+nsce.getMessage());
+        logger.debug("Unable to find client for approvals:" + nsce.getMessage());
         return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
+    }
+
+    private Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
+        Map<String, String> clientNames = new LinkedHashMap<>();
+        for (String clientId : approvals.keySet()) {
+            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            String name = details.getClientId();
+            if (details.getAdditionalInformation() != null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME) != null) {
+                name = (String) details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
+            }
+            clientNames.put(clientId, name);
+        }
+        return clientNames;
     }
 
     private void extractUaaUserAttributes(Authentication authentication, Model model) {
@@ -149,7 +134,7 @@ public class ProfileController {
         model.addAttribute("isUaaManagedUser", false);
     }
 
-    public Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
+    private Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
         Map<String, List<DescribedApproval>> result = new HashMap<>();
         List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
 
@@ -160,11 +145,10 @@ public class ProfileController {
         }
 
         for (DescribedApproval approval : approvals) {
-            List<DescribedApproval> clientApprovals = result.get(approval.getClientId());
-            if (clientApprovals == null) {
-                clientApprovals = new ArrayList<>();
-                result.put(approval.getClientId(), clientApprovals);
-            }
+            List<DescribedApproval> clientApprovals = result.computeIfAbsent(
+                    approval.getClientId(),
+                    k -> new ArrayList<>()
+            );
 
             String scope = approval.getScope();
             if (!scope.contains(".")) {
@@ -178,17 +162,12 @@ public class ProfileController {
             }
         }
         for (List<DescribedApproval> approvalList : result.values()) {
-            Collections.sort(approvalList, new Comparator<DescribedApproval>() {
-                @Override
-                public int compare(DescribedApproval o1, DescribedApproval o2) {
-                    return o1.getScope().compareTo(o2.getScope());
-                }
-            });
+            approvalList.sort(Comparator.comparing(Approval::getScope));
         }
         return result;
     }
 
-    public void updateApprovals(List<DescribedApproval> approvals) {
+    private void updateApprovals(List<DescribedApproval> approvals) {
         String zoneId = IdentityZoneHolder.get().getId();
         for (DescribedApproval approval : approvals) {
             approvalsService.revokeApprovalsForClientAndUser(approval.getClientId(), approval.getUserId(), zoneId);
@@ -198,7 +177,7 @@ public class ProfileController {
         }
     }
 
-    public void deleteApprovalsForClient(String userId, String clientId) {
+    private void deleteApprovalsForClient(String userId, String clientId) {
         clientDetailsService.loadClientByClientId(clientId);
         approvalsService.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
     }
