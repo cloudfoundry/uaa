@@ -427,12 +427,6 @@ public final class MockMvcUtils {
         provisioning.update(uaaIdp, zoneId);
     }
 
-    public static void setSelfServiceLinksEnabled(ApplicationContext context, String zoneId, boolean enabled) {
-        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
-        config.getLinks().getSelfService().setSelfServiceLinksEnabled(enabled);
-        setZoneConfiguration(context, zoneId, config);
-    }
-
     public static void setZoneConfiguration(ApplicationContext context, String zoneId, IdentityZoneConfiguration configuration) {
         IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZone uaaZone = provisioning.retrieve(zoneId);
@@ -444,30 +438,6 @@ public final class MockMvcUtils {
         IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZone uaaZone = provisioning.retrieve(zoneId);
         return uaaZone.getConfig();
-    }
-
-    public static void setPrompts(ApplicationContext context, String zoneId, List<Prompt> prompts) {
-        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
-        config.setPrompts(prompts);
-        setZoneConfiguration(context, zoneId, config);
-    }
-
-    public static List<Prompt> getPrompts(ApplicationContext context, String zoneId) {
-        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
-        return config.getPrompts();
-    }
-
-    public static Links.Logout getLogout(ApplicationContext context, String zoneId) {
-        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
-        return config.getLinks().getLogout();
-    }
-
-    public static void setLogout(ApplicationContext context, String zoneId, Links.Logout logout) {
-        IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(zoneId);
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        config.getLinks().setLogout(logout);
-        setZoneConfiguration(context, zoneId, config);
     }
 
     public static InvitationsResponse sendRequestWithTokenAndReturnResponse(ApplicationContext context,
@@ -1275,10 +1245,6 @@ public final class MockMvcUtils {
           .andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
-    }
-
-    public static SecurityContext getMarissaSecurityContext(ApplicationContext context, String currentZoneId) {
-        return getUaaSecurityContext("marissa", context, currentZoneId);
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId) {
