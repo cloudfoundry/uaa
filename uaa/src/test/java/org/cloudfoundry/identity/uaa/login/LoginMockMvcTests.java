@@ -460,7 +460,6 @@ class LoginMockMvcTests {
         Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
         assertThat(lastLoginTime, greaterThanOrEqualTo(beforeAuthTime));
         assertThat(lastLoginTime, lessThanOrEqualTo(afterAuthTime));
-
     }
 
     @Test
@@ -670,142 +669,106 @@ class LoginMockMvcTests {
                 .andExpect(emptyCurrentUserCookie());
     }
 
-    @Test
-    void logOutEnableRedirectParameter() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(singletonList("https://www.google.com"));
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+    @Nested
+    @DefaultTestContext
+    class WithCustomLogoutLinks {
+
+        Links.Logout original;
+        Links.Logout logout;
+        String currentIdentityZoneId;
+
+        @BeforeEach
+        void setUp() {
+            currentIdentityZoneId = IdentityZone.getUaaZoneId();
+            original = getLogout(webApplicationContext, currentIdentityZoneId);
+            logout = getLogout(webApplicationContext, currentIdentityZoneId);
+        }
+
+        @AfterEach
+        void tearDown() {
+            setLogout(webApplicationContext, currentIdentityZoneId, original);
+        }
+
+        @Test
+        void logOutEnableRedirectParameter() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(singletonList("https://www.google.com"));
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutAllowInternalRedirect() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutAllowInternalRedirect() throws Exception {
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "http://localhost/uaa/internal-location").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("http://localhost/uaa/internal-location"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(singletonList("https://www.google.com"));
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutWhitelistedRedirectParameter() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(singletonList("https://www.google.com"));
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutNotWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(singletonList("https://www.yahoo.com"));
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutNotWhitelistedRedirectParameter() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(singletonList("https://www.yahoo.com"));
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutNullWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(singletonList("http*://www.google.com"));
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutNullWhitelistedRedirectParameter() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(singletonList("http*://www.google.com"));
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutEmptyWhitelistedRedirectParameter() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(emptyList());
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutEmptyWhitelistedRedirectParameter() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(emptyList());
+            setLogout(webApplicationContext, currentIdentityZoneId, logout);
             mockMvc.perform(get("/uaa/logout.do").param("redirect", "https://www.google.com").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logoutRedirectIsEnabledInZone(
-            @Autowired IdentityZoneProvisioning identityZoneProvisioning
-    ) {
-        String zoneId = generator.generate();
-        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
-        zone.setConfig(new IdentityZoneConfiguration());
-        zone = identityZoneProvisioning.create(zone);
-        assertFalse(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
-    }
-
-    @Test
-    void logOutChangeUrlValue() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        assertFalse(original.isDisableRedirectParameter());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setRedirectUrl("https://www.google.com");
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutChangeUrlValue() throws Exception {
+            assertFalse(original.isDisableRedirectParameter());
+            logout.setRedirectUrl("https://www.google.com");
+            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
             mockMvc.perform(get("/uaa/logout.do").contextPath("/uaa"))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("https://www.google.com"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void logOutWithClientRedirect() throws Exception {
-        Links.Logout original = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        Links.Logout logout = getLogout(webApplicationContext, IdentityZone.getUaaZoneId());
-        logout.setDisableRedirectParameter(false);
-        logout.setWhitelist(emptyList());
-        setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
-        try {
+        @Test
+        void logOutWithClientRedirect() throws Exception {
+            logout.setDisableRedirectParameter(false);
+            logout.setWhitelist(emptyList());
+            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), logout);
             String clientId = generator.generate();
             BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
             client.setClientSecret(clientId);
@@ -839,9 +802,18 @@ class LoginMockMvcTests {
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/uaa/login"))
                     .andExpect(emptyCurrentUserCookie());
-        } finally {
-            setLogout(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
+    }
+
+    @Test
+    void logoutRedirectIsEnabledInZone(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning
+    ) {
+        String zoneId = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+        zone.setConfig(new IdentityZoneConfiguration());
+        zone = identityZoneProvisioning.create(zone);
+        assertFalse(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
     }
 
     @Test
@@ -1001,42 +973,46 @@ class LoginMockMvcTests {
                 .andExpect(xpath("//a[text()='Reset password']/@href").string("http://example.com/reset_passwd"));
     }
 
-    @Test
-    void loginWithExplicitPrompts() throws Exception {
-        List<Prompt> original = getPrompts(webApplicationContext, IdentityZone.getUaaZoneId());
-        try {
+    @Nested
+    @DefaultTestContext
+    class WithCustomPrompts {
+
+        List<Prompt> original;
+        String currentIdentityZoneId;
+
+        @BeforeEach
+        void setUp() {
+            currentIdentityZoneId = IdentityZone.getUaaZoneId();
+            original = getPrompts(webApplicationContext, currentIdentityZoneId);
+
             Prompt first = new Prompt("how", "text", "How did I get here?");
             Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), asList(first, second));
+            setPrompts(webApplicationContext, currentIdentityZoneId, asList(first, second));
+        }
 
+        @AfterEach
+        void tearDown() {
+            setPrompts(webApplicationContext, currentIdentityZoneId, original);
+        }
+
+        @Test
+        void loginWithExplicitPrompts() throws Exception {
             mockMvc.perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
                     .andExpect(model().attribute("prompts", hasKey("how")))
                     .andExpect(model().attribute("prompts", hasKey("where")))
                     .andExpect(model().attribute("prompts", not(hasKey("password"))));
-        } finally {
-            setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
-    }
 
-    @Test
-    void loginWithExplicitJsonPrompts() throws Exception {
-        List<Prompt> original = getPrompts(webApplicationContext, IdentityZone.getUaaZoneId());
-        try {
-            Prompt first = new Prompt("how", "text", "How did I get here?");
-            Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), asList(first, second));
-
-            mockMvc.perform(get("/login")
-                    .accept(APPLICATION_JSON))
+        @Test
+        void loginWithExplicitJsonPrompts() throws Exception {
+            mockMvc.perform(get("/login").accept(APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
                     .andExpect(model().attribute("prompts", hasKey("how")))
                     .andExpect(model().attribute("prompts", hasKey("where")))
                     .andExpect(model().attribute("prompts", not(hasKey("password"))));
-        } finally {
-            setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
     }
 
