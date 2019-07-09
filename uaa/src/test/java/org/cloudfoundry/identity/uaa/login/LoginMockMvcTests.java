@@ -127,7 +127,6 @@ class LoginMockMvcTests {
         SecurityContextHolder.clearContext();
 
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
-        IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
         this.identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, currentIdentityZoneId);
@@ -1150,338 +1149,302 @@ class LoginMockMvcTests {
                 .andExpect(xpath("//a[text()='" + inactiveSamlIdentityProviderDefinition.getLinkText() + "']").doesNotExist());
     }
 
-    @Test
-    void samlRedirectWhenTheOnlyProvider(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        String alias = "login-saml-" + generator.generate();
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+    @Nested
+    @DefaultTestContext
+    class WithCustomIdentityZone {
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
+        BaseClientDetails zoneAdminClient;
+        IdentityZone identityZone;
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
-        SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(metadata)
-                .setIdpEntityAlias(alias)
-                .setLinkText("Active SAML Provider")
-                .setZoneId(identityZone.getId());
-        IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
-        activeIdentityProvider.setName("Active SAML Provider");
-        activeIdentityProvider.setActive(true);
-        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
-        activeIdentityProvider.setOriginKey(alias);
-        createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
+        @BeforeEach
+        void setUp() throws Exception {
+            zoneAdminClient = new BaseClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
+            zoneAdminClient.setClientSecret("admin-secret");
 
-        zoneAdminClient.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(activeIdentityProvider.getOriginKey()));
-        MockMvcUtils.updateClient(webApplicationContext, zoneAdminClient, identityZone);
+            IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                    "puppy-" + generator.generate(),
+                    mockMvc,
+                    webApplicationContext,
+                    zoneAdminClient,
+                    false,
+                    currentIdentityZoneId);
+            identityZone = identityZoneCreationResult.getIdentityZone();
+        }
 
-        MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = new MockMvcUtils.MockSavedRequest();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        @AfterEach
+        void tearDown() {
+            IdentityZoneHolder.clear();
+        }
 
-        mockMvc.perform(get("/login")
-                .accept(TEXT_HTML)
-                .session(session)
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+        @Test
+        void samlRedirectWhenTheOnlyProvider(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            String alias = "login-saml-" + generator.generate();
 
-        mockMvc.perform(get("/login")
-                .accept(APPLICATION_JSON)
-                .session(session)
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isOk());
+            String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+            SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
+                    .setMetaDataLocation(metadata)
+                    .setIdpEntityAlias(alias)
+                    .setLinkText("Active SAML Provider")
+                    .setZoneId(identityZone.getId());
+            IdentityProvider activeIdentityProvider = new IdentityProvider();
+            activeIdentityProvider.setType(OriginKeys.SAML);
+            activeIdentityProvider.setName("Active SAML Provider");
+            activeIdentityProvider.setActive(true);
+            activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
+            activeIdentityProvider.setOriginKey(alias);
+            createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
 
-        IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        try {
-            IdentityZoneHolder.set(identityZone);
-            uaaProvider.setActive(false);
-            jdbcIdentityProviderProvisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
+            zoneAdminClient.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(activeIdentityProvider.getOriginKey()));
+            MockMvcUtils.updateClient(webApplicationContext, zoneAdminClient, identityZone);
+
+            MockHttpSession session = new MockHttpSession();
+            SavedRequest savedRequest = new MockMvcUtils.MockSavedRequest();
+            session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+
+            mockMvc.perform(get("/login")
+                    .accept(TEXT_HTML)
+                    .session(session)
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+
             mockMvc.perform(get("/login")
                     .accept(APPLICATION_JSON)
                     .session(session)
                     .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                     .andExpect(status().isOk());
-        } finally {
-            IdentityZoneHolder.set(identityZone);
-            uaaProvider.setActive(true);
-            jdbcIdentityProviderProvisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
-            IdentityZoneHolder.clear();
+
+            IdentityProvider uaaProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            try {
+                uaaProvider.setActive(false);
+                jdbcIdentityProviderProvisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
+                mockMvc.perform(get("/login")
+                        .accept(APPLICATION_JSON)
+                        .session(session)
+                        .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                        .andExpect(status().isOk());
+            } finally {
+                uaaProvider.setActive(true);
+                jdbcIdentityProviderProvisioning.update(uaaProvider, uaaProvider.getIdentityZoneId());
+            }
         }
-    }
 
-    @Test
-    void samlRedirect_onlyOneProvider_noClientContext(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        String alias = "login-saml-" + generator.generate();
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+        @Test
+        void samlRedirect_onlyOneProvider_noClientContext(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            String alias = "login-saml-" + generator.generate();
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
+            String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+            SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
+                    .setMetaDataLocation(metadata)
+                    .setIdpEntityAlias(alias)
+                    .setLinkText("Active SAML Provider")
+                    .setZoneId(identityZone.getId());
+            IdentityProvider activeIdentityProvider = new IdentityProvider();
+            activeIdentityProvider.setType(OriginKeys.SAML);
+            activeIdentityProvider.setName("Active SAML Provider");
+            activeIdentityProvider.setActive(true);
+            activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
+            activeIdentityProvider.setOriginKey(alias);
+            createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
-        SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(metadata)
-                .setIdpEntityAlias(alias)
-                .setLinkText("Active SAML Provider")
-                .setZoneId(identityZone.getId());
-        IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
-        activeIdentityProvider.setName("Active SAML Provider");
-        activeIdentityProvider.setActive(true);
-        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
-        activeIdentityProvider.setOriginKey(alias);
-        createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
+            IdentityZoneHolder.set(identityZone);
+            IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            uaaIdentityProvider.setActive(false);
+            jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        uaaIdentityProvider.setActive(false);
-        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+            mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+        }
 
-        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
-        IdentityZoneHolder.clear();
-    }
+        @Test
+        void xOAuthRedirect_onlyOneProvider_noClientContext_and_ResponseType_Set(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
+            IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-    @Test
-    void xOAuthRedirect_onlyOneProvider_noClientContext_and_ResponseType_Set(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+            String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+            IdentityZoneHolder.set(identityZone);
+            IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            uaaIdentityProvider.setActive(false);
+            jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
+            MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
+                    .servletPath("/login")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andReturn();
+            String location = mvcResult.getResponse().getHeader("Location");
+            Map<String, String> queryParams =
+                    UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        uaaIdentityProvider.setActive(false);
-        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+            assertThat(location, startsWith("http://auth.url"));
+            assertThat(queryParams, hasEntry("client_id", "uaa"));
+            assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+            assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+            assertThat(queryParams, hasEntry("scope", "openid+roles"));
+            assertThat(queryParams, hasKey("nonce"));
+        }
 
-        MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
-                .servletPath("/login")
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andReturn();
-        String location = mvcResult.getResponse().getHeader("Location");
-        Map<String, String> queryParams =
-                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+        @Test
+        void xOAuthRedirectOnlyOneProviderWithDiscoveryUrl(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration", generator);
 
-        assertThat(location, startsWith("http://auth.url"));
-        assertThat(queryParams, hasEntry("client_id", "uaa"));
-        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
-        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
-        assertThat(queryParams, hasEntry("scope", "openid+roles"));
-        assertThat(queryParams, hasKey("nonce"));
+            IdentityZoneHolder.set(identityZone);
+            IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            uaaIdentityProvider.setActive(false);
+            jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        IdentityZoneHolder.clear();
-    }
+            MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
+                    .servletPath("/login")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andReturn();
+            String location = mvcResult.getResponse().getHeader("Location");
+            Map<String, String> queryParams =
+                    UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-    @Test
-    void xOAuthRedirectOnlyOneProviderWithDiscoveryUrl(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+            assertThat(location, startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
+            assertThat(queryParams, hasEntry("client_id", "uaa"));
+            assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+            assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+            assertThat(queryParams, hasEntry("scope", "openid+roles"));
+            assertThat(queryParams, hasKey("nonce"));
+        }
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+        @Test
+        void xOauthRedirect_stateParameterPassedGetsReturned(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
 
-        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration", generator);
+            IdentityZoneHolder.set(identityZone);
+            IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            uaaIdentityProvider.setActive(false);
+            jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        uaaIdentityProvider.setActive(false);
-        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+            MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
+                    .servletPath("/login")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andReturn();
+            String location = mvcResult.getResponse().getHeader("Location");
+            Map<String, String> queryParams =
+                    UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
-                .servletPath("/login")
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andReturn();
-        String location = mvcResult.getResponse().getHeader("Location");
-        Map<String, String> queryParams =
-                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+            assertThat(location, startsWith("http://auth.url"));
+            assertThat(queryParams, hasEntry("client_id", "uaa"));
+            assertThat(queryParams, hasEntry("response_type", "code+id_token"));
+            assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+            assertThat(queryParams, hasEntry("scope", "openid+roles"));
+            assertThat(queryParams, hasKey("nonce"));
+            assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        }
 
-        assertThat(location, startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
-        assertThat(queryParams, hasEntry("client_id", "uaa"));
-        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
-        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
-        assertThat(queryParams, hasEntry("scope", "openid+roles"));
-        assertThat(queryParams, hasKey("nonce"));
+        @Test
+        void loginHintRedirect(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
-        IdentityZoneHolder.clear();
-    }
+            definition.setAuthUrl(new URL("http://auth.url"));
+            definition.setTokenUrl(new URL("http://token.url"));
+            definition.setTokenKey("key");
+            definition.setRelyingPartyId("uaa");
+            definition.setRelyingPartySecret("secret");
+            definition.setShowLinkText(false);
+            definition.setScopes(asList("openid", "roles"));
+            String oauthAlias = "login-oauth-" + generator.generate();
 
-    @Test
-    void xOauthRedirect_stateParameterPassedGetsReturned(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+            IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+            oauthIdentityProvider.setConfig(definition);
+            oauthIdentityProvider.setActive(true);
+            oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+            createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
 
-        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
+            IdentityZoneHolder.set(identityZone);
 
-        IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        uaaIdentityProvider.setActive(false);
-        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+            MockHttpSession session = new MockHttpSession();
+            SavedRequest savedRequest = mock(DefaultSavedRequest.class);
+            when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
+            session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
-        MvcResult mvcResult = mockMvc.perform(get("/login").accept(TEXT_HTML)
-                .servletPath("/login")
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andReturn();
-        String location = mvcResult.getResponse().getHeader("Location");
-        Map<String, String> queryParams =
-                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+            MvcResult mvcResult = mockMvc.perform(get("/login")
+                    .accept(TEXT_HTML)
+                    .session(session)
+                    .servletPath("/login")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+            )
+                    .andExpect(status().isFound())
+                    .andReturn();
+            String location = mvcResult.getResponse().getHeader("Location");
+            Map<String, String> queryParams =
+                    UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        assertThat(location, startsWith("http://auth.url"));
-        assertThat(queryParams, hasEntry("client_id", "uaa"));
-        assertThat(queryParams, hasEntry("response_type", "code+id_token"));
-        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
-        assertThat(queryParams, hasEntry("scope", "openid+roles"));
-        assertThat(queryParams, hasKey("nonce"));
-        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+            assertThat(location, startsWith("http://auth.url"));
+            assertThat(queryParams, hasEntry("client_id", "uaa"));
+            assertThat(queryParams, hasEntry("response_type", "code"));
+            assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
+            assertThat(queryParams, hasEntry("scope", "openid+roles"));
+            assertThat(queryParams, hasKey("nonce"));
+        }
 
-        IdentityZoneHolder.clear();
-    }
+        @Test
+        void noRedirect_ifProvidersOfDifferentTypesPresent(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            String alias = "login-saml-" + generator.generate();
 
-    @Test
-    void loginHintRedirect(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
+            String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+            SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
+                    .setMetaDataLocation(metadata)
+                    .setIdpEntityAlias(alias)
+                    .setLinkText("Active SAML Provider")
+                    .setZoneId(identityZone.getId());
+            IdentityProvider activeIdentityProvider = new IdentityProvider();
+            activeIdentityProvider.setType(OriginKeys.SAML);
+            activeIdentityProvider.setName("Active SAML Provider");
+            activeIdentityProvider.setActive(true);
+            activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
+            activeIdentityProvider.setOriginKey(alias);
+            createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
 
-        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+            OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
-        identityZoneCreationResult.getZoneAdminToken();
+            definition.setAuthUrl(new URL("http://auth.url"));
+            definition.setTokenUrl(new URL("http://token.url"));
+            definition.setTokenKey("key");
+            definition.setRelyingPartyId("UAA");
+            definition.setRelyingPartySecret("secret");
+            definition.setShowLinkText(false);
+            String oauthAlias = "login-oauth-" + generator.generate();
 
-        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+            IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+            oauthIdentityProvider.setConfig(definition);
+            oauthIdentityProvider.setActive(true);
 
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
-        definition.setTokenKey("key");
-        definition.setRelyingPartyId("uaa");
-        definition.setRelyingPartySecret("secret");
-        definition.setShowLinkText(false);
-        definition.setScopes(asList("openid", "roles"));
-        String oauthAlias = "login-oauth-" + generator.generate();
+            createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
 
-        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
-        oauthIdentityProvider.setConfig(definition);
-        oauthIdentityProvider.setActive(true);
-        oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
+            IdentityZoneHolder.set(identityZone);
+            IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+            uaaIdentityProvider.setActive(false);
+            jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
 
-        createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
-
-        IdentityZoneHolder.set(identityZone);
-
-        MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
-        session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
-
-        MvcResult mvcResult = mockMvc.perform(get("/login")
-                .accept(TEXT_HTML)
-                .session(session)
-                .servletPath("/login")
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-        )
-                .andExpect(status().isFound())
-                .andReturn();
-        String location = mvcResult.getResponse().getHeader("Location");
-        Map<String, String> queryParams =
-                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
-
-        assertThat(location, startsWith("http://auth.url"));
-        assertThat(queryParams, hasEntry("client_id", "uaa"));
-        assertThat(queryParams, hasEntry("response_type", "code"));
-        assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
-        assertThat(queryParams, hasEntry("scope", "openid+roles"));
-        assertThat(queryParams, hasKey("nonce"));
-
-        IdentityZoneHolder.clear();
-    }
-
-    @Test
-    void noRedirect_ifProvidersOfDifferentTypesPresent(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        String alias = "login-saml-" + generator.generate();
-        final String zoneAdminClientId = "admin";
-        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
-        zoneAdminClient.setClientSecret("admin-secret");
-
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
-
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
-        SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(metadata)
-                .setIdpEntityAlias(alias)
-                .setLinkText("Active SAML Provider")
-                .setZoneId(identityZone.getId());
-        IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
-        activeIdentityProvider.setName("Active SAML Provider");
-        activeIdentityProvider.setActive(true);
-        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
-        activeIdentityProvider.setOriginKey(alias);
-        createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
-
-        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
-        definition.setTokenKey("key");
-        definition.setRelyingPartyId("UAA");
-        definition.setRelyingPartySecret("secret");
-        definition.setShowLinkText(false);
-        String oauthAlias = "login-oauth-" + generator.generate();
-
-        IdentityProvider<OIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
-        oauthIdentityProvider.setConfig(definition);
-        oauthIdentityProvider.setActive(true);
-
-        createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
-
-        IdentityZoneHolder.set(identityZone);
-        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
-        uaaIdentityProvider.setActive(false);
-        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
-
-        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"));
-        IdentityZoneHolder.clear();
+            mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("login"));
+        }
     }
 
     @Test
