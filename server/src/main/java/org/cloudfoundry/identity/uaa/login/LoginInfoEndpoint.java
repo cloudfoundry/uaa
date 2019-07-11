@@ -390,6 +390,11 @@ public class LoginInfoEndpoint {
             }
             return goToPasswordPage(request.getParameter("email"), model);
         }
+        if(identityZoneManager.isCurrentZoneUaa()) {
+            model.addAttribute("welcome_text", "Welcome!");
+        } else {
+            model.addAttribute("welcome_text", String.format("Welcome to %s!", identityZoneManager.getCurrentIdentityZone().getName()));
+        }
         return "login";
     }
 

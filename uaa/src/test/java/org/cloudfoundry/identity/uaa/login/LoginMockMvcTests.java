@@ -197,6 +197,7 @@ class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
                 .andExpect(model().attributeExists("prompts"))
+                .andExpect(model().attribute("welcome_text", is("Welcome!")))
                 .andExpect(content().string(containsString("/create_account")));
     }
 
@@ -1168,6 +1169,16 @@ class LoginMockMvcTests {
                     false,
                     currentIdentityZoneId);
             identityZone = identityZoneCreationResult.getIdentityZone();
+        }
+
+        @Test
+        void welcomeTextContainsCustomName(@Autowired MockMvc mockMvc) throws Exception {
+            MockHttpServletRequestBuilder getLoginWithSubdomain = get("/login")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"));
+            mockMvc.perform(getLoginWithSubdomain)
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("login"))
+                    .andExpect(model().attribute("welcome_text", is("Welcome to The Twiglet Zone!")));
         }
 
         @Test
