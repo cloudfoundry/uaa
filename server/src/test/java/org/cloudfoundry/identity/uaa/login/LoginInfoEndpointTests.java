@@ -181,7 +181,7 @@ class LoginInfoEndpointTests {
         savedAccount.setUsername("bob");
         savedAccount.setEmail("bob@example.com");
         savedAccount.setUserId("xxxx");
-        savedAccount.setOrigin("uaa");
+        savedAccount.setOrigin(OriginKeys.UAA);
 
         Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
@@ -203,7 +203,7 @@ class LoginInfoEndpointTests {
         assertThat(savedAccount0, notNullValue());
         assertEquals("bob", savedAccount0.getUsername());
         assertEquals("bob@example.com", savedAccount0.getEmail());
-        assertEquals("uaa", savedAccount0.getOrigin());
+        assertEquals(OriginKeys.UAA, savedAccount0.getOrigin());
         assertEquals("xxxx", savedAccount0.getUserId());
 
         SavedAccountOption savedAccount1 = savedAccounts.get(1);
@@ -223,7 +223,7 @@ class LoginInfoEndpointTests {
         savedAccount.setUsername("bob");
         savedAccount.setEmail("bob@example.com");
         savedAccount.setUserId("xxxx");
-        savedAccount.setOrigin("uaa");
+        savedAccount.setOrigin(OriginKeys.UAA);
         Cookie cookieGood = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
 
         Cookie cookieBadJson = new Cookie("Saved-Account-Bad", "{");
@@ -246,14 +246,14 @@ class LoginInfoEndpointTests {
         savedAccount.setUsername("bill");
         savedAccount.setEmail("bill@example.com");
         savedAccount.setUserId("xxxx");
-        savedAccount.setOrigin("uaa");
+        savedAccount.setOrigin(OriginKeys.UAA);
         // write Cookie1 without URLencode into value, situation before this correction
         Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
 
         savedAccount.setUsername("bill");
         savedAccount.setEmail("bill@example.com");
         savedAccount.setUserId("xxxx");
-        savedAccount.setOrigin("uaa");
+        savedAccount.setOrigin(OriginKeys.UAA);
         // write Cookie2 with URLencode into value, situation after this correction
         Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
 
@@ -269,14 +269,14 @@ class LoginInfoEndpointTests {
         assertThat(savedAccount0, notNullValue());
         assertEquals("bill", savedAccount0.getUsername());
         assertEquals("bill@example.com", savedAccount0.getEmail());
-        assertEquals("uaa", savedAccount0.getOrigin());
+        assertEquals(OriginKeys.UAA, savedAccount0.getOrigin());
         assertEquals("xxxx", savedAccount0.getUserId());
 
         SavedAccountOption savedAccount1 = savedAccounts.get(1);
         assertThat(savedAccount1, notNullValue());
         assertEquals("bill", savedAccount1.getUsername());
         assertEquals("bill@example.com", savedAccount1.getEmail());
-        assertEquals("uaa", savedAccount1.getOrigin());
+        assertEquals(OriginKeys.UAA, savedAccount1.getOrigin());
         assertEquals("xxxx", savedAccount1.getUserId());
     }
 
@@ -289,7 +289,7 @@ class LoginInfoEndpointTests {
         savedAccount.setUsername("bob");
         savedAccount.setEmail("bob@example.com");
         savedAccount.setUserId("xxxx");
-        savedAccount.setOrigin("uaa");
+        savedAccount.setOrigin(OriginKeys.UAA);
 
         Cookie cookie1 = new Cookie("Saved-Account-xxxx", "%2");
 
@@ -413,7 +413,7 @@ class LoginInfoEndpointTests {
         uaaConfig.setEmailDomain(Collections.singletonList("fake.com"));
         uaaProvider.setConfig(uaaConfig);
         uaaProvider.setType(OriginKeys.UAA);
-        when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(uaaProvider));
+        when(mockIdentityProviderProvisioning.retrieveActive(currentIdentityZoneId)).thenReturn(Collections.singletonList(uaaProvider));
 
         loginInfoEndpoint.discoverIdentityProvider("testuser@fake.com", null, null, model, session, request);
 
@@ -738,8 +738,8 @@ class LoginInfoEndpointTests {
 
         // mock SamlIdentityProviderConfigurator
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
-        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
-        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", OriginKeys.UAA));
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", currentIdentityZoneId));
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(mockIdentityZone))).thenReturn(clientIDPs);
 
         setClientDetailsService(loginInfoEndpoint, clientDetailsService);
@@ -771,8 +771,8 @@ class LoginInfoEndpointTests {
 
         // mock SamlIdentityProviderConfigurator
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
-        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
-        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", OriginKeys.UAA));
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", currentIdentityZoneId));
         SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(mockIdentityZone))).thenReturn(clientIDPs);
 
@@ -842,7 +842,7 @@ class LoginInfoEndpointTests {
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", currentIdentityZoneId);
         identityProvider.setConfig(definition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
@@ -858,7 +858,7 @@ class LoginInfoEndpointTests {
                 .setAuthUrl(new URL("http://auth.url"))
                 .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", currentIdentityZoneId);
         identityProvider.setConfig(definition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(true, currentIdentityZoneId)).thenReturn(Collections.singletonList(identityProvider));
@@ -877,10 +877,10 @@ class LoginInfoEndpointTests {
                 .setAuthUrl(new URL("http://auth.url"))
                 .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", OriginKeys.UAA);
         oauthProvider.setConfig(oauthDefinition);
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", currentIdentityZoneId);
         oidcProvider.setConfig(oidcDefinition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
@@ -1442,7 +1442,7 @@ class LoginInfoEndpointTests {
     void allowedProvidersLoginHintDoesKeepExternalProviders() throws MalformedURLException, HttpMediaTypeNotAcceptableException {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
 
-        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "uaa");
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", OriginKeys.UAA);
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
