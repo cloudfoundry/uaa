@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -105,7 +104,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                     final String zoneId)
             throws ScimResourceNotFoundException, MemberAlreadyExistsException {
 
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, zoneId);
         if (!StringUtils.hasText(externalGroup)) {
             throw new ScimResourceConstraintFailedException("external group must not be null when mapping an external group");
         }
@@ -145,7 +144,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                       final String zoneId)
             throws ScimResourceNotFoundException {
 
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, zoneId);
         ScimGroupExternalMember result = getExternalGroupMap(groupId, externalGroup, origin, zoneId);
         if (null != group && null != result) {
             int count = jdbcTemplate.update(DELETE_EXTERNAL_GROUP_MAPPING_SQL, ps -> {
@@ -176,7 +175,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                                        final String origin,
                                                                        final String zoneId)
             throws ScimResourceNotFoundException {
-        scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+        scimGroupProvisioning.retrieve(groupId, zoneId);
         return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, ps -> {
             ps.setString(1, zoneId);
             ps.setString(2, groupId);
@@ -190,7 +189,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                                          final String zoneId)
             throws ScimResourceNotFoundException {
 
-        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName), IdentityZoneHolder.get().getId());
+        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName), zoneId);
 
         if (null != groups && groups.size() > 0) {
             return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, ps -> {
@@ -205,7 +204,7 @@ public class JdbcScimGroupExternalMembershipManager
 
     @Override
     public void unmapAll(String groupId, final String zoneId) throws ScimResourceNotFoundException {
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId());
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, zoneId);
         if (null == group) {
             throw new ScimResourceNotFoundException("Group not found for ID " + groupId);
         }
