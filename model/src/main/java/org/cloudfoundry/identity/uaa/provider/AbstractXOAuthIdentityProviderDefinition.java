@@ -36,6 +36,8 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private String relyingPartySecret;
     private List<String> scopes;
     private String issuer;
+
+    private XOAuthIssuerValidationMode issuerValidationMode = XOAuthIssuerValidationMode.STRICT;
     private String responseType = "code";
 
     public URL getAuthUrl() {
@@ -147,6 +149,13 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
         return (T) this;
     }
 
+    public XOAuthIssuerValidationMode getIssuerValidationMode() { return issuerValidationMode; }
+
+    public T setIssuerValidationMode(XOAuthIssuerValidationMode issuerValidationMode) {
+        this.issuerValidationMode = issuerValidationMode;
+        return (T) this;
+    }
+
     public String getResponseType() {
         return responseType;
     }
@@ -182,9 +191,10 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
             return false;
         if (!Objects.equals(relyingPartySecret, that.relyingPartySecret))
             return false;
-        if (!Objects.equals(scopes, that.scopes)) return false;
-        if (!Objects.equals(issuer, that.issuer)) return false;
-        return Objects.equals(responseType, that.responseType);
+        if (scopes != null ? !scopes.equals(that.scopes) : that.scopes != null) return false;
+        if (issuer != null ? !issuer.equals(that.issuer) : that.issuer != null) return false;
+        if (issuerValidationMode != null ? !issuerValidationMode.equals(that.issuerValidationMode) : that.issuerValidationMode != null) return false;
+        return responseType != null ? responseType.equals(that.responseType) : that.responseType == null;
 
     }
 
@@ -202,6 +212,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
         result = 31 * result + (relyingPartySecret != null ? relyingPartySecret.hashCode() : 0);
         result = 31 * result + (scopes != null ? scopes.hashCode() : 0);
         result = 31 * result + (issuer != null ? issuer.hashCode() : 0);
+        result = 31 * result + (issuerValidationMode != null ? issuerValidationMode.hashCode() : 0);
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         return result;
     }
