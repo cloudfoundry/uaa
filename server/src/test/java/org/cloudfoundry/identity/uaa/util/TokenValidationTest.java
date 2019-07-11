@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIssuerValidationMode;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
@@ -333,7 +334,7 @@ public class TokenValidationTest {
     @Test
     public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkIssuer("http://localhost:8080/uaa/oauth/token")
+                .checkIssuer("http://localhost:8080/uaa/oauth/token", XOAuthIssuerValidationMode.STRICT)
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
@@ -379,7 +380,7 @@ public class TokenValidationTest {
         buildAccessTokenValidator(
                 getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier)
-                .checkIssuer("http://localhost:8080/uaa/oauth/token")
+                .checkIssuer("http://localhost:8080/uaa/oauth/token", XOAuthIssuerValidationMode.STRICT)
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
@@ -432,10 +433,18 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void tokenWithInvalidIssuer() {
+    public void tokenWithInvalidIssuer_AndStrictIssuerValidation() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")).checkIssuer("http://wrong.issuer/");
+        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")).checkIssuer("http://wrong.issuer/", XOAuthIssuerValidationMode.STRICT);
+    }
+
+    @Test
+    public void tokenWithMatchingDomain_andDomainOnlyIssuerValidation_passesValidation() {
+        buildAccessTokenValidator(
+            getToken(),
+            new KeyInfoService("https://localhost")
+        ).checkIssuer("http://localhost/another/path/segment", XOAuthIssuerValidationMode.DOMAIN_ONLY);
     }
 
     @Test
@@ -444,7 +453,7 @@ public class TokenValidationTest {
         TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
-        validation.checkIssuer("http://localhost:8080/uaa/oauth/token");
+        validation.checkIssuer("http://localhost:8080/uaa/oauth/token", XOAuthIssuerValidationMode.STRICT);
     }
 
     @Test

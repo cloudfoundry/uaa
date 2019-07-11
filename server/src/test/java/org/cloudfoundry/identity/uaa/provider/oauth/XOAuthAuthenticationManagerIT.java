@@ -222,6 +222,7 @@ public class XOAuthAuthenticationManagerIT {
                 .setAuthUrl(new URL("http://localhost/oauth/authorize"))
                 .setTokenUrl(new URL("http://localhost/oauth/token"))
                 .setIssuer("http://localhost/oauth/token")
+                .setIssuerValidationMode(XOAuthIssuerValidationMode.STRICT)
                 .setShowLinkText(true)
                 .setLinkText("My OIDC Provider")
                 .setRelyingPartyId("identity")
