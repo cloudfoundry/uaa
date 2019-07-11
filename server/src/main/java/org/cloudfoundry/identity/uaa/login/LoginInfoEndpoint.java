@@ -246,7 +246,7 @@ public class LoginInfoEndpoint {
     }
 
     String getZonifiedEntityId() {
-        return SamlRedirectUtils.getZonifiedEntityId(entityID, IdentityZoneHolder.get());
+        return SamlRedirectUtils.getZonifiedEntityId(entityID, identityZoneManager.getCurrentIdentityZone());
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
@@ -278,7 +278,7 @@ public class LoginInfoEndpoint {
         IdentityProvider ldapIdentityProvider = null;
         try {
             ldapIdentityProvider = providerProvisioning.retrieveByOrigin(
-                    OriginKeys.LDAP, IdentityZoneHolder.get().getId()
+                    OriginKeys.LDAP, identityZoneManager.getCurrentIdentityZoneId()
             );
         } catch (EmptyResultDataAccessException e) {
         }
@@ -370,7 +370,7 @@ public class LoginInfoEndpoint {
             model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
         }
 
-        boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
+        boolean accountChooserEnabled = identityZoneManager.getCurrentIdentityZone().getConfig().isAccountChooserEnabled();
         boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
         boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
@@ -555,7 +555,7 @@ public class LoginInfoEndpoint {
     private String redirectToExternalProvider(AbstractIdentityProviderDefinition idpForRedirect, String alias, HttpServletRequest request) {
         if (idpForRedirect != null) {
             if (idpForRedirect instanceof SamlIdentityProviderDefinition) {
-                String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idpForRedirect, entityID, IdentityZoneHolder.get());
+                String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idpForRedirect, entityID, identityZoneManager.getCurrentIdentityZone());
                 return "redirect:/" + url;
             } else if (idpForRedirect instanceof AbstractXOAuthIdentityProviderDefinition) {
                 try {
@@ -731,7 +731,7 @@ public class LoginInfoEndpoint {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
             String[] client_ids = savedRequest.getParameterValues("client_id");
             try {
-                clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
+                clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], identityZoneManager.getCurrentIdentityZoneId());
             } catch (NoSuchClientException e) {
             }
         }
@@ -760,7 +760,7 @@ public class LoginInfoEndpoint {
     }
 
     private String goToPasswordPage(String email, Model model) {
-        model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
+        model.addAttribute(ZONE_NAME, identityZoneManager.getCurrentIdentityZone().getName());
         model.addAttribute("email", email);
         String forgotPasswordLink;
         if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null) {
@@ -773,7 +773,7 @@ public class LoginInfoEndpoint {
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
                                                    @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
+        if (mfaChecker.isMfaEnabled(identityZoneManager.getCurrentIdentityZone())) {
             throw new BadCredentialsException("MFA is required");
         }
 
@@ -816,14 +816,14 @@ public class LoginInfoEndpoint {
                 JsonUtils.writeValueAsString(codeData),
                 new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000),
                 ExpiringCodeType.AUTOLOGIN.name(),
-                IdentityZoneHolder.get().getId());
+                identityZoneManager.getCurrentIdentityZoneId());
 
         return new AutologinResponse(expiringCode.getCode());
     }
 
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
+        if (mfaChecker.isMfaEnabled(identityZoneManager.getCurrentIdentityZone())) {
             throw new BadCredentialsException("MFA is required");
         }
         String redirectLocation = "home";
