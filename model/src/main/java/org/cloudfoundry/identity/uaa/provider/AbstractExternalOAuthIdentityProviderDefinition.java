@@ -36,6 +36,8 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private String relyingPartySecret;
     private List<String> scopes;
     private String issuer;
+
+    private XOAuthIssuerValidationMode issuerValidationMode = XOAuthIssuerValidationMode.STRICT;
     private String responseType = "code";
 
     public URL getAuthUrl() {
@@ -147,6 +149,13 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         return (T) this;
     }
 
+    public XOAuthIssuerValidationMode getIssuerValidationMode() { return issuerValidationMode; }
+
+    public T setIssuerValidationMode(XOAuthIssuerValidationMode issuerValidationMode) {
+        this.issuerValidationMode = issuerValidationMode;
+        return (T) this;
+    }
+
     public String getResponseType() {
         return responseType;
     }
@@ -184,6 +193,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
             return false;
         if (!Objects.equals(scopes, that.scopes)) return false;
         if (!Objects.equals(issuer, that.issuer)) return false;
+        if (!Objects.equals(issuerValidationMode, that.issuerValidationMode)) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -202,6 +212,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (relyingPartySecret != null ? relyingPartySecret.hashCode() : 0);
         result = 31 * result + (scopes != null ? scopes.hashCode() : 0);
         result = 31 * result + (issuer != null ? issuer.hashCode() : 0);
+        result = 31 * result + (issuerValidationMode != null ? issuerValidationMode.hashCode() : 0);
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         return result;
     }
