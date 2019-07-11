@@ -165,7 +165,6 @@ class LoginMockMvcTests {
         setSelfServiceLinksEnabled(webApplicationContext, currentIdentityZoneId, true);
         identityZoneConfigurationBootstrap.afterPropertiesSet();
         SecurityContextHolder.clearContext();
-        IdentityZoneHolder.clear();
         MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
     }
 
@@ -1171,11 +1170,6 @@ class LoginMockMvcTests {
             identityZone = identityZoneCreationResult.getIdentityZone();
         }
 
-        @AfterEach
-        void tearDown() {
-            IdentityZoneHolder.clear();
-        }
-
         @Test
         void samlRedirectWhenTheOnlyProvider(
                 @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
@@ -1251,7 +1245,6 @@ class LoginMockMvcTests {
             activeIdentityProvider.setOriginKey(alias);
             createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider);
 
-            IdentityZoneHolder.set(identityZone);
             IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
             uaaIdentityProvider.setActive(false);
             jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
@@ -1266,12 +1259,8 @@ class LoginMockMvcTests {
         void xOAuthRedirect_onlyOneProvider_noClientContext_and_ResponseType_Set(
                 @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
         ) throws Exception {
-            IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, currentIdentityZoneId);
-            IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-
             String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
 
-            IdentityZoneHolder.set(identityZone);
             IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
             uaaIdentityProvider.setActive(false);
             jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
@@ -1299,7 +1288,6 @@ class LoginMockMvcTests {
         ) throws Exception {
             String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration", generator);
 
-            IdentityZoneHolder.set(identityZone);
             IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
             uaaIdentityProvider.setActive(false);
             jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
@@ -1327,7 +1315,6 @@ class LoginMockMvcTests {
         ) throws Exception {
             String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null, generator);
 
-            IdentityZoneHolder.set(identityZone);
             IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
             uaaIdentityProvider.setActive(false);
             jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
@@ -1371,8 +1358,6 @@ class LoginMockMvcTests {
             oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
 
             createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
-
-            IdentityZoneHolder.set(identityZone);
 
             MockHttpSession session = new MockHttpSession();
             SavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -1435,7 +1420,6 @@ class LoginMockMvcTests {
 
             createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oauthIdentityProvider);
 
-            IdentityZoneHolder.set(identityZone);
             IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
             uaaIdentityProvider.setActive(false);
             jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
@@ -1445,6 +1429,51 @@ class LoginMockMvcTests {
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"));
         }
+
+        @Test
+        void idpDiscoveryWithNoEmailDomainMatch_withClientContext(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            IdentityProvider identityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin("uaa", identityZone.getId());
+            identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("totally-different.org")));
+            jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
+
+            String originKey = generator.generate();
+
+            MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, identityZone);
+
+            mockMvc.perform(post("/login/idp_discovery")
+                    .with(MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf())
+                    .header("Accept", TEXT_HTML)
+                    .session(session)
+                    .param("email", "marissa@other.domain")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
+        }
+
+        @Test
+        void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext(
+                @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+        ) throws Exception {
+            IdentityProvider identityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin("uaa", identityZone.getId());
+            identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("test.org")));
+            jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
+
+            String originKey = generator.generate();
+
+            MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, identityZone);
+
+            mockMvc.perform(post("/login/idp_discovery")
+                    .with(MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf())
+                    .header("Accept", TEXT_HTML)
+                    .session(session)
+                    .param("email", "marissa@test.org")
+                    .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isFound())
+                    .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40test.org"));
+        }
+
     }
 
     @Test
@@ -2230,60 +2259,6 @@ class LoginMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&")))
                 .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&")));
-    }
-
-    @Test
-    void idpDiscoveryWithNoEmailDomainMatch_withClientContext(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
-        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        MockMvcUtils.createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, currentIdentityZoneId);
-
-        IdentityZoneHolder.set(zone);
-        IdentityProvider identityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
-        identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("totally-different.org")));
-        jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
-
-        String originKey = generator.generate();
-
-        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
-
-        mockMvc.perform(post("/login/idp_discovery")
-                .with(MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf())
-                .header("Accept", TEXT_HTML)
-                .session(session)
-                .param("email", "marissa@other.domain")
-                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40other.domain"));
-    }
-
-    @Test
-    void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
-    ) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
-        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        MockMvcUtils.createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, currentIdentityZoneId);
-
-        IdentityZoneHolder.set(zone);
-        IdentityProvider identityProvider = jdbcIdentityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
-        identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("test.org")));
-        jdbcIdentityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
-
-        String originKey = generator.generate();
-
-        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
-
-        mockMvc.perform(post("/login/idp_discovery")
-                .with(MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf())
-                .header("Accept", TEXT_HTML)
-                .session(session)
-                .param("email", "marissa@test.org")
-                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40test.org"));
     }
 
     @Test
