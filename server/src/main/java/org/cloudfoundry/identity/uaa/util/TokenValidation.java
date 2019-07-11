@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.util;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIssuerValidationMode;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -39,6 +40,8 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.Assert;
 
 import javax.validation.constraints.NotNull;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -124,7 +127,7 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkIssuer(String issuer) {
+    public TokenValidation checkIssuer(String issuer, XOAuthIssuerValidationMode validationMode) {
         if (issuer == null) {
             return this;
         }
@@ -133,8 +136,32 @@ public abstract class TokenValidation {
             throw new InvalidTokenException("Token does not bear an ISS claim.", null);
         }
 
-        if (!equals(issuer, claims.get(ISS))) {
-            throw new InvalidTokenException("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer, null);
+        if (validationMode == XOAuthIssuerValidationMode.STRICT) {
+            if (!equals(issuer, claims.get(ISS))) {
+                throw new InvalidTokenException("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer, null);
+            }
+        }
+        else if (validationMode == XOAuthIssuerValidationMode.DOMAIN_ONLY) {
+            URL issuerUrl;
+            try {
+                issuerUrl = new URL(issuer);
+            }
+            catch (MalformedURLException e) {
+                throw new InvalidTokenException("Issuer is a malformed URL.", e);
+            }
+
+            URL claimUrl;
+            try
+            {
+                claimUrl = new URL((String)claims.get(ISS));
+            }
+            catch (MalformedURLException e) {
+                throw new InvalidTokenException("Issuer claim is a malformed URL.", e);
+            }
+
+            if (!equals(issuerUrl.getHost(), claimUrl.getHost())) {
+                throw new InvalidTokenException("Invalid issuer domain (" + claimUrl.getHost() + ") for token did not match expected: " + issuerUrl.getHost(), null);
+            }
         }
         return this;
     }

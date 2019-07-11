@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIssuerValidationMode;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
@@ -52,7 +53,7 @@ public class TokenValidationService {
                 buildAccessTokenValidator(token, keyInfoService) : buildRefreshTokenValidator(token, keyInfoService);
         tokenValidation
                 .checkRevocableTokenStore(revocableTokenProvisioning)
-                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());
+                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint(), XOAuthIssuerValidationMode.STRICT);
 
         ClientDetails client = tokenValidation.getClientDetails(multitenantClientServices);
         UaaUser user = tokenValidation.getUserDetails(userDatabase);

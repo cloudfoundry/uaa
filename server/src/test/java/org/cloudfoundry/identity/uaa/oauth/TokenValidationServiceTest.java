@@ -125,6 +125,24 @@ public class TokenValidationServiceTest {
     }
 
     @Test
+    public void validationFails_whenIssuerDoesNotMatchTokenEndPointExactly() {
+        String tokenEndpoint = "https://token.endpoint";
+        String issuer = tokenEndpoint + "/does/not/match";
+
+        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(tokenEndpoint);
+
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("Invalid issuer (" + issuer + ") for token did not match expected: " + tokenEndpoint);
+
+        content.put(ISS, issuer);
+
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenThrow(NoSuchClientException.class);
+        String accessToken = UaaTokenUtils.constructToken(header, content, signer);
+
+        tokenValidationService.validateToken(accessToken, true);
+    }
+
+    @Test
     public void refreshToken_validatesWithScopeClaim_forBackwardsCompatibilityReasons() {
         Map<String, Object> content = map(
                 entry(USER_ID, userId),
