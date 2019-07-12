@@ -88,9 +88,6 @@ dependencies {
 
     testCompile libraries.postgresql
 
-    testCompile libraries.powermockJunit4
-    testCompile libraries.powermockMockito
-
     testCompile libraries.tomcatElApi
     testCompile libraries.tomcatJasperEl
     testCompile libraries.tomcatJdbc

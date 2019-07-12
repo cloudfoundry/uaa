@@ -16,9 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
@@ -39,8 +36,8 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({UaaTokenUtils.class, IdentityZoneHolder.class})
+//@RunWith(PowerMockRunner.class)
+//@PrepareForTest({UaaTokenUtils.class, IdentityZoneHolder.class})
 public class IdTokenCreatorTest {
     private String issuerUrl;
     private String uaaUrl;
@@ -141,10 +138,10 @@ public class IdTokenCreatorTest {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(zoneId);
 
-        PowerMockito.mockStatic(IdentityZoneHolder.class);
+//        PowerMockito.mockStatic(IdentityZoneHolder.class);
         when(IdentityZoneHolder.get()).thenReturn(identityZone);
 
-        PowerMockito.mockStatic(UaaTokenUtils.class);
+//        PowerMockito.mockStatic(UaaTokenUtils.class);
         when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl, identityZone)).thenReturn(issuerUrl);
 
         when(UaaTokenUtils.getRevocableTokenSignature(user, tokensalt, clientId, clientsecret)).thenReturn("Signature");

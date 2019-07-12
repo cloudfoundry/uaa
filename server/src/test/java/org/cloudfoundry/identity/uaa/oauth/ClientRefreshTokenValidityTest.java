@@ -6,9 +6,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
 
@@ -18,8 +15,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(IdentityZoneHolder.class)
 public class ClientRefreshTokenValidityTest {
     ClientRefreshTokenValidity clientRefreshTokenValidity;
     ClientDetails clientDetails;
@@ -34,7 +29,7 @@ public class ClientRefreshTokenValidityTest {
         when(clientDetails.getRefreshTokenValiditySeconds()).thenReturn(42);
 
         defaultZone = IdentityZone.getUaa();
-        PowerMockito.mockStatic(IdentityZoneHolder.class);
+//        PowerMockito.mockStatic(IdentityZoneHolder.class);
         when(IdentityZoneHolder.get()).thenReturn(defaultZone);
 
         when(mockMultitenantClientServices.loadClientByClientId("clientId", "uaa")).thenReturn(clientDetails);

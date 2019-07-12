@@ -286,7 +286,7 @@ public class CheckTokenEndpointTests {
                 tokenValidationService,
                 mock(RefreshTokenCreator.class),
                 timeService,
-                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
+                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, null), Integer.MAX_VALUE, timeService),
                 userDatabase,
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy(),

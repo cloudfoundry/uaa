@@ -7,22 +7,16 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({JwtHelper.class, JsonUtils.class})
+//@RunWith(PowerMockRunner.class)
+//@PrepareForTest({JwtHelper.class, JsonUtils.class})
 public class IntrospectEndpointTest {
 
     private IntrospectEndpoint introspectEndpoint;
@@ -39,10 +33,10 @@ public class IntrospectEndpointTest {
         claims.setName("somename");
 
         when(jwt.getClaims()).thenReturn("claims");
-        PowerMockito.mockStatic(JwtHelper.class);
+//        PowerMockito.mockStatic(JwtHelper.class);
         Mockito.when(JwtHelper.decode("valid-token")).thenReturn(jwt);
 
-        PowerMockito.mockStatic(JsonUtils.class);
+//        PowerMockito.mockStatic(JsonUtils.class);
         Mockito.when(JsonUtils.readValue("claims", IntrospectionClaims.class)).thenReturn(claims);
     }
 
@@ -109,7 +103,7 @@ public class IntrospectEndpointTest {
         when(token.isExpired()).thenReturn(false);
         when(token.getValue()).thenReturn("valid-token");
 
-        PowerMockito.mockStatic(JsonUtils.class);
+//        PowerMockito.mockStatic(JsonUtils.class);
         Mockito.when(JsonUtils.readValue("claims", IntrospectionClaims.class)).thenThrow(JsonUtils.JsonUtilException.class);
 
         IntrospectionClaims claimsResult = introspectEndpoint.introspect("valid-token");
