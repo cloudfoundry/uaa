@@ -120,7 +120,7 @@ class ChangeEmailEndpointsMockMvcTest {
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         Map<String, String> additionalInformation = new HashMap<>();
-        additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
+        additionalInformation.put("change_email_redirect_url", "app_callback_url");
         clientDetails.setAdditionalInformation(additionalInformation);
 
         when(mockQueryableResourceManager.retrieve("app", currentIdentityZoneId))
