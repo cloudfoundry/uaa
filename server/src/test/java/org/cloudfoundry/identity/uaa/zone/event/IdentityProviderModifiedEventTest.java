@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -15,17 +16,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class IdentityProviderModifiedEventTest {
 
     private IdentityProvider<SamlIdentityProviderDefinition> provider;
+    private String currentIdentityZoneId;
 
     @BeforeEach
     void setup() {
-        String origin = "idp-mock-saml-" + new RandomValueStringGenerator().generate();
+        final RandomValueStringGenerator randomValueStringGenerator = new RandomValueStringGenerator();
+        currentIdentityZoneId = "currentIdentityZoneId-" + randomValueStringGenerator.generate();
+
+        String origin = "idp-mock-saml-" + randomValueStringGenerator.generate();
         String metadata = String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://localhost:9999/metadata/" + origin);
         provider = new IdentityProvider<>();
         provider.setId("id");
         provider.setActive(true);
         provider.setName(origin);
         provider.setType(OriginKeys.SAML);
-        provider.setIdentityZoneId("any value");
+        provider.setIdentityZoneId(currentIdentityZoneId);
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition =
                 new SamlIdentityProviderDefinition()
@@ -43,13 +48,13 @@ class IdentityProviderModifiedEventTest {
 
     @Test
     void identityProviderCreated() {
-        IdentityProviderModifiedEvent identityProviderCreatedEvent = IdentityProviderModifiedEvent.identityProviderCreated(provider);
+        IdentityProviderModifiedEvent identityProviderCreatedEvent = IdentityProviderModifiedEvent.identityProviderCreated(provider, currentIdentityZoneId);
         evaluateEventString(identityProviderCreatedEvent, provider);
     }
 
     @Test
     void identityProviderModified() {
-        IdentityProviderModifiedEvent identityProviderModifiedEvent = IdentityProviderModifiedEvent.identityProviderModified(provider);
+        IdentityProviderModifiedEvent identityProviderModifiedEvent = IdentityProviderModifiedEvent.identityProviderModified(provider, currentIdentityZoneId);
         evaluateEventString(identityProviderModifiedEvent, provider);
     }
 
