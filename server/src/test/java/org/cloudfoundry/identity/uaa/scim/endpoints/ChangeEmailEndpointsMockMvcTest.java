@@ -1,0 +1,186 @@
+package org.cloudfoundry.identity.uaa.scim.endpoints;
+
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
+class ChangeEmailEndpointsMockMvcTest {
+
+    @Mock
+    private ScimUserProvisioning mockScimUserProvisioning;
+
+    @Mock
+    private ExpiringCodeStore mockExpiringCodeStore;
+
+    @Mock
+    private ApplicationEventPublisher mockApplicationEventPublisher;
+
+    @Mock
+    private QueryableResourceManager<ClientDetails> mockQueryableResourceManager;
+
+    @InjectMocks
+    private ChangeEmailEndpoints changeEmailEndpoints;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        changeEmailEndpoints.setApplicationEventPublisher(mockApplicationEventPublisher);
+        mockMvc = MockMvcBuilders.standaloneSetup(changeEmailEndpoints).build();
+    }
+
+    @Test
+    void generateEmailChangeCode() throws Exception {
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
+        when(mockExpiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()), eq(IdentityZoneHolder.get().getId())))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, EMAIL.name()));
+
+        ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
+        userChangingEmail.setOrigin("test");
+        userChangingEmail.setPrimaryEmail("user@example.com");
+        when(mockScimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
+
+        MockHttpServletRequestBuilder post = post("/email_verifications")
+                .contentType(APPLICATION_JSON)
+                .content(data)
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isCreated())
+                .andExpect(content().string("secret_code"));
+    }
+
+    @Test
+    void generateEmailChangeCodeWithExistingUsernameChange() throws Exception {
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
+
+        ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
+        userChangingEmail.setPrimaryEmail("user@example.com");
+        when(mockScimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(userChangingEmail);
+
+        ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
+        when(mockScimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+                .thenReturn(Arrays.asList(existingUser));
+
+        MockHttpServletRequestBuilder post = post("/email_verifications")
+                .contentType(APPLICATION_JSON)
+                .content(data)
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void changeEmail() throws Exception {
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
+                .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", EMAIL.name()));
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        Map<String, String> additionalInformation = new HashMap<>();
+        additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
+        clientDetails.setAdditionalInformation(additionalInformation);
+
+        when(mockQueryableResourceManager.retrieve("app", IdentityZoneHolder.get().getId()))
+                .thenReturn(clientDetails);
+
+        ScimUser scimUser = new ScimUser();
+        scimUser.setId("user-id-001");
+        scimUser.setUserName("user@example.com");
+        scimUser.setPrimaryEmail("user@example.com");
+
+        when(mockScimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
+
+        mockMvc.perform(post("/email_changes")
+                .contentType(APPLICATION_JSON)
+                .content("the_secret_code")
+                .accept(APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.userId").value("user-id-001"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.username").value("new@example.com"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value("new@example.com"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.redirect_url").value("app_callback_url"))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
+        verify(mockScimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
+        assertEquals("new@example.com", user.getValue().getPrimaryEmail());
+        assertEquals("new@example.com", user.getValue().getUserName());
+
+        ArgumentCaptor<UserModifiedEvent> event = ArgumentCaptor.forClass(UserModifiedEvent.class);
+        verify(mockApplicationEventPublisher).publishEvent(event.capture());
+        assertEquals("user-id-001", event.getValue().getUserId());
+        assertEquals("new@example.com", event.getValue().getUsername());
+        assertEquals("new@example.com", event.getValue().getEmail());
+    }
+
+    @Test
+    void changeEmailWhenUsernameNotTheSame() throws Exception {
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
+                .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", EMAIL.name()));
+
+        ScimUser scimUser = new ScimUser();
+        scimUser.setUserName("username");
+        scimUser.setPrimaryEmail("user@example.com");
+
+        when(mockScimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
+
+        mockMvc.perform(post("/email_changes")
+                .contentType(APPLICATION_JSON)
+                .content("the_secret_code")
+                .accept(APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
+        verify(mockScimUserProvisioning).update(eq("user-id-001"), user.capture(), eq(IdentityZoneHolder.get().getId()));
+
+        assertEquals("new@example.com", user.getValue().getPrimaryEmail());
+        assertEquals("username", user.getValue().getUserName());
+    }
+
+    @Test
+    void changeEmail_withIncorrectCode() throws Exception {
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId()))
+                .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", "incorrect-code"));
+
+        mockMvc.perform(post("/email_changes")
+                .contentType(APPLICATION_JSON)
+                .content("the_secret_code")
+                .accept(APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isUnprocessableEntity());
+    }
+}
