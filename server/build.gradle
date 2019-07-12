@@ -84,6 +84,7 @@ dependencies {
     testCompile(libraries.mockito) {
         exclude(module: 'hamcrest-core')
     }
+    testCompile libraries.mockitoJunit5
 
     testCompile libraries.postgresql
 
