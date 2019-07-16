@@ -68,7 +68,7 @@ dependencies {
 
     compile group: 'com.warrenstrange', name: 'googleauth', version: '1.2.0'
 
-    compile libraries.slf4jImpl
+    //compile libraries.slf4jImpl
     compile libraries.log4jCore
 
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
