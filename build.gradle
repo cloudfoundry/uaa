@@ -18,6 +18,7 @@ buildscript {
         classpath 'io.spring.gradle:propdeps-plugin:0.0.10.RELEASE'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.6.1'
         classpath 'com.moowork.gradle:gradle-node-plugin:1.1.0'
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     }
 }
 
@@ -29,6 +30,9 @@ allprojects {
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
+    apply plugin: 'propdeps-eclipse'
+    apply plugin: 'org.springframework.boot'
+
     configurations.provided.transitive = false
 
     repositories {
@@ -41,6 +45,7 @@ allprojects {
 }
 
 subprojects {
+    apply plugin: 'io.spring.dependency-management'
     apply plugin: 'java'
 
     configurations.all {
@@ -50,12 +55,12 @@ subprojects {
     }
 
     dependencies {
-        testCompile(libraries.springTest)
+        testCompile(libraries.springBootStarterTest)
         testCompile libraries.hamcrest
         testCompile(libraries.junit5JupiterApi)
         testCompile(libraries.junit5JupiterParams)
         testRuntime(libraries.junit5JupiterEngine)
-        testRuntime(libraries.junitVintageEngine)
+        testRuntime(libraries.junitVintageEngine)  // needed
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
@@ -92,10 +97,16 @@ subprojects {
         }
     }
 
-    task packageSources(type: Jar) {
+    // we may not need this
+    // for including the source
+   /* task packageSources(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.allSource
-    }
+    }*/
+
+   /* artifacts {
+        archives packageSources
+    }*/
 
     task generateDocs() {
     }
@@ -116,11 +127,8 @@ subprojects {
         }
     }
 
-    artifacts {
-        archives packageSources
-    }
-
     repositories {
+        mavenCentral()
         maven {
             url 'https://jitpack.io'
         }
@@ -223,8 +231,13 @@ task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
+bootJar {
+    enabled = false
+}
+
 // task dependencies
 assemble.dependsOn subprojects.assemble
+bootJar.dependsOn subprojects.bootJar
 test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble

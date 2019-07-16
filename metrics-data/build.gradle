@@ -1,6 +1,7 @@
 description = 'CloudFoundry Identity Metrics Data Jar'
 
 dependencies {
+  compile libraries.springBootStarter
   compile libraries.jacksonDatabind
   compile libraries.jacksonAnnotations
 }
@@ -10,3 +11,10 @@ processResources {
   //https://www.pivotaltracker.com/story/show/74344574
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
 }
+
+
+jar {
+  enabled = true
+}
+
+

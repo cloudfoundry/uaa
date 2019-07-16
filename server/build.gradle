@@ -4,24 +4,27 @@ dependencies {
 
     compile project(':cloudfoundry-identity-model')
 
-    compile libraries.tomcatJdbc
-    provided libraries.tomcatEmbed
+    //compile libraries.tomcatJdbc
+    //provided libraries.tomcatEmbed
     compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
-    compile libraries.commonsLogging
-    compile libraries.jsonPath
+    //compile libraries.commonsLogging
+    //compile libraries.jsonPath
     compile libraries.zxing
-    compile libraries.springBeans
-    compile libraries.springContext
-    compile libraries.springContextSupport
-    compile libraries.springTx
-    compile libraries.springJdbc
-    compile libraries.springWeb
-    compile libraries.springSecurityCore
-    compile libraries.springSecurityJwt
+    //compile libraries.springBeans
+    //compile libraries.springContext
+    //compile libraries.springContextSupport
+    //compile libraries.springTx
+    //compile libraries.springJdbc
+    compile libraries.springBootStarterJdbc
+    //compile libraries.springWeb
+    compile libraries.springBootStarterWeb
+    //compile libraries.springSecurityCore
+    //compile libraries.springSecurityJwt
+    compile libraries.springBootStarterSecurity
     compile libraries.apacheHttpClient
-    compile libraries.springSecurityWeb
-    compile libraries.springSecuritySaml
+    //compile libraries.springSecurityWeb
+    //compile libraries.springSecuritySaml
 
     compile(libraries.springSecurityOauth) {
         exclude(module: 'commons-codec')
@@ -56,12 +59,13 @@ dependencies {
 
     compile group: 'org.yaml', name: 'snakeyaml', version: '1.24'
 
-    compile libraries.springSecurityLdap
-    compile libraries.springLdapCore
-    compile libraries.springLdapCoreTiger
-    compile(libraries.apacheLdapApi) {
-        exclude(module: 'slf4j-api')
-    }
+    compile libraries.springBootStarterLdap
+    //compile libraries.springSecurityLdap
+    //compile libraries.springLdapCore
+    //compile libraries.springLdapCoreTiger
+    //compile(libraries.apacheLdapApi) {
+        //exclude(module: 'slf4j-api')
+    //}
 
     compile group: 'org.passay', name: 'passay', version: '1.2.0'
 
@@ -76,21 +80,22 @@ dependencies {
 
     testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
-    testCompile libraries.springTest
+    //testCompile libraries.springTest
+    testCompile libraries.springBootStarterTest
 
-    testCompile(libraries.junit)
-    testCompile(libraries.mockito)
+    //testCompile(libraries.junit)
+    //testCompile(libraries.mockito)
 
     testCompile libraries.postgresql
 
-    testCompile libraries.powermockJunit4
-    testCompile libraries.powermockMockito
+    //testCompile libraries.powermockJunit4
+    //testCompile libraries.powermockMockito
 
-    testCompile libraries.tomcatElApi
-    testCompile libraries.tomcatJasperEl
-    testCompile libraries.tomcatJdbc
+    //testCompile libraries.tomcatElApi
+    //testCompile libraries.tomcatJasperEl
+    //testCompile libraries.tomcatJdbc
 
-    testCompile libraries.jsonPathAssert
+    //testCompile libraries.jsonPathAssert
 }
 
 configurations.all {
@@ -106,3 +111,4 @@ processResources {
 integrationTest {}.onlyIf { //disable since we don't have any
     false
 }
+
