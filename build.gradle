@@ -5,6 +5,7 @@ import java.nio.file.Paths
 
 buildscript {
     apply from: 'dependencies.gradle'
+
     repositories {
         mavenCentral()
         jcenter()
@@ -19,9 +20,10 @@ buildscript {
     dependencies {
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
+        classpath 'io.spring.gradle:propdeps-plugin:0.0.9.RELEASE'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     }
 }
 
@@ -29,9 +31,13 @@ apply from: 'dependencies.gradle'
 apply plugin: 'com.bmuschko.cargo'
 
 allprojects {
+
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
+    apply plugin: 'propdeps-eclipse'
+    apply plugin: 'org.springframework.boot'
+
     configurations.provided.transitive = false
 
     repositories {
@@ -44,20 +50,23 @@ allprojects {
 }
 
 subprojects {
+    apply plugin: 'io.spring.dependency-management'
     apply plugin: 'java'
 
     dependencies {
-        testCompile(libraries.springTest)
+        testCompile(libraries.springBootStarterTest)
         testCompile group: "org.hamcrest", name: "hamcrest-all", version: '1.3'
         testCompile(libraries.junit5JupiterApi)
         testCompile(libraries.junit5JupiterParams)
         testRuntime(libraries.junit5JupiterEngine)
-        testRuntime(libraries.junitVintageEngine)
+        testRuntime(libraries.junitVintageEngine)  // needed
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
+
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
+
     test {
         maxParallelForks = 6
 
@@ -87,10 +96,16 @@ subprojects {
         }
     }
 
-    task packageSources(type: Jar) {
+    // we may not need this
+    // for including the source
+   /* task packageSources(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.allSource
-    }
+    }*/
+
+   /* artifacts {
+        archives packageSources
+    }*/
 
     task generateDocs() {
     }
@@ -111,11 +126,8 @@ subprojects {
         }
     }
 
-    artifacts {
-        archives packageSources
-    }
-
     repositories {
+        mavenCentral()
         maven { url 'https://jitpack.io' }
         maven { url "https://repo.spring.io/release" }
         maven { url "https://repo.maven.apache.org/maven2" }
@@ -212,20 +224,25 @@ task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
-task encrypt(type: JavaExec) {
+/*task encrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Encryptor'
     args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
     classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
+}*/
 
-task decrypt(type: JavaExec) {
+/*task decrypt(type: JavaExec) {
     main = 'org.cloudfoundry.identity.uaa.Decryptor'
     args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
     classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
+}*/
+
+bootJar {
+    enabled = false
 }
 
 // task dependencies
 assemble.dependsOn subprojects.assemble
+bootJar.dependsOn subprojects.bootJar
 test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble

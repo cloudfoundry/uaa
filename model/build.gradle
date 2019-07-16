@@ -8,23 +8,26 @@ dependencies {
 
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
-    compile libraries.springWeb
-    compile libraries.springWebMvc
-    compile libraries.springSecurityConfig
+    //compile libraries.springWeb
+    //compile libraries.springWebMvc
+    //compile libraries.springSecurityConfig
+
+    compile libraries.springBootStarterWeb
+    compile libraries.springBootStarterSecurity
 
     compile(libraries.springSecurityOauth) {
         exclude(module: 'jackson-mapper-asl')
         exclude(module: 'spring-security-web')
     }
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.26'
+    //compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.26'
 
-    testCompile(libraries.junit) {
-        exclude(module: 'hamcrest-core')
-    }
+    //testCompile(libraries.junit) {
+        //exclude(module: 'hamcrest-core')
+    //}
 
-    compileOnly 'org.projectlombok:lombok:1.18.8'
-    annotationProcessor 'org.projectlombok:lombok:1.18.6'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
     testCompile 'org.skyscreamer:jsonassert:1.5.0'
 }
 
@@ -43,3 +46,4 @@ processResources {
 integrationTest {}.onlyIf { //disable since we don't have any
     false
 }
+
