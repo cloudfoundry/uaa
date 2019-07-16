@@ -5,7 +5,7 @@ dependencies {
     compile project(':cloudfoundry-identity-model')
 
     compile libraries.tomcatJdbc
-    provided libraries.tomcatEmbed
+    //provided libraries.tomcatEmbed
     compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
     compile libraries.commonsLogging
@@ -16,7 +16,8 @@ dependencies {
     compile libraries.springContextSupport
     compile libraries.springTx
     compile libraries.springJdbc
-    compile libraries.springWeb
+    //compile libraries.springWeb
+    compile libraries.springBootStarterWeb
     compile libraries.springSecurityCore
     compile libraries.springSecurityJwt
     compile libraries.apacheHttpClient
