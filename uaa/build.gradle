@@ -1,6 +1,6 @@
 Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
-apply plugin: 'war'
+//apply plugin: 'war'
 apply plugin: 'org.asciidoctor.convert'
 apply plugin: 'com.moowork.node'
 
@@ -30,13 +30,16 @@ dependencies {
         exclude(module: 'jna')
     }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
+
+    compile libraries.springBootStarterWeb
     
     runtime libraries.springSecurityConfig
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
     
-    providedCompile libraries.tomcatEmbed
+    //providedCompile libraries.tomcatEmbed
+
 
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
@@ -141,7 +144,28 @@ integrationTest {
     }
 }
 
-war {
-    //workaround for maven <scope>optional</scope>
-    rootSpec.exclude("**/spring-security-oauth-*.jar")
+
+//war {
+    ////workaround for maven <scope>optional</scope>
+    //rootSpec.exclude("**/spring-security-oauth-*.jar")
+//}
+
+task (copyResources, type: Copy) {
+    into 'build/resources/main'
+    from 'src/main/webapp/resources'
+    from 'src/main/webapp/WEB-INF'
+
+    into ('vendor') {
+        from 'src/main/webapp/vendor'
+    }
 }
+
+bootRun {
+    dependsOn copyResources
+}
+
+bootJar {
+    dependsOn copyResources
+}
+
+
