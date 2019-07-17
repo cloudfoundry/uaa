@@ -21,6 +21,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -31,6 +32,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
+@Component
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config,active";
