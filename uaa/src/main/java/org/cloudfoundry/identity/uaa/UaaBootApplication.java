@@ -14,8 +14,11 @@ package org.cloudfoundry.identity.uaa;/*
  * limitations under the License.
  */
 
+import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 
 /**
  * @author Haytham Mohamed
@@ -28,4 +31,9 @@ public class UaaBootApplication {
 		SpringApplication.run(UaaBootApplication.class, args);
 	}
 
+	@Configuration
+	@ImportResource({"classpath*:spring-servlet.xml"})
+	public static class XMLConfigs {
+
+	}
 }
