@@ -247,4 +247,4 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-bootRun.dependsOn subprojects.find {it.name.contains('server')}.getTasksByName("bootRun", true)
+bootRun.dependsOn subprojects.find {it.name.contains('uaa')}.getTasksByName("bootRun", true)
