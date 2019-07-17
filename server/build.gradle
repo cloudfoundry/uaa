@@ -107,3 +107,11 @@ processResources {
 integrationTest {}.onlyIf { //disable since we don't have any
     false
 }
+
+jar {
+    enabled = true
+}
+
+bootRun {
+    enabled = false
+}

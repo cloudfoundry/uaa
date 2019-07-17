@@ -30,10 +30,12 @@ dependencies {
         exclude(module: 'jna')
     }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
+    
     runtime libraries.springSecurityConfig
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
+    
     providedCompile libraries.tomcatEmbed
 
     testCompile identityServer.configurations.testCompile.dependencies
@@ -60,6 +62,7 @@ dependencies {
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
     testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:2.0.3.RELEASE'
+    testCompile libraries.jsonPathAssert
 }
 
 node {
