@@ -37,10 +37,10 @@ public class FlywayConfiguration {
                 .dataSource(dataSource)
                 .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
                 .baselineVersion("1.5.2")
-                .target("4.21.0")
                 .validateOnMigrate(false)
                 .table(VERSION_TABLE)
                 .load();
+        flyway.repair();
         flyway.migrate();
         return flyway;
     }
