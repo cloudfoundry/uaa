@@ -180,6 +180,14 @@
                             <entry key="redirect-uri" value="http://redirect.localhost" />
                         </map>
                     </entry>
+                    <entry key="client_with_bcrypt_prefix">
+                        <map>
+                            <entry key="secret" value="password" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="authorities" value="uaa.none" />
+                            <entry key="use-bcrypt-prefix" value="true" />
+                        </map>
+                    </entry>
                 </map>
             </constructor-arg>
         </bean>

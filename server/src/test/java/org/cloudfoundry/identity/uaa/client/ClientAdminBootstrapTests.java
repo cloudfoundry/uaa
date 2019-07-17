@@ -101,7 +101,8 @@ class ClientAdminBootstrapTests {
                 true,
                 clients,
                 Collections.singleton(autoApproveId),
-                Collections.emptySet());
+                Collections.emptySet(),
+                null);
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -119,7 +120,8 @@ class ClientAdminBootstrapTests {
                     true,
                     null,
                     Collections.emptySet(),
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    null);
         }
 
         @Test
@@ -154,7 +156,8 @@ class ClientAdminBootstrapTests {
                     true,
                     clients,
                     Collections.singleton(clientIdToDelete),
-                    Collections.singleton(clientIdToDelete));
+                    Collections.singleton(clientIdToDelete),
+                    null);
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -310,7 +313,8 @@ class ClientAdminBootstrapTests {
                     true,
                     clients,
                     Collections.singleton(autoApproveId),
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    null);
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -368,7 +372,8 @@ class ClientAdminBootstrapTests {
                         false,
                         clients,
                         Collections.singleton(autoApproveId),
-                        Collections.emptySet()
+                        Collections.emptySet(),
+                        null
                 );
             }
 

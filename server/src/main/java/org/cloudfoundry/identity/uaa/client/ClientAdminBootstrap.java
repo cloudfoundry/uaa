@@ -16,6 +16,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -45,6 +46,7 @@ public class ClientAdminBootstrap implements
 
     private final Map<String, Map<String, Object>> clients;
     private final Set<String> clientsToDelete;
+    private final JdbcTemplate jdbcTemplate;
     private final Set<String> autoApproveClients;
     private final boolean defaultOverride;
 
@@ -68,7 +70,8 @@ public class ClientAdminBootstrap implements
             final boolean defaultOverride,
             final Map<String, Map<String, Object>> clients,
             final Collection<String> autoApproveClients,
-            final Collection<String> clientsToDelete) {
+            final Collection<String> clientsToDelete,
+            final JdbcTemplate jdbcTemplate) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
@@ -76,6 +79,7 @@ public class ClientAdminBootstrap implements
         this.clients = ofNullable(clients).orElse(Collections.emptyMap());
         this.autoApproveClients = new HashSet<>(ofNullable(autoApproveClients).orElse(Collections.emptySet()));
         this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -176,6 +180,10 @@ public class ClientAdminBootstrap implements
                     // ignore it
                     logger.debug(e.getMessage());
                 }
+            }
+
+            if (map.containsKey("use-bcrypt-prefix") && "true".equals(map.get("use-bcrypt-prefix"))) {
+                jdbcTemplate.update("update oauth_client_details set client_secret=concat(?, client_secret) where client_id = ?", "{bcrypt}", clientId);
             }
 
             for (String s : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
