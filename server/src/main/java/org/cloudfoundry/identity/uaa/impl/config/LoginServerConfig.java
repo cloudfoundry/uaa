@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.message.NotificationsService;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.core.env.Environment;
 
 @Configuration

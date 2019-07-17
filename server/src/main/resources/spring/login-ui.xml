@@ -212,6 +212,7 @@
     </bean>
 
     <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
+        <constructor-arg ref="JdbcIdentityZoneProvisioning" />
     </bean>
 
     <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
@@ -385,6 +386,8 @@
     <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
         <constructor-arg index="0" ref="approvalStore"/>
         <constructor-arg index="1" ref="jdbcClientDetailsService"/>
+        <constructor-arg index="2" ref="DefaultSecurityContextAccessor"/>
+        <constructor-arg index="3" ref="IdentityZoneManagerImpl"/>
     </bean>
 
     <util:map id="notifications" key-type="org.cloudfoundry.identity.uaa.message.MessageType">
@@ -500,6 +503,7 @@
                          ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${smtp.from_address:}"/>
+        <constructor-arg ref="IdentityZoneManagerImpl"/>
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
@@ -531,6 +535,7 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="uaaPasswordValidator"/>
+        <constructor-arg ref="IdentityZoneManagerImpl"/>
     </bean>
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
@@ -567,6 +572,7 @@
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
+        <constructor-arg ref="IdentityZoneManagerImpl"/>
     </bean>
 
     <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.account.ResetPasswordController">
