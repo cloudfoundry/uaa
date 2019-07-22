@@ -65,7 +65,7 @@ dependencies {
 
     compile group: 'org.passay', name: 'passay', version: '1.2.0'
 
-    compile group: 'com.warrenstrange', name: 'googleauth', version: '1.1.2'
+    compile group: 'com.warrenstrange', name: 'googleauth', version: '1.2.0'
 
     compile libraries.slf4jImpl
     compile libraries.log4jCore
