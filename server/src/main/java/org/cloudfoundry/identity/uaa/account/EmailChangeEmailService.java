@@ -14,8 +14,11 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -26,6 +29,7 @@ import java.util.*;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
+@Component("changeEmailService")
 public class EmailChangeEmailService implements ChangeEmailService {
 
     static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
@@ -38,7 +42,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final MultitenantClientServices clientDetailsService;
     private final IdentityZoneManager identityZoneManager;
 
-    EmailChangeEmailService(final TemplateEngine templateEngine,
+    EmailChangeEmailService(@Qualifier("mailTemplateEngine") final TemplateEngine templateEngine,
                             final MessageService messageService,
                             final ScimUserProvisioning scimUserProvisioning,
                             final ExpiringCodeStore codeStore,

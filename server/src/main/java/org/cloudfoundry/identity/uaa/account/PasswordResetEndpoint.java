@@ -55,7 +55,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
-@Controller
+//@Controller
 public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;

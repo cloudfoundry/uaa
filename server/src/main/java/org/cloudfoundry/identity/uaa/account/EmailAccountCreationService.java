@@ -19,9 +19,12 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
@@ -33,6 +36,7 @@ import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRAT
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+@Component("accountCreationService")
 public class EmailAccountCreationService implements AccountCreationService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -48,7 +52,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final IdentityZoneManager identityZoneManager;
 
     public EmailAccountCreationService(
-            SpringTemplateEngine templateEngine,
+            @Qualifier("mailTemplateEngine") SpringTemplateEngine templateEngine,
             MessageService messageService,
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,

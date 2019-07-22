@@ -34,7 +34,7 @@ import java.util.Map;
 
 import static org.springframework.util.StringUtils.hasText;
 
-@Controller
+//@Controller
 public class ProfileController {
 
     protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);

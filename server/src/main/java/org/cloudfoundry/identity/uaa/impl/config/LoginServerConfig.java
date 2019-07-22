@@ -15,17 +15,21 @@ import org.springframework.core.env.Environment;
 public class LoginServerConfig {
 
     @Bean
-    public AccountsController accountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
+    public AccountsController accountsController(AccountCreationService accountCreationService
+            , IdentityProviderProvisioning identityProviderProvisioning) {
         return new AccountsController(accountCreationService, identityProviderProvisioning);
     }
 
     @Bean
-    public MessageService messageService(EmailService emailService, NotificationsService notificationsService, Environment environment) {
-        if (environment.getProperty("notifications.url") != null && !environment.getProperty("notifications.url").equals("")) {
+    public MessageService messageService(EmailService emailService, NotificationsService notificationsService
+            , Environment environment) {
+        if (environment.getProperty("notifications.url") != null
+                && !environment.getProperty("notifications.url").equals("")) {
             return notificationsService;
         }
         else {
             return emailService;
         }
     }
+
 }

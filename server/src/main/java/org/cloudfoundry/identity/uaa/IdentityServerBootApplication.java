@@ -15,17 +15,39 @@
  */
 package org.cloudfoundry.identity.uaa;
 
+import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionProperties;
+import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 /**
  * @author Haytham Mohamed
  **/
 
 @SpringBootApplication
+@EnableConfigurationProperties(EncryptionProperties.class)
 public class IdentityServerBootApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(IdentityServerBootApplication.class, args);
+	}
+
+	@Bean
+	public JdbcTemplate jdbcTemplate() {
+		return new JdbcTemplate();
+	}
+
+	@ConditionalOnMissingBean(JavaMailSender.class)
+	@Bean
+	public FakeJavaMailSender fakeJavaMailSender() {
+		return new FakeJavaMailSender();
 	}
 }

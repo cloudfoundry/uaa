@@ -122,7 +122,9 @@
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
+
     <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
+
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
         <property name="corsAllowedUris"
                   value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
@@ -486,7 +488,7 @@
 
     <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders" />
 
-    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
+    <!--<bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
@@ -519,6 +521,35 @@
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
         <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
+    </bean>-->
+
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
+        <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="validator" ref="identityZoneValidator"/>
+        <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
+        <property name="tokenPolicy" ref="uaaTokenPolicy"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="selfServiceLinks" ref="links" />
+        <property name="homeRedirect" value="${links.homeRedirect:${login.homeRedirect:#{null}}}"/>
+        <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
+        <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
+        <property name="logoutRedirectWhitelist"
+                  value="${logout.redirect.parameter.whitelist:#{null}}"/>
+        <property name="logoutRedirectParameterName" value="redirect" />
+        <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
+        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
+        <property name="prompts" ref="prompts"/>
+        <property name="branding" value="${login.branding:#{null}}" />
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
+        <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
+        <property name="samlKeys" value="${login.saml.keys:#{null}}"/>
+        <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
+        <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
+        <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
+        <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
@@ -538,7 +569,7 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
+    <!--<bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
         <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
         <property name="permittedEndpoints"
                   value="#{@config['uaa']==null ? null :
@@ -550,6 +581,14 @@
                            @config['uaa']['limitedFunctionality']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
+    </bean>-->
+
+    <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
+        <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
+        <property name="permittedEndpoints"
+                  value="${uaa.limitedFunctionality.whitelist.endpoints:#{null}"/>
+        <property name="permittedMethods"
+                  value="${uaa.limitedFunctionality.whitelist.methods:#{null}}"/>
     </bean>
 
 </beans>

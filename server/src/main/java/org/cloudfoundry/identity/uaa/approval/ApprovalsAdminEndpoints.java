@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Controller
+//@Controller
 public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
 
     private ApprovalStore approvalStore = null;

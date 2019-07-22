@@ -4,7 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -15,6 +18,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 
+@Component
 public class EmailService implements MessageService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -22,7 +26,10 @@ public class EmailService implements MessageService {
     private final String fromAddress;
     private final IdentityZoneManager identityZoneManager;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress, IdentityZoneManager identityZoneManager) {
+    public EmailService(JavaMailSender mailSender,
+            @Value("${login.url:http://localhost:8080/uaa}") String loginUrl,
+            @Value("${smtp.from_address:}") String fromAddress,
+            IdentityZoneManager identityZoneManager) {
         this.mailSender = mailSender;
         this.identityZoneManager = identityZoneManager;
 

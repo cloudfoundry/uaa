@@ -212,7 +212,7 @@
     </bean>
 
     <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
-        <constructor-arg ref="JdbcIdentityZoneProvisioning" />
+        <constructor-arg ref="identityZoneProvisioning" />
     </bean>
 
     <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
@@ -471,7 +471,7 @@
           class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
 
     <context:annotation-config/>
-    <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
+    <!--<bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>-->
 
     <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
         <constructor-arg name="invitationsService" ref="invitationsService"/>
@@ -498,15 +498,15 @@
 
     <bean id="thymeleafConfig" class="org.cloudfoundry.identity.uaa.login.ThymeleafConfig"/>
 
-    <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
+   <!-- <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0"
                          ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${smtp.from_address:}"/>
         <constructor-arg ref="IdentityZoneManagerImpl"/>
-    </bean>
+    </bean>-->
 
-    <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+   <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
         <property name="host" value="${smtp.host:localhost}"/>
         <property name="port" value="${smtp.port:25}"/>
         <property name="username" value="${smtp.user:}"/>
@@ -519,7 +519,7 @@
         </property>
     </bean>
 
-    <bean id="fakeJavaMailSender" class="org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender"/>
+    <!--<bean id="fakeJavaMailSender" class="org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender"/>-->
 
     <bean id="notificationsService" class="org.cloudfoundry.identity.uaa.message.NotificationsService">
         <constructor-arg ref="notificationsTemplate"/>
@@ -528,7 +528,7 @@
         <constructor-arg value="${notifications.send_in_default_zone:true}"/>
     </bean>
 
-    <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.account.EmailAccountCreationService">
+<!--    <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.account.EmailAccountCreationService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="codeStore"/>
@@ -536,7 +536,7 @@
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="uaaPasswordValidator"/>
         <constructor-arg ref="IdentityZoneManagerImpl"/>
-    </bean>
+    </bean>-->
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
         <constructor-arg ref="globalPasswordPolicy"/>
@@ -566,14 +566,14 @@
         <constructor-arg ref="messagePropertiesSource"/>
     </bean>
 
-    <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
+  <!--  <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="IdentityZoneManagerImpl"/>
-    </bean>
+    </bean>-->
 
     <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.account.ResetPasswordController">
         <constructor-arg ref="resetPasswordService"/>
@@ -588,10 +588,10 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
+   <!-- <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
         <constructor-arg index="0" value="${encryption.active_key_label}"/>
         <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
-    </bean>
+    </bean>-->
 
     <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
         <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
@@ -602,19 +602,20 @@
         <constructor-arg index="1" ref="activeKeyService"/>
     </bean>
 
+
     <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
 
-    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
+  <!--  <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
         <property name="userDatabase" ref="userDatabase" />
         <property name="mfaPolicy" ref="mfaGlobalUserLoginPolicy"/>
-    </bean>
+    </bean>-->
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
         <constructor-arg value="/login/mfa/completed"/>
