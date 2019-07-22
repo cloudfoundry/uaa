@@ -32,7 +32,6 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-//@Component
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config,active";

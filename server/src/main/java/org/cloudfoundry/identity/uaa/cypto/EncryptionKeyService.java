@@ -6,22 +6,41 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class EncryptionKeyService {
-    private final EncryptionKey activeKey;
-    private final List<EncryptionKey> encryptionKeys;
+import javax.annotation.PostConstruct;
 
-    public EncryptionKeyService(String activeKeyLabel, List<EncryptionKey> encryptionKeys) {
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Service;
+
+@Service("activeKeyService")
+public class EncryptionKeyService {
+
+    private final EncryptionProperties encryptionProperties;
+
+    private EncryptionKey activeKey;
+
+    public EncryptionKeyService(EncryptionProperties encryptionProperties) {
+        this.encryptionProperties = encryptionProperties;
+    }
+
+    @PostConstruct
+    public void postConstruct() {
+        String activeKeyLabel = encryptionProperties.getActiveKeyLabel();
+        List<EncryptionKey> encryptionKeys = encryptionProperties.getEncryptionKeys();
+
         if (Strings.isEmpty(activeKeyLabel)) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
             );
         }
 
-        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream().filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase())).collect(Collectors.toList());
+        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()
+                .filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase())).collect(Collectors.toList());
         if (!keysWithoutPassphrase.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",
@@ -30,7 +49,8 @@ public class EncryptionKeyService {
             );
         }
 
-        List<EncryptionKey> invalidLengthKeys = encryptionKeys.stream().filter(encryptionKey -> encryptionKey.getPassphrase().length() < 8).collect(Collectors.toList());
+        List<EncryptionKey> invalidLengthKeys = encryptionKeys.stream()
+                .filter(encryptionKey -> encryptionKey.getPassphrase().length() < 8).collect(Collectors.toList());
         if (!invalidLengthKeys.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("The required length of the encryption passphrases for [%s] need to be at least 8 characters long.",
@@ -56,7 +76,6 @@ public class EncryptionKeyService {
             );
         }
 
-        this.encryptionKeys = encryptionKeys;
         activeKey =
           encryptionKeys.stream()
             .filter(v -> v.getLabel().equals(activeKeyLabel))
@@ -73,7 +92,7 @@ public class EncryptionKeyService {
     }
 
     public Optional<EncryptionKey> getKey(String keyLabel) {
-        for (EncryptionKey key : encryptionKeys) {
+        for (EncryptionKey key : encryptionProperties.getEncryptionKeys()) {
             if (key.getLabel().equals(keyLabel)) {
                 return Optional.of(key);
             }
@@ -81,29 +100,4 @@ public class EncryptionKeyService {
         return Optional.empty();
     }
 
-    public static class EncryptionKey extends HashMap<String, String> {
-        private EncryptionService encryptionService;
-
-        public String getLabel() {
-            return this.get("label");
-        }
-
-        public String getPassphrase() {
-            return this.get("passphrase");
-        }
-
-        public byte[] encrypt(String plaintext) throws EncryptionServiceException {
-            if (encryptionService == null) {
-                encryptionService = new EncryptionService(getPassphrase());
-            }
-            return encryptionService.encrypt(plaintext);
-        }
-
-        public byte[] decrypt(byte[] encrypt) throws EncryptionServiceException {
-            if (encryptionService == null) {
-                encryptionService = new EncryptionService(getPassphrase());
-            }
-            return encryptionService.decrypt(encrypt);
-        }
-    }
 }

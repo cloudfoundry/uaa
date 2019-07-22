@@ -48,7 +48,7 @@ import java.util.Optional;
 import static org.opensaml.saml2.metadata.SPSSODescriptor.DEFAULT_ELEMENT_LOCAL_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
-@Controller
+//@Controller
 public class IdpInitiatedLoginController {
 
     private static final Logger log = LoggerFactory.getLogger(IdpInitiatedLoginController.class);

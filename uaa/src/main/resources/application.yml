@@ -317,15 +317,15 @@ login:
   authorize:
     url: http://localhost:8080/uaa/oauth/authorize    
   homeRedirect: http://example.com/
-  mfa:
-    enabled: true
-    providerName: customProviderName
-    providers:
-      customProviderName:
-        type: google-authenticator
-        config:
-          issuer: "custom issuer"
-          providerDescription: "Default authenticator for uaa zone"  
+#  mfa:
+#    enabled: true
+#    providerName: customProviderName
+#    providers:
+#      customProviderName:
+#        type: google-authenticator
+#        config:
+#          issuer: "custom issuer"
+#          providerDescription: "Default authenticator for uaa zone"  
   oauth:
     providers:
       my-oauth-provider:
@@ -453,8 +453,8 @@ issuer:
 encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
-  - label: CHANGE-THIS-KEY
-    passphrase: CHANGEME
+    - label: CHANGE-THIS-KEY
+      passphrase: CHANGEME
 
 #The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret

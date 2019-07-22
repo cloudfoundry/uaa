@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * @author Luke Taylor
  */
-@Controller
+//@Controller
 public class PasswordCheckEndpoint {
 
     @RequestMapping(value = "/password/score", method = RequestMethod.POST)

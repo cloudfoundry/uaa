@@ -49,7 +49,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  *
  * @author Luke Taylor
  */
-@Controller
+//@Controller
 public class RemoteAuthenticationEndpoint {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

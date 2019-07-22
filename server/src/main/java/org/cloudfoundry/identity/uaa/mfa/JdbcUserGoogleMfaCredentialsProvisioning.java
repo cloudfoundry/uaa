@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.apache.commons.lang.StringUtils;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -16,6 +17,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Base64Utils;
 
 import java.sql.ResultSet;
@@ -44,9 +46,11 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
 
     private static final String DELETE_ZONE_MFA_CONFIG_SQL = "DELETE FROM user_google_mfa_credentials WHERE zone_id=?";
 
-    private JdbcTemplate jdbcTemplate;
+
     private UserMfaCredentialsMapper mapper;
-    private EncryptionKeyService encryptionKeyService;
+
+    private final JdbcTemplate jdbcTemplate;
+    private final EncryptionKeyService encryptionKeyService;
 
     public JdbcUserGoogleMfaCredentialsProvisioning(JdbcTemplate jdbcTemplate, EncryptionKeyService encryptionKeyService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -160,7 +164,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
                   fromSCString(rs.getString("scratch_codes")));
             } else {
                 try {
-                    EncryptionKeyService.EncryptionKey encryptionKey = encryptionKeyService.getKey(encryptionKeyLabel).orElseGet(() -> {
+                     EncryptionKey encryptionKey = encryptionKeyService.getKey(encryptionKeyLabel).orElseGet(() -> {
                         RuntimeException cause = new RuntimeException("Attempted to retrieve record with an unknown decryption key");
                         logger.error(String.format("Couldn't decrypt with unknown key label : %s", encryptionKeyLabel), cause);
                         throw new UnableToRetrieveMfaException(cause);

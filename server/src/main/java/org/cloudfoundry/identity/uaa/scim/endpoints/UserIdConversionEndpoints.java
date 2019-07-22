@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -48,22 +49,24 @@ import java.util.stream.Collectors;
  * @author Luke Taylor
  *
  */
-@Controller
+//@Controller
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final SecurityContextAccessor securityContextAccessor;
+    private SecurityContextAccessor securityContextAccessor;
 
-    private ScimUserEndpoints scimUserEndpoints;
+    private  ScimUserEndpoints scimUserEndpoints;
 
     private IdentityProviderProvisioning provisioning;
 
     private boolean enabled = true;
 
-    public UserIdConversionEndpoints(final IdentityProviderProvisioning provisioning,
-                                     final SecurityContextAccessor securityContextAccessor) {
+    public UserIdConversionEndpoints(@Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
+            SecurityContextAccessor securityContextAccessor,
+            ScimUserEndpoints scimUserEndpoints ) {
         this.provisioning = provisioning;
         this.securityContextAccessor = securityContextAccessor;
+        this.scimUserEndpoints = scimUserEndpoints;
     }
 
     /**

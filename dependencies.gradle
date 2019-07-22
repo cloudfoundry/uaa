@@ -53,6 +53,7 @@ libraries.springBootStarterSecurity="org.springframework.boot:spring-boot-starte
 libraries.springBootStarterLdap="org.springframework.boot:spring-boot-starter-data-ldap"
 libraries.springBootStarterOauth2Client="org.springframework.boot:spring-boot-starter-oauth2-client"
 libraries.springBootStarterOauth2ResourceServer="org.springframework.boot:spring-boot-starter-oauth2-resource-server"
+libraries.springBootStarterMail="org.springframework.boot:spring-boot-starter-mail"
 libraries.springContext = "org.springframework:spring-context:${versions.springVersion}"
 libraries.springContextSupport = "org.springframework:spring-context-support:${versions.springVersion}"
 libraries.springJdbc = "org.springframework:spring-jdbc:${versions.springVersion}"
