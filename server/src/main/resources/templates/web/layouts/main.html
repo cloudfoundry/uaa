@@ -4,7 +4,7 @@
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
-                branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
+                branding=${T(org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation).resolveBranding()},
                 companyName=${branding.getZoneCompanyName() ?: ''},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'General Electric Company'},
                 copyrightFallback=${'Copyright &#169; ' + #dates.year(#dates.createNow()) + ' ' + copyrightCompanyName + '. All Rights Reserved.'},
