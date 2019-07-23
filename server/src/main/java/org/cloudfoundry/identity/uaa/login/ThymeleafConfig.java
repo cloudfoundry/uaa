@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolve
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.accept.ContentNegotiationManager;
 import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.ContentNegotiatingViewResolver;
@@ -46,6 +47,7 @@ public class ThymeleafConfig  {
     }
 
     @Bean
+    @Primary
     public SpringTemplateEngine webTemplateEngine(ApplicationContext context) {
         SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
 

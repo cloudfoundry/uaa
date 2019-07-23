@@ -386,8 +386,8 @@
     <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
         <constructor-arg index="0" ref="approvalStore"/>
         <constructor-arg index="1" ref="jdbcClientDetailsService"/>
-        <constructor-arg index="2" ref="DefaultSecurityContextAccessor"/>
-        <constructor-arg index="3" ref="IdentityZoneManagerImpl"/>
+        <constructor-arg index="2" ref="defaultSecurityContextAccessor"/>
+        <constructor-arg index="3" ref="identityZoneManagerImpl"/>
     </bean>
 
     <util:map id="notifications" key-type="org.cloudfoundry.identity.uaa.message.MessageType">
