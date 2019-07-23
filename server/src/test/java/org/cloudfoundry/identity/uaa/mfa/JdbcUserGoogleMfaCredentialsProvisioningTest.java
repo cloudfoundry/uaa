@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.google.common.collect.Lists;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionKey;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
+import org.cloudfoundry.identity.uaa.cypto.EncryptionProperties;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UnableToPersistMfaException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UnableToRetrieveMfaException;
@@ -38,8 +40,8 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     private String activeKeyLabel;
     private String inactiveKeyLabel;
     private EncryptionKeyService encryptionKeyService;
-    private EncryptionKeyService.EncryptionKey activeEncryptionKey;
-    private EncryptionKeyService.EncryptionKey inActiveEncryptionKey;
+    private EncryptionKey activeEncryptionKey;
+    private EncryptionKey inActiveEncryptionKey;
 
     @BeforeClass
     public static void key() {
@@ -57,16 +59,14 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         activeKeyLabel = "key-1";
         inactiveKeyLabel = "key-2";
 
-        activeEncryptionKey = new EncryptionKeyService.EncryptionKey() {{
-            put("label", activeKeyLabel);
-            put("passphrase", "some-password");
-        }};
-        inActiveEncryptionKey = new EncryptionKeyService.EncryptionKey() {{
-            put("label", inactiveKeyLabel);
-            put("passphrase", "some-other-password");
-        }};
+        activeEncryptionKey = new EncryptionKey(activeKeyLabel, "some-password");
+        inActiveEncryptionKey = new EncryptionKey(inactiveKeyLabel, "some-other-password");
 
-        encryptionKeyService = new EncryptionKeyService(activeKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setActiveKeyLabel(activeKeyLabel);
+        properties.setEncryptionKeys(Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+
+        encryptionKeyService = new EncryptionKeyService(properties);
 
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
     }
@@ -173,13 +173,17 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
 
     @Test
     public void testRetrieveExistingWithANonActiveEncryptionKey() throws EncryptionServiceException {
-        encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
-        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
-          encryptionKeyService);
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setActiveKeyLabel(inactiveKeyLabel);
+        properties.setEncryptionKeys(Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+
+        encryptionKeyService = new EncryptionKeyService(properties);
+        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
         db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
 
+        properties.setActiveKeyLabel(activeKeyLabel);
 
-        encryptionKeyService = new EncryptionKeyService(activeKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+        encryptionKeyService = new EncryptionKeyService(properties);
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
 
         UserGoogleMfaCredentials creds = db.retrieve("user1", MFA_ID);
@@ -290,13 +294,18 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
 
     @Test
     public void whenDecryptingWithNonExistentKey_ShouldThrowMeaningfulException() {
-        encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
-        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
-          encryptionKeyService);
+        EncryptionProperties properties = new EncryptionProperties();
+        properties.setActiveKeyLabel(inactiveKeyLabel);
+        properties.setEncryptionKeys(Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
+
+        encryptionKeyService = new EncryptionKeyService(properties);
+        db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
         db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
 
+        properties.setActiveKeyLabel(activeKeyLabel);
+        properties.setEncryptionKeys(Lists.newArrayList(activeEncryptionKey));
 
-        encryptionKeyService = new EncryptionKeyService(activeKeyLabel, Lists.newArrayList(activeEncryptionKey));
+        encryptionKeyService = new EncryptionKeyService(properties);
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, encryptionKeyService);
 
         expectedException.expect(UnableToRetrieveMfaException.class);
