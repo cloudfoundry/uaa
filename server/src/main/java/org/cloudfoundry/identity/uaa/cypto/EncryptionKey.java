@@ -21,6 +21,16 @@ package org.cloudfoundry.identity.uaa.cypto;
 
 public class EncryptionKey {
 	private String label, passphrase;
+	private EncryptionService encryptionService;
+
+	public EncryptionKey() {
+		this(null, null);
+	}
+
+	public EncryptionKey(String label, String passphrase) {
+		this.label = label;
+		this.passphrase = passphrase;
+	}
 
 	public String getLabel() {
 		return label;
@@ -39,13 +49,17 @@ public class EncryptionKey {
 	}
 
 	public byte[] encrypt(String plaintext) throws EncryptionServiceException {
-		Encryption encryption = new Encryption();
-		return encryption.encrypt(plaintext, this.getPassphrase());
+		if (encryptionService == null) {
+			encryptionService = new EncryptionService(this.getPassphrase());
+		}
+		return encryptionService.encrypt(plaintext);
 	}
 
 	public byte[] decrypt(byte[] encrypt) throws EncryptionServiceException {
-		Encryption encryption = new Encryption();
-		return encryption.decrypt(encrypt, this.getPassphrase());
+		if (encryptionService == null) {
+			encryptionService = new EncryptionService(this.getPassphrase());
+		}
+		return encryptionService.decrypt(encrypt);
 	}
 
 }
