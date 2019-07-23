@@ -10,10 +10,10 @@ dependencies {
 
     //compile libraries.springWeb
     //compile libraries.springWebMvc
-    //compile libraries.springSecurityConfig
-
     compile libraries.springBootStarterWeb
-    compile libraries.springBootStarterSecurity
+
+    compile libraries.springSecurityConfig
+    //compile libraries.springBootStarterSecurity
 
     compile(libraries.springSecurityOauth) {
         exclude(module: 'jackson-mapper-asl')
