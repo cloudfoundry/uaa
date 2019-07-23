@@ -2637,6 +2637,38 @@ public class LoginMockMvcTests {
         jdbcIdentityProviderProvisioning.update(identityProvider, zone.getId());
     }
 
+    @Nested
+    @DefaultTestContext
+    class ErrorAndSuccessMessages {
+        @Test
+        void hasValidError() throws Exception {
+            mockMvc.perform(
+                    get("/login?error=login_failure"))
+                    .andExpect(content().string(containsString("Unable to verify email or password. Please try again.")));
+        }
+
+        @Test
+        void hasInvalidError() throws Exception {
+            mockMvc.perform(
+                    get("/login?error=foobar&error=login_failure"))
+                    .andExpect(content().string(containsString("Error!")));
+        }
+
+        @Test
+        void hasValidSuccess() throws Exception {
+            mockMvc.perform(
+                    get("/login?success=verify_success"))
+                    .andExpect(content().string(containsString("Verification successful. Login to access your account.")));
+        }
+
+        @Test
+        void hasInvalidSuccess() throws Exception {
+            mockMvc.perform(
+                    get("/login?success=foobar&success=verify_success"))
+                    .andExpect(content().string(containsString("Success!")));
+        }
+    }
+
     private static void attemptUnsuccessfulLogin(MockMvc mockMvc, int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/uaa/login.do")
