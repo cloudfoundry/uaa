@@ -52,6 +52,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -370,7 +371,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             if (StringUtils.hasText(sortBy)) {
                 msg += " [" +sortBy+"]";
             }
-            throw new ScimException(msg, HttpStatus.BAD_REQUEST);
+            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {

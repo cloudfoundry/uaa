@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -30,6 +31,7 @@ import java.util.Collections;
 
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -70,6 +72,13 @@ public class UserIdConversionEndpointsTests {
     @Test
     public void testHappyDay() {
         endpoints.findUsers("userName eq \"marissa\"", "ascending", 0, 100, false);
+    }
+
+    @Test
+    public void testSanitizeExceptionInFilter() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(is("Invalid filter '&lt;svg onload=alert(document.domain)&gt;'"));
+        endpoints.findUsers("<svg onload=alert(document.domain)>", "ascending", 0, 100, false);
     }
 
     @Test

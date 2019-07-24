@@ -325,7 +325,7 @@ class ScimGroupEndpointsTests {
     void testListGroupsWithInvalidFilterFails() {
         assertThrowsWithMessageThat(ScimException.class,
                 () -> scimGroupEndpoints.listGroups("id,displayName", "displayName cr \"admin\"", "created", "ascending", 1, 100),
-                is("Invalid filter expression: [displayName cr \"admin\"]"));
+                is("Invalid filter expression: [displayName cr &quot;admin&quot;]"));
     }
 
     @Test
