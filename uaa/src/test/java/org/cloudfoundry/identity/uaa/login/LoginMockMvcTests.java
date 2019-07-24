@@ -76,7 +76,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
-import java.io.File;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -2352,6 +2351,7 @@ public class LoginMockMvcTests {
                 .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
     }
 
+    @Test
     void idpDiscoveryClientNameDisplayed_WithUTF8Characters(
             @Autowired IdentityZoneProvisioning identityZoneProvisioning,
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
@@ -2395,7 +2395,7 @@ public class LoginMockMvcTests {
         config.setAccountChooserEnabled(true);
         IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
         MockHttpSession session = new MockHttpSession();
-        String originKey = createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "code");
+        createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "code");
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");

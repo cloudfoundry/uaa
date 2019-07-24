@@ -1156,7 +1156,7 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertEquals("idp_discovery/email", redirect);
+        assertEquals("idp_discovery/password", redirect);
     }
 
     @Test
