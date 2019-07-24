@@ -35,14 +35,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.GenericFilterBean;
 
 public class MfaUiRequiredFilter extends GenericFilterBean {
     private static Log logger = LogFactory.getLog(MfaUiRequiredFilter.class);
 
-    private final AntPathRequestMatcher inProgressMatcher;
-    private final AntPathRequestMatcher completedMatcher;
-    private final AntPathRequestMatcher logoutMatcher;
+    private final RequestMatcher inProgressMatcher;
+    private final RequestMatcher completedMatcher;
+    private final RequestMatcher logoutMatcher;
     private final String redirect;
     private final RequestCache cache;
     private final MfaChecker checker;
@@ -51,7 +52,7 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
                                String redirect,
                                RequestCache cache,
                                String mfaCompleteUrl,
-                               AntPathRequestMatcher logoutMatcher,
+                               RequestMatcher logoutMatcher,
                                MfaChecker checker) {
         inProgressMatcher = new AntPathRequestMatcher(urlFilter);
         this.redirect = redirect;

@@ -32,8 +32,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <import resource="classpath:META-INF/spring-metering-filter.xml"/>
-
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
             <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor" />
@@ -385,6 +383,9 @@
     <import resource="spring/codestore-endpoints.xml" />
     <import resource="spring/authentication.xml" />
     <import resource="spring/identity-zones.xml" />
+    <import resource="spring/dynamic-log-conf.xml"/>
+    <import resource="spring/nurego-conf.xml"/>
+    <import resource="spring/nurego-noop-conf.xml"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
       <property name="basenames">
@@ -560,7 +561,6 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
-    <import resource="classpath:META-INF/spring/tasks.xml"/>
     <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
         <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
         <property name="permittedEndpoints"

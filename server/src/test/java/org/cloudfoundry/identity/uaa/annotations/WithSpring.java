@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 @ExtendWith(HoneycombAuditEventTestListenerExtension.class)
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@ActiveProfiles("default")
+@ActiveProfiles({"default", "servertest"})
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         TestWebAppContext.class,
