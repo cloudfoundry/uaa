@@ -62,6 +62,7 @@ class AccountsControllerMockMvcTests {
     private static final String ACCOUNT_CREATE_MESSAGE = "Create your Predix account";
     private static final String ACCOUNT_OTHER_ZONE_CREATE_MESSAGE = "Create your account";
     private static final String UAA_AUTHOR = "Predix";
+    private static final String UAA_AUTHOR_ADDRESS = "<admin@localhost>";
     private static final PredictableGenerator PREDICTABLE_GENERATOR = new PredictableGenerator();
     private final String LOGIN_REDIRECT = "/login?success=verify_success";
     private final String USER_PASSWORD = "secr3T";
@@ -305,7 +306,7 @@ class AccountsControllerMockMvcTests {
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         assertTrue(message.getContentString().contains(UAA_AUTHOR));
-        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR + " " + UAA_AUTHOR_ADDRESS));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + PREDICTABLE_GENERATOR.counter.get()))
@@ -354,7 +355,7 @@ class AccountsControllerMockMvcTests {
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         String link = mockMvcTestClient.extractLink(message.getContentString());
         assertTrue(message.getContentString().contains(subdomain + "zone"));
-        assertThat(message.getMessage().getHeader("From"), hasItemInArray(subdomain + "zone"));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(subdomain + "zone " + UAA_AUTHOR_ADDRESS));
         assertFalse(message.getContentString().contains("Pivotal"));
         assertFalse(isEmpty(link));
         assertTrue(link.contains(subdomain + ".localhost"));
@@ -574,7 +575,7 @@ class AccountsControllerMockMvcTests {
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         assertTrue(message.getContentString().contains(UAA_AUTHOR));
-        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR));
+        assertThat(message.getMessage().getHeader("From"), hasItemInArray(UAA_AUTHOR + " " + UAA_AUTHOR_ADDRESS));
 
         mockMvc.perform(get("/verify_user")
                 .param("code", "test" + PREDICTABLE_GENERATOR.counter.get()))
