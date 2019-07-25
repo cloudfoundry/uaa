@@ -439,6 +439,7 @@ public class TokenValidationTest {
             buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")).checkIssuer("http://wrong.issuer/");
         } catch (InvalidTokenException e) {
             assertTrue(!e.getMessage().contains("http://wrong.issuer/"));
+            throw e;
         }
     }
 
