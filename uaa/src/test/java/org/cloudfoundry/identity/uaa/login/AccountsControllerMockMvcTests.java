@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
@@ -14,16 +13,14 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.env.MockPropertySource;
@@ -35,10 +32,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -170,7 +163,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
-    @Ignore //predix branding does not have this image.
+    @Disabled("predix branding does not have this image.")
     @Test
     void testCreateAccountWithDisableSelfService() throws Exception {
         String subdomain = generator.generate();
@@ -205,7 +198,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isNotFound());
     }
 
-    @Ignore //predix branding does not have this image.
+    @Disabled("predix branding does not have this image.")
     @Test
     void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         mockMvc.perform(get("/create_account"))
@@ -450,7 +443,7 @@ class AccountsControllerMockMvcTests {
         return clientDetails;
     }
 
-    @Ignore // user verification is disabled
+    @Disabled("user verification is disabled")
     @Test
     void redirectToSavedRequest_ifPresent() throws Exception {
         MockHttpSession session = MockMvcUtils.getSavedRequestSession();
