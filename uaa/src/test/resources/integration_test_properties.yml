@@ -171,7 +171,11 @@ login:
       soTimeout: 10000
   authorize:
     url: http://localhost:8080/uaa/oauth/authorize
-
+  branding:
+    companyName: Predix
+    footerLegalText:  "Copyright © 2019 General Electric Company. All rights reserved."
+    footerLinks:
+      Contact Us: mailto:info@predix.io
 
 ldap:
   profile:
