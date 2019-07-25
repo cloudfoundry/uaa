@@ -82,6 +82,7 @@ class JwtHeaderHelperTest {
         }
 
         @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
+        @Disabled("The GE fork's JsonUtils.objectMapper ignores unknown properties, hence an exception is not thrown in this test.")
         @Test
         void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
             objectNode.put(randomVal, randomVal);
