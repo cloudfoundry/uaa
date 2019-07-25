@@ -23,7 +23,7 @@ versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
 versions.springSecurityVersion = '5.1.5.RELEASE'
 versions.springVersion = '5.1.8.RELEASE'
-versions.tomcatVersion = '9.0.21'
+versions.tomcatVersion = '9.0.22'
 
 // Dependencies relying on shared versions
 libraries.aspectJRt = "org.aspectj:aspectjrt:${versions.aspectJVersion}"
