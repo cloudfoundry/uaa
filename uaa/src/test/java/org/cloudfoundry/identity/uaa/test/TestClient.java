@@ -10,7 +10,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TestClient {
@@ -45,10 +47,8 @@ public class TestClient {
 
     public String getUserOAuthAccessToken(String clientId, String clientSecret, String username, String password, String scope)
         throws Exception {
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .header("Authorization", basicDigestHeaderValue)
+            .with(httpBasic(clientId, clientSecret))
             .param("grant_type", "password")
             .param("client_id", clientId)
             .param("username", username)
@@ -61,10 +61,8 @@ public class TestClient {
     }
 
     public String getUserOAuthAccessTokenForZone(String clientId, String clientSecret, String username, String password, String scope, String subdomain) throws Exception {
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .header("Authorization", basicDigestHeaderValue)
+            .with(httpBasic(clientId, clientSecret))
             .param("grant_type", "password")
             .param("client_id", clientId)
             .param("username", username)

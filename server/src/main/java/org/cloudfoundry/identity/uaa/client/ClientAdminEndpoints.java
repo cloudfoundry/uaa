@@ -604,12 +604,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
 
     private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
-
-        if (!securityContextAccessor.isClient()) {
-            // Trusted client (not acting on behalf of user)
-            throw new IllegalStateException("Only a client can change client secret");
-        }
-
         String clientId = clientDetails.getClientId();
 
         // Call is by client
