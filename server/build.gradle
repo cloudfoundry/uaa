@@ -16,14 +16,16 @@ dependencies {
     compile libraries.springBeans
     compile libraries.springContext
     compile libraries.springContextSupport
+    
     compile libraries.springTx
     compile libraries.springJdbc
     
     //compile libraries.springWeb
     compile libraries.springBootStarterWeb
 
-    compile libraries.springSecurityCore
-    compile libraries.springSecurityWeb
+    //compile libraries.springSecurityCore
+    //compile libraries.springSecurityWeb
+    
     compile libraries.springSecurityJwt
     compile libraries.springSecuritySaml
 

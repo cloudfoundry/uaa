@@ -15,28 +15,22 @@
  */
 package org.cloudfoundry.identity.uaa;
 
-import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionProperties;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SpringBootWebSecurityConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 /**
  * @author Haytham Mohamed
  **/
 
-@SpringBootApplication(exclude={SecurityAutoConfiguration.class})
+@SpringBootApplication
 @EnableConfigurationProperties(EncryptionProperties.class)
 public class IdentityServerBootApplication {
 

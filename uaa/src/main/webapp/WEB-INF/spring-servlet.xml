@@ -69,7 +69,7 @@
         <property name="order" value="1"/>
     </bean>
 
-    <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+    <bean name="contentNegotiationManager" primary="true" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
         <property name="favorPathExtension" value="false"/>
         <property name="favorParameter" value="true"/>
         <property name="mediaTypes">

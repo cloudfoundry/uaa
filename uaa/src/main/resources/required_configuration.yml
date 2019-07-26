@@ -1,3 +1,7 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
 issuer:
   uri: http://localhost:8080/uaa
 
