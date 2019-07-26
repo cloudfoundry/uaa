@@ -7,6 +7,14 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+#    org.springframework.boot.autoconfigure: DEBUG    
+
 scim:
   groups:
     zones.read: Read identity zones

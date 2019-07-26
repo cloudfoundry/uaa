@@ -1,4 +1,4 @@
 spring:
   main:
     allow-bean-definition-overriding: true
-    web-application-type: NONE
+    web-application-type: NONE    

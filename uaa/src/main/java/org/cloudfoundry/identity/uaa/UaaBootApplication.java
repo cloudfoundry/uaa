@@ -14,17 +14,20 @@ package org.cloudfoundry.identity.uaa;/*
  * limitations under the License.
  */
 
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.web.context.request.RequestContextListener;
 
 /**
  * @author Haytham Mohamed
  **/
 
 @SpringBootApplication
+@EnableWebSecurity
 public class UaaBootApplication {
 
 	public static void main(String... args) {
@@ -35,5 +38,10 @@ public class UaaBootApplication {
 	@ImportResource({"classpath*:spring-servlet.xml"})
 	public static class XMLConfigs {
 
+	}
+
+	@Bean
+	public RequestContextListener requestContextListener(){
+		return new RequestContextListener();
 	}
 }
