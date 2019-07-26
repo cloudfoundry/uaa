@@ -49,6 +49,7 @@ libraries.springBootStarterTest = "org.springframework.boot:spring-boot-starter-
 libraries.springBootStarterTomcat = "org.springframework.boot:spring-boot-starter-tomcat"
 libraries.springBootStarterWeb = "org.springframework.boot:spring-boot-starter-web"
 libraries.springBootStarterJdbc="org.springframework.boot:spring-boot-starter-jdbc"
+libraries.springBootStarterActuator="org.springframework.boot:spring-boot-starter-actuator"
 libraries.springBootStarterSecurity="org.springframework.boot:spring-boot-starter-security"
 libraries.springBootStarterLdap="org.springframework.boot:spring-boot-starter-data-ldap"
 libraries.springBootStarterOauth2Client="org.springframework.boot:spring-boot-starter-oauth2-client"

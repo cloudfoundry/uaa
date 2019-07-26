@@ -18,24 +18,24 @@ dependencies {
     compile libraries.springContextSupport
     compile libraries.springTx
     compile libraries.springJdbc
+    
     //compile libraries.springWeb
     compile libraries.springBootStarterWeb
 
     compile libraries.springSecurityCore
     compile libraries.springSecurityWeb
-
-    //compile libraries.springBootStarterSecurity
-
     compile libraries.springSecurityJwt
     compile libraries.springSecuritySaml
-
-    compile libraries.apacheHttpClient
 
     compile(libraries.springSecurityOauth) {
         exclude(module: 'commons-codec')
         exclude(module: 'jackson-mapper-asl')
         exclude(module: 'spring-security-web')
     }
+
+    //compile libraries.springBootStarterSecurity
+
+    compile libraries.apacheHttpClient
 
     compile libraries.bouncyCastleProv
     compile libraries.bouncyCastlePkix

@@ -31,9 +31,11 @@ dependencies {
     }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
 
-    compile libraries.springBootStarterWeb
+    //compile libraries.springBootStarterWeb
+    //compile libraries.springBootStarterActuator
     
-    runtime libraries.springSecurityConfig
+    //runtime libraries.springSecurityConfig
+
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
