@@ -1,18 +1,23 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
 
-public class TokenEndpointBuilderTest {
-    @Test(expected = MalformedURLException.class)
-    public void validatesIssuerBaseUrl() throws Exception {
-        new TokenEndpointBuilder("not-a-url");
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class TokenEndpointBuilderTest {
+
+    @Test
+    void validatesIssuerBaseUrl() {
+        assertThrows(MalformedURLException.class,
+                () -> new TokenEndpointBuilder("not-a-url"));
     }
 
     @Test
-    public void acceptsValidUrls() throws Exception {
-        new TokenEndpointBuilder("http://some.page.online");
+    void acceptsValidUrls() {
+        assertDoesNotThrow(() -> new TokenEndpointBuilder("http://some.page.online"));
     }
 
 }
