@@ -613,7 +613,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testIssuerInResults() throws Exception {
-        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+        tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         assertNotNull("iss field is not present", result.getIss());
@@ -624,7 +624,7 @@ public class CheckTokenEndpointTests {
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
             IdentityZoneHolder.set(zone);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
             Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
             assertNotNull("iss field is not present", result.getIss());
@@ -651,7 +651,7 @@ public class CheckTokenEndpointTests {
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
@@ -674,7 +674,7 @@ public class CheckTokenEndpointTests {
                     "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
@@ -696,7 +696,7 @@ public class CheckTokenEndpointTests {
             "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
             "-----END RSA PRIVATE KEY-----");
         configureDefaultZoneKeys(keys);
-        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+        tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
@@ -720,7 +720,7 @@ public class CheckTokenEndpointTests {
                 "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                 "-----END RSA PRIVATE KEY-----");
             configureDefaultZoneKeys(keys);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
             keys.remove("oldKey");

@@ -90,7 +90,7 @@ public class IdTokenCreator {
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
         String phoneNumber = getIfScopeContainsProfile(uaaUser.getPhoneNumber(), userAuthenticationData.scopes);
 
-        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint();
+        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get());
         String identityZoneId = IdentityZoneHolder.get().getId();
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData, uaaUser);
         Set<String> roles = buildRoles(userAuthenticationData, uaaUser);

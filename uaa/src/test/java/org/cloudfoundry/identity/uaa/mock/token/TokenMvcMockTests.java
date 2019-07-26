@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.*;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -4029,7 +4028,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, Object> result = getClaimsForToken(token);
         TokenEndpointBuilder tokenEndpointBuilder = (TokenEndpointBuilder) webApplicationContext.getBean("tokenEndpointBuilder");
         String iss = (String) result.get(ClaimConstants.ISS);
-        assertEquals(tokenEndpointBuilder.getTokenEndpoint(), iss);
+        assertEquals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()), iss);
         String sub = (String) result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
         List<String> aud = (List<String>) result.get(ClaimConstants.AUD);
