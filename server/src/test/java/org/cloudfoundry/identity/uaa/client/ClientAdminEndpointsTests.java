@@ -666,20 +666,6 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testChangeSecretDeniedForUser() {
-
-        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
-
-        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
-        when(mockSecurityContextAccessor.isClient()).thenReturn(false);
-
-        SecretChangeRequest change = new SecretChangeRequest();
-        change.setOldSecret(detail.getClientSecret());
-        change.setSecret("newpassword");
-        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Only a client can change client secret"));
-    }
-
-    @Test
     void testChangeSecretDeniedForNonAdmin() {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
