@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,6 +55,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.util.*;
@@ -104,6 +106,7 @@ public class CheckTokenEndpointTests {
     private TokenValidationService tokenValidationService;
     private Long nowMillis;
     private TimeService timeService;
+    private IdentityZoneManager mockIdentityZoneManager;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -178,11 +181,6 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() throws Exception {
-        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
-
-        TestUtils.resetIdentityZoneHolder(null);
         setUp(useOpaque);
     }
 
@@ -192,12 +190,20 @@ public class CheckTokenEndpointTests {
     }
 
     public void setUp(boolean opaque) throws Exception {
+        zone = MultitenancyFixture.identityZone("id", "subdomain");
+        defaultZone = IdentityZone.getUaa();
+
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(defaultZone);
+        clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
+
+        TestUtils.resetIdentityZoneHolder(null);
+
         nowMillis = 10000L;
         timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis);
         when(timeService.getCurrentDate()).thenCallRealMethod();
-        defaultZone = IdentityZone.getUaa();
-        zone = MultitenancyFixture.identityZone("id", "subdomain");
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
         userAuthorities.add(new SimpleGrantedAuthority("write"));
@@ -284,9 +290,9 @@ public class CheckTokenEndpointTests {
                 clientDetailsService,
                 tokenProvisioning,
                 tokenValidationService,
-                mock(RefreshTokenCreator.class),
+                null,
                 timeService,
-                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
+                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), Integer.MAX_VALUE, timeService),
                 userDatabase,
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy(),
@@ -613,18 +619,18 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testIssuerInResults() throws Exception {
-        tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
+        ReflectionTestUtils.setField(tokenEndpointBuilder, "issuer", "http://some.other.issuer");
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertNotNull("iss field is not present", result.getIss());
-        assertEquals("http://some.other.issuer/oauth/token", result.getIss());
+        Claims claims = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
+        assertNotNull("iss field is not present", claims.getIss());
+        assertEquals("http://some.other.issuer/oauth/token", claims.getIss());
     }
 
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
             IdentityZoneHolder.set(zone);
-            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
+            ReflectionTestUtils.setField(tokenEndpointBuilder, "issuer", "http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
             Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
             assertNotNull("iss field is not present", result.getIss());

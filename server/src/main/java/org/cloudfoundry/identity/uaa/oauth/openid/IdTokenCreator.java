@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -10,7 +12,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
@@ -51,24 +52,27 @@ public class IdTokenCreator {
     private final String ROLES_SCOPE = "roles";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private final IdentityZoneManager identityZoneManager;
     private TimeService timeService;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
     private MultitenantClientServices multitenantClientServices;
     private Set<String> excludedClaims;
 
-    public IdTokenCreator(TokenEndpointBuilder tokenEndpointBuilder,
-                          TimeService timeService,
-                          TokenValidityResolver tokenValidityResolver,
-                          UaaUserDatabase uaaUserDatabase,
-                          MultitenantClientServices multitenantClientServices,
-                          Set<String> excludedClaims) {
+    public IdTokenCreator(final TokenEndpointBuilder tokenEndpointBuilder,
+                          final TimeService timeService,
+                          final TokenValidityResolver tokenValidityResolver,
+                          final UaaUserDatabase uaaUserDatabase,
+                          final MultitenantClientServices multitenantClientServices,
+                          final Set<String> excludedClaims,
+                          final IdentityZoneManager identityZoneManager) {
         this.timeService = timeService;
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
         this.multitenantClientServices = multitenantClientServices;
         this.excludedClaims = excludedClaims;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+        this.identityZoneManager = identityZoneManager;
     }
 
     public IdToken create(String clientId,
@@ -90,8 +94,8 @@ public class IdTokenCreator {
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
         String phoneNumber = getIfScopeContainsProfile(uaaUser.getPhoneNumber(), userAuthenticationData.scopes);
 
-        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get());
-        String identityZoneId = IdentityZoneHolder.get().getId();
+        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint(identityZoneManager.getCurrentIdentityZone());
+        String identityZoneId = identityZoneManager.getCurrentIdentityZoneId();
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData, uaaUser);
         Set<String> roles = buildRoles(userAuthenticationData, uaaUser);
 
@@ -142,7 +146,7 @@ public class IdTokenCreator {
         }
 
         if (requestedAttributes && attributes == null) {
-            logger.debug(String.format("Requested id_token containing %s, but no saved attributes available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), IdentityZoneHolder.get().getId()));
+            logger.debug(String.format("Requested id_token containing %s, but no saved attributes available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
         }
 
         return attributes;
@@ -158,7 +162,7 @@ public class IdTokenCreator {
         }
 
         if (requestedRoles && roles == null) {
-            logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), IdentityZoneHolder.get().getId()));
+            logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
         }
 
         return roles;

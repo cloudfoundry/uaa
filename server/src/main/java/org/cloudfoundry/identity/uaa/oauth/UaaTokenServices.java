@@ -449,7 +449,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
             } catch (RuntimeException | IdTokenCreationException e) {
-                throw new IllegalStateException("Cannot convert id token to JSON");
+                throw new IllegalStateException("Cannot convert id token to JSON", e);
             }
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);

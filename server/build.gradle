@@ -81,10 +81,9 @@ dependencies {
     testCompile(libraries.junit)
     testCompile(libraries.mockito)
 
-    testCompile libraries.postgresql
+    testCompile libraries.mockitoJunit5
 
-    testCompile libraries.powermockJunit4
-    testCompile libraries.powermockMockito
+    testCompile libraries.postgresql
 
     testCompile libraries.tomcatElApi
     testCompile libraries.tomcatJasperEl
