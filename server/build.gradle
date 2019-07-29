@@ -19,6 +19,7 @@ dependencies {
     compile libraries.springWeb
     compile libraries.springSecurityCore
     compile libraries.springSecurityJwt
+    compile libraries.springSessionJdbc
     compile libraries.apacheHttpClient
     compile libraries.springSecurityWeb
     compile libraries.springSecuritySaml

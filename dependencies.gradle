@@ -43,6 +43,7 @@ libraries.powermockJunit4 = "org.powermock:powermock-module-junit4:${versions.po
 libraries.powermockMockito = "org.powermock:powermock-api-mockito2:${versions.powermockVersion}"
 libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j2Version}"
 libraries.springBeans = "org.springframework:spring-beans:${versions.springVersion}"
+libraries.springSessionJdbc = "org.springframework.session:spring-session-jdbc:2.1.7.RELEASE"
 libraries.springBootStarter = "org.springframework.boot:spring-boot-starter:${versions.springBootVersion}"
 libraries.springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2:${versions.springBootVersion}"
 libraries.springBootStarterTest = "org.springframework.boot:spring-boot-starter-test:${versions.springBootVersion}"
