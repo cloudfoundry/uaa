@@ -280,7 +280,7 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjrt</artifactId>
-      <version>1.8.12</version>
+      <version>1.9.4</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -292,7 +292,7 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjweaver</artifactId>
-      <version>1.8.12</version>
+      <version>1.9.4</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
