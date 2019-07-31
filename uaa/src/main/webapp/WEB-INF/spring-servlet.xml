@@ -232,12 +232,12 @@
         </property>
         <property name="errorMap">
             <map>
-              <entry key="org.springframework.dao.NonTransientDataAccessException">
-                  <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
-                      <constructor-arg index="0" value="503"/>
-                      <constructor-arg index="1" value="Database unavailable. Retry later."/>
-                  </bean>
-              </entry>
+                <entry key="org.springframework.dao.NonTransientDataAccessException">
+                    <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
+                        <constructor-arg index="0" value="503"/>
+                        <constructor-arg index="1" value="Database unavailable. Retry later."/>
+                    </bean>
+                </entry>
             </map>
         </property>
         <property name="additionalFilters">
@@ -294,11 +294,11 @@
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="defaultInternalHostnames">
-           <set>
+            <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
                 <value>localhost</value>
-           </set>
+            </set>
         </property>
         <property name="additionalInternalHostnames" value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
     </bean>
@@ -311,6 +311,9 @@
         <constructor-arg ref="userDatabase"/>
     </bean>
 
+    <bean id="doYouHaveACurrentUserCookie" class="org.cloudfoundry.identity.uaa.authentication.DoYouHaveACurrentUserCookieFilter">
+    </bean>
+
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
     <bean id="uaaUrl" class="java.lang.String">
@@ -320,8 +323,6 @@
     <bean id="loginUrl" class="java.lang.String">
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
-
-
 
 
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
@@ -364,14 +365,15 @@
     <import resource="spring/codestore-endpoints.xml" />
     <import resource="spring/authentication.xml" />
     <import resource="spring/identity-zones.xml" />
+    <import resource="spring/session.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
-      <property name="basenames">
-        <list>
-          <value>#{systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
-          <value>classpath:messages</value>
-        </list>
-      </property>
+        <property name="basenames">
+            <list>
+                <value>#{systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
+                <value>classpath:messages</value>
+            </list>
+        </property>
     </bean>
 
     <bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
@@ -480,7 +482,7 @@
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
-                  value="#{@config['login']==null ? null :
+                         value="#{@config['login']==null ? null :
                            @config['login']['oauth']==null ? null :
                            @config['login']['oauth']['providers']}"/>
     </bean>

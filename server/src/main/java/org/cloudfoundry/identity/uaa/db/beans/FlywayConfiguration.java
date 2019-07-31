@@ -4,13 +4,19 @@ import org.cloudfoundry.identity.uaa.db.DataSourceAccessor;
 import org.cloudfoundry.identity.uaa.db.FixFailedBackportMigrations_4_0_4;
 import org.cloudfoundry.identity.uaa.db.postgresql.V1_5_3__InitialDBScript;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 
 import javax.sql.DataSource;
 
+import static java.lang.String.format;
+
 @Configuration
+@EnableJdbcHttpSession
 public class FlywayConfiguration {
 
     /**
@@ -32,6 +38,10 @@ public class FlywayConfiguration {
             DataSource dataSource,
             DataSourceAccessor dataSourceAccessor,
             @Qualifier("platform") String platform) {
+        Logger logger = LoggerFactory.getLogger(getClass());
+        logger.info(format("datasource = %s", dataSource.toString()));
+        logger.info(format("datasource from accessor = %s", DataSourceAccessor.getDataSource().toString()));
+        logger.info(format("platform = %s", platform));
         Flyway flyway = Flyway.configure()
                 .baselineOnMigrate(true)
                 .dataSource(dataSource)
