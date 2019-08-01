@@ -78,12 +78,8 @@ dependencies {
 
     testCompile libraries.springTest
 
-    testCompile(libraries.junit) {
-        exclude(module: 'hamcrest-core')
-    }
-    testCompile(libraries.mockito) {
-        exclude(module: 'hamcrest-core')
-    }
+    testCompile(libraries.junit)
+    testCompile(libraries.mockito)
 
     testCompile libraries.postgresql
 

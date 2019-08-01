@@ -10,6 +10,7 @@ def versions = [:]
 // Versions shared between multiple dependencies
 versions.aspectJVersion = '1.9.4'
 versions.bouncyCastleVersion = '1.62'
+versions.hamcrestVersion = '2.1'
 versions.jacksonVersion = '2.9.9'
 versions.jsonPathVersion = '2.4.0'
 versions.junit5JupiterVersion = '5.5.1'
@@ -30,6 +31,7 @@ libraries.aspectJRt = "org.aspectj:aspectjrt:${versions.aspectJVersion}"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver:${versions.aspectJVersion}"
 libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk15on:${versions.bouncyCastleVersion}"
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyCastleVersion}"
+libraries.hamcrest = "org.hamcrest:hamcrest:${versions.hamcrestVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
 libraries.jsonPath = "com.jayway.jsonpath:json-path:${versions.jsonPathVersion}"
