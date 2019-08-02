@@ -223,18 +223,6 @@ task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
-task encrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Encryptor'
-    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
-task decrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Decryptor'
-    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
 // task dependencies
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
