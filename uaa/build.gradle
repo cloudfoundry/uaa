@@ -63,7 +63,8 @@ dependencies {
 }
 
 node {
-    npmVersion = '2.1.5'
+    version = '8.16.0'
+    npmVersion = '6.4.1'
 
     // If true, it will download node using above parameters.
     // If false, it will try to use globally installed node.
