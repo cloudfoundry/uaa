@@ -454,6 +454,40 @@ class ScimUserBootstrapTests {
     }
 
     @Test
+    void testGroupsFromEventAreMadeUnique() throws Exception {
+        String[] externalAuthorities = new String[]{"extTest1", "extTest2", "extTest3"};
+        String[] userAuthorities = new String[]{"usrTest1", "usrTest2", "usrTest3"};
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate, origin);
+        String email = "test@test.org";
+        String newEmail = "test@test2.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "testPassword";
+        String externalId = null;
+        String userId = new RandomValueStringGenerator().generate();
+        String username = new RandomValueStringGenerator().generate();
+        UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
+        JdbcScimGroupMembershipManager spy = spy(jdbcScimGroupMembershipManager);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, spy, Collections.singletonList(user), false, Collections.emptyList());
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
+        assertEquals(1, users.size());
+        userId = users.get(0).getId();
+        user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
+
+        List<GrantedAuthority> authorities = getAuthorities(externalAuthorities);
+        authorities.addAll(getAuthorities(externalAuthorities));
+        assertEquals(2*externalAuthorities.length, authorities.size());
+        verify(spy, times(externalAuthorities.length)).addMember(any(), any(), any());
+
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, authorities, true));
+
+        verify(spy, times(externalAuthorities.length*2)).addMember(any(), any(), any());
+    }
+
+    @Test
     void addUsersWithSameUsername() throws Exception {
         String origin = "testOrigin";
         addIdentityProvider(jdbcTemplate, origin);
