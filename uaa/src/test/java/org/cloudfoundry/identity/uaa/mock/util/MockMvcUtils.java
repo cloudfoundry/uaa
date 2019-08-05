@@ -272,20 +272,6 @@ public final class MockMvcUtils {
         }
     }
 
-    public static File getLimitedModeStatusFile(ApplicationContext context) {
-        return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
-    }
-
-    public static File setLimitedModeStatusFile(ApplicationContext context) throws Exception {
-        File tempFile = File.createTempFile("uaa-limited-mode-negative-test.", ".status");
-        context.getBean(LimitedModeUaaFilter.class).setStatusFile(tempFile);
-        return tempFile;
-    }
-
-    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) throws Exception {
-        context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
-    }
-
     public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {
         return mockMvc.perform(
           get("/saml/metadata")

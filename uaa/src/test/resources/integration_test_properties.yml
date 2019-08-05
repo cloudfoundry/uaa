@@ -104,11 +104,12 @@ oauth:
     - roles
     - user_attributes
     - uaa.offline_token
-
+assetBaseUrl: /resources/predix
+links:
+  passwd: /forgot_password
+  signup: /create_account
 issuer:
   uri: http://localhost:8080/uaa
-
-
 login:
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----
@@ -148,6 +149,7 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
+  selfServiceLinksEnabled: true
   url: http://localhost:8080/uaa
   entityBaseURL: http://localhost:8080/uaa
   entityID: cloudfoundry-saml-login

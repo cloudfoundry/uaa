@@ -21,7 +21,9 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -37,17 +39,13 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.Ignore;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.env.MockPropertySource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -68,14 +66,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -97,6 +93,7 @@ import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -109,11 +106,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext
 public class LoginMockMvcTests {
     // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
-
-    private MockEnvironment mockEnvironment;
-    private MockPropertySource propertySource;
-    private Properties originalProperties = new Properties();
-    private Field f = ReflectionUtils.findField(MockEnvironment.class, "propertySource");
 
     private WebApplicationContext webApplicationContext;
 
@@ -140,13 +132,6 @@ public class LoginMockMvcTests {
         this.limitedModeUaaFilter = limitedModeUaaFilter;
         SecurityContextHolder.clearContext();
 
-        mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
-        f.setAccessible(true);
-        propertySource = (MockPropertySource)ReflectionUtils.getField(f, mockEnvironment);
-        for (String s : propertySource.getPropertyNames()) {
-            originalProperties.put(s, propertySource.getProperty(s));
-        }
-
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
         identityZoneConfiguration = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
@@ -154,18 +139,22 @@ public class LoginMockMvcTests {
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false);
 
-        MfaProvider mfaProvider = constructGoogleMfaProvider();
-        mfaProvider = JsonUtils.readValue(mockMvc.perform(
-                post("/mfa-providers")
-                        .header("X-Identity-Zone-Id", identityZone.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createMfaProvider();
 
         identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
+    }
+
+    private MfaProvider<GoogleMfaProviderConfig> createMfaProvider() {
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider(); 
+        MfaProviderEndpoints mfaProviderEndpoints = webApplicationContext.getBean(MfaProviderEndpoints.class);
+        IdentityZoneHolder.set(identityZone);
+        ResponseEntity<MfaProvider> responseEntity = mfaProviderEndpoints.createMfaProvider(mfaProvider);
+        IdentityZoneHolder.clear();
+        assertEquals(CREATED, responseEntity.getStatusCode()); 
+        @SuppressWarnings("unchecked") //we know that we asked for a google provider
+        MfaProvider<GoogleMfaProviderConfig> provider = responseEntity.getBody();
+        return provider;
     }
 
     @AfterEach
@@ -185,11 +174,6 @@ public class LoginMockMvcTests {
         resetUaaZoneConfigToDefault(identityZoneConfigurationBootstrap);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
-
-        mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
-        MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
-        ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
-        mockEnvironment.getPropertySources().addLast(originalPropertySource);
     }
 
     private void resetUaaZoneConfigToDefault(IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws InvalidIdentityZoneDetailsException {
@@ -220,6 +204,7 @@ public class LoginMockMvcTests {
     @Test
     void testLogin() throws Exception {
         mockMvc.perform(get("/login"))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
@@ -273,8 +258,8 @@ public class LoginMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
-                .andExpect(content().string(containsString("/create_account")));
+                .andExpect(content().string(containsString("/forgot_password")))
+                .andExpect(content().string(not(containsString("/create_account"))));
 
         loginInfoEndpoint.setGlobalLinks(
                 new Links().setSelfService(
@@ -523,7 +508,7 @@ public class LoginMockMvcTests {
                 .andExpect(redirectedUrl("/uaa/"));
     }
 
-    @Ignore  //Predix branding uses css for logo, need a way to assert on css.
+    @Disabled("Predix branding uses css for logo, need a way to assert on css.")
     @Test
     void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -535,11 +520,12 @@ public class LoginMockMvcTests {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
     }
 
+    @Disabled("Predix branding uses css for logo, need a way to assert on css.")
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = "assetBaseUrl=//cdn.example.com/resources")
     class DefaultLogo {
-        @Ignore  //Predix branding uses css for logo, need a way to assert on css.
+
         @Test
         void testDefaultLogo(@Autowired MockMvc mockMvc) throws Exception {
             mockMvc.perform(get("/login"))
@@ -569,7 +555,7 @@ public class LoginMockMvcTests {
 
     //Predix does not use a image tag for logo, uses header.background in css. (see main.html/predix-styles.css)
     //Adding a assertion in LoginIT for custom logo.
-    @Ignore
+    @Disabled
     @Test
     public void testCustomLogo() throws Exception {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, null, "/bASe/64+");
@@ -596,7 +582,7 @@ public class LoginMockMvcTests {
                 //.andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
     }
 
-    @Ignore //footer is setup as predix. see testPredixCopyright
+    @Disabled("footer is setup as predix. see testPredixCopyright")
     @Test
     void testDefaultFooter() throws Exception {
         mockMvc.perform(get("/login"))
@@ -604,7 +590,7 @@ public class LoginMockMvcTests {
                 .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
-    @Ignore // not used by predix-uaa.
+    @Disabled(" not used by predix-uaa.")
     @Test
     void testCustomizedFooter() throws Exception {
         String customFooterText = "This text should be in the footer.";
@@ -618,7 +604,7 @@ public class LoginMockMvcTests {
                 .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
-    @Ignore //Test Predix branding, instead. see #testPredixCopyright
+    @Disabled("Test Predix branding, instead. see #testPredixCopyright")
     @Test
     void testCustomCompanyName() throws Exception {
         String companyName = "Big Company";
@@ -627,13 +613,14 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.setBranding(branding);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
+        String expectedFooterText = String.format(defaultCopyrightTemplate, currentYear, companyName);
         mockMvc.perform(get("/login"))
                 .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
 
-    //Thymeleaf now converts copyright html code into unicode
-    private static final String predixCopyright =  "Copyright \u00a9 2018 General Electric Company. All rights reserved.";
+    @Value("${login.branding.footerLegalText}")
+    private String predixCopyright;
+
     @Test
     public void testPredixCopyright() throws Exception {
         mockMvc.perform(get("/login")) .andExpect(content().string(allOf(containsString(predixCopyright))));
@@ -657,11 +644,11 @@ public class LoginMockMvcTests {
 
         IdentityZone identityZone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, zoneCompanyName);
+        String expectedFooterText = String.format(defaultCopyrightTemplate, currentYear, zoneCompanyName);
 
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andExpect(status().isOk())
-                .andExpect(content().string(allOf(containsString(expectedFooterText))));
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().string(containsString(expectedFooterText)));
     }
 
     @Test
@@ -1023,16 +1010,20 @@ public class LoginMockMvcTests {
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = {"analytics.code=secret_code", "analytics.domain=example.com"})
-    class LoginWithAnalytics {
+    protected class LoginWithAnalytics {
         @Test
         void testLoginWithAnalytics(@Autowired MockMvc mockMvc) throws Exception {
+            // To run in degraded mode, we would need to set active profiles to "degraded".
+            // Being a nested class, it's hard to vary the active profiles when running from the context of the outer class
+            // and when running from the context of the outer class' "degraded mode" subclass.
+//            assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
             mockMvc.perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
                     .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
         }
     }
 
-    @Ignore //conflicts with predix branding
+    @Disabled("conflicts with predix branding")
     @Test
     void testDefaultBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
@@ -1041,11 +1032,12 @@ public class LoginMockMvcTests {
                 .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
     }
 
+    @Disabled("conflicts with predix branding")
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = {"assetBaseUrl=//cdn.example.com/pivotal"})
     class Branding {
-        @Ignore //conflicts with predix branding
+
         @Test
         void testExternalizedBranding(@Autowired MockMvc mockMvc) throws Exception {
             mockMvc.perform(MockMvcRequestBuilders.get("/login"))
@@ -1522,7 +1514,14 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient);
+        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult =
+                MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                        "puppy-" + new RandomValueStringGenerator().generate(),
+                        mockMvc,
+                        webApplicationContext,
+                        zoneAdminClient,
+                        false
+                );
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
@@ -1555,7 +1554,8 @@ public class LoginMockMvcTests {
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        String hint = "{\"origin\":\"uaa\"}";
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] {hint});
         session.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
 
 
@@ -1563,25 +1563,27 @@ public class LoginMockMvcTests {
                 .accept(TEXT_HTML)
                 .session(session)
                 .servletPath("")
-                .param("login_hint", "other.com")
+                .param("login_hint", hint)
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
+                .andDo(print())
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://" + identityZone.getSubdomain() + ".localhost/login")).andReturn();
 
         MockHttpSession redirectSession = new MockHttpSession();
         SavedRequest redirectSavedRequest = mock(DefaultSavedRequest.class);
-        when(redirectSavedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "other.com" });
+        when(redirectSavedRequest.getParameterValues("login_hint")).thenReturn(new String[] {hint});
         redirectSession.putValue(SAVED_REQUEST_SESSION_ATTRIBUTE, redirectSavedRequest);
 
         mockMvc.perform(get(result.getResponse().getRedirectedUrl())
                 .accept(TEXT_HTML)
                 .session(redirectSession)
-                .param("login_hint", "other.com")
+                .param("login_hint", hint)
                 .servletPath("/login")
                 .cookie(result.getResponse().getCookies())
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
+                .andDo(print())
                 .andExpect(xpath("//input[@name='username']").exists())
                 .andExpect(xpath("//input[@name='password']").exists()).andReturn();
         IdentityZoneHolder.clear();
@@ -2376,11 +2378,10 @@ public class LoginMockMvcTests {
                 .session(session)
                 .header("Accept", TEXT_HTML)
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-                .andExpect(status().isOk())
+                .andDo(print()).andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
                 .andExpect(content().string(containsString("Sign in to continue to " + clientName)))
                 .andExpect(xpath("//input[@name='email']").exists())
-                .andExpect(xpath("//div[@class='action']//a").string("Create account"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
     }
 
@@ -2974,8 +2975,9 @@ public class LoginMockMvcTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
     }
 
-    private static final String defaultCopyrightTemplate = "Copyright " + "\u00a9" + " %s";
-    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
+    private static final String defaultCopyrightTemplate = "Copyright \u00a9 %d %s";
+    private static final int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, currentYear, "CloudFoundry.org Foundation, Inc.");
     private static final String CF_LAST_LOGIN = "Last Login";
 
     private static IdentityProvider createIdentityProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, IdentityZone identityZone, IdentityProvider activeIdentityProvider) {
