@@ -235,10 +235,6 @@ bootJar {
     enabled = false
 }
 
-/*buildScan { 
-    termsOfServiceUrl = "https://gradle.com/terms-of-service"; termsOfServiceAgree = "yes" 
-}*/
-
 // task dependencies
 assemble.dependsOn subprojects.assemble
 bootJar.dependsOn subprojects.bootJar
