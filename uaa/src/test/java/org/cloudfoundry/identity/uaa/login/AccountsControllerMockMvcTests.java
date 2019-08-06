@@ -103,7 +103,7 @@ class AccountsControllerMockMvcTests {
         StandardServletEnvironment env = (StandardServletEnvironment) webApplicationContext.getEnvironment();
         MockPropertySource mockPropertySource = new MockPropertySource();
         mockPropertySource.setProperty(name, value);
-        env.getPropertySources().addLast(mockPropertySource);
+        env.getPropertySources().addFirst(mockPropertySource);
         assertEquals(value, webApplicationContext.getEnvironment().getProperty(name));
     }
 
