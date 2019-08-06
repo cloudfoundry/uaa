@@ -36,8 +36,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@LimitedMode //note that order of these annotations determines which active profiles will be used 
 @DefaultTestContext
-@ActiveProfiles({"default", DEGRADED})
 class LimitedModeNegativeTests {
     // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
@@ -59,11 +59,6 @@ class LimitedModeNegativeTests {
                 "uaa.admin",
                 null,
                 true);
-    }
-
-    @BeforeEach
-    void ensureLimitedModeContext(@Autowired LimitedModeUaaFilter limitedModeUaaFilter) {
-        assertTrue(limitedModeUaaFilter.isEnabled());
     }
 
     @Test

@@ -16,6 +16,6 @@ import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.DEGRADED;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(LimitedModeExtension.class)
-@ActiveProfiles(DEGRADED)
+@ActiveProfiles({"default", DEGRADED})
 @interface LimitedMode {
 }
