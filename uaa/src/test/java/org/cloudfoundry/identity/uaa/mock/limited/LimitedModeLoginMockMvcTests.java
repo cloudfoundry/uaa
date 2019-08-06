@@ -34,13 +34,17 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
             TestInfo testInfo,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) {
+        assumeTestClassIsOuterClass(testInfo);
+        assertTrue(limitedModeUaaFilter.isEnabled());
+    }
+
+    private void assumeTestClassIsOuterClass(TestInfo testInfo) {
         assumeTrue(testInfo.getTestClass().orElseThrow(AssertionError::new).isAssignableFrom(this.getClass()),
                 "To run in degraded mode, we need to set active profiles to 'degraded'. " +
                         "The active profiles of a nested class may be set independently of its outer class. " +
                         "Hence such a nested class will run identically when run from it's outer class' subclass. " +
                         "It is therefore redundant to run such a nested class in both parent and subclass."
         );
-        assertTrue(isLimitedMode(limitedModeUaaFilter));
     }
 
 }
