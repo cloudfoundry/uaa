@@ -65,7 +65,9 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         originClient = new BaseClientDetails(generator.generate(), "", "openid", "password", null);
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
-        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient);
+        //In degraded mode, cannot create zone via rest. Instead create by directly calling the endpoint.
+        originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext,
+                originClient, false);
         originUser = createUser(originZone.getIdentityZone());
     }
 
