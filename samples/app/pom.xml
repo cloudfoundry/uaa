@@ -76,7 +76,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
-      <version>5.1.5.RELEASE</version>
+      <version>5.1.6.RELEASE</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>

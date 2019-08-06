@@ -136,7 +136,7 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-config</artifactId>
-      <version>5.1.5.RELEASE</version>
+      <version>5.1.6.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -192,7 +192,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.26</version>
+      <version>1.7.27</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
