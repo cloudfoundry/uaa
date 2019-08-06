@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
+import lombok.SneakyThrows;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -56,6 +57,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -424,9 +426,24 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
-    public void testCreateZoneWithDisableRedirectUriCheck() throws Exception {
-        IdentityZone zone = createZoneReturn();
+    void testCreateZoneWithDisableRedirectUriCheck() {
+        String id = generator.generate();
+
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration(),
+                idZone -> idZone.setEnableRedirectUriCheck(false));
+
+        assertEquals(id, zone.getId());
+        assertEquals(id.toLowerCase(), zone.getSubdomain());
+        assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         assertFalse(zone.isEnableRedirectUriCheck());
+        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener,
+                IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        //validate that default groups were created
+        ScimGroupProvisioning groupProvisioning = webApplicationContext.getBean(ScimGroupProvisioning.class);
+        for (String g : UserConfig.DEFAULT_ZONE_GROUPS) {
+            assertNotNull(groupProvisioning.getByName(g, id));
+        }
     }
 
     @Test
@@ -2138,7 +2155,8 @@ class IdentityZoneEndpointsMockMvcTests {
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "You cannot set issuer value unless you have set your own signing key for this identity zone.",
                 adminToken,
-                identityZoneConfiguration
+                identityZoneConfiguration,
+                z -> { }
         );
     }
 
@@ -2153,7 +2171,8 @@ class IdentityZoneEndpointsMockMvcTests {
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "You cannot set issuer value unless you have set your own signing key for this identity zone.",
                 adminToken,
-                identityZoneConfiguration
+                identityZoneConfiguration,
+                z -> { }
         );
     }
 
@@ -2337,23 +2356,27 @@ class IdentityZoneEndpointsMockMvcTests {
         return null;
     }
 
-    private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration) throws Exception {
+    private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration) {
+        return createZone(id, expect, token, zoneConfiguration, z -> { });
+    }
+
+    private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration, Consumer<IdentityZone> zoneModifier) {
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");
         zoneConfiguration.getTokenPolicy().setKeys(keys);
         zoneConfiguration.getTokenPolicy().setActiveKeyId("kid");
         zoneConfiguration.getTokenPolicy().setKeys(keys);
-
-        return createZone(id, expect, "", token, zoneConfiguration);
+        return createZone(id, expect, "", token, zoneConfiguration, zoneModifier);
     }
 
-    private IdentityZone createZone(String id, HttpStatus expect, String expectedContent, String token, IdentityZoneConfiguration zoneConfiguration) throws Exception {
+    @SneakyThrows
+    private IdentityZone createZone(String id, HttpStatus expect, String expectedContent, String token, IdentityZoneConfiguration zoneConfiguration, Consumer<IdentityZone> zoneModifier) {
         IdentityZone identityZone = createSimpleIdentityZone(id);
         identityZone.setConfig(zoneConfiguration);
         identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
         identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
         identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
-
+        zoneModifier.accept(identityZone);
         MvcResult result = mockMvc.perform(
                 post("/identity-zones")
                         .header("Authorization", "Bearer " + token)
@@ -2362,33 +2385,6 @@ class IdentityZoneEndpointsMockMvcTests {
                 .andExpect(status().is(expect.value()))
                 .andExpect(content().string(containsString(expectedContent)))
                 .andReturn();
-
-        if (expect.is2xxSuccessful()) {
-            return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
-        }
-        return null;
-    }
-    
-    private IdentityZone createZone(String id, HttpStatus expect, String token, IdentityZoneConfiguration zoneConfiguration, boolean enableRedirectUriCheck) throws Exception {
-        IdentityZone identityZone = createSimpleIdentityZone(id);
-        identityZone.setConfig(zoneConfiguration);
-        identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
-        identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
-        identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
-        Map<String, String> keys = new HashMap<>();
-        keys.put("kid", "key");
-        zoneConfiguration.getTokenPolicy().setKeys(keys);
-        zoneConfiguration.getTokenPolicy().setActiveKeyId("kid");
-        zoneConfiguration.getTokenPolicy().setKeys(keys);
-        identityZone.setEnableRedirectUriCheck(enableRedirectUriCheck);
-
-        MvcResult result = mockMvc.perform(
-            post("/identity-zones")
-                .header("Authorization", "Bearer " + token)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityZone)))
-            .andExpect(status().is(expect.value()))
-            .andReturn();
 
         if (expect.is2xxSuccessful()) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
