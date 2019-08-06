@@ -145,6 +145,9 @@ public class LoginMockMvcTests {
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
     }
 
+    /**
+     * In degraded mode, cannot create mfa provider via rest. Instead create by directly calling the endpoint. 
+     */
     private MfaProvider<GoogleMfaProviderConfig> createMfaProvider() {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider(); 
         MfaProviderEndpoints mfaProviderEndpoints = webApplicationContext.getBean(MfaProviderEndpoints.class);
@@ -204,7 +207,6 @@ public class LoginMockMvcTests {
     @Test
     void testLogin() throws Exception {
         mockMvc.perform(get("/login"))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
@@ -647,7 +649,7 @@ public class LoginMockMvcTests {
         String expectedFooterText = String.format(defaultCopyrightTemplate, currentYear, zoneCompanyName);
 
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-                .andDo(print()).andExpect(status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(content().string(containsString(expectedFooterText)));
     }
 
@@ -1010,13 +1012,10 @@ public class LoginMockMvcTests {
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = {"analytics.code=secret_code", "analytics.domain=example.com"})
-    protected class LoginWithAnalytics {
+    class LoginWithAnalytics {
+
         @Test
         void testLoginWithAnalytics(@Autowired MockMvc mockMvc) throws Exception {
-            // To run in degraded mode, we would need to set active profiles to "degraded".
-            // Being a nested class, it's hard to vary the active profiles when running from the context of the outer class
-            // and when running from the context of the outer class' "degraded mode" subclass.
-//            assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
             mockMvc.perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
                     .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
@@ -1514,6 +1513,7 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
+        //In degraded mode, cannot create zone via rest. Instead create by directly calling the endpoint. 
         MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult =
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                         "puppy-" + new RandomValueStringGenerator().generate(),
@@ -1566,7 +1566,6 @@ public class LoginMockMvcTests {
                 .param("login_hint", hint)
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
-                .andDo(print())
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://" + identityZone.getSubdomain() + ".localhost/login")).andReturn();
 
@@ -1583,7 +1582,6 @@ public class LoginMockMvcTests {
                 .cookie(result.getResponse().getCookies())
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
-                .andDo(print())
                 .andExpect(xpath("//input[@name='username']").exists())
                 .andExpect(xpath("//input[@name='password']").exists()).andReturn();
         IdentityZoneHolder.clear();
@@ -2378,7 +2376,7 @@ public class LoginMockMvcTests {
                 .session(session)
                 .header("Accept", TEXT_HTML)
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-                .andDo(print()).andExpect(status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
                 .andExpect(content().string(containsString("Sign in to continue to " + clientName)))
                 .andExpect(xpath("//input[@name='email']").exists())

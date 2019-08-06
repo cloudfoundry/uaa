@@ -15,34 +15,32 @@
 
 package org.cloudfoundry.identity.uaa.mock.limited;
 
-import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.DEGRADED;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@ActiveProfiles({ DEGRADED})
+@ActiveProfiles(DEGRADED)
 class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
-
 
     @BeforeEach
     void setUpLimitedModeLoginMockMvcTests(
+            TestInfo testInfo,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) {
+        assumeTrue(testInfo.getTestClass().orElseThrow(AssertionError::new).isAssignableFrom(this.getClass()),
+                "To run in degraded mode, we need to set active profiles to 'degraded'. " +
+                        "The active profiles of a nested class may be set independently of its outer class. " +
+                        "Hence such a nested class will run identically when run from it's outer class' subclass. " +
+                        "It is therefore redundant to run such a nested class in both parent and subclass."
+        );
         assertTrue(isLimitedMode(limitedModeUaaFilter));
-    }
-
-    @Nested
-    @DefaultTestContext
-    @ActiveProfiles({ DEGRADED})
-    @TestPropertySource(properties = {"analytics.code=secret_code", "analytics.domain=example.com"})
-    class BLoginWithAnalytics extends LoginWithAnalytics{
     }
 
 }
