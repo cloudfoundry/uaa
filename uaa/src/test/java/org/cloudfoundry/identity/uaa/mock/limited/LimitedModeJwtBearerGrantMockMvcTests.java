@@ -16,23 +16,7 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
-import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
-import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 
-import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.DEGRADED;
-import static org.junit.Assert.assertTrue;
-
-@ActiveProfiles(DEGRADED)
+@LimitedMode
 class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
-    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
-
-    @BeforeEach
-    void setUpLimitedModeContext(
-            @Autowired LimitedModeUaaFilter limitedModeUaaFilter 
-    ) {
-        assertTrue(limitedModeUaaFilter.isEnabled());
-    }
-
 }
