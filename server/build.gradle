@@ -3,7 +3,10 @@ description = 'CloudFoundry Identity Server JAR'
 dependencies {
 
   compile project(':cloudfoundry-identity-model')
-
+  compileOnly group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
+  testCompileOnly group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
+  annotationProcessor group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
+  testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
   compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   //Audit service dependency
   compile (group: 'com.ge.predix.audit', name: 'audit-sdk', version:'0.0.6') {

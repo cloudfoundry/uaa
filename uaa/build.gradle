@@ -53,7 +53,8 @@ dependencies {
 
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
-
+  testCompileOnly group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
+  testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
     exclude(module: 'bcprov-jdk15')
     exclude(module: 'slf4j-api')
