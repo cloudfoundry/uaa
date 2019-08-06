@@ -16,45 +16,28 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.io.File;
-import java.lang.reflect.Field;
-import java.util.Properties;
-
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
+import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.DEGRADED;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.env.MockPropertySource;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.web.context.support.XmlWebApplicationContext;
-
 @DefaultTestContext
+@ActiveProfiles({"default", DEGRADED})
 class LimitedModeNegativeTests {
     // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
@@ -64,39 +47,23 @@ class LimitedModeNegativeTests {
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
 
-    private MockEnvironment mockEnvironment;
-    private Properties originalProperties = new Properties();
-    Field f = ReflectionUtils.findField(MockEnvironment.class, "propertySource");
-
     @BeforeEach
     void setUp() throws Exception {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .build();
-
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
                 "admin",
                 "adminsecret",
                 "uaa.admin",
                 null,
                 true);
-
-        mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
-        f.setAccessible(true);
-        MockPropertySource propertySource = (MockPropertySource) ReflectionUtils.getField(f, mockEnvironment);
-        for (String s : propertySource.getPropertyNames()) {
-            originalProperties.put(s, propertySource.getProperty(s));
-        }
-        mockEnvironment.setProperty("spring_profiles", "default, degraded");
     }
 
-    @AfterEach
-    void tearDown() throws Exception {
-        mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
-        MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
-        ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
-        mockEnvironment.getPropertySources().addLast(originalPropertySource);
+    @BeforeEach
+    void ensureLimitedModeContext(@Autowired LimitedModeUaaFilter limitedModeUaaFilter) {
+        assertTrue(limitedModeUaaFilter.isEnabled());
     }
 
     @Test
