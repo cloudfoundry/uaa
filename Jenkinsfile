@@ -155,7 +155,6 @@ pipeline {
                             unset GRADLE_OPTS
                             pushd uaa
                                 apt-get -qy install lsof
-                                ./scripts/travis/install-ldap-certs.sh
                                 ./gradlew --no-daemon --continue jacocoRootReportUaaTest
                             popd
                             '''
