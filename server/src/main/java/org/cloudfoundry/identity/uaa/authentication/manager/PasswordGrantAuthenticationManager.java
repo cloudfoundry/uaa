@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -43,6 +44,8 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 
 public class PasswordGrantAuthenticationManager implements AuthenticationManager {
 
@@ -143,7 +146,12 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         String auth = clientId + ":" + clientSecret;
         headers.add("Authorization","Basic "+Base64Utils.encodeToString(auth.getBytes()));
-
+        if (config.isSetForwardHeader() && authentication.getDetails() != null &&authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails details = (UaaAuthenticationDetails) authentication.getDetails();
+            if (details.getOrigin() != null) {
+                headers.add("X-Forwarded-For", details.getOrigin());
+            }
+        }
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", GRANT_TYPE_PASSWORD);
         params.add("response_type","id_token");

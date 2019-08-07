@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -185,6 +186,61 @@ class PasswordGrantAuthenticationManagerTest {
         assertNotNull(headers.get("Authorization"));
         assertEquals(1, headers.get("Authorization").size());
         assertThat(headers.get("Authorization").get(0), startsWith("Basic "));
+        assertNull(headers.get("X-Forwarded-For"));
+
+        assertEquals("mytoken", tokenArgumentCaptor.getValue().getIdToken());
+    }
+
+    @Test
+    void testOIDCPasswordGrantWithForwardHeader() {
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getOrigin()).thenReturn("203.0.113.1");
+        when(auth.getDetails()).thenReturn(details);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+
+        ResponseEntity<Map<String,String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(),any(HttpMethod.class),any(HttpEntity.class),any(ParameterizedTypeReference.class))).thenReturn(response);
+
+        when(idpConfig.isSetForwardHeader()).thenReturn(true);
+
+        instance.authenticate(auth);
+
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        ArgumentCaptor<XOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(XOAuthCodeToken.class);
+        verify(xoAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
+        verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
+
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        assertNotNull(httpEntity);
+        assertTrue(httpEntity.hasBody());
+        assertTrue(httpEntity.getBody() instanceof MultiValueMap);
+        MultiValueMap<String,String> body = (MultiValueMap<String, String>)httpEntity.getBody();
+        assertEquals(4, body.size());
+        assertEquals(Collections.singletonList("password"), body.get("grant_type"));
+        assertEquals(Collections.singletonList("id_token"), body.get("response_type"));
+        assertEquals(Collections.singletonList("marissa"), body.get("username"));
+        assertEquals(Collections.singletonList("koala"), body.get("password"));
+
+        HttpHeaders headers = httpEntity.getHeaders();
+        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
+        assertNotNull(headers.get("Authorization"));
+        assertEquals(1, headers.get("Authorization").size());
+        assertThat(headers.get("Authorization").get(0), startsWith("Basic "));
+        assertNotNull(headers.get("X-Forwarded-For"));
+        assertEquals(1, headers.get("X-Forwarded-For").size());
+        assertEquals("203.0.113.1", headers.get("X-Forwarded-For").get(0));
 
         assertEquals("mytoken", tokenArgumentCaptor.getValue().getIdToken());
     }

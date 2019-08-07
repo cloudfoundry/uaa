@@ -591,6 +591,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
+                fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
                 fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
                 fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),
