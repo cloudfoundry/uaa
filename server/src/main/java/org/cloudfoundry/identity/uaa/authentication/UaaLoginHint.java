@@ -23,7 +23,7 @@ public class UaaLoginHint implements Serializable {
         }
     }
 
-    private UaaLoginHint() {
+    public UaaLoginHint() {
     }
 
     public UaaLoginHint(String origin) {
