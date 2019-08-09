@@ -128,6 +128,10 @@ The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 To run the unit tests with docker:
 
     $ run-unit-tests.sh <dbtype>
+    
+### Building war file
+
+    $ ./gradlew :clean :assemble -Pversion=${UAA_VERSION}
 
 ## Inventory
 
