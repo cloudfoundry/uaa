@@ -142,7 +142,6 @@ public abstract class AbstractLdapMockMvcTest {
     private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     private static final String REDIRECT_URI = "http://invitation.redirect.test";
 
-    private static int secondLdapServerPortRotation = 0;
     private static String defaultTrustStore;
 
     private String ldapProfile;
@@ -1058,8 +1057,8 @@ public abstract class AbstractLdapMockMvcTest {
     @Test
     void testTwoLdapServers() throws Exception {
         // Setup second ldap server
-        int port = 33389 + 400 + (secondLdapServerPortRotation++);
-        int sslPort = 33636 + 400 + (secondLdapServerPortRotation++);
+        int port = 33000 + getRandomPortOffset();
+        int sslPort = 33000 + (getRandomPortOffset());
 
         ApacheDsSSLContainer secondLdapServer = ApacheDSHelper.start(port, sslPort);
 
@@ -1074,7 +1073,6 @@ public abstract class AbstractLdapMockMvcTest {
         updateLdapProvider();
 
         try {
-
             // Actually test it
             testSuccessfulLogin();
             stopLdapServer();
@@ -1375,6 +1373,10 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(status().is(status.value()))
                 .andExpect(authenticated ? authenticated() : unauthenticated())
                 .andReturn();
+    }
+
+    private int getRandomPortOffset() {
+        return (int) (Math.random() * 10000);
     }
 
     @Test
