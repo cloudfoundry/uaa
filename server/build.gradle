@@ -97,6 +97,10 @@ configurations.all {
     exclude group: 'org.beanshell', module: 'bsh-core'
 }
 
+jar {
+    exclude "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+}
+
 processResources {
     //maven replaces project.artifactId in the log4j.properties file
     //https://www.pivotaltracker.com/story/show/74344574
@@ -105,4 +109,14 @@ processResources {
 
 integrationTest {}.onlyIf { //disable since we don't have any
     false
+}
+
+task tomcatListenerJar(type: Jar) {
+    archiveBaseName = 'tomcat-listener'
+    from(sourceSets.main.output)
+    include "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+}
+
+artifacts {
+    archives tomcatListenerJar
 }
