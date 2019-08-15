@@ -16,7 +16,7 @@
   limitations under the License.
 -->
 <!-- The contents of this file will be loaded for each web application -->
-<Context useRelativeRedirects="false">
+<Context useRelativeRedirects="false" throwOnFailure="true" failCtxIfServletStartFails="true">
 
     <!-- Default set of monitored resources. If one of these changes, the    -->
     <!-- web application will be reloaded.                                   -->

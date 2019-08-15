@@ -51,7 +51,7 @@
 
     <servlet>
         <servlet-name>spring</servlet-name>
-        <servlet-class>org.cloudfoundry.identity.uaa.web.RecognizeFailureDispatcherServlet</servlet-class>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>contextInitializerClasses</param-name>
             <param-value>org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer</param-value>
