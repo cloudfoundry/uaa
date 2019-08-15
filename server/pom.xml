@@ -908,7 +908,7 @@
     <dependency>
       <groupId>org.apache.directory.api</groupId>
       <artifactId>api-ldap-model</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.3</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
