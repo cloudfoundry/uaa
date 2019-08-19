@@ -74,6 +74,11 @@ dependencies {
 
     compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.4'
 
+    implementation libraries.javaxXmlBindApi
+    implementation libraries.javaxXmlBindCore
+    implementation libraries.javaxXmlBindImpl
+    implementation libraries.javaxActivation
+
     testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
     testCompile libraries.springTest

@@ -39,6 +39,12 @@ dependencies {
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
+
+    implementation libraries.javaxXmlBindApi
+    implementation libraries.javaxXmlBindCore
+    implementation libraries.javaxXmlBindImpl
+    implementation libraries.javaxActivation
+
     providedCompile libraries.tomcatEmbed
 
     testCompile identityServer.configurations.testCompile.dependencies

@@ -24,6 +24,7 @@ versions.springSecuritySamlVersion = '1.0.9.RELEASE'
 versions.springSecurityVersion = '5.1.6.RELEASE'
 versions.springVersion = '5.1.9.RELEASE'
 versions.tomcatVersion = "${tomcatVersion}"
+versions.xmlBind = '2.3.0'
 
 // Dependencies relying on shared versions
 libraries.aspectJRt = "org.aspectj:aspectjrt:${versions.aspectJVersion}"
@@ -74,6 +75,11 @@ libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersio
 libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
 libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatVersion}"
 libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
+libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
+libraries.javaxXmlBindApi = "javax.xml.bind:jaxb-api:${versions.xmlBind}"
+libraries.javaxXmlBindCore = "com.sun.xml.bind:jaxb-core:${versions.xmlBind}"
+libraries.javaxXmlBindImpl = "com.sun.xml.bind:jaxb-impl:${versions.xmlBind}"
+libraries.javaxActivation = "javax.activation:activation:1.1.1"
 
 // Dependencies shared between projects which do not rely on shared versions
 libraries.apacheHttpClient = 'org.apache.httpcomponents:httpclient:4.5.3'
