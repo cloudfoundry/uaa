@@ -149,10 +149,7 @@ public class UaaHttpRequestUtilsTest {
     public void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
-        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, 10_000));
-        assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
     }
-
 
     @Test
     public void trustedOnly() {
