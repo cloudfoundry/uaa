@@ -169,11 +169,11 @@ cargo {
     local {
         startStopTimeout = 540000
         List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
+        jvmArgs = "-DLOGIN_CONFIG_URL=classpath:required_configuration.yml"
         if (activeProfiles.contains('debug')) {
-            jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
-        } else {
-            jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+            jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
+
         outputFile = file('uaa/build/reports/tests/uaa-server.log')
         configFile {
             files = files('scripts/cargo/tomcat-conf/context.xml')
