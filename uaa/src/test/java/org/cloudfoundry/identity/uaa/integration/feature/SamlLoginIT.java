@@ -177,7 +177,7 @@ public class SamlLoginIT {
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
                 IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
-            } catch(Exception _){}
+            } catch(Exception e){}
         }
     }
 

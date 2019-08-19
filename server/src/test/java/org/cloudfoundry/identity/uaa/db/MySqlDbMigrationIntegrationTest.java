@@ -51,7 +51,7 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
 
                 try {
                     jdbcTemplate.execute(insertNewOauthCodeRecord);
-                } catch (Exception _) {
+                } catch (Exception e) {
                     fail("oauth_code table should auto increment primary key when inserting data.");
                 }
             }

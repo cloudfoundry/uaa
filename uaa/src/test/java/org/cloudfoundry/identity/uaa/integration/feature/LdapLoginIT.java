@@ -187,7 +187,7 @@ public class LdapLoginIT {
         try {
             WebElement element = webDriver.findElement(By.className("alert-error"));
             alertError = Optional.of(element.getText());
-        } catch (NoSuchElementException _) {
+        } catch (NoSuchElementException e) {
             // do nothing
         }
     }
