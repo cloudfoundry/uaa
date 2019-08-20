@@ -91,7 +91,6 @@ public class DeprecatedUaaTokenServicesTests {
 
     private TestTokenEnhancer tokenEnhancer;
 
-    private Set<String> thousandScopes;
     private CompositeToken persistToken;
     private Date expiration;
 
@@ -118,7 +117,7 @@ public class DeprecatedUaaTokenServicesTests {
     public void setUp() throws Exception {
         tokenSupport = new TokenTestSupport(tokenEnhancer);
         keyInfoService = new KeyInfoService("https://uaa.url");
-        thousandScopes = new HashSet<>();
+        Set<String> thousandScopes = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
             thousandScopes.add(String.valueOf(i));
         }

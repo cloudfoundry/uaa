@@ -89,15 +89,14 @@ class IntrospectEndpointTest {
 
     @Test
     void invalidJSONInClaims() {
-
-        validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e3RoaXMgaXMgbm90IHZhbGlkIEpTT059.LFFpQ0Gc28vd1YIF4OlgVSi2PjCXtImDC6HlJn75sbQ";
+        String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e3RoaXMgaXMgbm90IHZhbGlkIEpTT059.LFFpQ0Gc28vd1YIF4OlgVSi2PjCXtImDC6HlJn75sbQ";
 
         OAuth2AccessToken token = mock(OAuth2AccessToken.class);
-        when(resourceServerTokenServices.readAccessToken(validToken)).thenReturn(token);
+        when(resourceServerTokenServices.readAccessToken(invalidToken)).thenReturn(token);
         when(token.isExpired()).thenReturn(false);
-        when(token.getValue()).thenReturn(validToken);
+        when(token.getValue()).thenReturn(invalidToken);
 
-        IntrospectionClaims claimsResult = introspectEndpoint.introspect(validToken);
+        IntrospectionClaims claimsResult = introspectEndpoint.introspect(invalidToken);
 
         assertFalse(claimsResult.isActive());
         assertNull(claimsResult.getName());

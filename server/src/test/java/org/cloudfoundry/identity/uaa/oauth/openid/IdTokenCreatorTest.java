@@ -47,7 +47,7 @@ class IdTokenCreatorTest {
     private Set<String> amr;
     private Set<String> acr;
 
-    private UaaUserDatabase uaaUserDatabase;
+    private UaaUserDatabase mockUaaUserDatabase;
     private String givenName;
     private String familyName;
     private String email;
@@ -137,8 +137,8 @@ class IdTokenCreatorTest {
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
 
-        uaaUserDatabase = mock(UaaUserDatabase.class);
-        when(uaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
+        mockUaaUserDatabase = mock(UaaUserDatabase.class);
+        when(mockUaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
 
         userAuthenticationData = new UserAuthenticationData(
                 authTime,
@@ -170,7 +170,7 @@ class IdTokenCreatorTest {
                 new TokenEndpointBuilder(uaaUrl),
                 mockTimeService,
                 mockTokenValidityResolver,
-                uaaUserDatabase,
+                mockUaaUserDatabase,
                 mockMultitenantClientServices,
                 excludedClaims,
                 mockIdentityZoneManager);
@@ -363,7 +363,7 @@ class IdTokenCreatorTest {
 
     @Test
     void whenUserIdNotFound_throwsException() throws Exception {
-        when(uaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
+        when(mockUaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
 
         assertThrows(IdTokenCreationException.class,
                 () -> tokenCreator.create(clientId, "missing-user", userAuthenticationData));

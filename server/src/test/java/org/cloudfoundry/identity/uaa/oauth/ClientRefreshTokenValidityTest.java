@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,6 +21,7 @@ import org.springframework.security.oauth2.provider.ClientRegistrationException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,7 +58,7 @@ class ClientRefreshTokenValidityTest {
             when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId)).thenReturn(mockClientDetails);
             when(mockClientDetails.getRefreshTokenValiditySeconds()).thenReturn(9999);
 
-            Assert.assertThat(clientRefreshTokenValidity.getValiditySeconds("clientId"), is(9999));
+            assertThat(clientRefreshTokenValidity.getValiditySeconds("clientId"), is(9999));
         }
 
         @Test
@@ -66,7 +66,7 @@ class ClientRefreshTokenValidityTest {
             when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId)).thenReturn(mockClientDetails);
             when(mockClientDetails.getRefreshTokenValiditySeconds()).thenReturn(null);
 
-            Assert.assertThat(clientRefreshTokenValidity.getValiditySeconds("clientId"), is(nullValue()));
+            assertThat(clientRefreshTokenValidity.getValiditySeconds("clientId"), is(nullValue()));
         }
 
         @Test
@@ -74,7 +74,7 @@ class ClientRefreshTokenValidityTest {
             when(mockMultitenantClientServices.loadClientByClientId("notExistingClientId", currentIdentityZoneId))
                     .thenThrow(ClientRegistrationException.class);
 
-            Assert.assertThat(clientRefreshTokenValidity.getValiditySeconds("notExistingClientId"), is(nullValue()));
+            assertThat(clientRefreshTokenValidity.getValiditySeconds("notExistingClientId"), is(nullValue()));
         }
 
         @Test
@@ -113,7 +113,7 @@ class ClientRefreshTokenValidityTest {
             when(mockIdentityZoneConfiguration.getTokenPolicy()).thenReturn(mockTokenPolicy);
             when(mockTokenPolicy.getRefreshTokenValidity()).thenReturn(zoneValiditySeconds);
 
-            Assert.assertThat(clientRefreshTokenValidity.getZoneValiditySeconds(), is(zoneValiditySeconds));
+            assertThat(clientRefreshTokenValidity.getZoneValiditySeconds(), is(zoneValiditySeconds));
         }
     }
 }

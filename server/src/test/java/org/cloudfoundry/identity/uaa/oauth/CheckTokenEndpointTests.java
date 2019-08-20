@@ -657,7 +657,6 @@ public class CheckTokenEndpointTests {
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
-            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
