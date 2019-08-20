@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'war'
+apply plugin: 'org.springframework.boot'
 
 war {
     baseName = 'cloudfoundry-identity-statsd'
@@ -11,10 +12,6 @@ repositories {
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-
-configurations.all {
-    exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
-}
 
 dependencies {
     compile project(':cloudfoundry-identity-metrics-data')

@@ -18,6 +18,8 @@ buildscript {
         classpath 'io.spring.gradle:propdeps-plugin:0.0.10.RELEASE'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.6.1'
         classpath 'com.moowork.gradle:gradle-node-plugin:1.1.0'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.0.8.RELEASE'
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
     }
 }
 
@@ -29,6 +31,16 @@ allprojects {
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom libraries.springBootBom
+            mavenBom libraries.springBom
+            mavenBom libraries.springSecurityBom
+        }
+    }
+
     configurations.provided.transitive = false
 
     repositories {
@@ -47,10 +59,11 @@ subprojects {
         exclude group: 'org.hamcrest', module: 'hamcrest-all'
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
         exclude group: 'org.hamcrest', module: 'hamcrest-library'
+        exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
     }
 
     dependencies {
-        testCompile(libraries.springTest)
+        testCompile(libraries.springBootStarterTest)
         testCompile libraries.hamcrest
         testCompile(libraries.junit5JupiterApi)
         testCompile(libraries.junit5JupiterParams)
@@ -92,11 +105,6 @@ subprojects {
         }
     }
 
-    task packageSources(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
     task generateDocs() {
     }
 
@@ -116,11 +124,8 @@ subprojects {
         }
     }
 
-    artifacts {
-        archives packageSources
-    }
-
     repositories {
+        mavenCentral()
         maven {
             url 'https://jitpack.io'
         }
