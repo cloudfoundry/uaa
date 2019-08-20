@@ -12,6 +12,8 @@ processResources {
 }
 
 apply plugin: 'eclipse-wtp'
+apply plugin: 'org.springframework.boot'
+
 eclipse {
     wtp {
         component {
@@ -30,6 +32,9 @@ dependencies {
         exclude(module: 'jna')
     }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
+    compile libraries.springBootStarter
+    compile libraries.springBootStarterWeb
+    compile libraries.springBootStarterTomcat
     runtime libraries.springSecurityConfig
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
