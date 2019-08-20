@@ -545,9 +545,7 @@
         <constructor-arg name="keyInfoService" ref="keyInfoService" />
     </bean>
 
-    <bean id="tokenEndpointBuilder" class="org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder">
-        <constructor-arg name="issuerUrlBase" value="${issuer.uri}" />
-    </bean>
+    <bean id="tokenEndpointBuilder" class="org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder" />
 
     <bean id="tokenValidationService" class="org.cloudfoundry.identity.uaa.oauth.TokenValidationService">
         <constructor-arg name="multitenantClientServices" ref="jdbcClientDetailsService"/>

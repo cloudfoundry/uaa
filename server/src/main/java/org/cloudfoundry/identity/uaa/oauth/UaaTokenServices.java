@@ -448,7 +448,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
-            } catch (RuntimeException | IdTokenCreationException e) {
+            } catch (RuntimeException | IdTokenCreationException ignored) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, keyInfoService.getActiveKey()).getEncoded();
@@ -528,8 +528,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
         claims.put(EXP, token.getExpiration().getTime() / 1000);
 
-        if (tokenEndpointBuilder.getTokenEndpoint() != null) {
-            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+        if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
+            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 

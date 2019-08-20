@@ -173,7 +173,7 @@ public class XOAuthAuthenticationManagerIT {
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(UAA_ISSUER_URL);
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
                 new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
                 trustingRestTemplate,
@@ -396,7 +396,7 @@ public class XOAuthAuthenticationManagerIT {
     public void when_unable_to_find_an_idp_that_matches_the_id_token_issuer() {
 
         String issuerURL = "http://issuer.url";
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://another-issuer.url");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://another-issuer.url");
         claims.put("iss", issuerURL);
         CompositeToken token = getCompositeAccessToken();
 
@@ -405,8 +405,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void when_exchanging_an_id_token_retrieved_from_the_internal_uaa_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
-        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://localhost/oauth/token");
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
@@ -431,8 +430,7 @@ public class XOAuthAuthenticationManagerIT {
     @ParameterizedTest
     @MethodSource("invalidOrigins")
     public void when_exchanging_an_id_token_issuedby_the_uaa_idp_but_not_uaa_origin(String origin) {
-        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://localhost/oauth/token");
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
