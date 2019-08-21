@@ -6,6 +6,8 @@ ext {
     libraries = [:]
 }
 
+ext['mariadb.version'] = '2.2.0'
+
 def versions = [:]
 
 // Versions shared between multiple dependencies
@@ -38,8 +40,8 @@ libraries.junit5JupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
 libraries.junit5JupiterParams = "org.junit.jupiter:junit-jupiter-params"
 libraries.junitVintageEngine = "org.junit.vintage:junit-vintage-engine"
 libraries.log4jCore = "org.apache.logging.log4j:log4j-core"
+libraries.mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
 libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
-
 libraries.springBootBom = "org.springframework.boot:spring-boot-dependencies:${versions.springBootVersion}"
 libraries.springBom = "org.springframework:spring-framework-bom:${versions.springVersion}"
 libraries.springSecurityBom = "org.springframework.security:spring-security-bom:${versions.springSecurityVersion}"
