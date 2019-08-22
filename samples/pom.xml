@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.cloudfoundry.identity</groupId>
   <artifactId>cloudfoundry-identity-samples</artifactId>
-  <version>0.0.1.BUILD-SNAPSHOT</version>
+  <version>0.0.0</version>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
