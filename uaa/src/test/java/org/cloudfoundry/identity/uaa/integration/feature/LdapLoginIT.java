@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.junit.Assert.assertThat;
@@ -77,7 +77,7 @@ public class LdapLoginIT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
-        assertTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertSupportsZoneDNS();
 
         screenShootRule.setWebDriver(webDriver);
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {

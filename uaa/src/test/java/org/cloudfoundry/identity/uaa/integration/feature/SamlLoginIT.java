@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
@@ -142,7 +142,7 @@ public class SamlLoginIT {
 
     @BeforeClass
     public static void setupSamlUtils() throws Exception {
-        assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertSupportsZoneDNS();
         samlTestUtils = new SamlTestUtils();
         try {
             samlTestUtils.initialize();

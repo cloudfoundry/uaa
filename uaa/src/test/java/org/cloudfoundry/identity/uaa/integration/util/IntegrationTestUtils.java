@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.integration.util;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
@@ -88,22 +89,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -243,17 +232,31 @@ public class IntegrationTestUtils {
         }
     };
 
-    public static boolean doesSupportZoneDNS() {
-        try {
-            return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzonedoesnotexist.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
-              Arrays.equals(Inet4Address.getByName("testzoneinactive.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
-            return false;
+    public static void assertSupportsZoneDNS() {
+        Iterable<String> hosts = Sets.newHashSet(
+                "testzone1.localhost",
+                "testzone2.localhost",
+                "testzone3.localhost",
+                "testzone4.localhost",
+                "testzonedoesnotexist.localhost",
+                "testzoneinactive.localhost"
+        );
+        assertTrue("Expected " + hosts + " to resolve to 127.0.0.1", allResolveToLoopback(hosts));
+    }
+
+    private static boolean allResolveToLoopback(Iterable<String> hosts) {
+        for (String host : hosts) {
+            InetAddress address;
+            try {
+                address = Inet4Address.getByName(host);
+            } catch (UnknownHostException e) {
+                return false;
+            }
+            if (!address.isLoopbackAddress()) {
+                return false;
+            }
         }
+        return true;
     }
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,

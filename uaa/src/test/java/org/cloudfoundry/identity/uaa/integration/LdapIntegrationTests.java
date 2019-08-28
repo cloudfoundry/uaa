@@ -40,15 +40,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 public class LdapIntegrationTests {
 
@@ -72,7 +70,7 @@ public class LdapIntegrationTests {
 
     @Test
     public void test_LDAP_Custom_User_Attributes_In_ID_Token() throws Exception {
-        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assertSupportsZoneDNS();
 
         final String COST_CENTER = "costCenter";
         final String COST_CENTERS = "costCenters";
