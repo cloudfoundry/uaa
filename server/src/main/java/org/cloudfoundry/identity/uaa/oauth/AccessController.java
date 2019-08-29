@@ -226,7 +226,8 @@ public class AccessController {
             String code = SCOPE_PREFIX + scope;
             map.put("code", code);
 
-            Optional<ScimGroup> group = groupProvisioning.query(String.format("displayName eq \"%s\"", scope), IdentityZoneHolder.get().getId()).stream().findFirst();
+            String zoneId = IdentityZoneHolder.get().getId();
+            Optional<ScimGroup> group = Optional.of(groupProvisioning.getByName(scope, zoneId));
             group.ifPresent(g -> {
                 String description = g.getDescription();
                 if (StringUtils.hasText(description)) {
