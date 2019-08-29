@@ -107,6 +107,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -241,22 +242,20 @@ public class IntegrationTestUtils {
                 "testzonedoesnotexist.localhost",
                 "testzoneinactive.localhost"
         );
-        assertTrue("Expected " + hosts + " to resolve to 127.0.0.1", allResolveToLoopback(hosts));
+        hosts.forEach(IntegrationTestUtils::assertLoopback);
     }
 
-    private static boolean allResolveToLoopback(Iterable<String> hosts) {
-        for (String host : hosts) {
-            InetAddress address;
-            try {
-                address = Inet4Address.getByName(host);
-            } catch (UnknownHostException e) {
-                return false;
-            }
-            if (!address.isLoopbackAddress()) {
-                return false;
-            }
+    private static void assertLoopback(String host) {
+        InetAddress address;
+        try {
+            address = Inet4Address.getByName(host);
+        } catch (UnknownHostException e) {
+            fail("no ip address found for " + host, e);
+            return;
         }
-        return true;
+        if (!address.isLoopbackAddress()) {
+            fail(host + " resolves to " + address + " which is not a loopback address");
+        }
     }
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,
