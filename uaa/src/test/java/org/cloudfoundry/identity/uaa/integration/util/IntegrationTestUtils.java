@@ -234,15 +234,14 @@ public class IntegrationTestUtils {
     };
 
     public static void assertSupportsZoneDNS() {
-        Iterable<String> hosts = Sets.newHashSet(
+        Arrays.asList(
                 "testzone1.localhost",
                 "testzone2.localhost",
                 "testzone3.localhost",
                 "testzone4.localhost",
                 "testzonedoesnotexist.localhost",
                 "testzoneinactive.localhost"
-        );
-        hosts.forEach(IntegrationTestUtils::assertLoopback);
+        ).forEach(IntegrationTestUtils::assertLoopback);
     }
 
     private static void assertLoopback(String host) {
