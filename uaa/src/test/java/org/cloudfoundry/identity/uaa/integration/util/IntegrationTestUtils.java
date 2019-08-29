@@ -253,9 +253,7 @@ public class IntegrationTestUtils {
             fail("no ip address found for " + host, e);
             return;
         }
-        if (!address.isLoopbackAddress()) {
-            fail(host + " resolves to " + address + " which is not a loopback address");
-        }
+        assertTrue(host + " resolves to " + address + " which is not a loopback address", address.isLoopbackAddress());
     }
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,
