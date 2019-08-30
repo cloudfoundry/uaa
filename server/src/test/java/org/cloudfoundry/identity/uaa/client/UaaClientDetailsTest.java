@@ -14,6 +14,7 @@ import static org.cloudfoundry.identity.uaa.client.UaaClientDetailsMatcher.aUaaC
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -81,7 +82,7 @@ class UaaClientDetailsTest {
             UaaClientDetails client = new UaaClientDetails(new BaseClientDetails());
             client.setScope(Collections.singleton("foo,bar"));
             assertThat(client, is(
-                    aUaaClientDetails().withScope(contains("foo", "bar"))
+                    aUaaClientDetails().withScope(containsInAnyOrder("foo", "bar"))
             ));
         }
     }
