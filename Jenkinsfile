@@ -226,6 +226,7 @@ pipeline {
                             curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
                             pushd uaa
                                 env
+                                apt-get update
                                 apt-get -qy install slapd ldap-utils
                                 slapd -V
                                 /etc/init.d/slapd start 
