@@ -231,7 +231,7 @@ pipeline {
                                 slapd -V
                                 /etc/init.d/slapd start 
                                 /etc/init.d/slapd status
-                                ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
+                                ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif || echo "unable to init ldap db"
                                 ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
                                ./gradlew --no-daemon --continue jacocoRootReportIntegrationTest
                             popd
