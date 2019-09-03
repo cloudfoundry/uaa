@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -16,6 +17,10 @@ import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -45,9 +50,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-
-public class PasswordGrantAuthenticationManager implements AuthenticationManager {
+public class PasswordGrantAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -55,6 +58,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private MultitenantClientServices clientDetailsService;
     private XOAuthProviderConfigurator xoauthProviderProvisioning;
+    private ApplicationEventPublisher eventPublisher;
 
     public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, MultitenantClientServices clientDetailsService, XOAuthProviderConfigurator xoauthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
@@ -190,10 +194,12 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
                 idToken = body.get("id_token");
             }
         } catch (HttpClientErrorException e) {
+            publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
             throw new BadCredentialsException(e.getResponseBodyAsString(), e);
         }
 
         if (idToken == null) {
+            publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
             throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider.");
         }
         XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, idToken, null, null);
@@ -222,5 +228,16 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
         return allowedProviders;
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
+    }
+
+    protected void publish(ApplicationEvent event) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(event);
+        }
     }
 }
