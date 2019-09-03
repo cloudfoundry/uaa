@@ -155,7 +155,9 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/email_sent", method = RequestMethod.GET)
-    public String emailSentPage(@ModelAttribute("code") String code) {
+    public String emailSentPage(@ModelAttribute("code") String code,
+                                HttpServletResponse response) {
+        response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
     }
 

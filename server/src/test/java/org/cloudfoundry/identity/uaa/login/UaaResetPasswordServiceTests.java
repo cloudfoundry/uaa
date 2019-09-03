@@ -15,8 +15,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,22 +35,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 class UaaResetPasswordServiceTests {
@@ -306,8 +298,7 @@ class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId())).thenReturn(user);
         doThrow(new InvalidPasswordException("Password cannot contain whitespace characters.")).when(passwordValidator).validate("new password");
 
-        InvalidPasswordException thrown = assertThrows(InvalidPasswordException.class, () -> uaaResetPasswordService.resetUserPassword(userId, "new password"));
-        assertTrue(thrown.getMessage().contains("Password cannot contain whitespace characters."));
+        assertThrowsWithMessageThat(InvalidPasswordException.class, () -> uaaResetPasswordService.resetUserPassword(userId, "new password"), containsString("Password cannot contain whitespace characters."));
     }
 
     private ExpiringCode setupResetPassword(String clientId, String redirectUri) {

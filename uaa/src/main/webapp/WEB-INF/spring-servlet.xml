@@ -17,10 +17,12 @@
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
-        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
     <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
         <property name="timeout" value="${servlet.idle-timeout:1800}"/>
@@ -215,8 +217,9 @@
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
-        <property name="requireHttps" value="${require_https:false}" />
         <property name="dumpRequests" value="${dump_requests:false}" />
+        <property name="requireHttps" value="${require_https:false}" />
+        <property name="httpsPort" value="${https_port:443}" />
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
@@ -283,13 +286,9 @@
         <property name="perRequestMetrics" value="${metrics.perRequestMetrics:false}"/>
     </bean>
 
-    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
-        <constructor-arg ref="identityProviderProvisioning"/>
-    </bean>
+    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter" />
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter">
-        <constructor-arg ref="identityProviderProvisioning"/>
-    </bean>
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter" />
 
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>

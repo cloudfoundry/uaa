@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'war'
+apply plugin: 'org.springframework.boot'
 
 war {
     baseName = 'cloudfoundry-identity-statsd'
@@ -12,24 +13,20 @@ repositories {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-configurations.all {
-    exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
-}
-
 dependencies {
     compile project(':cloudfoundry-identity-metrics-data')
-    compile("org.springframework.boot:spring-boot-starter:${parent.springBootVersion}")
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: parent.springBootVersion
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-log4j2', version: parent.springBootVersion
-    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
-    providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
-    testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
-    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
+    compile libraries.springBootStarter
+    compile libraries.springBootStarterWeb
+    compile libraries.springBootStarterLog4j2
+    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.1.0'
+    compile libraries.apacheHttpClient
+    providedCompile libraries.tomcatEmbed
+    providedRuntime libraries.springBootStarterTomcat
+    testCompile libraries.mockito
+    testCompile libraries.springBootStarterTest
 
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.3'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.5.4'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.9'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
 }
 
 test {
@@ -41,21 +38,5 @@ integrationTest {
     filter {
         includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
         includeTestsMatching "*IT"
-    }
-}
-
-
-publishing {
-    publications {
-        statsd(MavenPublication) {
-            apply plugin: 'war'
-
-            groupId 'org.cloudfoundry.identity'
-            version version
-            artifactId 'cloudfoundry-identity-statsd'
-
-            from components.web
-            artifact sourceJar
-        }
     }
 }

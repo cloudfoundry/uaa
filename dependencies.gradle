@@ -1,0 +1,90 @@
+ext {
+    tomcatVersion = '9.0.24'
+    tomcatContainerId = 'tomcat9x'
+    springBootVersion = '2.1.7.RELEASE'
+
+    libraries = [:]
+}
+
+ext['mariadb.version'] = '2.2.0'
+
+def versions = [:]
+
+// Versions shared between multiple dependencies
+versions.aspectJVersion = '1.9.4'
+versions.bouncyCastleVersion = '1.62'
+versions.hamcrestVersion = '2.1'
+versions.jacksonVersion = '2.9.9'
+versions.jsonPathVersion = '2.4.0'
+versions.mockito = '3.0.0'
+versions.springSecurityJwtVersion = '1.0.10.RELEASE'
+versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
+versions.springSecuritySamlVersion = '1.0.9.RELEASE'
+versions.tomcatVersion = "${tomcatVersion}"
+versions.springBootVersion = "${springBootVersion}"
+versions.springVersion = '5.1.9.RELEASE'
+versions.springSecurityVersion = '5.1.6.RELEASE'
+
+// Dependencies relying on shared versions
+libraries.aspectJRt = "org.aspectj:aspectjrt:${versions.aspectJVersion}"
+libraries.aspectJWeaver = "org.aspectj:aspectjweaver:${versions.aspectJVersion}"
+libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk15on:${versions.bouncyCastleVersion}"
+libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyCastleVersion}"
+libraries.hamcrest = "org.hamcrest:hamcrest:${versions.hamcrestVersion}"
+libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
+libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
+libraries.jsonPath = "com.jayway.jsonpath:json-path:${versions.jsonPathVersion}"
+libraries.jsonPathAssert = "com.jayway.jsonpath:json-path-assert:${versions.jsonPathVersion}"
+libraries.junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api"
+libraries.junit5JupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
+libraries.junit5JupiterParams = "org.junit.jupiter:junit-jupiter-params"
+libraries.junitVintageEngine = "org.junit.vintage:junit-vintage-engine"
+libraries.log4jCore = "org.apache.logging.log4j:log4j-core"
+libraries.mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
+libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
+libraries.springBootBom = "org.springframework.boot:spring-boot-dependencies:${versions.springBootVersion}"
+libraries.springBom = "org.springframework:spring-framework-bom:${versions.springVersion}"
+libraries.springSecurityBom = "org.springframework.security:spring-security-bom:${versions.springSecurityVersion}"
+libraries.springBeans = "org.springframework:spring-beans"
+libraries.springBootStarter = "org.springframework.boot:spring-boot-starter"
+libraries.springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2"
+libraries.springBootStarterTest = "org.springframework.boot:spring-boot-starter-test"
+libraries.springBootStarterTomcat = "org.springframework.boot:spring-boot-starter-tomcat"
+libraries.springBootStarterWeb = "org.springframework.boot:spring-boot-starter-web"
+libraries.springContext = "org.springframework:spring-context"
+libraries.springContextSupport = "org.springframework:spring-context-support"
+libraries.springJdbc = "org.springframework:spring-jdbc"
+libraries.springLdapCore = "org.springframework.ldap:spring-ldap-core"
+libraries.springLdapCoreTiger = "org.springframework.ldap:spring-ldap-core-tiger"
+libraries.springRetry = "org.springframework.retry:spring-retry"
+libraries.springSecurityConfig = "org.springframework.security:spring-security-config"
+libraries.springSecurityCore = "org.springframework.security:spring-security-core"
+libraries.springSecurityJwt = "org.springframework.security:spring-security-jwt:${versions.springSecurityJwtVersion}"
+libraries.springSecurityLdap = "org.springframework.security:spring-security-ldap"
+libraries.springSecurityOauth = "org.springframework.security.oauth:spring-security-oauth2:${versions.springSecurityOAuthVersion}"
+libraries.springSecuritySaml = "org.springframework.security.extensions:spring-security-saml2-core:${versions.springSecuritySamlVersion}"
+libraries.springSecurityTaglibs = "org.springframework.security:spring-security-taglibs"
+libraries.springSecurityTest = "org.springframework.security:spring-security-test"
+libraries.springSecurityWeb = "org.springframework.security:spring-security-web"
+libraries.springTest = "org.springframework:spring-test"
+libraries.springTx = "org.springframework:spring-tx"
+libraries.springWeb = "org.springframework:spring-web"
+libraries.springWebMvc = "org.springframework:spring-webmvc"
+libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersion}"
+libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatVersion}"
+libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
+libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
+
+// Dependencies shared between projects which do not rely on shared versions
+libraries.apacheHttpClient = 'org.apache.httpcomponents:httpclient:4.5.3'
+libraries.apacheLdapApi = 'org.apache.directory.api:api-ldap-model:1.0.3'
+libraries.commonsLogging = 'commons-logging:commons-logging:1.2'
+libraries.flywayCore = 'org.flywaydb:flyway-core:5.2.4'
+libraries.junit = 'junit:junit:4.12'
+libraries.mockito = "org.mockito:mockito-core:${versions.mockito}"
+libraries.mockitoJunit5 = "org.mockito:mockito-junit-jupiter:${versions.mockito}"
+libraries.postgresql = 'org.postgresql:postgresql:42.2.6'
+libraries.thymeleafDialect = 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:2.4.1'
+libraries.thymeleafExtrasSpringSecurity5 = 'org.thymeleaf.extras:thymeleaf-extras-springsecurity5:3.0.4.RELEASE'
+libraries.thymeleafSpring5 = 'org.thymeleaf:thymeleaf-spring5:3.0.11.RELEASE'
+libraries.zxing = 'com.google.zxing:javase:3.4.0'

@@ -15,11 +15,11 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:aop="http://www.springframework.org/schema/aop"
     xmlns:util="http://www.springframework.org/schema/util"
-    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
         http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
     <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
@@ -106,20 +106,16 @@
     </aop:config>
 
     <bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
-        <constructor-arg ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
+        <property name="jdbcScimGroupExternalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="jdbcScimGroupMembershipManager" ref="groupMembershipManager" />
     </bean>
 
     <bean id="groupMembershipManager"
           class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="zoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
@@ -197,14 +193,12 @@
     </bean>
 
     <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="passwordValidator" ref="uaaPasswordValidator" />
-        <property name="messageConverters">
+        <constructor-arg>
             <list>
                 <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
-        </property>
+        </constructor-arg>
     </bean>
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
@@ -266,12 +260,7 @@
     </bean>
 
     <bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap">
-        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <constructor-arg ref="users" /> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
-        <property name="override" value="${scim.user.override:false}" />
-        <property name="usersToDelete" value="#{@config['delete']==null ? null : @config['delete']['users']}" />
     </bean>
 
     <bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap">

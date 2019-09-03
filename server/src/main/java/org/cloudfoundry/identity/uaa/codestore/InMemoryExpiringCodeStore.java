@@ -1,20 +1,7 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
@@ -45,7 +32,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
 
-        ExpiringCode duplicate = store.putIfAbsent(code + IdentityZoneHolder.get().getId(), expiringCode);
+        ExpiringCode duplicate = store.putIfAbsent(code + zoneId, expiringCode);
         if (duplicate != null) {
             throw new DataIntegrityViolationException("Duplicate code: " + code);
         }
@@ -59,7 +46,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
             throw new NullPointerException();
         }
 
-        ExpiringCode expiringCode = store.remove(code + IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = store.remove(code + zoneId);
 
         if (expiringCode == null || isExpired(expiringCode)) {
             expiringCode = null;
@@ -81,7 +68,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     public void expireByIntent(String intent, String zoneId) {
         Assert.hasText(intent);
 
-        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + IdentityZoneHolder.get().getId()));
+        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + zoneId));
     }
 
     public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {

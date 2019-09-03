@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -65,6 +66,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -144,9 +146,9 @@ public final class MockMvcUtils {
         "        </ds:X509Data>\n" +
         "      </ds:KeyInfo>\n" +
         "    </md:KeyDescriptor>\n" +
-        "    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://simplesamlphp.cfapps.io/saml2/idp/SingleLogoutService.php\"/>\n" +
+        "    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"" + IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SingleLogoutService.php\"/>\n" +
         "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
-        "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php\"/>\n" +
+        "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"" + IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php\"/>\n" +
         "  </md:IDPSSODescriptor>\n" +
         "  <md:ContactPerson contactType=\"technical\">\n" +
         "    <md:GivenName>Filip</md:GivenName>\n" +
@@ -1280,10 +1282,14 @@ public final class MockMvcUtils {
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId) {
+        return getUaaSecurityContext(username, context, currentZoneId, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
+    }
+
+    public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId, Collection<? extends GrantedAuthority> authorities) {
         ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
         ScimUser user = userProvisioning.query("username eq \"" + username + "\" and origin eq \"uaa\"", currentZoneId).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), currentZoneId);
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, authorities, new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
         SecurityContext securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(principal);
         return securityContext;

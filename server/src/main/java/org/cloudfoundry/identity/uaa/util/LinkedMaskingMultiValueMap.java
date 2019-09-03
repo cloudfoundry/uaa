@@ -114,6 +114,20 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
     }
 
     @Override
+    public void addAll(K key, List<? extends V> values) {
+        for (V value : values) {
+            add(key, value);
+        }
+    }
+
+    @Override
+    public void addAll(MultiValueMap<K, V> values) {
+        for (Entry<K, List<V>> entry : values.entrySet()) {
+            addAll(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
     public V getFirst(K key) {
         List<V> values = this.targetMap.get(key);
         return (values != null ? values.get(0) : null);

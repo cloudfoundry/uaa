@@ -42,7 +42,7 @@ public class UaaHttpRequestUtilsTest {
     private static final String HTTPS_HOST_PROPERTY = "https.proxyHost";
     private static final String HTTPS_PORT_PROPERTY = "https.proxyPort";
 
-    private static Map<String,String> systemProxyConfig = new HashMap<>();
+    private static Map<String, String> systemProxyConfig = new HashMap<>();
     private NetworkTestUtils.SimpleHttpResponseHandler httpResponseHandler;
     private NetworkTestUtils.SimpleHttpResponseHandler httpsResponseHandler;
 
@@ -52,11 +52,14 @@ public class UaaHttpRequestUtilsTest {
             systemProxyConfig.put(s, System.getProperty(s));
         }
     }
+
     @AfterClass
     public static void restoreSystemProxyConfig() {
-        for (Map.Entry<String,String> entry : systemProxyConfig.entrySet()) {
-            if (entry.getValue()!=null) {
+        for (Map.Entry<String, String> entry : systemProxyConfig.entrySet()) {
+            if (entry.getValue() != null) {
                 System.setProperty(entry.getKey(), entry.getValue());
+            } else {
+                System.clearProperty(entry.getKey());
             }
         }
     }
@@ -133,7 +136,7 @@ public class UaaHttpRequestUtilsTest {
         builder.setRoutePlanner(routePlanner);
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
-            template.getForObject(url,String.class);
+            template.getForObject(url, String.class);
         } catch (Exception e) {
         }
         assertEquals(1, routePlanner.routes.size());

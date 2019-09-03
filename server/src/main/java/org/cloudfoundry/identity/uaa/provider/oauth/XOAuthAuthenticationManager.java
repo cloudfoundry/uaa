@@ -170,7 +170,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     private boolean idTokenWasIssuedByTheUaa(String issuer) {
-        return issuer.equals(tokenEndpointBuilder.getTokenEndpoint());
+        return issuer.equals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
     }
 
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
@@ -521,7 +521,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         TokenValidation validation;
 
-        if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
+        if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {

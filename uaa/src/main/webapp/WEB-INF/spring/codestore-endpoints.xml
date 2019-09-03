@@ -13,15 +13,12 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
-        <property name="expiringCodeStore" ref="codeStore" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-        </property>
-    </bean>
+    <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
+
+    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints" />
 
     <http  name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"

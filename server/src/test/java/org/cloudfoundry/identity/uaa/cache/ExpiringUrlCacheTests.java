@@ -99,17 +99,7 @@ class ExpiringUrlCacheTests {
         assertNotSame(c1, c2);
     }
 
-
-    @Test
-    void test_google_returns_same_array() {
-        uri = "https://accounts.google.com/.well-known/openid-configuration";
-        byte[] c1 = cache.getUrlContent(uri, new RestTemplate());
-        byte[] c2 = cache.getUrlContent(uri, new RestTemplate());
-        assertNotNull(c1);
-        assertSame(c1, c2);
-    }
-
-    @Test
+   @Test
     void cache_should_start_empty() {
         assertEquals(0, cache.size());
     }

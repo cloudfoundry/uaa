@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.*;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -432,8 +431,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Object accessToken = tokens.get(ACCESS_TOKEN);
         Object jti = tokens.get(JTI);
         assertNotNull(accessToken);
-        assertNotNull(JTI);
-
+        assertNotNull(jti);
     }
 
     @Test
@@ -1882,18 +1880,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
 
-        ScimUserBootstrap bootstrap = webApplicationContext.getBean(ScimUserBootstrap.class);
-        boolean isOverride = bootstrap.isOverride();
-        bootstrap.setOverride(true);
-        bootstrap.afterPropertiesSet();
-        bootstrap.setOverride(isOverride);
-
         //ensure we can do scim.read with the existing token
         mockMvc.perform(get("/Users")
                 .header("Authorization", "Bearer " + accessToken)
                 .accept(APPLICATION_JSON)
         ).andExpect(status().isOk());
-
     }
 
     @Test
@@ -4037,7 +4028,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, Object> result = getClaimsForToken(token);
         TokenEndpointBuilder tokenEndpointBuilder = (TokenEndpointBuilder) webApplicationContext.getBean("tokenEndpointBuilder");
         String iss = (String) result.get(ClaimConstants.ISS);
-        assertEquals(tokenEndpointBuilder.getTokenEndpoint(), iss);
+        assertEquals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()), iss);
         String sub = (String) result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
         List<String> aud = (List<String>) result.get(ClaimConstants.AUD);

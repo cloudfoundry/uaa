@@ -15,12 +15,12 @@ dependencies {
 
   compile identityServer
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
-  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
+  providedCompile libraries.tomcatEmbed
+  compile(libraries.springSecurityTaglibs) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
   }
-  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion
+  compile libraries.springSecurityConfig
 
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output

@@ -13,7 +13,7 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
         <constructor-arg ref="jdbcTemplate" />
@@ -178,6 +178,14 @@
                             <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
                             <entry key="redirect-uri" value="http://redirect.localhost" />
+                        </map>
+                    </entry>
+                    <entry key="client_with_bcrypt_prefix">
+                        <map>
+                            <entry key="secret" value="password" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="authorities" value="uaa.none" />
+                            <entry key="use-bcrypt-prefix" value="true" />
                         </map>
                     </entry>
                 </map>

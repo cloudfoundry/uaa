@@ -59,6 +59,7 @@ public class OauthIDPWrapperFactoryBean {
                         setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
                         oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
                         oidcIdentityProviderDefinition.setPasswordGrantEnabled(idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
+                        oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
                         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
                         rawDef = oidcIdentityProviderDefinition;

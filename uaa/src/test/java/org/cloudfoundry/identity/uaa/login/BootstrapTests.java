@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -18,17 +6,23 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.flywaydb.core.Flyway;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
@@ -39,15 +33,30 @@ import org.springframework.web.servlet.ViewResolver;
 
 import javax.servlet.RequestDispatcher;
 import java.io.File;
-import java.util.*;
+import java.util.Arrays;
+import java.util.EventListener;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
+    private static final String LOGIN_IDP_METADATA = "login.idpMetadata";
+    private static final String LOGIN_IDP_ENTITY_ALIAS = "login.idpEntityAlias";
+    private static final String LOGIN_IDP_METADATA_URL = "login.idpMetadataURL";
+    private static final String LOGIN_SAML_METADATA_TRUST_CHECK = "login.saml.metadataTrustCheck";
+    private static String systemConfiguredProfiles;
+    private static Map<String, String> originalSystemProps = new HashMap<>();
 
     private ConfigurableApplicationContext context;
-
-    private static String systemConfiguredProfiles;
 
     @BeforeClass
     public static void saveProfiles() {
@@ -64,9 +73,24 @@ public class BootstrapTests {
     }
 
     @Before
-    public synchronized void setup() {
+    public void setup() {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
+
+        for (String s : Arrays.asList(LOGIN_IDP_METADATA, LOGIN_IDP_ENTITY_ALIAS, LOGIN_IDP_METADATA_URL, LOGIN_SAML_METADATA_TRUST_CHECK)) {
+            originalSystemProps.put(s, System.getProperty(s));
+        }
+    }
+
+    @After
+    public void tearDown() {
+        for (Map.Entry<String, String> entry : originalSystemProps.entrySet()) {
+            if (entry.getValue() != null) {
+                System.setProperty(entry.getKey(), entry.getValue());
+            } else {
+                System.clearProperty(entry.getKey());
+            }
+        }
     }
 
     @Test
@@ -74,8 +98,8 @@ public class BootstrapTests {
         context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
-        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
-        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
+        assertThat(scimGroups, PredicateMatcher.has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
+        assertThat(scimGroups, PredicateMatcher.has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
         IdentityZoneConfigurationBootstrap zoneBootstrap = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertEquals("https://deprecated.home_redirect.com", zoneBootstrap.getHomeRedirect());
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve("uaa");
@@ -89,9 +113,9 @@ public class BootstrapTests {
 
     @Test
     public void legacy_saml_idp_as_top_level_element() {
-        System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
-        System.setProperty("login.idpEntityAlias", "testIDPFile");
+        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
+        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
@@ -111,8 +135,8 @@ public class BootstrapTests {
     @Test
     public void legacy_saml_metadata_as_xml() throws Exception {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
-        System.setProperty("login.idpMetadata", metadataString);
-        System.setProperty("login.idpEntityAlias", "testIDPData");
+        System.setProperty(LOGIN_IDP_METADATA, metadataString);
+        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
         context = getServletContext("default,saml,configMetadata", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertEquals(
@@ -123,9 +147,9 @@ public class BootstrapTests {
 
     @Test
     public void legacy_saml_metadata_as_url() {
-        System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
-        System.setProperty("login.idpEntityAlias", "testIDPUrl");
+        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
+        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
@@ -144,9 +168,9 @@ public class BootstrapTests {
 
     @Test
     public void legacy_saml_url_without_port() {
-        System.setProperty("login.saml.metadataTrustCheck", "false");
-        System.setProperty("login.idpMetadataURL", "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
-        System.setProperty("login.idpEntityAlias", "testIDPUrl");
+        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
+        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
         context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
@@ -166,7 +190,7 @@ public class BootstrapTests {
 
     }
 
-    protected SamlIdentityProviderDefinition findProvider(List<SamlIdentityProviderDefinition> defs, String alias) {
+    private SamlIdentityProviderDefinition findProvider(List<SamlIdentityProviderDefinition> defs, String alias) {
         for (SamlIdentityProviderDefinition def : defs) {
             if (alias.equals(def.getIdpEntityAlias())) {
                 return def;

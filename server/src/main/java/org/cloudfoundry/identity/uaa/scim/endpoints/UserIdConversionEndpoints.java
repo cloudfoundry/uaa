@@ -15,17 +15,16 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -36,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -46,13 +46,12 @@ import java.util.stream.Collectors;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- *
  */
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private final SecurityContextAccessor securityContextAccessor;
 
     private ScimUserEndpoints scimUserEndpoints;
 
@@ -60,11 +59,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     private boolean enabled = true;
 
-    public UserIdConversionEndpoints(IdentityProviderProvisioning provisioning) {
+    public UserIdConversionEndpoints(final IdentityProviderProvisioning provisioning,
+                                     final SecurityContextAccessor securityContextAccessor) {
         this.provisioning = provisioning;
-    }
-
-    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
 
@@ -139,12 +136,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
             }
         } catch (SCIMException e) {
             logger.debug("/ids/Users received an invalid filter [" + filter + "]", e);
-            throw new ScimException("Invalid filter '"+filter+"'", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid filter '" + HtmlUtils.htmlEscape(filter) + "'", HttpStatus.BAD_REQUEST);
         }
     }
 
     /**
      * Returns true if the field 'id' or 'userName' are present in the query.
+     *
      * @param filter
      * @return
      */

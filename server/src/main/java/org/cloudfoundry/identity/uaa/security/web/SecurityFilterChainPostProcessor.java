@@ -91,6 +91,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     private List<String> redirectToHttps = Collections.emptyList();
     private List<String> ignore = Collections.emptyList();
     private boolean dumpRequests = false;
+    private int httpsPort;
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
     private Map<FilterPosition,Filter> additionalFilters;
@@ -143,6 +144,10 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         return requireHttps;
     }
 
+    public void setHttpsPort(int httpsPort) {
+        this.httpsPort = httpsPort;
+    }
+
     /**
      * Debugging feature. If enabled, and debug logging is enabled
      */
@@ -175,7 +180,6 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     final class HttpsEnforcementFilter extends UaaLoggingFilter {
-        private final int httpsPort = 443;
         private final boolean redirect;
 
         HttpsEnforcementFilter(String name, boolean redirect) {

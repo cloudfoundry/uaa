@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
@@ -452,7 +453,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         ));
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
+                .setMetaDataLocation(IntegrationTestUtils.EXAMPLE_DOT_COM_SAML_IDP_METADATA)
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
                 .setZoneId(IdentityZone.getUaaZoneId());
@@ -590,6 +591,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
+                fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
                 fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
                 fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),
@@ -861,7 +863,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.passwordPolicy.requireLowerCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of lowercase characters required for password to be considered valid (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.expireInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
+                fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
                 fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
                 fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),

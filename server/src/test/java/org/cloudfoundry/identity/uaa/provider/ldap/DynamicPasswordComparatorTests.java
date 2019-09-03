@@ -57,7 +57,7 @@ public class DynamicPasswordComparatorTests  {
     @Test
     public void testEncodePassword() throws Exception {
         try {
-            comparator.encodePassword("test",null);
+            comparator.encode("test");
             fail("Method and test not implemented yet.");
         } catch (UnsupportedOperationException x) {
         }
@@ -66,7 +66,7 @@ public class DynamicPasswordComparatorTests  {
     @Test
     public void testIsPasswordValid() throws Exception {
         try {
-            comparator.isPasswordValid("test","test",null);
+            comparator.matches("test","test");
             fail("Method and test not implemented yet.");
         } catch (UnsupportedOperationException x) {
         }

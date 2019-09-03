@@ -3,45 +3,44 @@ import org.apache.tools.ant.filters.ReplaceTokens
 import java.nio.file.Files
 import java.nio.file.Paths
 
-import io.honeycomb.libhoney.HoneyClient
-import io.honeycomb.libhoney.EventFactory
-import static io.honeycomb.libhoney.LibHoney.create
-import static io.honeycomb.libhoney.LibHoney.options
-
 buildscript {
-    apply from: file('shared_versions.gradle')
+    apply from: 'dependencies.gradle'
 
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url 'https://repo.spring.io/plugins-release'
-        }
-        maven {
-            url 'https://plugins.gradle.org/m2/'
         }
     }
 
     dependencies {
-        classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
-        classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
-        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
-        classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
+        classpath 'com.bmuschko:gradle-cargo-plugin:2.6.1'
+        classpath 'io.spring.gradle:propdeps-plugin:0.0.10.RELEASE'
+        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.6.1'
+        classpath 'com.moowork.gradle:gradle-node-plugin:1.1.0'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.0.8.RELEASE'
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
     }
 }
 
-apply from: file('shared_versions.gradle')
+apply from: 'dependencies.gradle'
 apply plugin: 'com.bmuschko.cargo'
 
 allprojects {
-    apply plugin: 'maven'
-    group = 'org.cloudfoundry.identity'
 
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom libraries.springBootBom
+            mavenBom libraries.springBom
+            mavenBom libraries.springSecurityBom
+        }
+    }
+
     configurations.provided.transitive = false
 
     repositories {
@@ -51,56 +50,37 @@ allprojects {
         }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
-    task sourceJar(type: Jar) {
-        from sourceSets.main.allJava
-        classifier "sources"
-    }
-    apply plugin: 'maven-publish'
-
-    publishing {
-        repositories {
-            maven {
-                url "https://oss.sonatype.org/content/repositories/releases"
-                credentials {
-                    username "$nexusUsername"
-                    password "$nexusPassword"
-                }
-            }
-        }
-    }
 }
 
 subprojects {
-    EventFactory honeyCombEventFactory = buildEventFactory()
-
     apply plugin: 'java'
 
+    configurations.all {
+        exclude group: 'org.hamcrest', module: 'hamcrest-all'
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+        exclude group: 'org.hamcrest', module: 'hamcrest-library'
+        exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+    }
+
     dependencies {
-        testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
-        testCompile("org.junit.jupiter:junit-jupiter-api:${junit5JupiterVersion}")
-        testCompile("org.junit.jupiter:junit-jupiter-params:${junit5JupiterVersion}")
-        testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
-        testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit5JupiterVersion}")
-        testRuntime("org.junit.vintage:junit-vintage-engine:${junit5JupiterVersion}")
+        testCompile(libraries.springBootStarterTest)
+        testCompile libraries.hamcrest
+        testCompile(libraries.junit5JupiterApi)
+        testCompile(libraries.junit5JupiterParams)
+        testRuntime(libraries.junit5JupiterEngine)
+        testRuntime(libraries.junitVintageEngine)
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
+
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
+
     test {
         maxParallelForks = 6
 
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
-
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
-        }
-
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
-        }
 
         testLogging {
             events 'skipped', 'failed', 'passed'
@@ -115,14 +95,6 @@ subprojects {
         dependsOn rootProject.cargoStartLocal
 
         useJUnitPlatform()
-        
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
-        }
-
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
-        }
 
         testLogging {
             events 'skipped', 'failed', 'passed'
@@ -133,22 +105,36 @@ subprojects {
         }
     }
 
-    task packageSources(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
     task generateDocs() {
     }
 
-    artifacts {
-        archives packageSources
+    task writeNewPom() {
+        doLast {
+            pom {
+                project {
+                    licenses {
+                        license {
+                            name 'The Apache Software License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution 'repo'
+                        }
+                    }
+                }
+            }.writeTo("./pom.xml")
+        }
     }
 
     repositories {
-        maven { url 'https://jitpack.io' }
-        maven { url "https://repo.spring.io/release" }
-        maven { url "https://repo.maven.apache.org/maven2" }
+        mavenCentral()
+        maven {
+            url 'https://jitpack.io'
+        }
+        maven {
+            url "https://repo.spring.io/release"
+        }
+        maven {
+            url "https://repo.maven.apache.org/maven2"
+        }
     }
 
 }
@@ -242,17 +228,6 @@ task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
-task encrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Encryptor'
-    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
-task decrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Decryptor'
-    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
 
 // task dependencies
 assemble.dependsOn subprojects.assemble
@@ -260,55 +235,3 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-private EventFactory buildEventFactory() {
-    def honeycombKey = System.getenv("HONEYCOMB_KEY")
-    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
-
-    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
-        return null
-    }
-
-    HoneyClient honeyClient = create(
-            options()
-                    .setWriteKey(honeycombKey)
-                    .setDataset(honeycombDataset)
-                    .build()
-    )
-
-    def uniqueTestID = UUID.randomUUID().toString()
-    System.setProperty("testId", uniqueTestID)
-
-    return honeyClient.buildEventFactory()
-            .addField("testId", uniqueTestID)
-            .addField("cpuCores", Runtime.getRuntime().availableProcessors())
-            .addField("hostname", InetAddress.getLocalHost().getHostName())
-            .build()
-}
-
-private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
-    if (localBuilder != null) {
-        def event = localBuilder.createEvent()
-
-        event
-                .addField("test_lifecycle", testLifecycle)
-                .addField("testClass", descriptor.className)
-                .addField("testName", descriptor.name)
-                .addField("result", testResult.resultType)
-                .addField("output", testResult.exception)
-                .addField("startTime", testResult.startTime)
-                .addField("endTime", testResult.endTime)
-                .addField("duration", testResult.endTime - testResult.startTime)
-                .setTimestamp(System.currentTimeMillis())
-
-        for (Map.Entry entry : System.getProperties().entrySet()) {
-            event.addField(entry.key, entry.value)
-        }
-
-        event.addField("DB", System.getenv().get("DB"))
-        event.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"))
-        event.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"))
-
-        event.send()
-    }
-}

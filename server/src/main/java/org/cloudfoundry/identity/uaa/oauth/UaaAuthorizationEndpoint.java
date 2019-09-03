@@ -19,8 +19,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -72,7 +72,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.Principal;
 import java.util.*;
@@ -103,7 +102,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
     private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
 
-    private RedirectResolver redirectResolver;
+    private final RedirectResolver redirectResolver;
 
     private UserApprovalHandler userApprovalHandler = new DefaultUserApprovalHandler();
 
@@ -122,6 +121,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
+
+    UaaAuthorizationEndpoint(final RedirectResolver redirectResolver) {
+        this.redirectResolver = redirectResolver;
+    }
 
     @RequestMapping(value = "/oauth/authorize")
     public ModelAndView authorize(Map<String, Object> model,
@@ -640,12 +643,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     }
 
     private String encode(String value) {
-        try {
-            //return URLEncoder.encode(value,"UTF-8");
-            return UriUtils.encodeQueryParam(value, "UTF-8");
-        } catch (UnsupportedEncodingException x) {
-            throw new IllegalArgumentException(x);
-        }
+        return UriUtils.encodeQueryParam(value, "UTF-8");
     }
 
     private String getSuccessfulRedirect(AuthorizationRequest authorizationRequest, String authorizationCode) {
@@ -705,10 +703,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     public void setAuthorizationCodeServices(AuthorizationCodeServices authorizationCodeServices) {
         this.authorizationCodeServices = authorizationCodeServices;
-    }
-
-    public void setRedirectResolver(RedirectResolver redirectResolver) {
-        this.redirectResolver = redirectResolver;
     }
 
     public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {

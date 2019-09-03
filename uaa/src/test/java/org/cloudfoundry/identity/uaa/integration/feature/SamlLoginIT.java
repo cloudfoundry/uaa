@@ -51,8 +51,6 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.logging.LogType;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,7 +78,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
@@ -96,7 +93,6 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -196,8 +192,7 @@ public class SamlLoginIT {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
             webDriver.manage().deleteAllCookies();
         }
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-        webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
     }
 
     @Test
@@ -256,14 +251,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        // We need to verify the last request URL through the performance log because the redirect
-        // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
-        // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
-
-        List<LogEntry> logEntries = webDriver.manage().logs().get(LogType.PERFORMANCE).getAll();
-        List<String> logMessages = logEntries.stream().map(logEntry -> logEntry.getMessage()).collect(Collectors.toList());
-
-        assertThat(logMessages, hasItem(containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.")));
+        assertThat(webDriver.getCurrentUrl(), containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
 
     @Test
@@ -399,7 +387,7 @@ public class SamlLoginIT {
                 "identitysecret",
                 email,
                 "secr3T");
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -431,7 +419,7 @@ public class SamlLoginIT {
 
     @Test
     public void testSingleLogoutWithNoLogoutUrlOnIDP() throws Exception {
-        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured(SAML_ORIGIN);
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
@@ -643,7 +631,7 @@ public class SamlLoginIT {
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
     }
 
     @Test
@@ -694,7 +682,7 @@ public class SamlLoginIT {
 
         webDriver.get(zoneUrl + "/logout.do");
 
-        String samlUrl = "http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php?"+
+        String samlUrl = IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"+
             "spentityid=testzone1.cloudfoundry-saml-login&" +
             "RelayState=https://www.google.com";
         webDriver.get(samlUrl);
@@ -1303,7 +1291,7 @@ public class SamlLoginIT {
         webDriver.get(testZone1Url + "/logout.do");
 
         //disable the provider
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
@@ -1440,9 +1428,9 @@ public class SamlLoginIT {
         return createSimplePHPSamlIDP(alias, zoneSubdomain);
     }
 
-    public SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured(String alias) {
+    private SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured() {
         String idpMetaData = "<?xml version=\"1.0\"?>\n" +
-                "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://"+alias+".cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
+                "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"" + IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
                 "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
                 "    <ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\n" +
                 "  <ds:Reference URI=\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\n" +
@@ -1463,7 +1451,7 @@ public class SamlLoginIT {
                 "      </ds:KeyInfo>\n" +
                 "    </md:KeyDescriptor>\n" +
                 "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
-                "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://"+alias+".cfapps.io/saml2/idp/SSOService.php\"/>\n" +
+                "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"" + IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php\"/>\n" +
                 "  </md:IDPSSODescriptor>\n" +
                 "  <md:ContactPerson contactType=\"technical\">\n" +
                 "    <md:GivenName>Filip</md:GivenName>\n" +
@@ -1479,8 +1467,8 @@ public class SamlLoginIT {
         def.setAssertionConsumerIndex(0);
         def.setMetadataTrustCheck(false);
         def.setShowSamlLink(true);
-        def.setIdpEntityAlias(alias);
-        def.setLinkText("Login with Simple SAML PHP("+alias+")");
+        def.setIdpEntityAlias("simplesamlphp");
+        def.setLinkText("Login with Simple SAML PHP(simplesamlphp)");
         return def;
     }
 

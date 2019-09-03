@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import com.unboundid.scim.sdk.InvalidResourceException;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,8 +10,10 @@ import org.springframework.util.MultiValueMap;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SimpleSearchQueryConverterTests {
@@ -29,10 +30,10 @@ class SimpleSearchQueryConverterTests {
         String query = ModelTestUtils.getResourceAsString(this.getClass(), "testQuery.scimFilter");
 
         String message =
-                assertThrows(InvalidResourceException.class, () -> converter.scimFilter(query))
+                assertThrows(IllegalArgumentException.class, () -> converter.convert(query, null, false, "foo"))
                         .getMessage();
 
-        assertThat(message, startsWith("Invalid filter attributes"));
+        assertThat(message, containsString("Message: Invalid filter attributes"));
         assertThat(message, containsString("an/**/invalid/**/attribute/**/and/**/1"));
         assertThat(message, containsString("1"));
         assertThat(message, containsString("\"1\""));
@@ -61,30 +62,27 @@ class SimpleSearchQueryConverterTests {
     void invalidFilterAttribute() {
         String query = "origin eq \"origin-value\" and externalGroup eq \"group-value\"";
 
-        String message = assertThrows(IllegalArgumentException.class,
-                () -> converter.getFilterValues(query, Arrays.asList("origin", "externalGroup"))).getMessage();
-
-        assertThat(message, is("Invalid filter attributes:externalGroup"));
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, Arrays.asList("origin", "externalGroup")),
+                is("Invalid filter attributes:externalGroup"));
     }
 
     @Test
     void invalidConditionalOr() {
         String query = "origin eq \"origin-value\" or externalGroup eq \"group-value\"";
         List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
-        String message = assertThrows(IllegalArgumentException.class,
-                () -> converter.getFilterValues(query, validAttributes)).getMessage();
-
-        assertThat(message, is("[or] operator is not supported."));
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes),
+                is("[or] operator is not supported."));
     }
 
     @Test
     void invalidConditionalPr() {
         String query = "origin eq \"origin-value\" and externalGroup pr";
         List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
-        String message = assertThrows(IllegalArgumentException.class,
-                () -> converter.getFilterValues(query, validAttributes)).getMessage();
-
-        assertThat(message, is("[pr] operator is not supported."));
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes),
+                is("[pr] operator is not supported."));
     }
 
     @ParameterizedTest
@@ -92,9 +90,8 @@ class SimpleSearchQueryConverterTests {
     void invalidOperator(final String operator) {
         String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
         List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
-        String message = assertThrows(IllegalArgumentException.class,
-                () -> converter.getFilterValues(query, validAttributes)).getMessage();
-
-        assertThat(message, is("[" + operator + "] operator is not supported."));
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> converter.getFilterValues(query, validAttributes),
+                is("[" + operator + "] operator is not supported."));
     }
 }

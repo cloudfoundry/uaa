@@ -94,7 +94,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
-        super.validateOrderBy(orderBy, CLIENT_FIELDS);
+        super.validateOrderBy(orderBy, CLIENT_FIELDS.replace("client_secret,", ""));
     }
 
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {

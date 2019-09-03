@@ -4,7 +4,7 @@ import org.junit.jupiter.api.extension.*;
 import org.springframework.restdocs.ManualRestDocumentation;
 
 public class JUnitRestDocumentationExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
-    ManualRestDocumentation restDocumentation = new ManualRestDocumentation();
+    ManualRestDocumentation restDocumentation = new ManualRestDocumentation(System.getProperty("docs.build.generated.snippets.dir"));
 
     @Override
     public void beforeEach(ExtensionContext context) {

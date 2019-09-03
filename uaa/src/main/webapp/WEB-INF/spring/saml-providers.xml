@@ -16,8 +16,8 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:security="http://www.springframework.org/schema/security"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
 
 
 
@@ -35,7 +35,7 @@
                 <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />
                 <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter" />
                 <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
-                <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
+                <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlSecurityContextPersistenceFilter,samlLogoutProcessingFilter" />
                 <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
             </security:filter-chain-map>
         </bean>

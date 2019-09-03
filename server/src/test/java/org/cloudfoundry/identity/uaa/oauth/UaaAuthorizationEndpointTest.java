@@ -50,7 +50,7 @@ public class UaaAuthorizationEndpointTest {
     @Before
     public void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
-        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint();
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(null);
         uaaAuthorizationEndpoint.setOAuth2RequestFactory(oAuth2RequestFactory);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
         openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
@@ -136,7 +136,7 @@ public class UaaAuthorizationEndpointTest {
 
         assertThat(result, containsString("http://example.com/somepath#"));
         assertThat(result, containsString("token_type=bearer"));
-        assertThat(result, containsString("access_token=TOKEN_VALUE%2B%3D"));
+        assertThat(result, containsString("access_token=TOKEN_VALUE+%3D"));
         assertThat(result, containsString("id_token=idTokenValue"));
         assertThat(result, containsString("code=ABCD"));
         assertThat(result, containsString("state=California"));

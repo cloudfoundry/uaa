@@ -120,7 +120,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.manage().deleteAllCookies();
 
         webDriver.get("http://localhost:8080/app/");
@@ -278,7 +278,7 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
+        webDriver.get(IntegrationTestUtils.OIDC_ACCEPTANCE_URL + "logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 

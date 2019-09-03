@@ -192,6 +192,52 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
+    public void createClientWithCommaDelimitedScopesValidatesAllTheScopes() throws Exception {
+        // log in as admin
+        OAuth2AccessToken adminToken = getClientCredentialsAccessToken("");
+        HttpHeaders adminHeaders = getAuthenticatedHeaders(adminToken);
+
+        // make client that can create other clients
+        String newClientId = new RandomValueStringGenerator().generate();
+        BaseClientDetails clientCreator = new BaseClientDetails(
+                newClientId,
+                "",
+                "clients.write,uaa.user",
+                "client_credentials",
+                "clients.write,uaa.user"
+        );
+        clientCreator.setClientSecret("secret");
+        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+            serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+            new HttpEntity<>(clientCreator, adminHeaders), UaaException.class);
+
+        // ensure success
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+        // log in as new client
+        OAuth2AccessToken token = getClientCredentialsAccessToken(clientCreator.getClientId(), clientCreator.getClientSecret(), "");
+        HttpHeaders headers = getAuthenticatedHeaders(token);
+
+        // make client with restricted scopes
+        BaseClientDetails invalidClient = new BaseClientDetails(
+                new RandomValueStringGenerator().generate(),
+                "",
+                newClientId + ".admin,uaa.admin",
+                "client_credentials",
+                "uaa.none"
+        );
+        invalidClient.setClientSecret("secret");
+        ResponseEntity<UaaException> invalidClientRequest = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(invalidClient, headers), UaaException.class);
+
+        // ensure correct failure
+        assertEquals(HttpStatus.BAD_REQUEST, invalidClientRequest.getStatusCode());
+        assertEquals("invalid_client", invalidClientRequest.getBody().getErrorCode());
+        assertTrue("Error message is unexpected", invalidClientRequest.getBody().getMessage().startsWith("uaa.admin is not an allowed scope for caller"));
+    }
+
+    @Test
     public void createClientWithoutSecretIsRejected() throws Exception {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
         HttpHeaders headers = getAuthenticatedHeaders(token);
@@ -777,10 +823,13 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private OAuth2AccessToken getClientCredentialsAccessToken(String scope) throws Exception {
-
         String clientId = testAccounts.getAdminClientId();
         String clientSecret = testAccounts.getAdminClientSecret();
 
+        return getClientCredentialsAccessToken(clientId, clientSecret, scope);
+    }
+
+    private OAuth2AccessToken getClientCredentialsAccessToken(String clientId, String clientSecret, String scope) throws Exception {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
@@ -797,7 +846,6 @@ public class ClientAdminEndpointsIntegrationTests {
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
         return accessToken;
-
     }
 
     private OAuth2AccessToken getUserAccessToken(String clientId, String clientSecret, String username, String password, String scope) throws Exception {

@@ -139,7 +139,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void getExternalAuthenticationDetails_whenProviderIssuerMatchesUaaIssuer_throwsWhenIdTokenCannotBeValidated() {
-        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint());
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Could not verify token signature.");
 
@@ -182,7 +182,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
-        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint());
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
                 entry(ALG, "HS256"),
                 entry(KID, "uaa-key")

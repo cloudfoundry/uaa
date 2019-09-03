@@ -34,7 +34,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.thymeleaf.spring4.SpringTemplateEngine;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -337,10 +338,8 @@ class EmailAccountCreationServiceTests {
 
         when(mockCodeStore.retrieveCode(eq("the_secret_code"), anyString())).thenReturn(code);
 
-        HttpClientErrorException httpClientErrorException = assertThrows(HttpClientErrorException.class,
-                () -> emailAccountCreationService.completeActivation("the_secret_code"));
-
-        assertThat(httpClientErrorException.getMessage(), containsString("400 BAD_REQUEST"));
+        assertThrowsWithMessageThat(HttpClientErrorException.class,
+                () -> emailAccountCreationService.completeActivation("the_secret_code"), containsString("400 BAD_REQUEST"));
     }
 
     private String setUpForSuccess(String redirectUri) {

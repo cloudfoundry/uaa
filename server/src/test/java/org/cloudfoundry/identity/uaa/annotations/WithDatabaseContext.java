@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.annotations;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
@@ -21,7 +22,8 @@ import java.lang.annotation.Target;
 @ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
-        DatabaseOnlyConfiguration.class
+        DatabaseOnlyConfiguration.class,
+        PasswordEncoderConfig.class
 })
 public @interface WithDatabaseContext {
 }

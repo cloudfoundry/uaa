@@ -6,15 +6,22 @@
 <div class="island" layout:fragment="page-content">
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
     <div class="island-content">
-        <div th:if="${param.error}" th:unless="${error}" class="alert alert-error">
-            <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+
+        <div th:if="${error}"
+             class="alert alert-error">
+            <p th:text="${#messages.msgOrNull('login.' + error) ?: 'Error!'}"></p>
         </div>
-        <div th:if="${error}" class="alert alert-error">
-            <p th:text="#{'login.' + ${error}}">Error Message</p>
+
+        <div th:unless="${error}"
+             th:if="${param.error}"
+             class="alert alert-error">
+            <p th:text="${#messages.msgOrNull('login.' + param.error[0]) ?: 'Error!'}"></p>
         </div>
+
         <div th:if="${param.success}" class="alert alert-success">
-            <p th:text="#{'login.' + ${param.success}}">Success Message</p>
+            <p th:text="${#messages.msgOrNull('login.' + param.success[0]) ?: 'Success!'}"></p>
         </div>
+
         <th:block th:if="${fieldUsernameShow}">
         <form th:action="@{/login.do}" method="post" novalidate="novalidate" accept-charset="UTF-8">
             <input th:each="prompt,iter : ${prompts}"

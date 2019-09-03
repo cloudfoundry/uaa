@@ -12,7 +12,13 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
-import org.cloudfoundry.identity.uaa.client.event.*;
+import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
+import org.cloudfoundry.identity.uaa.client.event.ClientApprovalsDeletedEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
+import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
+import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -26,13 +32,17 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -53,19 +63,46 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.*;
+import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.arrayFromString;
+import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.clientArrayFromString;
+import static org.cloudfoundry.identity.uaa.mock.util.ClientDetailsHelper.clientFromString;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -1080,6 +1117,81 @@ public class ClientAdminEndpointsMockMvcTests {
             assertFalse(c.isApprovalsDeleted());
         }
 
+    }
+
+    @Nested
+    @DefaultTestContext
+    @ExtendWith(ZoneSeederExtension.class)
+    class WithUserWithClientsSecret {
+        private ZoneSeeder zoneSeeder;
+        private String userAccessToken;
+        private String oldPassword;
+        private TestClient testClient;
+
+        @BeforeEach
+        void setup(ZoneSeeder zoneSeeder, @Autowired TestClient testClient) {
+            this.testClient = testClient;
+            this.zoneSeeder = zoneSeeder
+                    .withDefaults()
+                    .withClientWithImplicitPasswordRefreshTokenGrants("clientId", "clients.secret")
+                    .withClientWithImplicitPasswordRefreshTokenGrants("foobar", "clients.secret")
+                    .withUserWhoBelongsToGroups("ihaveclientssecret@example.invalid", Collections.singletonList("clients.secret"))
+                    .afterSeeding(zs -> {
+                        ScimUser userByEmail = zs.getUserByEmail("ihaveclientssecret@example.invalid");
+
+                        ClientDetails client = zoneSeeder.getClientById("clientId");
+                        oldPassword = zs.getPlainTextClientSecret(client);
+                        userAccessToken = getAccessTokenForUser(
+                                testClient,
+                                userByEmail,
+                                client,
+                                oldPassword,
+                                zs);
+                    });
+        }
+
+        private String getAccessTokenForUser(
+                final TestClient testClient,
+                final ScimUser scimUser,
+                final ClientDetails client,
+                final String oldPassword,
+                final ZoneSeeder zoneSeeder) throws Exception {
+
+            return testClient.getUserOAuthAccessTokenForZone(
+                    client.getClientId(),
+                    oldPassword,
+                    scimUser.getUserName(),
+                    zoneSeeder.getPlainTextPassword(scimUser),
+                    "clients.secret",
+                    zoneSeeder.getIdentityZoneSubdomain());
+        }
+
+        @Test
+        void changeClientIdSecret() throws Exception {
+            SecretChangeRequest request = new SecretChangeRequest("clientId", oldPassword, "someothervalue");
+            MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/clientId/secret")
+                    .headers(zoneSeeder.getZoneSubdomainRequestHeader())
+                    .with(httpBearer(userAccessToken))
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(request));
+            mockMvc.perform(modifyClientsPost)
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void changeFoobarSecret() throws Exception {
+            SecretChangeRequest request = new SecretChangeRequest("foobar", oldPassword, "someothervalue");
+            MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/foobar/secret")
+                    .headers(zoneSeeder.getZoneSubdomainRequestHeader())
+                    .with(httpBearer(userAccessToken))
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(request));
+            mockMvc.perform(modifyClientsPost)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().json("{\"error\":\"invalid_client\",\"error_description\":\"Bad request. Not permitted to change another client's secret\"}"));
+        }
     }
 
     @Test

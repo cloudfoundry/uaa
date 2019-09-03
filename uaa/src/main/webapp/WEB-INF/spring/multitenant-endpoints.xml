@@ -3,11 +3,11 @@
        xmlns:aop="http://www.springframework.org/schema/aop"
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
-       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
-       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
     <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
@@ -29,7 +29,7 @@
         <constructor-arg ref="identityZoneProvisioning"/>
     </bean>
 
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.zone.beans"/>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.*.beans"/>
 
     <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
           depends-on="identityZoneHolderInitializer"/>
