@@ -228,10 +228,9 @@ pipeline {
                                 env
                                 apt-get update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
                                 DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
-                                slapd -V
                                 /etc/init.d/slapd start 
                                 /etc/init.d/slapd status
-                                ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif || echo "unable to init ldap db"
+                                ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
                                 ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
                                ./gradlew --no-daemon --continue jacocoRootReportIntegrationTest
                             popd
