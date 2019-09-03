@@ -20,8 +20,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
@@ -41,38 +40,23 @@ import static org.springframework.util.StringUtils.hasText;
 @Controller
 public class HomeController {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final Environment environment;
-    private String baseUrl;
-    private Links globalLinks;
+    private final JdbcClientMetadataProvisioning clientMetadataProvisioning;
+    private final Links globalLinks;
 
-    @Autowired
-    private JdbcClientMetadataProvisioning clientMetadataProvisioning;
-
-    public HomeController(Environment environment) {
-        this.environment = environment;
-    }
-
-    public Links getGlobalLinks() {
-        return globalLinks;
-    }
-
-    public void setGlobalLinks(Links globalLinks) {
+    /**
+     *
+     * @param buildInfo This is required for Thymeleaf templates
+     */
+    public HomeController(
+            final JdbcClientMetadataProvisioning clientMetadataProvisioning,
+            @SuppressWarnings("unused") final BuildInfo buildInfo,
+            @Qualifier("globalLinks") final Links globalLinks) {
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.globalLinks = globalLinks;
     }
 
-    /**
-     * @param baseUrl the base uaa url
-     */
-    public void setUaaBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-    protected String getUaaBaseUrl() {
-        return baseUrl;
-    }
-
-    protected void populateBuildAndLinkInfo(Model model) {
-        Map<String, Object> attributes = new HashMap<String, Object>();
+    private void populateBuildAndLinkInfo(Model model) {
+        Map<String, Object> attributes = new HashMap<>();
         model.addAllAttributes(attributes);
     }
 
@@ -81,8 +65,8 @@ public class HomeController {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         String homePage =
             config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
-                getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
-                    getGlobalLinks().getHomeRedirect() : null;
+                globalLinks != null && globalLinks.getHomeRedirect() != null ?
+                    globalLinks.getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
             homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;

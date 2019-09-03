@@ -147,12 +147,11 @@ public class LoginMockMvcTests {
     @AfterEach
     void resetGenerator(
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
-            @Autowired LoginInfoEndpoint loginInfoEndpoint,
-            @Autowired HomeController homeController
+            @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) {
         jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
         loginInfoEndpoint.setGlobalLinks(globalLinks);
-        homeController.setGlobalLinks(globalLinks);
+        globalLinks.setHomeRedirect(null);
     }
 
     @AfterEach
@@ -303,9 +302,7 @@ public class LoginMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        homeController.setGlobalLinks(
-                new Links().setHomeRedirect("http://{zone.subdomain}.redirect.to/z/{zone.id}")
-        );
+        globalLinks.setHomeRedirect("http://{zone.subdomain}.redirect.to/z/{zone.id}");
 
         mockMvc.perform(
                 get("/")

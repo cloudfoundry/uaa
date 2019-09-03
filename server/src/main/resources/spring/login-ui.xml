@@ -375,11 +375,7 @@
         <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
     </bean>
 
-    <bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController">
-        <constructor-arg ref="environment"/>
-        <property name="uaaBaseUrl" ref="uaaUrl"/>
-        <property name="globalLinks" ref="globalLinks"/>
-    </bean>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.home"/>
 
     <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>
 
