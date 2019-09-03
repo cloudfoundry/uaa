@@ -240,17 +240,17 @@ public class LoginIT {
         webDriver.get(baseUrl + "/logout.do");
         String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", "UTF-8");
         webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
         attemptLogin(newUserEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
 
         String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", "UTF-8");
         webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
         attemptLogin(newUserEmail, USER_PASSWORD);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
         webDriver.get(baseUrl + "/logout.do");
     }
 
