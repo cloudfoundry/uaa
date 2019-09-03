@@ -223,7 +223,7 @@ pipeline {
                             unset PROXY_PORT
                             unset PROXY_HOST
                             cat /etc/hosts
-                            curl -v http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php
+                            curl -v http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php
                             pushd uaa
                                 env
                                 apt-get update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
