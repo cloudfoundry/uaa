@@ -116,6 +116,8 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
+    public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
+
     public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId) {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminToken, userId, null);
     }
@@ -1013,7 +1015,7 @@ public class IntegrationTestUtils {
             throw new IllegalArgumentException("Only valid origins are: simplesamlphp,simplesamlphp2");
         }
         String idpMetaData = "simplesamlphp".equals(alias) ?
-          "http://simplesamlphp.cfapps.io/saml2/idp/metadata.php" :
+                SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/metadata.php" :
           "http://simplesamlphp2.cfapps.io/saml2/idp/metadata.php";
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);

@@ -215,7 +215,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        for (String url : Arrays.asList("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout", baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
+        for (String url : Arrays.asList(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout", baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
             webDriver.get(url);
             webDriver.manage().deleteAllCookies();
         }
