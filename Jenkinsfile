@@ -238,7 +238,7 @@ pipeline {
                                 apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
                                 DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils google-chrome-stable
 
-                                chrome --version
+                                google-chrome --version
 
                                 /etc/init.d/slapd start 
                                 /etc/init.d/slapd status
