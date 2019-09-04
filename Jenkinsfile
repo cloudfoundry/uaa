@@ -233,8 +233,8 @@ pipeline {
                                 unzip 'Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
                                 unzip 'Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
 
-                                ln chromedriver_linux64/chromedriver /usr/bin/
-                                ln chrome-linux/chrome /usr/bin/
+                                ln -s chromedriver_linux64/chromedriver /usr/bin/
+                                ln -s chrome-linux/chrome /usr/bin/
 
                                 chromedriver --version
                                 chrome --version
