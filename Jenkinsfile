@@ -226,8 +226,12 @@ pipeline {
                             curl -v http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php
                             pushd uaa
                                 env
+                                wget https://chromedriver.storage.googleapis.com/77.0.3865.40/chromedriver_linux64.zip
+                                unzip chromedriver_linux64.zip
+                                mv chromedriver /usr/bin/
+                                chromedriver --version
                                 apt-get update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
-                                DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils chromium-chromedriver
+                                DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
                                 /etc/init.d/slapd start 
                                 /etc/init.d/slapd status
                                 ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
