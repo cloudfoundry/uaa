@@ -843,7 +843,7 @@ public class SamlLoginWithLocalIdpIT {
 
         webDriver.get(baseUrl + firstUrl);
         IntegrationTestUtils.takeScreenShot(webDriver);
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome!')]"));
