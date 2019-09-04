@@ -227,13 +227,20 @@ pipeline {
                             pushd uaa
                                 env
 
-                                curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-                                echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
-                                apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
-                                DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils google-chrome-stable chromedriver
+                                wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
+                                wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
 
-                                google-chrome --version
+                                unzip 'Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
+                                unzip 'Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
+
+                                ln chromedriver_linux64/chromedriver /usr/bin/
+                                ln chrome-linux/chrome /usr/bin/
+
                                 chromedriver --version
+                                chrome --version
+
+                                apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
+                                DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
 
                                 /etc/init.d/slapd start 
                                 /etc/init.d/slapd status
