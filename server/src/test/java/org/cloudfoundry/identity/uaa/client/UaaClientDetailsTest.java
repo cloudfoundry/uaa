@@ -63,16 +63,6 @@ class UaaClientDetailsTest {
                             .withAdditionalInformation(allOf(aMapWithSize(1), hasEntry("key", "value")))
             ));
         }
-
-        @Test
-        void copiesAutoApproveScopes() {
-            testClient.setAutoApproveScopes(Collections.singletonList("test.autoapprove"));
-            UaaClientDetails copy = new UaaClientDetails(testClient);
-            assertThat(copy, is(
-                    aUaaClientDetails()
-                            .withAutoApproveScopes(contains("test.autoapprove"))
-            ));
-        }
     }
 
     @Nested

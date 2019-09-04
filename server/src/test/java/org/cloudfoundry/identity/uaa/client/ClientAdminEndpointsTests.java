@@ -145,7 +145,7 @@ class ClientAdminEndpointsTests {
             inputs[i].setAccessTokenValiditySeconds(300);
         }
 
-        detail = new BaseClientDetails(input);
+        detail = new UaaClientDetails(input);
         detail.setResourceIds(Collections.singletonList("none"));
         // refresh token is added automatically by endpoint validation
         detail.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, "refresh_token"));
@@ -574,7 +574,7 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
-        BaseClientDetails updated = new BaseClientDetails(detail);
+        BaseClientDetails updated = new UaaClientDetails(detail);
         input = new BaseClientDetails();
         input.setClientId("foo");
         input.setScope(Collections.singletonList("foo.write"));

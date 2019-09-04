@@ -12,6 +12,5 @@ public interface UaaClientDetailsMatcher extends Matcher<UaaClientDetails> {
     UaaClientDetailsMatcher withClientSecret(String expected);
     UaaClientDetailsMatcher withScope(Matcher<Iterable<?>> expected);
     UaaClientDetailsMatcher withResourceIds(Matcher<Iterable<?>> expected);
-    UaaClientDetailsMatcher withAutoApproveScopes(Matcher<Iterable<?>> expected);
     UaaClientDetailsMatcher withAdditionalInformation(Matcher<?> expected);
 }

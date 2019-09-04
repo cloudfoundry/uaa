@@ -223,7 +223,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        client = new UaaClientDetails(client);
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
         ClientDetails ret = removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
 
@@ -246,7 +245,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        client = new UaaClientDetails(client);
         getRestrictedScopesValidator().validate(client, Mode.CREATE);
         return createClientDetails(client);
     }
