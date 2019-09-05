@@ -61,7 +61,7 @@
                             <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
                             <entry key="scope"
                                 value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
-                            <entry key="redirect-uri" value="http://localhost:8080/**" />
+                            <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**" />
                             <entry key="authorities" value="uaa.none" />
                             <entry key="autoapprove" value="true" />
                         </map>
@@ -78,7 +78,7 @@
                                     <value>openid</value>
                                 </list>
                             </entry>
-                            <entry key="redirect-uri" value="http://localhost:8080/**" />
+                            <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**" />
                             <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="name" value="The Ultimate Oauth App" />
