@@ -212,6 +212,11 @@ pipeline {
                         }
 
                         sh '''#!/bin/bash -ex
+
+                            ### verify dns set
+                            cat /etc/hosts
+
+                            ### set env
                             source uaa-cf-release/config-local/set-env.sh
                             unset HTTPS_PROXY
                             unset HTTP_PROXY
@@ -222,32 +227,32 @@ pipeline {
                             unset JAVA_PROXY_OPTS
                             unset PROXY_PORT
                             unset PROXY_HOST
-                            cat /etc/hosts
+                            env
                             curl -v http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php
+
+                            ### install chromedriver
+                            wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
+                            wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
+                            unzip 'Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
+                            unzip 'Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
+                            ln -s $PWD/chromedriver_linux64/chromedriver /usr/bin/
+                            ln -s $PWD/chrome-linux/chrome /usr/bin/
+                            chromedriver --version
+                            chrome --version
+
+                            ### install ldap
+                            apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
+                            DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
+                            /etc/init.d/slapd start 
+                            /etc/init.d/slapd status
+                            ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/uaa/src/main/resources/ldap_db_init.ldif
+                            ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/uaa/src/main/resources/ldap_init.ldif
+
+                            ### run integration tests
                             pushd uaa
-                                env
-
-                                wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
-                                wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
-
-                                unzip 'Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
-                                unzip 'Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
-
-                                ln -s chromedriver_linux64/chromedriver /usr/bin/
-                                ln -s chrome-linux/chrome /usr/bin/
-
-                                chromedriver --version
-                                chrome --version
-
-                                apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
-                                DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
-
-                                /etc/init.d/slapd start 
-                                /etc/init.d/slapd status
-                                ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/main/resources/ldap_db_init.ldif
-                                ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/main/resources/ldap_init.ldif
                                ./gradlew --no-daemon --continue jacocoRootReportIntegrationTest
                             popd
+
                             '''
                     }
                     post {
