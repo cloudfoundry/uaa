@@ -255,6 +255,7 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
+                <entry value-ref="springSessionRepositoryFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).before(T(org.springframework.security.web.context.SecurityContextPersistenceFilter))}"/>
                 <entry value-ref="sessionResetFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
@@ -366,6 +367,7 @@
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
+    <import resource="spring/session.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">
