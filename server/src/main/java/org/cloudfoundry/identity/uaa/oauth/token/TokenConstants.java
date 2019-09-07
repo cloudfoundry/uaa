@@ -44,7 +44,7 @@ public class TokenConstants {
         }
 
         static public List<String> getStringValues() {
-            return Arrays.asList(TokenConstants.TokenFormat.values()).stream().map(format -> format.getStringValue()).collect(Collectors.toList());
+            return Arrays.asList(TokenFormat.values()).stream().map(format -> format.getStringValue()).collect(Collectors.toList());
         }
     }
 

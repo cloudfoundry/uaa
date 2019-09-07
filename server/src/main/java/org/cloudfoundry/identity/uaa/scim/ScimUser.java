@@ -779,9 +779,9 @@ public class ScimUser extends ScimCore<ScimUser> {
         setVerified(patch.isVerified());
 
         //Merge complex attributes
-        ScimUser.Name patchName = patch.getName();
+        Name patchName = patch.getName();
         if (patchName != null) {
-            ScimUser.Name currentName = ofNullable(getName()).orElse(new Name());
+            Name currentName = ofNullable(getName()).orElse(new Name());
             ofNullable(patchName.getFamilyName()).ifPresent(currentName::setFamilyName);
             ofNullable(patchName.getGivenName()).ifPresent(currentName::setGivenName);
             ofNullable(patchName.getMiddleName()).ifPresent(currentName::setMiddleName);
@@ -803,8 +803,8 @@ public class ScimUser extends ScimCore<ScimUser> {
 
         //Only one email stored, use Primary or first.
         if (patch.getEmails() != null && patch.getEmails().size()>0) {
-            ScimUser.Email primary = null;
-            for (ScimUser.Email email : patch.getEmails()) {
+            Email primary = null;
+            for (Email email : patch.getEmails()) {
                 if (email.isPrimary()) {
                    primary = email;
                    break;
