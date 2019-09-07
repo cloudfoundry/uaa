@@ -1,8 +1,12 @@
-Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
-
 apply plugin: 'war'
 apply plugin: 'org.asciidoctor.convert'
 apply plugin: 'com.moowork.node'
+apply from: file('build_properties.gradle')
+
+configurations.all {
+    exclude group: 'org.beanshell', module: 'bsh-core'
+    exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file
@@ -28,9 +32,6 @@ repositories {
 
 description = 'UAA'
 dependencies {
-    compile(project(':cloudfoundry-identity-server')) {
-        exclude(module: 'jna')
-    }
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
@@ -40,9 +41,6 @@ dependencies {
     runtime libraries.aspectJWeaver
     runtime libraries.postgresql
     providedCompile libraries.tomcatEmbed
-
-    testCompile identityServer.configurations.testCompile.dependencies
-    testCompile identityServer.sourceSets.test.output
 
     testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version: '1.5.5') {
         exclude(module: 'bcprov-jdk15')
@@ -59,12 +57,104 @@ dependencies {
     testCompile group: 'dumbster', name: 'dumbster', version: '1.6'
     testCompile libraries.zxing
     testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-    testCompile group: 'org.skyscreamer', name: 'jsonassert', version: '0.9.0'
+    testCompile 'org.skyscreamer:jsonassert:1.5.0'
     testCompile libraries.springTest
     testCompile libraries.springSecurityTest
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
     testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:2.0.3.RELEASE'
+
+    // from server
+
+    compile libraries.tomcatJdbc
+    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
+
+    compile libraries.commonsLogging
+    compile libraries.jsonPath
+    compile libraries.zxing
+    compile libraries.springBeans
+    compile libraries.springContext
+    compile libraries.springContextSupport
+    compile libraries.springTx
+    compile libraries.springJdbc
+    compile libraries.springWeb
+    compile libraries.springSecurityCore
+    compile libraries.springSecurityJwt
+    compile libraries.apacheHttpClient
+    compile libraries.springSecurityWeb
+    compile libraries.springSecuritySaml
+
+    compile(libraries.springSecurityOauth) {
+        exclude(module: 'commons-codec')
+        exclude(module: 'jackson-mapper-asl')
+        exclude(module: 'spring-security-web')
+    }
+
+    compile libraries.bouncyCastleProv
+    compile libraries.bouncyCastlePkix
+
+    compile group: 'com.google.guava', name: 'guava', version: '28.1-jre'
+
+    compile libraries.aspectJRt
+
+    compile libraries.thymeleafSpring5
+    compile libraries.thymeleafDialect
+    compile libraries.thymeleafExtrasSpringSecurity5
+    compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.8'
+
+    compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.22') {
+        exclude(module: 'servlet-api')
+        exclude(module: 'commons-logging')
+        exclude(module: 'httpclient')
+        exclude(module: 'wink-client-apache-httpclient')
+    }
+
+    compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.17.Final"
+    compile libraries.flywayCore
+    compile libraries.mariaJdbcDriver
+    compile group: 'org.hsqldb', name: 'hsqldb', version: "2.5.0"
+
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.25'
+
+    compile libraries.springSecurityLdap
+    compile libraries.springLdapCore
+    compile libraries.springLdapCoreTiger
+    compile(libraries.apacheLdapApi) {
+        exclude(module: 'slf4j-api')
+    }
+
+    compile group: 'org.passay', name: 'passay', version: '1.2.0'
+
+    compile group: 'com.warrenstrange', name: 'googleauth', version: '1.2.0'
+
+    compile libraries.slf4jImpl
+    compile libraries.log4jCore
+
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+
+    compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.4'
+
+    testCompile libraries.mockitoJunit5
+
+    testCompile libraries.postgresql
+
+    testCompile libraries.tomcatElApi
+    testCompile libraries.tomcatJasperEl
+
+    testCompile libraries.jsonPathAssert
+
+    // from model
+    compile project(':cloudfoundry-identity-metrics-data')
+
+    compile group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+
+    compile libraries.springWebMvc
+    compile libraries.springSecurityConfig
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
+
+    compileOnly 'org.projectlombok:lombok:1.18.8'
+    annotationProcessor 'org.projectlombok:lombok:1.18.6'
 }
 
 node {
@@ -81,6 +171,7 @@ node {
     // Set the work directory where node_modules should be located
     nodeModulesDir = file("${project.projectDir}")
 }
+
 task jasmineTests {
     dependsOn(npm_install)
     dependsOn(npm_test)
@@ -133,6 +224,17 @@ task(slate, type: Exec) {
     executable 'bundle'
     args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version.toString().substring(0, version.toString().lastIndexOf('.')) + ".0"
 }
+
+task tomcatListenerJar(type: Jar) {
+    archiveBaseName = 'tomcat-listener'
+    from(sourceSets.main.output)
+    include "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+}
+
+artifacts {
+    archives tomcatListenerJar
+}
+
 generateDocs {
     dependsOn slate
 }
@@ -144,7 +246,12 @@ integrationTest {
     }
 }
 
+jar {
+    exclude "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+}
+
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")
 }
+
