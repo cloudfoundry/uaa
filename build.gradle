@@ -149,16 +149,6 @@ cargo {
     }
 
     deployable {
-        file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-        context = 'api'
-    }
-
-    deployable {
-        file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-        context = 'app'
-    }
-
-    deployable {
         file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
         context = 'uaa'
     }
