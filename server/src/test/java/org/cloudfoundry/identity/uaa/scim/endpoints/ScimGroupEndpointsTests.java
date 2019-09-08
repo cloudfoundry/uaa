@@ -690,7 +690,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
         g.setDisplayName("someadmin");
-        g.setMembers(null);
+        g.setMembers(Collections.emptyList());
         ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*", new MockHttpServletResponse());
         validateGroup(g1, "someadmin", 0);
 

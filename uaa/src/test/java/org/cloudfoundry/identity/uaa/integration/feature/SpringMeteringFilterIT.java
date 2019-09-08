@@ -105,9 +105,9 @@ public class SpringMeteringFilterIT {
 
         // create a zone admin user
         String groupName = String.format("zones.%s.admin", this.zoneId);
-        IntegrationTestUtils.createOrUpdateGroup(this.identityClient, this.baseUrl, new ScimGroup(null, groupName, this.zoneId));
-        String groupId = IntegrationTestUtils.findGroupId(this.identityClient, this.baseUrl, groupName);
-        IntegrationTestUtils.addMemberToGroup(this.identityClient, this.baseUrl, adminUser.getId(), groupId);
+        IntegrationTestUtils.createOrUpdateGroup(this.adminClient, this.baseUrl, new ScimGroup(null, groupName, this.zoneId));
+        String groupId = IntegrationTestUtils.findGroupId(this.adminClient, this.baseUrl, groupName);
+        IntegrationTestUtils.addMemberToGroup(this.adminClient, this.baseUrl, adminUser.getId(), groupId);
 
         System.out.println("****** CREATED ZONE ADMIN ******");
 

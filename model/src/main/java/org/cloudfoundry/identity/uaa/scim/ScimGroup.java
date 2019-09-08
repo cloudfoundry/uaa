@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class ScimGroup extends ScimCore<ScimGroup> {
     private String zoneId;
     private String description;
 
-    private List<ScimGroupMember> members;
+    private List<ScimGroupMember> members = Collections.emptyList();
 
     public String getDisplayName() {
         return displayName;
@@ -52,11 +53,11 @@ public class ScimGroup extends ScimCore<ScimGroup> {
     }
 
     public List<ScimGroupMember> getMembers() {
-        return members;
+        return new ArrayList<>(members);
     }
 
     public ScimGroup setMembers(List<ScimGroupMember> members) {
-        this.members = members;
+        this.members = new ArrayList<>(members);
         return this;
     }
 
