@@ -344,7 +344,13 @@ pipeline {
                                     apt-get install jq -y
                                     jq --version
 
-                                    ./uaa-cf-release/uaa-degraded-tests-cf.sh
+                                    if [[ "$BRANCH_NAME" == "predix_extensions"* || "$BRANCH_NAME" == "PR-"* ]]; then
+                                        echo "Ignoring degraded JWT cloud tests for this branch"
+                                        export DEGRADED_TEST_ARGS='--dont-run-jwt-cloud-tests'
+                                    fi
+                                    echo 'DEGRADED_TEST_ARGS=$DEGRADED_TEST_ARGS'
+
+                                    ./uaa-cf-release/uaa-degraded-tests-cf.sh $DEGRADED_TEST_ARGS
                                 fi
                             fi
                             '''
