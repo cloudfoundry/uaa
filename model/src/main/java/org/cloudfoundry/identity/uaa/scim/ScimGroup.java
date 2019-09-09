@@ -53,7 +53,7 @@ public class ScimGroup extends ScimCore<ScimGroup> {
     }
 
     public List<ScimGroupMember> getMembers() {
-        return new ArrayList<>(members);
+        return members;
     }
 
     public ScimGroup setMembers(List<ScimGroupMember> members) {
