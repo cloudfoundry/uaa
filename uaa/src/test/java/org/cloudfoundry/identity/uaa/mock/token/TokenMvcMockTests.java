@@ -2117,43 +2117,23 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
-
         String requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1";
         ResultMatcher status = status().is3xxRedirection();
-        performAuthorize(state,
-                clientId,
-                "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())),
-                session,
-                requestedUri,
-                status);
+        performAuthorize(state, clientId, session, requestedUri, status);
+
         requestedUri = "http://subdomain.domain.com/path1/path2?query1=value1";
-        performAuthorize(state,
-                clientId,
-                "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())),
-                session,
-                requestedUri,
-                status);
+        performAuthorize(state, clientId, session, requestedUri, status);
+
         requestedUri = "http://subdomain.domain.com/path1/path1a/path1b/path2?query1=value1";
-        performAuthorize(state,
-                clientId,
-                "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())),
-                session,
-                requestedUri,
-                status);
+        performAuthorize(state, clientId, session, requestedUri, status);
+
         requestedUri = "https://wrongsub.domain.com/path1/path2?query1=value1";
         status = status().is4xxClientError();
-        performAuthorize(state, clientId,
-                String.format("Basic %s", new String(org.apache.commons.codec.binary.Base64.encodeBase64(
-                        (clientId + ":" + SECRET).getBytes()))), session, requestedUri, status);
+        performAuthorize(state, clientId, session, requestedUri, status);
+
         requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
         status = status().is4xxClientError();
-        performAuthorize(state,
-                clientId,
-                "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())),
-                session,
-                requestedUri,
-                status);
-
+        performAuthorize(state, clientId, session, requestedUri, status);
     }
 
     @Test
@@ -4381,10 +4361,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andReturn();
     }
 
-    private void performAuthorize(String state, String clientId, String basicDigestHeaderValue, MockHttpSession session, String requestedUri, ResultMatcher status) throws Exception {
+    private void performAuthorize(String state, String clientId, MockHttpSession session, String requestedUri, ResultMatcher status) throws Exception {
         mockMvc.perform(
                 get("/oauth/authorize")
-                        .header("Authorization", basicDigestHeaderValue)
+                        .with(httpBasic(clientId, SECRET))
                         .session(session)
                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .param(SCOPE, "openid")
