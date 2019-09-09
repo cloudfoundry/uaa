@@ -818,8 +818,8 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         g1 = dao.create(g1, IdentityZoneHolder.get().getId());
 
         ScimGroup patch = new ScimGroup();
-        assertEquals(null, g1.getMembers());
-        assertEquals(null, patch.getMembers());
+        assertEquals(Collections.emptyList(), g1.getMembers());
+        assertEquals(Collections.emptyList(), patch.getMembers());
         patch.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER)));
         assertEquals(1, patch.getMembers().size());
 
