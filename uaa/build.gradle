@@ -1,6 +1,8 @@
 apply plugin: 'war'
 apply plugin: 'org.asciidoctor.convert'
 apply plugin: 'com.moowork.node'
+apply plugin: 'eclipse-wtp'
+apply plugin: 'org.springframework.boot'
 apply from: file('build_properties.gradle')
 
 configurations.all {
@@ -15,8 +17,6 @@ processResources {
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-uaa') : line }
 }
 
-apply plugin: 'eclipse-wtp'
-apply plugin: 'org.springframework.boot'
 
 eclipse {
     wtp {
@@ -186,6 +186,11 @@ test {
     exclude '**/*IT.class'
     exclude '**/*Docs.class'
     systemProperty "mock.suite.test", "true"
+    filter {
+        includeTestsMatching "*NonSnarlIdpMetadataManagerTest*"
+        includeTestsMatching "org.cloudfoundry.identity.uaa.mock.saml.SamlAuthenticationMockMvcTests*"
+        includeTestsMatching "org.cloudfoundry.identity.uaa.login*LoginMockMvc*"
+    }
 }
 
 task populateVersionfile {

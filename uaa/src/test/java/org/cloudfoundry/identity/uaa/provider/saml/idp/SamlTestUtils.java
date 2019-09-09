@@ -257,7 +257,7 @@ public class SamlTestUtils {
         IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
         IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
         AddBcProvider.noop();
-        DefaultBootstrap.bootstrap();
+//        DefaultBootstrap.bootstrap();
         initializeSimple();
     }
 
