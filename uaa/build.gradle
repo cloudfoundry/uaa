@@ -35,6 +35,7 @@ dependencies {
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     compile libraries.springBootStarterTomcat
+    compile libraries.springSessionJdbc
     runtime libraries.springSecurityConfig
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver

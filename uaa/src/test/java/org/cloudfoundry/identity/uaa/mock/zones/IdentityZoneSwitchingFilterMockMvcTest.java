@@ -144,7 +144,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
         group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
-        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getId(), createdUser.getUserName(), "secret", null, IdentityZoneHolder.getCurrentZoneId());
+        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getUserName(), null, IdentityZoneHolder.getCurrentZoneId());
         createClientInOtherZone(mockMvc, generator, userToken, status().isCreated(), HEADER, zoneId);
     }
 
@@ -153,7 +153,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         final String zoneId = createZone(mockMvc, identityToken).getId();
         ScimUser user = createScimUserUsingZonesScimWrite(mockMvc, generator, testClient, zoneId);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
-        String scimReadZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, zoneId, "zones." + zoneId + ".scim.read");
+        String scimReadZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, "zones." + zoneId + ".scim.read");
         ScimUser readUser = MockMvcUtils.readUserInZone(mockMvc, scimReadZoneToken, user.getId(), "", zoneId);
         assertEquals(user.getId(), readUser.getId());
     }
@@ -162,7 +162,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
     void scimCreateInAnotherZone() throws Exception {
         final String zoneId = createZone(mockMvc, identityToken).getId();
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
-        String scimCreateZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, zoneId, "zones." + zoneId + ".scim.create");
+        String scimCreateZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, "zones." + zoneId + ".scim.create");
         createUserInAnotherZone(mockMvc, generator, scimCreateZoneToken, zoneId);
     }
 
@@ -184,7 +184,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
 
     private static ScimUser createScimUserUsingZonesScimWrite(MockMvc mockMvc, RandomValueStringGenerator generator, TestClient testClient, String zoneId) throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
-        String scimWriteZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, zoneId, "zones." + zoneId + ".scim.write");
+        String scimWriteZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, "zones." + zoneId + ".scim.write");
         return createUserInAnotherZone(mockMvc, generator, scimWriteZoneToken, zoneId);
     }
 
