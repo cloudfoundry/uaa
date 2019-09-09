@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights
-    Reserved. This product is licensed to you under the Apache License, Version
-    2.0 (the "License"). You may not use this product except in compliance with
-    the License. This product includes a number of subcomponents with separate
-    copyright notices and license terms. Your use of these subcomponents is subject
-    to the terms and conditions of the subcomponent's license, as noted in the
-    LICENSE file. -->
-
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:security="http://www.springframework.org/schema/security"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -83,9 +75,11 @@
         </constructor-arg>
     </bean>
 
-    <bean id="idpZoneAwareSamlKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager" depends-on="identityZoneHolderInitializer"/>
+    <bean id="idpZoneAwareSamlKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
+          depends-on="identityZoneHolderInitializer"/>
 
-    <bean id="idpNonCachingMetadataCredentialsResolver" class="org.cloudfoundry.identity.uaa.provider.saml.NonCachingMetadataCredentialResolver">
+    <bean id="idpNonCachingMetadataCredentialsResolver"
+          class="org.cloudfoundry.identity.uaa.provider.saml.NonCachingMetadataCredentialResolver">
         <constructor-arg name="metadataProvider" ref="idpMetadataManager"/>
         <constructor-arg name="keyManager" ref="idpZoneAwareSamlKeyManager"/>
     </bean>
@@ -144,7 +138,7 @@
         <constructor-arg value="${login.idp.entityID:${login.entityID:unit-test-idp}}"/>
     </bean>
 
-    <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig" />
+    <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig"/>
 
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider">
         <property name="trustingRestTemplate" ref="trustingRestTemplate"/>

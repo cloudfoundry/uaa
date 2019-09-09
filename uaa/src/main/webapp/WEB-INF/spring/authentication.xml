@@ -3,9 +3,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-        <property name="realmName" value="UAA/oauth" />
+    <bean id="oauthAuthenticationEntryPoint"
+          class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="UAA/oauth"/>
     </bean>
 
-    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
+    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
 </beans>

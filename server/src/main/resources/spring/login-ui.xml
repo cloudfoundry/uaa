@@ -33,7 +33,7 @@
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>
 
-    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate" />
+    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate"/>
 
     <context:annotation-config/>
 
@@ -174,12 +174,12 @@
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
         <constructor-arg name="redirectingHandler" ref="successRedirectHandler"/>
-        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
     <bean id="currentUserCookieFactory"
           class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
-        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}" />
+        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
@@ -203,7 +203,8 @@
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
-    <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
+    <bean name="forcePasswordChangeController"
+          class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
         <property name="resourcePropertySource" ref="messagePropertiesSource"/>
     </bean>
 
@@ -266,7 +267,8 @@
         </constructor-arg>
     </bean>
 
-    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
+    <bean id="passwordChangeUiRequiredFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
         <constructor-arg name="redirectUri" value="/force_password_change"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="ignoreUris">
@@ -276,7 +278,8 @@
         </constructor-arg>
     </bean>
 
-    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
+    <bean id="reAuthenticationRequiredFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
     </bean>
 
     <http name="idpSecurity"
@@ -346,9 +349,10 @@
         <property name="defaultFailureUrl" value="/login?error=login_failure"/>
     </bean>
 
-    <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
+    <bean id="uaaAuthenticationFailureHandler"
+          class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
-        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
 
@@ -549,7 +553,7 @@
         <constructor-arg ref="changePasswordService"/>
     </bean>
 
-    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource" >
+    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource">
         <constructor-arg value="messages.properties"/>
     </bean>
 
@@ -591,12 +595,14 @@
         <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
     </bean>
 
-    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
+    <bean id="jdbcUserGoogleMfaCredentialsProvisioning"
+          class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
         <constructor-arg index="1" ref="activeKeyService"/>
     </bean>
 
-    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
+    <bean id="userGoogleMfaCredentialsProvisioning"
+          class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
         <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="authenticator" ref="googleAuthenticator"/>
@@ -604,9 +610,9 @@
 
     <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
         <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
-        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
+        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
-        <property name="userDatabase" ref="userDatabase" />
+        <property name="userDatabase" ref="userDatabase"/>
         <property name="mfaPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
@@ -619,9 +625,9 @@
         <property name="credentialRepository" ref="userGoogleMfaCredentialsProvisioning"/>
     </bean>
 
-    <bean id ="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
-        factory-bean="googleAuthenticatorConfigFactory"
-        factory-method="build" />
+    <bean id="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
+          factory-bean="googleAuthenticatorConfigFactory"
+          factory-method="build"/>
 
     <bean id="googleAuthenticatorConfigFactory"
           class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>

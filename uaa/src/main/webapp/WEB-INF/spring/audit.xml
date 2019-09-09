@@ -1,36 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
-        <constructor-arg ref="loggingAuditService" />
+        <constructor-arg ref="loggingAuditService"/>
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.BadCredentialsListener" />
+    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.BadCredentialsListener"/>
 
     <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
-        <constructor-arg ref="jdbcAuditService" />
+        <constructor-arg ref="jdbcAuditService"/>
     </bean>
 
     <bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcUnsuccessfulLoginCountingAuditService">
-        <constructor-arg index="0" ref="jdbcTemplate" />
+        <constructor-arg index="0" ref="jdbcTemplate"/>
         <property name="timeService" ref="timeService"/>
     </bean>
 
     <!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
-    <bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService" />
+    <bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService"/>
 
 </beans>
