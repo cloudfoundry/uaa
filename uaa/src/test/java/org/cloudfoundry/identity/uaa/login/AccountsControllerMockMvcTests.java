@@ -13,7 +13,8 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -28,14 +29,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
@@ -50,7 +49,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -66,6 +64,7 @@ class AccountsControllerMockMvcTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
     private TestClient testClient;
     @Autowired
@@ -74,12 +73,6 @@ class AccountsControllerMockMvcTests {
 
     @BeforeEach
     void setUp() {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .alwaysDo(print())
-                .addFilter(springSecurityFilterChain)
-                .build();
-
         testClient = new TestClient(mockMvc);
 
         EmailService emailService = webApplicationContext.getBean("emailService", EmailService.class);
@@ -116,7 +109,10 @@ class AccountsControllerMockMvcTests {
     @Test
     void testCreateActivationEmailPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZone(subdomain,
+                mockMvc,
+                webApplicationContext,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -134,7 +130,10 @@ class AccountsControllerMockMvcTests {
     @Test
     void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZone(subdomain,
+                mockMvc,
+                webApplicationContext,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/accounts/email_sent")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -153,7 +152,10 @@ class AccountsControllerMockMvcTests {
     @Test
     void testPageTitleWithinZone() throws Exception {
         String subdomain = generator.generate();
-        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain,
+                mockMvc,
+                webApplicationContext,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -166,7 +168,11 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc,
+                webApplicationContext,
+                getBaseClientDetails(),
+                zone,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -181,7 +187,11 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc,
+                webApplicationContext,
+                getBaseClientDetails(),
+                zone,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
                 .with(cookieCsrf())
@@ -197,17 +207,22 @@ class AccountsControllerMockMvcTests {
     @Test
     void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         mockMvc.perform(get("/create_account"))
-                .andExpect(content().string(containsString("background-image: url(/resources/oss/images/product-logo.png);")));
+                .andExpect(content().string(containsString(
+                        "background-image: url(/resources/oss/images/product-logo.png);")));
     }
 
     @Test
     void zoneLogoNull_doNotDisplayImage() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZone(subdomain,
+                mockMvc,
+                webApplicationContext,
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-                .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
+                .andExpect(content().string(not(containsString(
+                        "background-image: url(/resources/oss/images/product-logo.png);"))));
     }
 
     @Test
@@ -225,7 +240,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'",
+                IdentityZoneHolder.get().getId()).get(0);
         assertFalse(scimUser.isVerified());
 
         mockMvc.perform(get("/verify_user")
@@ -238,7 +254,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -271,7 +288,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -317,7 +335,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -337,7 +356,10 @@ class AccountsControllerMockMvcTests {
         identityZone.setName(subdomain + "zone");
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.write");
+        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity",
+                "identitysecret",
+                "client_credentials",
+                "zones.write");
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(APPLICATION_JSON)
@@ -374,7 +396,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -394,7 +417,11 @@ class AccountsControllerMockMvcTests {
         identityZone.setName(subdomain);
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZone(subdomain,
+                mockMvc,
+                webApplicationContext,
+                getBaseClientDetails(),
+                IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -422,7 +449,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -554,7 +582,8 @@ class AccountsControllerMockMvcTests {
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
         clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));
-        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://redirect.uri/fallback");
+        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL,
+                "http://redirect.uri/fallback");
 
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(),
@@ -594,7 +623,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
