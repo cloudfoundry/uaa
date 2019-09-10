@@ -38,7 +38,6 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -51,13 +50,15 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.session.Session;
+import org.springframework.session.SessionRepository;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.util.Base64Utils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
@@ -65,6 +66,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -85,7 +87,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -97,6 +98,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -257,7 +259,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 get("/oauth/authorize")
                         .param(RESPONSE_TYPE, "code")
                         .param(CLIENT_ID, clientId)
-                        .session(getAuthenticatedSession(user))
+                        .cookie(getAuthenticatedSession(user, SECRET))
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isFound())
                 .andReturn().getResponse().getHeader("Location");
@@ -295,7 +297,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .param(RESPONSE_TYPE, "code")
                         .param(CLIENT_ID, clientId)
                         .param(SCOPE, "openid")
-                        .session(getAuthenticatedSession(user))
+                        .cookie(getAuthenticatedSession(user, SECRET))
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isFound())
                 .andReturn().getResponse().getHeader("Location");
@@ -452,7 +454,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String content = mockMvc.perform(
                 get("/passcode")
-                        .session(getAuthenticatedSession(user))
+                        .cookie(getAuthenticatedSession(user, SECRET))
                         .accept(APPLICATION_JSON)
         )
                 .andExpect(status().isOk())
@@ -488,7 +490,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         mockMvc.perform(
                 get("/oauth/authorize")
                         .param("client_id", new String(new char[]{'\u0000'}))
-                        .session(getAuthenticatedSession(user))
+                        .cookie(getAuthenticatedSession(user, SECRET))
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isBadRequest())
                 .andExpect(request().attribute("error_message_code", "request.invalid_parameter"));
@@ -819,10 +821,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
         String state = generator.generate();
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId))
@@ -867,12 +869,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId))
@@ -908,10 +910,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user,other.scope,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.CLIENT_ID, clientWithoutRefreshTokenGrant.getClientId()))
                 .andExpect(status().isFound())
@@ -953,12 +955,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId))
@@ -1005,13 +1007,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
         clientDetailsService.addClientDetails(clientDetails);
 
-        MockHttpSession session = new MockHttpSession();
+//        Cookie session = new Cookie();
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(
                 get("/oauth/authorize")
-                        .session(session)
+//                        .cookie(session)
                         .param(OAuth2Utils.RESPONSE_TYPE, "code")
                         .param(OAuth2Utils.STATE, state)
                         .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1044,12 +1046,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
         super.setupForMfaPasswordGrant(developer.getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1064,7 +1066,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         setAuthentication(session, developer, false, "mfa", "pwd", "otp");
         result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1098,13 +1100,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        MockHttpSession session = new MockHttpSession();
+        Cookie session = getAuthenticatedSession(developer, SECRET);
         setAuthentication(session, developer, true, "pwd", "mfa", "otp");
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1119,7 +1121,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         setAuthentication(session, developer, false, "mfa", "pwd", "otp");
         result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1154,12 +1156,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1363,14 +1365,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, testZone.getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         IdentityZoneHolder.clear();
 
         //no providers is ok
         mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -1380,7 +1382,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         //correct provider is ok
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -1391,7 +1393,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         //other provider, not ok
         mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -1590,12 +1592,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
             ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-            MockHttpSession session = getAuthenticatedSession(developer);
+            Cookie session = getAuthenticatedSession(developer, SECRET);
 
             String state = generator.generate();
 
             MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
-                    .session(session)
+                    .cookie(session)
                     .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
                     .param(SCOPE, "openid")
                     .param(OAuth2Utils.STATE, state)
@@ -1625,12 +1627,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -1657,13 +1659,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = new RandomValueStringGenerator().generate();
 
         mockMvc.perform(
                 post("/oauth/authorize")
-                        .session(session)
+                        .cookie(session)
                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .param("prompt", "none")
                         .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -1685,7 +1687,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
@@ -1695,14 +1697,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
 
-        session.setAttribute("authorizationRequest", authorizationRequest);
-        session.setAttribute(
-                "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST",
-                unmodifiableMap(authorizationRequest));
+//        session.setAttribute("authorizationRequest", authorizationRequest);
+//        session.setAttribute(
+//                "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST",
+//                unmodifiableMap(authorizationRequest));
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")
-                        .session(session)
+                        .cookie(session)
                         .with(cookieCsrf())
                         .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                         .param("scope.0", "scope.openid")
@@ -1724,24 +1726,31 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setClientId(clientId);
         authorizationRequest.setRedirectUri(TEST_REDIRECT_URI);
-        authorizationRequest.setScope(new ArrayList<>(Arrays.asList("openid")));
+        authorizationRequest.setScope(Collections.singletonList("openid"));
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
+
+        SessionRepository sessionRepository = webApplicationContext.getBean(SessionRepository.class);
+        Session session = sessionRepository.findById(new String(Base64Utils.decode(sessionCookie.getValue().getBytes())));
+
         session.setAttribute("authorizationRequest", authorizationRequest);
         session.setAttribute(
                 "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST",
                 unmodifiableMap(authorizationRequest));
+        sessionRepository.save(session);
+
+        // TODO: It "appears" that something is not able to deserialize these custom attributes, causing the `/oauth/authorize` endpoint call to fail
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")
-                        .session(session)
+                        .cookie(sessionCookie)
                         .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                         .with(cookieCsrf())
                         .param("scope.0", "scope.openid")
@@ -1765,12 +1774,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .with(httpBasic(clientId, SECRET))
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -1791,12 +1800,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser" + generator.generate();
         ScimUser developer = setUpUser(username, "scim.write", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .with(httpBasic(clientId, SECRET))
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "scim.write")
                 .param(OAuth2Utils.STATE, state)
@@ -1821,12 +1830,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser" + generator.generate();
         ScimUser developer = setUpUser(username, "openid", OriginKeys.UAA, IdentityZoneHolder.getUaaZone().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .with(httpBasic(clientId, SECRET))
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "something.else")
                 .param(OAuth2Utils.STATE, state)
@@ -1858,7 +1867,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //if there is a session, but no saved request
         mockMvc.perform(
                 get("/login")
-                        .session(new MockHttpSession())
+//                        .cookie(new Cookie())
         )
                 .andDo(print())
                 .andExpect(content().string(not(containsString(FORM_REDIRECT_PARAMETER))));
@@ -1885,11 +1894,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .toUri()
                 .toString();
 
-        MockHttpSession session = getAuthenticatedSession(user);
+        Cookie session = getAuthenticatedSession(user, SECRET);
 
         MvcResult result = mockMvc
                 .perform(get(new URI(url))
-                        .session(session))
+                        .cookie(session))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("/oauth/confirm_access"))
@@ -1926,15 +1935,15 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String location = result.getResponse().getHeader("Location");
         assertThat(location, endsWith("/login"));
 
-        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        Cookie session = (Cookie) result.getRequest().getSession(false);
         assertNotNull(session);
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
-        assertNotNull(savedRequest);
-        assertEquals(authUrl, savedRequest.getRedirectUrl());
+//        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+//        assertNotNull(savedRequest);
+//        assertEquals(authUrl, savedRequest.getRedirectUrl());
 
         mockMvc.perform(
                 get("/login")
-                        .session(session)
+                        .cookie(session)
         )
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -1954,14 +1963,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(header().string("Location", containsString("/login")))
                 .andReturn();
 
-        session = (MockHttpSession) result.getRequest().getSession(false);
+        session = (Cookie) result.getRequest().getSession(false);
         assertNotNull(session);
-        savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
-        assertNotNull(savedRequest);
+//        savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+//        assertNotNull(savedRequest);
 
         mockMvc.perform(
                 get("/login")
-                        .session(session)
+                        .cookie(session)
         )
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -2007,13 +2016,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Authorization", "Basic "
                         + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2077,7 +2086,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpServletRequestBuilder login = get("/login")
                 .accept(MediaType.TEXT_HTML)
-                .session((MockHttpSession) session);
+                .cookie((Cookie) session);
         mockMvc.perform(login).andExpect(status().isOk());
     }
 
@@ -2115,25 +2124,28 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1";
-        ResultMatcher status = status().is3xxRedirection();
-        performAuthorize(state, clientId, session, requestedUri, status);
+        performAuthorize(mockMvc, state, clientId, session, requestedUri)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith(requestedUri)));
 
         requestedUri = "http://subdomain.domain.com/path1/path2?query1=value1";
-        performAuthorize(state, clientId, session, requestedUri, status);
+        performAuthorize(mockMvc, state, clientId, session, requestedUri)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith(requestedUri)));
 
         requestedUri = "http://subdomain.domain.com/path1/path1a/path1b/path2?query1=value1";
-        performAuthorize(state, clientId, session, requestedUri, status);
+        performAuthorize(mockMvc, state, clientId, session, requestedUri)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith(requestedUri)));
 
         requestedUri = "https://wrongsub.domain.com/path1/path2?query1=value1";
-        status = status().is4xxClientError();
-        performAuthorize(state, clientId, session, requestedUri, status);
+        performAuthorize(mockMvc, state, clientId, session, requestedUri).andExpect(status().isBadRequest());
 
         requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
-        status = status().is4xxClientError();
-        performAuthorize(state, clientId, session, requestedUri, status);
+        performAuthorize(mockMvc, state, clientId, session, requestedUri).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -2238,12 +2250,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2292,12 +2303,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2351,12 +2361,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2410,12 +2419,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code token")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2468,12 +2476,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -2526,12 +2533,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
         String state = "random-state";
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "not-openid foo.read")
                 .param(OAuth2Utils.STATE, state)
@@ -2582,16 +2588,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
-
-        session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
                 .header("Authorization", "Basic "
                         + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, "random-state")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -2631,11 +2633,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 OriginKeys.UAA,
                 IdentityZoneHolder.get().getId());
         logUserInTwice(developer.getId());
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer);
+        Cookie sessionCookie = getAuthenticatedSession(developer, SECRET);
+
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "id_token")
                 .param(OAuth2Utils.STATE, "random-state")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -3819,12 +3821,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(user);
+        Cookie session = getAuthenticatedSession(user, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Host", subdomain + ".localhost")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -3866,14 +3868,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(user);
+        Cookie session = getAuthenticatedSession(user, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Authorization",
                         "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -3907,14 +3909,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
-        MockHttpSession session = getAuthenticatedSession(user);
+        Cookie session = getAuthenticatedSession(user, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Authorization",
                         "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -3930,7 +3932,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .header("Authorization",
                         "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes())))
                 .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
@@ -4206,12 +4208,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -4251,10 +4253,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         return pwdToken;
     }
 
-    private MockHttpSession getAuthenticatedSession(ScimUser user) {
-        MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, user);
-        return session;
+    private Cookie getAuthenticatedSession(ScimUser user, String password) throws Exception {
+        return mockMvc.perform(
+                post("/login.do")
+                        .with(csrf())
+                        .param("username", user.getUserName())
+                        .param("password", password)
+        ).andDo(print()).andReturn().getResponse().getCookie("SESSION");
     }
 
     private void test_invalid_registered_redirect_uris(Set<String> redirectUris, ResultMatcher resultMatcher) throws Exception {
@@ -4268,14 +4273,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
 
         String state = generator.generate();
 
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .with(httpBasic(clientId, SECRET))
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -4361,17 +4366,22 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andReturn();
     }
 
-    private void performAuthorize(String state, String clientId, MockHttpSession session, String requestedUri, ResultMatcher status) throws Exception {
-        mockMvc.perform(
+    private static ResultActions performAuthorize(
+            final MockMvc mockMvc,
+            final String state,
+            final String clientId,
+            final Cookie sessionCookie,
+            final String requestedUri) throws Exception {
+        return mockMvc.perform(
                 get("/oauth/authorize")
                         .with(httpBasic(clientId, SECRET))
-                        .session(session)
+                        .cookie(sessionCookie)
                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
                         .param(SCOPE, "openid")
                         .param(OAuth2Utils.STATE, state)
                         .param(OAuth2Utils.CLIENT_ID, clientId)
                         .param(OAuth2Utils.REDIRECT_URI, requestedUri)
-        ).andExpect(status);
+        );
     }
 
     private void testImplicitGrantRedirectUri(String redirectUri, boolean noPrompt) throws Exception {
@@ -4381,11 +4391,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = "authuser" + generator.generate();
         String userScopes = "openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        MockHttpSession session = getAuthenticatedSession(developer);
+        Cookie session = getAuthenticatedSession(developer, SECRET);
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .session(session)
+                .cookie(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(SCOPE, "openid")
                 .param(OAuth2Utils.STATE, state)
@@ -4454,11 +4464,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andReturn().getResponse().getContentAsString();
     }
 
-    private void setAuthentication(MockHttpSession session, ScimUser developer) {
+    private void setAuthentication(Cookie session, ScimUser developer) {
         setAuthentication(session, developer, false, "pwd");
     }
 
-    private void setAuthentication(MockHttpSession session, ScimUser developer, boolean forcePasswordChange, String... authMethods) {
+    private void setAuthentication(Cookie session, ScimUser developer, boolean forcePasswordChange, String... authMethods) {
         UaaPrincipal p = new UaaPrincipal(developer.getId(),
                 developer.getUserName(),
                 developer.getPrimaryEmail(),
@@ -4472,10 +4482,10 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         auth.setAuthenticationMethods(new HashSet<>(Arrays.asList(authMethods)));
         assertTrue(auth.isAuthenticated());
         SecurityContextHolder.getContext().setAuthentication(auth);
-        session.setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                new MockSecurityContext(auth)
-        );
+//        session.setAttribute(
+//                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+//                new MockSecurityContext(auth)
+//        );
     }
 
     private void createNonDefaultZone(String username, String subdomain, String clientId) {
