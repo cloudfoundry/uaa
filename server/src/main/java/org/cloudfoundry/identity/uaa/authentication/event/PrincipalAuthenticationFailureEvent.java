@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 /**
  * Event which indicates that a non-user principal tried to authenticate and
  * failed.
- * 
+ *
  * @author Dave Syer
  */
 public class PrincipalAuthenticationFailureEvent extends AbstractUaaPrincipalEvent {
@@ -27,14 +27,14 @@ public class PrincipalAuthenticationFailureEvent extends AbstractUaaPrincipalEve
     private String name;
 
     public PrincipalAuthenticationFailureEvent(String name, UaaAuthenticationDetails details, String zoneId) {
-        super(details==null?UaaAuthenticationDetails.UNKNOWN:details, zoneId);
+        super(details == null ? UaaAuthenticationDetails.UNKNOWN : details, zoneId);
         this.name = name;
     }
 
     @Override
     public AuditEvent getAuditEvent() {
         return createAuditRecord(name, AuditEventType.PrincipalAuthenticationFailure,
-                        getOrigin(getAuthenticationDetails()));
+                getOrigin(getAuthenticationDetails()));
     }
 
     public String getName() {

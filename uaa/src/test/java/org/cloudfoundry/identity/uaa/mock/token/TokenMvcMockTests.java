@@ -3821,18 +3821,28 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
 
-        Cookie session = getAuthenticatedSession(user, SECRET);
+        // TODO: validate that the session exists ebfore trying to use it
+        Cookie sessionCookie = mockMvc.perform(
+                post("/login.do")
+                        .header("Host", subdomain + ".localhost")
+                        .with(csrf())
+                        .param("username", user.getUserName())
+                        .param("password", SECRET)
+        ).andDo(print()).andReturn().getResponse().getCookie("SESSION");
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Host", subdomain + ".localhost")
-                .cookie(session)
+                .cookie(sessionCookie)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = mockMvc.perform(authRequest)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("http://localhost/test")))
+                .andReturn();
         String location = result.getResponse().getHeader("Location");
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(location);
         String code = builder.build().getQueryParams().get("code").get(0);

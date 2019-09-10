@@ -8,4 +8,6 @@
 
     <context:annotation-config/>
     <bean class="org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessionConfiguration"/>
+
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.session" />
 </beans>
