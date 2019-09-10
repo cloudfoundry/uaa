@@ -1085,7 +1085,7 @@ public final class MockMvcUtils {
 
     public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
         String scope = "zones." + zoneId + ".admin";
-        return getZoneAdminToken(mockMvc, adminToken, scope);
+        return getZoneAdminToken(mockMvc, adminToken, zoneId, scope);
     }
 
     public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId, String scope) throws Exception {
