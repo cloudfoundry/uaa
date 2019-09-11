@@ -129,7 +129,7 @@ public class TokenValidationServiceTest {
         String tokenEndpoint = "https://token.endpoint";
         String issuer = tokenEndpoint + "/does/not/match";
 
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(tokenEndpoint);
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(tokenEndpoint);
 
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid issuer (" + issuer + ") for token did not match expected: " + tokenEndpoint);
