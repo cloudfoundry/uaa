@@ -24,31 +24,35 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.env.MockPropertySource;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.session.Session;
+import org.springframework.session.SessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.Base64Utils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
+import javax.servlet.http.Cookie;
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -64,6 +68,7 @@ class AccountsControllerMockMvcTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired SessionRepository sessionRepository;
     @Autowired
     private MockMvc mockMvc;
     private TestClient testClient;
@@ -194,7 +199,7 @@ class AccountsControllerMockMvcTests {
                 IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
                 .param("password", "secr3T")
@@ -232,7 +237,7 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
@@ -251,16 +256,23 @@ class AccountsControllerMockMvcTests {
                 .andReturn();
 
         MvcResult mvcResult = loginWithAccount("")
-                .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Session session = getSession(sessionRepository, mvcResult);
+        SecurityContext securityContext = session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
+    }
+
+    private static Session getSession(final SessionRepository sessionRepository, final MvcResult mvcResult) {
+        return sessionRepository.findById(getSessionId(mvcResult));
+    }
+
+    private static String getSessionId(final MvcResult mvcResult) {
+        return new String(Base64Utils.decode(mvcResult.getResponse().getCookie("SESSION").getValue().getBytes()));
     }
 
     @Test
@@ -270,7 +282,7 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T")
@@ -314,7 +326,7 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
@@ -367,7 +379,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
@@ -425,7 +437,7 @@ class AccountsControllerMockMvcTests {
 
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T")
@@ -446,7 +458,7 @@ class AccountsControllerMockMvcTests {
                 .andReturn();
 
         MvcResult mvcResult = loginWithAccount(subdomain)
-                .andExpect(authenticated())
+//                .andExpect(authenticated())
                 .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(
@@ -468,23 +480,27 @@ class AccountsControllerMockMvcTests {
     }
 
     @Test
-    void redirectToSavedRequest_ifPresent() throws Exception {
-        MockHttpSession session = MockMvcUtils.getSavedRequestSession();
+    void redirectToSavedRequest_ifPresent(@Autowired SessionRepository sessionRepository) throws Exception {
+        Session session = sessionRepository.createSession();
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, new MockMvcUtils.MockSavedRequest());
+        sessionRepository.save(session);
+
+        Cookie sessionCookie = new Cookie("SESSION", Base64Utils.encodeToString(session.getId().getBytes()));
 
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .session(session)
+                .with(csrf())
+                .cookie(sessionCookie)
                 .param("email", "testuser@test.org")
                 .param("password", "test-password")
                 .param("password_confirmation", "test-password"))
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         mockMvc.perform(get("/verify_user")
-                .session(session)
+                .cookie(sessionCookie)
                 .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
@@ -568,11 +584,13 @@ class AccountsControllerMockMvcTests {
 
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
                 .param("password_confirmation", USER_PASSWORD)
                 .param("does_user_consent", "false"))
+                .andDo(print())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().string(containsString("Please agree before continuing.")));
     }
 
@@ -600,7 +618,7 @@ class AccountsControllerMockMvcTests {
 
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf())
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
                 .param("password_confirmation", USER_PASSWORD)
@@ -637,7 +655,7 @@ class AccountsControllerMockMvcTests {
         MockHttpServletRequestBuilder req = post("/login.do")
                 .param("username", userEmail)
                 .param("password", USER_PASSWORD)
-                .with(cookieCsrf());
+                .with(csrf());
 
         if (hasText(subdomain)) {
             req.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));

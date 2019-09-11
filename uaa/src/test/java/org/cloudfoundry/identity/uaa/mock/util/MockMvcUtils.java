@@ -1177,12 +1177,7 @@ public final class MockMvcUtils {
             final String password,
             final String scope) throws Exception {
 
-        Cookie sessionCookie = mockMvc.perform(
-                post("/login.do")
-                        .with(csrf())
-                        .param("username", username)
-                        .param("password", password)
-        ).andDo(print()).andReturn().getResponse().getCookie("SESSION");
+        Cookie sessionCookie = getSessionCookie(mockMvc, username, password);
 
         String state = new RandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
@@ -1217,6 +1212,15 @@ public final class MockMvcUtils {
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
           OAuthToken.class);
         return oauthToken.accessToken;
+    }
+
+    public static Cookie getSessionCookie(MockMvc mockMvc, String username, String password) throws Exception {
+        return mockMvc.perform(
+                    post("/login.do")
+                            .with(csrf())
+                            .param("username", username)
+                            .param("password", password)
+            ).andDo(print()).andReturn().getResponse().getCookie("SESSION");
     }
 
     public static String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret, IdentityZone zone, String adminClientId, String adminClientSecret) throws Exception {
