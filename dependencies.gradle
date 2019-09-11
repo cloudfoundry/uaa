@@ -12,7 +12,7 @@ def versions = [:]
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = '1.9.4'
-versions.bouncyCastleVersion = '1.62'
+versions.bouncyCastleVersion = '1.63'
 versions.hamcrestVersion = '2.1'
 versions.jacksonVersion = '2.9.9'
 versions.jsonPathVersion = '2.4.0'
