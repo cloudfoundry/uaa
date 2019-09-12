@@ -213,32 +213,18 @@ pipeline {
 
                         sh '''#!/bin/bash -ex
 
+                            source uaa/scripts/setup-tests.sh
+
                             ### verify dns set
                             cat /etc/hosts
 
                             ### set env
                             source uaa-cf-release/config-local/set-env.sh
-                            unset HTTPS_PROXY
-                            unset HTTP_PROXY
-                            unset http_proxy
-                            unset https_proxy
-                            unset GRADLE_OPTS
-                            unset DEFAULT_JVM_OPTS
-                            unset JAVA_PROXY_OPTS
-                            unset PROXY_PORT
-                            unset PROXY_HOST
-                            env
+                            unset_env
+
                             curl -v http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php
 
-                            ### install chromedriver
-                            wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
-                            wget 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
-                            unzip 'Linux_x64%2F665006%2Fchromedriver_linux64.zip?generation=1559267957115896&alt=media'
-                            unzip 'Linux_x64%2F665006%2Fchrome-linux.zip?generation=1559267949433976&alt=media'
-                            ln -s $PWD/chromedriver_linux64/chromedriver /usr/bin/
-                            ln -s $PWD/chrome-linux/chrome /usr/bin/
-                            chromedriver --version
-                            chrome --version
+                            install_chromedriver
 
                             ### install ldap
                             apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
@@ -315,6 +301,9 @@ pipeline {
                             else
                                 export MAJOR_VERSION=`echo $BRANCH_VERSION | cut -d'.' -f1`
                                 if [ "$MAJOR_VERSION" -gt 3 ]; then
+
+                                    source uaa/scripts/setup-tests.sh
+
                                     #Configure the credentials for cf3-integration to be used
                                     echo "Updating CF username and password for cf3-integration!"
                                     export CF_USERNAME=$CF_CREDENTIALS_USR
@@ -326,24 +315,22 @@ pipeline {
                                     source uaa-cf-release/config-cf3-integration/set-env.sh
                                     #Overriding what is set in the set-env.sh
                                     export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
-                                    unset HTTPS_PROXY
-                                    unset HTTP_PROXY
-                                    unset http_proxy
-                                    unset https_proxy
-                                    unset GRADLE_OPTS
-                                    unset DEFAULT_JVM_OPTS
-                                    unset JAVA_PROXY_OPTS
-                                    unset PROXY_PORT
-                                    unset PROXY_HOST
+                                    unset_env
+
+                                    install_chromedriver
+
                                     ruby -v
+
                                     # The docker image comes with uaac version 4.1.0, which is fine.
                                     # DO NOT upgrade to 4.2.0, for that version url-encodes special characters, turning
                                     # admin secret abc@def into abc%40def, which leads to a "Bad credentials"
                                     # authenication failure.
                                     uaac --version
+
                                     #install phantomjs for degraded tests
                                     gem install phantomjs
                                     phantomjs --version
+
                                     apt-get install jq -y
                                     jq --version
 
