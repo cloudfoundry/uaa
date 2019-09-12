@@ -336,7 +336,10 @@ pipeline {
                                     unset PROXY_PORT
                                     unset PROXY_HOST
                                     ruby -v
-                                    gem install cf-uaac
+                                    # The docker image comes with uaac version 4.1.0, which is fine.
+                                    # DO NOT upgrade to 4.2.0, for that version url-encodes special characters, turning
+                                    # admin secret abc@def into abc%40def, which leads to a "Bad credentials"
+                                    # authenication failure.
                                     uaac --version
                                     #install phantomjs for degraded tests
                                     gem install phantomjs
