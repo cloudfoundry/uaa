@@ -64,7 +64,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -974,7 +973,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testDefaultBranding() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+        mockMvc.perform(get("/login"))
                 .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
                 .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
                 .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
@@ -986,7 +985,7 @@ public class LoginMockMvcTests {
     class Branding {
         @Test
         void testExternalizedBranding(@Autowired MockMvc mockMvc) throws Exception {
-            mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+            mockMvc.perform(get("/login"))
                     .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
                     .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
                     .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
@@ -1022,7 +1021,7 @@ public class LoginMockMvcTests {
     void testSignupsAndResetPasswordEnabled() throws Exception {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+        mockMvc.perform(get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").exists())
                 .andExpect(xpath("//a[text()='Reset password']").exists());
     }
@@ -1031,7 +1030,7 @@ public class LoginMockMvcTests {
     void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+        mockMvc.perform(get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
                 .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
     }
@@ -1042,7 +1041,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
         identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+        mockMvc.perform(get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
                 .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
     }
@@ -1053,7 +1052,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
         identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(true);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
-        mockMvc.perform(MockMvcRequestBuilders.get("/login"))
+        mockMvc.perform(get("/login"))
                 .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
                 .andExpect(xpath("//a[text()='Reset password']/@href").string("http://example.com/reset_passwd"));
     }
@@ -2278,7 +2277,7 @@ public class LoginMockMvcTests {
 
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/login")
+        mockMvc.perform(get("/login")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(xpath("//div[@class='action']//a").doesNotExist());
     }
