@@ -73,9 +73,8 @@ import java.util.*;
 import static com.beust.jcommander.internal.Lists.newArrayList;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,7 +118,8 @@ public abstract class AbstractLdapMockMvcTest {
     private LoggingAuditService loggingAuditService;
     private InterceptingLogger testLogger;
     private Logger originalAuditServiceLogger;
-    @Autowired private SessionRepository sessionRepository;
+    @Autowired
+    private SessionRepository sessionRepository;
 
     private WebApplicationContext getWebApplicationContext() {
         return webApplicationContext;
@@ -175,7 +175,11 @@ public abstract class AbstractLdapMockMvcTest {
         this.loggingAuditService = loggingAuditService;
 
         String userId = new RandomValueStringGenerator().generate().toLowerCase();
-        zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI, IdentityZoneHolder.getCurrentZoneId());
+        zone = MockMvcUtils.createZoneForInvites(getMockMvc(),
+                getWebApplicationContext(),
+                userId,
+                REDIRECT_URI,
+                IdentityZoneHolder.getCurrentZoneId());
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setLdapProfileFile("ldap/" + ldapProfile);
@@ -247,8 +251,16 @@ public abstract class AbstractLdapMockMvcTest {
 
         String code = MockMvcUtils.extractInvitationCode(url.toString());
 
-        String userInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
-        String userInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
+        String userInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select origin from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId());
+        String userInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select id from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId());
         assertEquals(LDAP, userInfoOrigin);
 
 
@@ -262,13 +274,17 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
                 .andExpect(content().string(containsString("username")))
-                .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>")))
+                .andExpect(content().string(containsString(
+                        "<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>")))
                 .andReturn();
 
-        code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
+        code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select code from expiring_code_store",
+                String.class);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
-        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(redirectUri);
+        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(
+                redirectUri);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                 .session(session)
                 .param("enterprise_username", "marissa2")
@@ -307,9 +323,21 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(redirectedUrl(redirectUri));
 
 
-        String newUserInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
-        String newUserInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
-        String newUserInfoUsername = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select username from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
+        String newUserInfoId = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select id from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId());
+        String newUserInfoOrigin = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select origin from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId());
+        String newUserInfoUsername = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select username from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId());
         assertEquals(LDAP, newUserInfoOrigin);
         assertEquals("marissa2", newUserInfoUsername);
         //ensure that a new user wasn't created
@@ -319,7 +347,14 @@ public abstract class AbstractLdapMockMvcTest {
         //email mismatch
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
         email = "different@test.com";
-        url = MockMvcUtils.inviteUser(getWebApplicationContext(), getMockMvc(), email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), LDAP, REDIRECT_URI);
+        url = MockMvcUtils.inviteUser(getWebApplicationContext(),
+                getMockMvc(),
+                email,
+                zone.getAdminToken(),
+                zone.getZone().getIdentityZone().getSubdomain(),
+                zone.getScimInviteClient().getClientId(),
+                LDAP,
+                REDIRECT_URI);
         code = MockMvcUtils.extractInvitationCode(url.toString());
 
         actions = getMockMvc().perform(get("/invitations/accept")
@@ -333,7 +368,9 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(content().string(containsString("username")))
                 .andReturn();
 
-        code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
+        code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select code from expiring_code_store",
+                String.class);
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
@@ -345,9 +382,14 @@ public abstract class AbstractLdapMockMvcTest {
                 .header(HOST, host)
                 .with(cookieCsrf()))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(containsString("The authenticated email does not match the invited email. Please log in using a different account.")))
+                .andExpect(content().string(containsString(
+                        "The authenticated email does not match the invited email. Please log in using a different account.")))
                 .andReturn();
-        boolean userVerified = Boolean.parseBoolean(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select verified from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId()));
+        boolean userVerified = Boolean.parseBoolean(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select verified from users where email=? and identity_zone_id=?",
+                String.class,
+                email,
+                zone.getZone().getIdentityZone().getId()));
         assertFalse(userVerified);
     }
 
@@ -427,9 +469,9 @@ public abstract class AbstractLdapMockMvcTest {
 
         String username = "marissa9";
         String password = "ldap9";
-        MvcResult result = performUiAuthentication(username, password, HttpStatus.FOUND, true);
+        MvcResult result = performUiAuthentication(username, password);
 
-        UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+        UaaAuthentication authentication = (UaaAuthentication) getAuthenticationForMvcResult(result, sessionRepository);
 
         assertEquals(2, authentication.getUserAttributes().size(), "Expected two user attributes");
         assertNotNull(authentication.getUserAttributes().get(COST_CENTERS), "Expected cost center attribute");
@@ -437,7 +479,8 @@ public abstract class AbstractLdapMockMvcTest {
 
         assertNotNull(authentication.getUserAttributes().get(MANAGERS), "Expected manager attribute");
         assertEquals(2, authentication.getUserAttributes().get(MANAGERS).size(), "Expected 2 manager attribute values");
-        assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+        assertThat(authentication.getUserAttributes().get(MANAGERS),
+                containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
         assertEquals("8885550986", getFamilyName(username));
         assertEquals("Marissa", getPhoneNumber(username));
@@ -451,7 +494,10 @@ public abstract class AbstractLdapMockMvcTest {
         assumeTrue("ldap-search-and-bind.xml".contains(ldapProfile));
         assumeTrue("ldap-groups-map-to-scopes.xml".contains(ldapGroup));
 
-        String identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
+        String identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(),
+                "identity",
+                "identitysecret",
+                "");
         String adminAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
         IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
         String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
@@ -481,7 +527,9 @@ public abstract class AbstractLdapMockMvcTest {
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
 
-        IdentityProviderValidationRequest.UsernamePasswordAuthentication token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
+        IdentityProviderValidationRequest.UsernamePasswordAuthentication token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication(
+                "marissa2",
+                LDAP);
 
         IdentityProviderValidationRequest request = new IdentityProviderValidationRequest(provider, token);
         System.out.println("request = \n" + JsonUtils.writeValueAsString(request));
@@ -702,7 +750,12 @@ public abstract class AbstractLdapMockMvcTest {
         assertEquals(zone.getZone().getIdentityZone().getId(), user.getZoneId());
 
         provider.setActive(false);
-        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(),
+                zone.getZone().getIdentityZone().getId(),
+                zone.getZone().getZoneAdminToken(),
+                provider,
+                status().isOk(),
+                true);
 
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                 .with(cookieCsrf())
@@ -715,7 +768,12 @@ public abstract class AbstractLdapMockMvcTest {
 
 
         provider.setActive(true);
-        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getZone().getIdentityZone().getId(), zone.getZone().getZoneAdminToken(), provider, status().isOk(), true);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(),
+                zone.getZone().getIdentityZone().getId(),
+                zone.getZone().getZoneAdminToken(),
+                provider,
+                status().isOk(),
+                true);
 
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                 .with(cookieCsrf())
@@ -789,7 +847,8 @@ public abstract class AbstractLdapMockMvcTest {
 
 
     ClassPathXmlApplicationContext getBeanContext() {
-        DynamicZoneAwareAuthenticationManager zm = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
+        DynamicZoneAwareAuthenticationManager zm = getWebApplicationContext().getBean(
+                DynamicZoneAwareAuthenticationManager.class);
         zm.getLdapAuthenticationManager(zone.getZone().getIdentityZone(), provider).getLdapAuthenticationManager();
         return zm.getLdapAuthenticationManager(zone.getZone().getIdentityZone(), provider).getContext();
     }
@@ -824,8 +883,9 @@ public abstract class AbstractLdapMockMvcTest {
                 .getContentAsString();
 
         assertThat(response, not(containsString("bindPassword")));
-        IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {
-        });
+        IdentityProvider<LdapIdentityProviderDefinition> provider = JsonUtils.readValue(response,
+                new TypeReference<IdentityProvider<LdapIdentityProviderDefinition>>() {
+                });
         assertNull(provider.getConfig().getBindPassword());
 
         getMockMvc().perform(
@@ -880,7 +940,9 @@ public abstract class AbstractLdapMockMvcTest {
         String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
         String expectedMessage = String.format(
                 "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
-                createdUser.getId(), createdUser.getId(), zoneId
+                createdUser.getId(),
+                createdUser.getId(),
+                zoneId
         );
         assertThat(userCreatedLogMessage, is(expectedMessage));
 
@@ -888,7 +950,8 @@ public abstract class AbstractLdapMockMvcTest {
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         allValues = captor.getAllValues();
         assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
-        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(12);
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(
+                12);
         assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
     }
 
@@ -963,15 +1026,17 @@ public abstract class AbstractLdapMockMvcTest {
 
         String accessToken = (String) tokens.get(ACCESS_TOKEN);
         Jwt accessTokenJwt = JwtHelper.decode(accessToken);
-        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
+        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(),
+                new TypeReference<Map<String, Object>>() {
+                });
         List<String> accessTokenScopes = (List<String>) accessTokenClaims.get("scope");
         // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
         assertThat(accessTokenScopes, hasItem("roles"));
 
         Jwt idTokenJwt = JwtHelper.decode((String) tokens.get("id_token"));
-        Map<String, Object> claims = JsonUtils.readValue(idTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
+        Map<String, Object> claims = JsonUtils.readValue(idTokenJwt.getClaims(),
+                new TypeReference<Map<String, Object>>() {
+                });
         List<String> idTokenRoles = (List<String>) claims.get("roles");
         assertThat(idTokenRoles, containsInAnyOrder(expectedGroups));
 
@@ -1005,11 +1070,13 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        Map<String, Object> refreshedTokens = JsonUtils.readValue(refreshTokenResponse, new TypeReference<Map<String, Object>>() {
-        });
+        Map<String, Object> refreshedTokens = JsonUtils.readValue(refreshTokenResponse,
+                new TypeReference<Map<String, Object>>() {
+                });
         Jwt refreshedIdTokenJwt = JwtHelper.decode((String) refreshedTokens.get("id_token"));
-        Map<String, Object> refreshedClaims = JsonUtils.readValue(refreshedIdTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
+        Map<String, Object> refreshedClaims = JsonUtils.readValue(refreshedIdTokenJwt.getClaims(),
+                new TypeReference<Map<String, Object>>() {
+                });
         List<String> refreshedIdTokenRoles = (List<String>) refreshedClaims.get("roles");
         assertThat(refreshedIdTokenRoles, containsInAnyOrder(expectedGroups));
     }
@@ -1077,7 +1144,8 @@ public abstract class AbstractLdapMockMvcTest {
         mfaProvider.setIdentityZoneId(zone.getZone().getIdentityZone().getId());
         mfaProvider.setConfig((GoogleMfaProviderConfig) new GoogleMfaProviderConfig().setIssuer("issuer"));
         mfaProvider = getWebApplicationContext().getBean(JdbcMfaProviderProvisioning.class).create(mfaProvider, zoneId);
-        zone.getZone().getIdentityZone().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
+        zone.getZone().getIdentityZone().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(
+                mfaProvider.getName()));
         IdentityZone newZone = getWebApplicationContext().getBean(JdbcIdentityZoneProvisioning.class).update(zone.getZone().getIdentityZone());
         assertEquals(mfaProvider.getName(), newZone.getConfig().getMfaConfig().getProviderName());
         ResultActions actions = performMfaRegistrationInZone(
@@ -1191,7 +1259,10 @@ public abstract class AbstractLdapMockMvcTest {
         ScimUser user = new ScimUser(null, username, "Marissa", "Koala");
         user.setPrimaryEmail("marissa@test.org");
         user.setPassword(password);
-        MockMvcUtils.createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
+        MockMvcUtils.createUserInZone(getMockMvc(),
+                zone.getAdminToken(),
+                user,
+                zone.getZone().getIdentityZone().getSubdomain());
 
         MvcResult result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
@@ -1216,7 +1287,8 @@ public abstract class AbstractLdapMockMvcTest {
         String password = "ldap7";
         MvcResult result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
-        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
+        assertThat(result.getResponse().getContentAsString(),
+                containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
         assertEquals(LDAP, getOrigin(username));
         assertEquals("marissa7@user.from.ldap.cf", getEmail(username));
     }
@@ -1249,7 +1321,8 @@ public abstract class AbstractLdapMockMvcTest {
         password = "ldap7";
         result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
-        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
+        assertThat(result.getResponse().getContentAsString(),
+                containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
         assertEquals(LDAP, getOrigin(username));
         assertEquals("marissa7@user.from.ldap.cf", getEmail(username));
 
@@ -1258,7 +1331,8 @@ public abstract class AbstractLdapMockMvcTest {
         updateLdapProvider();
         result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
-        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"user-marissa7@testldap.org\""));
+        assertThat(result.getResponse().getContentAsString(),
+                containsString("\"email\":\"user-marissa7@testldap.org\""));
         assertEquals(LDAP, getOrigin(username));
         assertEquals("user-marissa7@testldap.org", getEmail(username));
 
@@ -1277,33 +1351,63 @@ public abstract class AbstractLdapMockMvcTest {
         password = "ldap3";
         result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
-        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"user-marissa3@testldap.org\""));
+        assertThat(result.getResponse().getContentAsString(),
+                containsString("\"email\":\"user-marissa3@testldap.org\""));
         assertEquals(LDAP, getOrigin(username));
         assertEquals("user-marissa3@testldap.org", getEmail(username));
     }
 
     private String getOrigin(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where username=? and identity_zone_id=?", String.class, username, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select origin from users where username=? and identity_zone_id=?",
+                String.class,
+                username,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private String getEmail(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select email from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select email from users where username=? and origin=? and identity_zone_id=?",
+                String.class,
+                username,
+                LDAP,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private String getGivenName(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select givenname from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select givenname from users where username=? and origin=? and identity_zone_id=?",
+                String.class,
+                username,
+                LDAP,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private String getFamilyName(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select familyname from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select familyname from users where username=? and origin=? and identity_zone_id=?",
+                String.class,
+                username,
+                LDAP,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private String getPhoneNumber(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select phonenumber from users where username=? and origin=? and identity_zone_id=?", String.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select phonenumber from users where username=? and origin=? and identity_zone_id=?",
+                String.class,
+                username,
+                LDAP,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private boolean getVerified(String username) {
-        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select verified from users where username=? and origin=? and identity_zone_id=?", Boolean.class, username, LDAP, zone.getZone().getIdentityZone().getId());
+        return getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject(
+                "select verified from users where username=? and origin=? and identity_zone_id=?",
+                Boolean.class,
+                username,
+                LDAP,
+                zone.getZone().getIdentityZone().getId());
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {
@@ -1323,19 +1427,17 @@ public abstract class AbstractLdapMockMvcTest {
                 .andReturn();
     }
 
-    private MvcResult performUiAuthentication(String username, String password, HttpStatus status, boolean authenticated) throws Exception {
-        MockHttpServletRequestBuilder post =
-                post("/login.do")
-                        .with(cookieCsrf())
-                        .header(HOST, host)
-                        .accept(MediaType.TEXT_HTML)
-                        .param("username", username)
-                        .param("password", password);
+    private MvcResult performUiAuthentication(String username, String password) throws Exception {
+        MockHttpServletRequestBuilder post = post("/login.do")
+                .with(csrf())
+                .header(HOST, host)
+                .accept(MediaType.TEXT_HTML)
+                .param("username", username)
+                .param("password", password);
 
-        return getMockMvc().perform(post)
-                .andExpect(status().is(status.value()))
-                .andExpect(authenticated ? authenticated() : unauthenticated())
-                .andReturn();
+        MvcResult mvcResult = getMockMvc().perform(post).andExpect(status().isFound()).andReturn();
+        MockMvcUtils.assertUserHasAuthenticatedSession(mvcResult, username, LDAP, sessionRepository);
+        return mvcResult;
     }
 
     private int getRandomPortOffset() {
@@ -1360,7 +1462,8 @@ public abstract class AbstractLdapMockMvcTest {
     @Test
     void testLdapScopesFromChainedAuth() {
         assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
-        AuthenticationManager manager = (AuthenticationManager) getWebApplicationContext().getBean("zoneAwareAuthzAuthenticationManager");
+        AuthenticationManager manager = (AuthenticationManager) getWebApplicationContext().getBean(
+                "zoneAwareAuthzAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
@@ -1385,12 +1488,14 @@ public abstract class AbstractLdapMockMvcTest {
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
         defaultAuthorities.addAll(Arrays.asList("test.read", "test.write", "test.everything"));
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()),
+                containsInAnyOrder(defaultAuthorities.toArray()));
         IdentityZoneHolder.clear();
     }
 
     void transferDefaultMappingsToZone(IdentityZone zone) {
-        JdbcScimGroupExternalMembershipManager exm = getWebApplicationContext().getBean(JdbcScimGroupExternalMembershipManager.class);
+        JdbcScimGroupExternalMembershipManager exm = getWebApplicationContext().getBean(
+                JdbcScimGroupExternalMembershipManager.class);
         ScimGroupProvisioning gp = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
         List<String> defaultMappings = (List<String>) getWebApplicationContext().getBean("defaultExternalMembers");
         IdentityZoneHolder.set(zone);
@@ -1426,7 +1531,8 @@ public abstract class AbstractLdapMockMvcTest {
     void validateUserAuthorities(String[] expected, Authentication auth) {
         Set<String> defaultAuthorities = new HashSet<>(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         Collections.addAll(defaultAuthorities, expected);
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()),
+                containsInAnyOrder(defaultAuthorities.toArray()));
     }
 
     @Test
@@ -1501,7 +1607,10 @@ public abstract class AbstractLdapMockMvcTest {
             user.addEmail(userName);
             user.setVerified(true);
             user.setPassword("n1cel0ngp455w0rd");
-            user = MockMvcUtils.createUserInZone(getMockMvc(), zone.getAdminToken(), user, zone.getZone().getIdentityZone().getSubdomain());
+            user = MockMvcUtils.createUserInZone(getMockMvc(),
+                    zone.getAdminToken(),
+                    user,
+                    zone.getZone().getIdentityZone().getSubdomain());
             assertNotNull(user.getId());
             performAuthentication(userName, "n1cel0ngp455w0rd", HttpStatus.OK);
         }
@@ -1522,7 +1631,8 @@ public abstract class AbstractLdapMockMvcTest {
         assertNotNull(auth);
         Set<String> defaultAuthorities = Sets.newHashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         defaultAuthorities.addAll(Arrays.asList(expected));
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()),
+                containsInAnyOrder(defaultAuthorities.toArray()));
     }
 
     String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
