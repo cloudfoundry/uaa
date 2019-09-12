@@ -179,6 +179,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     void token_endpoint_post_query_string_by_default() throws Exception {
         String username = setUpUserForPasswordGrant();
 
+
         mockMvc.perform(
                 post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret",
                         username)
@@ -193,12 +194,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String username = setUpUserForPasswordGrant();
 
         mockMvc.perform(
-                post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret",
-                        username)
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isNotAcceptable())
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
+                        post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret",
+                                username)
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_FORM_URLENCODED))
+                        .andExpect(status().isNotAcceptable())
+                        .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
                 .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }

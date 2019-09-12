@@ -344,6 +344,7 @@ public class LoginMockMvcTests {
         mockMvc
                 .perform(
                         get("/login"))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(cookie().maxAge(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, CookieBasedCsrfTokenRepository.DEFAULT_COOKIE_MAX_AGE));
     }
