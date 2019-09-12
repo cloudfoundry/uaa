@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -56,14 +55,12 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -1109,21 +1106,7 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        Session session = getSession(sessionRepository, mvcResult);
-        SecurityContext securityContext = session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        Authentication authentication = securityContext.getAuthentication();
-        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
-        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        assertThat(principal.getName(), is(username));
-        assertThat(principal.getOrigin(), equalTo(OriginKeys.LDAP));
-    }
-
-    private static Session getSession(final SessionRepository sessionRepository, final MvcResult mvcResult) {
-        return sessionRepository.findById(getSessionId(mvcResult));
-    }
-
-    private static String getSessionId(final MvcResult mvcResult) {
-        return new String(Base64Utils.decode(mvcResult.getResponse().getCookie("SESSION").getValue().getBytes()));
+        MockMvcUtils.assertUserHasAuthenticatedSession(mvcResult, username, OriginKeys.LDAP, sessionRepository);
     }
 
     @Test

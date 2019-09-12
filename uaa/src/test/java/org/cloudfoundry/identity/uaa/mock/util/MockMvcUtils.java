@@ -63,6 +63,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.hamcrest.MatcherAssert;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -91,12 +92,15 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.session.Session;
+import org.springframework.session.SessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -124,8 +128,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -347,6 +350,24 @@ public final class MockMvcUtils {
         SearchResults<ScimUser> results = JsonUtils.readValue(userResult.getResponse().getContentAsString(),
             new TypeReference<SearchResults<ScimUser>>(){});
         return results.getResources().get(0);
+    }
+
+    public static void assertUserHasAuthenticatedSession(MvcResult mvcResult, String username, String userOrigin, SessionRepository sessionRepository) {
+        Session session = getSession(sessionRepository, mvcResult);
+        SecurityContext securityContext = session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        MatcherAssert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        MatcherAssert.assertThat(principal.getName(), is(username));
+        MatcherAssert.assertThat(principal.getOrigin(), is(userOrigin));
+    }
+
+    private static Session getSession(final SessionRepository sessionRepository, final MvcResult mvcResult) {
+        return sessionRepository.findById(getSessionId(mvcResult));
+    }
+
+    private static String getSessionId(final MvcResult mvcResult) {
+        return new String(Base64Utils.decode(mvcResult.getResponse().getCookie("SESSION").getValue().getBytes()));
     }
 
     public static class MockSavedRequest extends DefaultSavedRequest {
