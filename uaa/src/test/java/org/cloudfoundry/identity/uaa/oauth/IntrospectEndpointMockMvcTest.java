@@ -37,7 +37,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @BeforeEach
     void get_token_to_check() throws Exception {
-        String username = setUpUserForPasswordGrant();
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
 
         String content = mockMvc.perform(
             post("/oauth/token")
