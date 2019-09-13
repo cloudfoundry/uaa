@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.SCIMFilter;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
@@ -57,9 +55,9 @@ public abstract class AbstractTokenMockMvcTests {
     protected MultitenantClientServices clientDetailsService;
     @Autowired
     @Qualifier("scimGroupProvisioning")
-    protected JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
+    protected JdbcScimGroupProvisioning groupProvisioning;
     @Autowired
-    protected JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    protected JdbcScimGroupMembershipManager groupMembershipManager;
     @Autowired
     protected UaaTokenServices tokenServices;
     @Autowired
@@ -76,7 +74,7 @@ public abstract class AbstractTokenMockMvcTests {
 
     protected IdentityZone zone;
     protected MfaProvider mfaProvider;
-    private IdentityZoneConfiguration uaaZoneConfig;
+    protected IdentityZoneConfiguration uaaZoneConfig;
     protected UserGoogleMfaCredentials credentials;
 
     @Autowired
@@ -94,7 +92,7 @@ public abstract class AbstractTokenMockMvcTests {
     @Autowired
     protected UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
 
-    Set<String> defaultAuthorities;
+    protected Set<String> defaultAuthorities;
 
     @BeforeEach
     public void setUpContext(
@@ -151,15 +149,11 @@ public abstract class AbstractTokenMockMvcTests {
         userGoogleMfaCredentialsProvisioning.saveUserCredentials(credentials);
     }
 
-    protected String createUserForPasswordGrant(
-            final JdbcScimUserProvisioning jdbcScimUserProvisioning,
-            final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager,
-            final JdbcScimGroupProvisioning jdbcScimGroupProvisioning,
-            final RandomValueStringGenerator generator) {
+    protected String setUpUserForPasswordGrant() {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
-        ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        ScimUser scimUser = jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZone.getUaaZoneId());
+        ScimUser user = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        ScimUser scimUser = jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
         assertNull(scimUser.getLastLogonTime());
         assertNull(scimUser.getPreviousLogonTime());
         return username;
@@ -257,33 +251,39 @@ public abstract class AbstractTokenMockMvcTests {
         jdbcScimUserProvisioning.delete(user.getId(), user.getVersion(), zoneId);
     }
 
-    protected static ScimUser setUpUser(
-            final JdbcScimUserProvisioning jdbcScimUserProvisioning,
-            final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager,
-            final JdbcScimGroupProvisioning jdbcScimGroupProvisioning,
-            final String username,
-            final String scopes,
-            final String origin,
-            final String zoneId) {
+    protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
+        IdentityZone original = IdentityZoneHolder.get();
         ScimUser user = new ScimUser(null, username, "GivenName", "FamilyName");
-        user.setZoneId(zoneId);
-        user.setPassword(SECRET);
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("test@test.org");
-        email.setPrimary(true);
-        user.setEmails(Collections.singletonList(email));
-        user.setVerified(true);
-        user.setOrigin(origin);
-
-        user = jdbcScimUserProvisioning.createUser(user, SECRET, zoneId);
-
-        Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
-        for (String scope : scopeSet) {
-            ScimGroup g = createIfNotExist(jdbcScimGroupProvisioning, scope, zoneId);
-            addMember(jdbcScimGroupMembershipManager, user, g, zoneId);
+        if (hasText(zoneId)) {
+            IdentityZone zone = identityZoneProvisioning.retrieve(zoneId);
+            IdentityZoneHolder.set(zone);
+            user.setZoneId(zoneId);
         }
+        try {
 
-        return jdbcScimUserProvisioning.retrieve(user.getId(), zoneId);
+            user.setPassword(SECRET);
+            ScimUser.Email email = new ScimUser.Email();
+            email.setValue("test@test.org");
+            email.setPrimary(true);
+            user.setEmails(Collections.singletonList(email));
+            user.setVerified(true);
+            user.setOrigin(origin);
+
+
+            user = jdbcScimUserProvisioning.createUser(user, SECRET, IdentityZoneHolder.get().getId());
+
+            Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
+            Set<ScimGroup> groups = new HashSet<>();
+            for (String scope : scopeSet) {
+                ScimGroup g = createIfNotExist(scope, zoneId);
+                groups.add(g);
+                addMember(user, g);
+            }
+
+            return jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+        } finally {
+            IdentityZoneHolder.set(original);
+        }
     }
 
     protected ScimUser syncGroups(ScimUser user) {
@@ -291,8 +291,8 @@ public abstract class AbstractTokenMockMvcTests {
             return user;
         }
 
-        Set<ScimGroup> directGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
-        Set<ScimGroup> indirectGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZoneHolder.get().getId());
+        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZoneHolder.get().getId());
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<>();
         for (ScimGroup group : directGroups) {
@@ -306,29 +306,21 @@ public abstract class AbstractTokenMockMvcTests {
         return user;
     }
 
-    private static void addMember(
-            final JdbcScimGroupMembershipManager groupMembershipManager,
-            final ScimUser user,
-            final ScimGroup group,
-            final String zoneId) {
+    private void addMember(ScimUser user, ScimGroup group) {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {
-            groupMembershipManager.addMember(group.getId(), gm, zoneId);
+            groupMembershipManager.addMember(group.getId(), gm, IdentityZoneHolder.get().getId());
         } catch (MemberAlreadyExistsException ignored) {
 
         }
     }
 
-    private static ScimGroup createIfNotExist(
-            final JdbcScimGroupProvisioning groupProvisioning,
-            final String scope,
-            final String zoneId) {
-        SCIMFilter filter = SCIMFilter.createEqualityFilter(AttributePath.parse("displayName"), scope);
-        List<ScimGroup> scimGroups = groupProvisioning.query(filter.getFilterValue(), zoneId);
-        if (!scimGroups.isEmpty()) {
-            return scimGroups.get(0);
+    private ScimGroup createIfNotExist(String scope, String zoneId) {
+        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \"" + zoneId + "\"", IdentityZoneHolder.get().getId());
+        if (exists.size() > 0) {
+            return exists.get(0);
         } else {
-            return groupProvisioning.create(new ScimGroup(null, scope, zoneId), zoneId);
+            return groupProvisioning.create(new ScimGroup(null, scope, zoneId), IdentityZoneHolder.get().getId());
         }
     }
 }

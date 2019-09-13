@@ -60,7 +60,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
     @BeforeEach
     public void createData() {
-        user1 = syncGroups(setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
+        user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
         client1 = setUpClients(generator.generate(), null, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
     }
 
