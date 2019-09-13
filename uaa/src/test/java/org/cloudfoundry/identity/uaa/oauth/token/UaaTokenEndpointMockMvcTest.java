@@ -20,7 +20,7 @@ class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     void methodNotAllowedReturnsError_PUT() throws Exception {
-        String username = setUpUserForPasswordGrant();
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
         mockMvc.perform(
             put("/oauth/token")
                 .param("client_id", CLIENTID)
@@ -39,7 +39,7 @@ class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     void methodNotAllowedReturnsError_DELETE() throws Exception {
-        String username = setUpUserForPasswordGrant();
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
         mockMvc.perform(
             delete("/oauth/token")
                 .param("client_id", CLIENTID)
