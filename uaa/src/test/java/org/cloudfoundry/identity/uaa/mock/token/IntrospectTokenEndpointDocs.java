@@ -74,7 +74,12 @@ class IntrospectTokenEndpointDocs extends EndpointDocs {
                 .param("token", identityAccessToken))
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders(
-                        headerWithName("Authorization").description("Uses basic authorization with base64(resource_server:shared_secret) assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority")
+                        headerWithName("Authorization").description("One of the following authentication/authorization mechanisms:<br />" +
+                                "<ul>" +
+                                "<li>Basic authentication using client_id / client_secret for a registered client with authority `uaa.resource`</li>" +
+                                "<li>Bearer token for a registered client, bearing scope `uaa.resource`</li>" +
+                                "</ul>"
+                        )
                 ), requestParameters, responseFields));
     }
 }

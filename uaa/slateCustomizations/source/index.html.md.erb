@@ -501,30 +501,10 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/listTokens_client/response-fields.md') %>
 
-# Check Token
-
-The `/check_token` endpoint is deprecated since version 74.2.0 and will be removed in a future release.  Please use `/introspect` instead.
-
-<%= render('CheckTokenEndpointDocs/checkToken/curl-request.md') %>
-<%= render('CheckTokenEndpointDocs/checkToken/http-request.md') %>
-<%= render('CheckTokenEndpointDocs/checkToken/http-response.md') %>
-
-_Request Headers_
-
-<%= render('CheckTokenEndpointDocs/checkToken/request-headers.md') %>
-
-_Request Parameters_
-
-<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
-
-_Response Fields_
-
-<%= render('CheckTokenEndpointDocs/checkToken/response-fields.md') %>
-
 # Introspect Token
 
-<aside class="success">
-  Added in UAA 4.9.0
+<aside class="notice">
+  New in UAA 74.2.0: `/introspect` will now accept a client_credentials access_token with `uaa.resource` scope
 </aside>
 
 Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) Complaint. Active flag is responsible for showing the validity of the token and not the HTTP status code.
@@ -546,6 +526,27 @@ _Response Fields_
 
 <%= render('IntrospectTokenEndpointDocs/introspectToken/response-fields.md') %>
 
+# Check Token
+
+<aside class="warning">
+  The `/check_token` endpoint is deprecated since version 74.2.0 and will be removed in a future release.  Please use `/introspect` instead.
+</aside>
+
+<%= render('CheckTokenEndpointDocs/checkToken/curl-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-response.md') %>
+
+_Request Headers_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
+
+_Response Fields_
+
+<%= render('CheckTokenEndpointDocs/checkToken/response-fields.md') %>
 
 # Token Key(s)
 

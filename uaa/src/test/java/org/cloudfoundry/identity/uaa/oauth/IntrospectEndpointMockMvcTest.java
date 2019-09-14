@@ -1,17 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.web.util.HtmlUtils;
 
-import java.util.Map;
 import java.util.Objects;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -22,7 +19,7 @@ import static org.springframework.http.MediaType.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
@@ -60,7 +57,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                         .header(ACCEPT, APPLICATION_JSON_VALUE)
                         .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                         .param("token", userAccessToken))
-                .andDo(log())
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value("true"))
                 .andExpect(jsonPath("$.client_id").value(CLIENT_ID))
@@ -75,7 +72,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                         .header(ACCEPT, APPLICATION_JSON_VALUE)
                         .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                         .param("token", "invalid-token"))
-                .andDo(log())
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value("false"))
                 .andExpect(content().contentType(APPLICATION_JSON_UTF8));
@@ -89,7 +86,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                         .header(ACCEPT, APPLICATION_JSON_VALUE)
                         .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                         .param("token", userAccessToken))
-                .andDo(log())
+                .andDo(print())
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
