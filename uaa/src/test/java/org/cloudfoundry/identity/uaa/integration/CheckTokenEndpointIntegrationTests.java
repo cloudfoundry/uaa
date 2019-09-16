@@ -168,24 +168,6 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testTokenKey() {
-        HttpHeaders headers = new HttpHeaders();
-        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app",
-                        "appclientsecret");
-        headers.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-
-        @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject("/token_key", Map.class, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        @SuppressWarnings("unchecked")
-        Map<String, String> map = response.getBody();
-        assertNotNull(map.get("alg"));
-        assertNotNull(map.get("value"));
-    }
-
-    @Test
     public void testUnauthorized() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
