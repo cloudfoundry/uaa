@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -28,7 +27,14 @@ class IntrospectTokenEndpointDocs extends EndpointDocs {
 
     @Test
     void introspectToken() throws Exception {
-        String identityClientAuthorizationWithUaaResource = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+
+        String identityClientAccessToken = MockMvcUtils.getClientOAuthAccessToken(
+                mockMvc,
+                "app",
+                "appclientsecret",
+                "",
+                true
+        );
 
         String identityAccessToken = MockMvcUtils.getUserOAuthAccessToken(
                 mockMvc,
@@ -70,15 +76,16 @@ class IntrospectTokenEndpointDocs extends EndpointDocs {
         );
 
         mockMvc.perform(post("/introspect")
-                .header("Authorization", "Basic " + identityClientAuthorizationWithUaaResource)
+                .header("Authorization", "bearer " + identityClientAccessToken)
                 .param("token", identityAccessToken))
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders(
                         headerWithName("Authorization").description("One of the following authentication/authorization mechanisms:<br />" +
                                 "<ul>" +
-                                "<li>Basic authentication using client_id / client_secret for a registered client with authority `uaa.resource`</li>" +
-                                "<li>Bearer token for a registered client, bearing scope `uaa.resource`</li>" +
-                                "</ul>"
+                                "<li>Bearer token for a registered client with authority `uaa.resource` &nbsp;&nbsp;<b>[Recommended]</b></li>" +
+                                "<li>Basic authentication using client_id / client_secret for a registered client with authority `uaa.resource` &nbsp;&nbsp;<b>[Deprecated]</b></li>" +
+                                "</ul>" +
+                                "<b>If both bearer token and basic auth credentials are provided, only the bearer token will be used.</b>"
                         )
                 ), requestParameters, responseFields));
     }

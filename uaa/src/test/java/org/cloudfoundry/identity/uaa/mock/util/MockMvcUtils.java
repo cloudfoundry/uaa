@@ -1142,9 +1142,21 @@ public final class MockMvcUtils {
         return oauthToken.accessToken;
     }
 
-    public static String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
-      throws Exception {
-        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null);
+    public static String getClientOAuthAccessToken(MockMvc mockMvc,
+                                                   String clientId,
+                                                   String clientSecret,
+                                                   String scope)
+            throws Exception {
+        return getClientOAuthAccessToken(mockMvc, clientId, clientSecret, scope, false);
+    }
+
+    public static String getClientOAuthAccessToken(MockMvc mockMvc,
+                                                   String clientId,
+                                                   String clientSecret,
+                                                   String scope,
+                                                   boolean opaque)
+            throws Exception {
+        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null, opaque);
     }
 
     public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId) throws Exception {
