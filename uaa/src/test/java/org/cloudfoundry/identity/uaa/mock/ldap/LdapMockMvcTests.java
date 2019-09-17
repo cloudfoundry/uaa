@@ -24,7 +24,7 @@ class LdapMockMvcTests {
 // needs to have copy/pasted static members and methods.
 
 class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
-    private static ApacheDsSSLContainer apacheDs;
+    private static ApacheDsSSLContainer ldapContainer;
     private static int ldapPort = 44389;
     private static int ldapSPort = 44336;
 
@@ -39,25 +39,25 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
     }
 
     @AfterAll
     static void afterAll() {
-        apacheDs.stop();
+        ldapContainer.stop();
     }
 
     @Override
     protected void ensureLdapServerIsRunning() throws Exception {
-        if (!apacheDs.isRunning()) {
-            apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        if (!ldapContainer.isRunning()) {
+            ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
         }
     }
 
     @Override
     protected void stopLdapServer() {
-        if (apacheDs.isRunning()) {
-            apacheDs.stop();
+        if (ldapContainer.isRunning()) {
+            ldapContainer.stop();
         }
     }
 
@@ -73,7 +73,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
 }
 
 class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
-    private static ApacheDsSSLContainer apacheDs;
+    private static ApacheDsSSLContainer ldapContainer;
     private static int ldapPort = 44390;
     private static int ldapSPort = 44337;
 
@@ -88,25 +88,25 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
     }
 
     @AfterAll
     static void afterAll() {
-        apacheDs.stop();
+        ldapContainer.stop();
     }
 
     @Override
     protected void ensureLdapServerIsRunning() throws Exception {
-        if (!apacheDs.isRunning()) {
-            apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        if (!ldapContainer.isRunning()) {
+            ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
         }
     }
 
     @Override
     protected void stopLdapServer() {
-        if (apacheDs.isRunning()) {
-            apacheDs.stop();
+        if (ldapContainer.isRunning()) {
+            ldapContainer.stop();
         }
     }
 
@@ -122,7 +122,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
 }
 
 class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
-    private static ApacheDsSSLContainer apacheDs;
+    private static ApacheDsSSLContainer ldapContainer;
     private static int ldapPort = 44391;
     private static int ldapSPort = 44338;
 
@@ -137,25 +137,25 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
     }
 
     @AfterAll
     static void afterAll() {
-        apacheDs.stop();
+        ldapContainer.stop();
     }
 
     @Override
     protected void ensureLdapServerIsRunning() throws Exception {
-        if (!apacheDs.isRunning()) {
-            apacheDs = ApacheDSHelper.start(ldapPort, ldapSPort);
+        if (!ldapContainer.isRunning()) {
+            ldapContainer = ApacheDSHelper.start(ldapPort, ldapSPort);
         }
     }
 
     @Override
     protected void stopLdapServer() {
-        if (apacheDs.isRunning()) {
-            apacheDs.stop();
+        if (ldapContainer.isRunning()) {
+            ldapContainer.stop();
         }
     }
 

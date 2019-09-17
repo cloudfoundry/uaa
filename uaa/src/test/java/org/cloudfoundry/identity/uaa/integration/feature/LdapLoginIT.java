@@ -110,7 +110,7 @@ public class LdapLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost","testzone2.localhost"), webDriver, IdentityZoneHolder.get());
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost", "testzone2.localhost"), webDriver, IdentityZoneHolder.get());
     }
 
     @Test
@@ -125,11 +125,11 @@ public class LdapLoginIT {
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-          IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         //admin client token - to create users
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-          IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
 
@@ -137,35 +137,35 @@ public class LdapLoginIT {
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@ldaptesting.org";
-        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
         String groupName = String.format("zones.%s.admin", subdomain);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
         zoneAdminToken =
-          IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
-            UaaTestAccounts.standard(serverRunning),
-            "identity",
-            "identitysecret",
-            email,
-            "secr3T");
+                IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
+                        UaaTestAccounts.standard(serverRunning),
+                        "identity",
+                        "identitysecret",
+                        email,
+                        "secr3T");
 
         LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-          ldapUrl,
-          "cn=admin,ou=Users,dc=test,dc=com",
-          "adminsecret",
-          "dc=test,dc=com",
-          "cn={0}",
-          "ou=Users,dc=test,dc=com",
-          "member={0}",
-          "mail",
-          null,
-          false,
-          true,
-          true,
-          100,
-          false);
+                ldapUrl,
+                "cn=admin,ou=Users,dc=test,dc=com",
+                "adminsecret",
+                "dc=test,dc=com",
+                "cn={0}",
+                "ou=Users,dc=test,dc=com",
+                "member={0}",
+                "mail",
+                null,
+                false,
+                true,
+                true,
+                100,
+                false);
         ldapIdentityProviderDefinition.setTlsConfiguration(startTls ? LDAP_TLS_SIMPLE : LDAP_TLS_NONE);
         ldapIdentityProviderDefinition.setSkipSSLVerification(skipSSLVerification);
 
@@ -176,7 +176,7 @@ public class LdapLoginIT {
         provider.setConfig(ldapIdentityProviderDefinition);
         provider.setOriginKey(LDAP);
         provider.setName("simplesamlphp for uaa");
-        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         webDriver.get(zoneUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(username);

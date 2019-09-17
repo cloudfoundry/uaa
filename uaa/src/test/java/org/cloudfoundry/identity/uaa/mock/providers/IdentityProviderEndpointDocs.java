@@ -21,18 +21,7 @@ import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
@@ -41,11 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
@@ -62,20 +47,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
@@ -83,19 +60,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
@@ -178,17 +145,17 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
 
-    private static ApacheDsSSLContainer apacheDS;
+    private static ApacheDsSSLContainer ldapContainer;
 
     @AfterAll
     static void afterClass() throws Exception {
-        apacheDS.stop();
+        ldapContainer.stop();
         Thread.sleep(1500);
     }
 
     @BeforeAll
     static void startApacheDS() throws Exception {
-        apacheDS = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
+        ldapContainer = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
     }
 
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");

@@ -27,19 +27,19 @@ public class ApacheDSHelper {
         return start(DEFAULT_PORT, DEFAULT_SSL_PORT);
     }
     public static ApacheDsSSLContainer start(int port, int sslPort) throws Exception {
-        ApacheDsSSLContainer apacheDS;
+        ApacheDsSSLContainer ldapContainer;
         File tmpDir;
 
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
         //configure properties for running against ApacheDS
-        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
-        apacheDS.setWorkingDirectory(tmpDir);
-        apacheDS.setPort(port);
-        apacheDS.setSslPort(sslPort);
-        apacheDS.afterPropertiesSet();
+        ldapContainer = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
+        ldapContainer.setWorkingDirectory(tmpDir);
+        ldapContainer.setPort(port);
+        ldapContainer.setSslPort(sslPort);
+        ldapContainer.afterPropertiesSet();
 
-        return apacheDS;
+        return ldapContainer;
     }
 }
