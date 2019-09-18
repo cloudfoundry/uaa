@@ -39,6 +39,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -66,6 +74,14 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -95,6 +111,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -121,6 +145,14 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -149,6 +181,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -175,6 +215,14 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -212,6 +260,14 @@
           <artifactId>spring-security-web</artifactId>
           <groupId>*</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -240,6 +296,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -266,6 +330,14 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -295,6 +367,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -322,6 +402,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -348,6 +436,50 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.unboundid</groupId>
+      <artifactId>unboundid-ldapsdk</artifactId>
+      <version>4.0.11</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>slf4j-log4j12</artifactId>
+          <groupId>org.slf4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>hamcrest-all</artifactId>
+          <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>hamcrest-library</artifactId>
+          <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>spring-boot-starter-logging</artifactId>
+          <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>hamcrest-core</artifactId>
+          <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -377,6 +509,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -405,6 +545,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -432,6 +580,14 @@
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -458,6 +614,14 @@
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-core</artifactId>
+          <groupId>org.apache.directory.server</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>apacheds-protocol-ldap</artifactId>
+          <groupId>org.apache.directory.server</groupId>
         </exclusion>
       </exclusions>
     </dependency>
