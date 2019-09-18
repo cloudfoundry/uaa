@@ -55,7 +55,7 @@ dependencies {
         exclude(module: 'slf4j-log4j12')
     }
     testCompile libraries.junit
-    testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '3.9.1'
+    testCompile "org.seleniumhq.selenium:selenium-java:3.9.1"
     testCompile group: 'dumbster', name: 'dumbster', version: '1.6'
     testCompile libraries.zxing
     testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'

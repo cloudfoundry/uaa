@@ -3,11 +3,11 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
-import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
@@ -19,7 +19,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -61,17 +60,17 @@ public class LdapLoginIT {
 
     private ServerRunning serverRunning = ServerRunning.isRunning();
     private String zoneAdminToken;
-    private static ApacheDsSSLContainer ldapContainer;
+    private static InMemoryLdapServer server;
     private Optional<String> alertError = Optional.empty();
 
     @BeforeClass
     public static void startLocalLdap() throws Exception {
-        ldapContainer = ApacheDSHelper.start();
+        server = InMemoryLdapServer.startLdap(33389);
     }
 
     @AfterClass
     public static void stopLocalLdap() {
-        ldapContainer.stop();
+        server.stop();
     }
 
     @Before
@@ -105,7 +104,7 @@ public class LdapLoginIT {
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
-        performLdapLogin("testzone2", ldapContainer.nonSslUrl(), true, true, "marissa4", "ldap4");
+        performLdapLogin("testzone2", server.getLdapBaseUrl(), true, true, "marissa4", "ldap4");
         Long afterTest = System.currentTimeMillis();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
@@ -115,7 +114,7 @@ public class LdapLoginIT {
 
     @Test
     public void ldap_login_using_utf8_characters() throws Exception {
-        performLdapLogin("testzone2", ldapContainer.nonSslUrl(), true, true, "\u7433\u8D3A", "koala");
+        performLdapLogin("testzone2", server.getLdapBaseUrl(), true, true, "\u7433\u8D3A", "koala");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 

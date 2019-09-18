@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
-import org.apache.directory.server.core.security.TlsKeyGenerator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
@@ -15,13 +14,11 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -29,12 +26,16 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -95,11 +95,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DefaultTestContext
+@ExtendWith(InMemoryLdapServer.LdapTrustStoreExtension.class)
 public abstract class AbstractLdapMockMvcTest {
-    private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     private static final String REDIRECT_URI = "http://invitation.redirect.test";
+    static final File KEYSTORE;
 
-    private static String defaultTrustStore;
+    static {
+        ClassLoader classLoader = LdapSimpleBindTest.class.getClassLoader();
+        KEYSTORE = new File(classLoader.getResource("certs/valid-self-signed-ldap-cert.jks").getFile());
+    }
 
     private String ldapProfile;
     private String ldapGroup;
@@ -138,24 +142,6 @@ public abstract class AbstractLdapMockMvcTest {
         this.tlsConfig = tlsConfig;
     }
 
-    @BeforeAll
-    static void trustOurCustomCA() {
-        ClassLoader classLoader = AbstractLdapMockMvcTest.class.getClassLoader();
-        File file = new File(classLoader.getResource("certs/truststore-containing-the-ldap-ca.jks").getFile());
-
-        defaultTrustStore = System.getProperty(JAVAX_NET_SSL_TRUST_STORE);
-        System.setProperty(JAVAX_NET_SSL_TRUST_STORE, file.getAbsolutePath());
-    }
-
-    @AfterAll
-    static void revertOurCustomCA() {
-        if (defaultTrustStore != null) {
-            System.setProperty(JAVAX_NET_SSL_TRUST_STORE, defaultTrustStore);
-        } else {
-            System.clearProperty(JAVAX_NET_SSL_TRUST_STORE);
-        }
-    }
-
     @BeforeEach
     void setUp(@Autowired WebApplicationContext webApplicationContext,
                @Autowired MockMvc mockMvc,
@@ -177,7 +163,7 @@ public abstract class AbstractLdapMockMvcTest {
         definition.setBaseUrl(getLdapOrLdapSBaseUrl());
         definition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         definition.setBindPassword("adminsecret");
-        definition.setSkipSSLVerification(true);
+        definition.setSkipSSLVerification(false);
         definition.setTlsConfiguration(tlsConfig);
         definition.setMailAttributeName("mail");
         definition.setReferral("ignore");
@@ -783,15 +769,17 @@ public abstract class AbstractLdapMockMvcTest {
     void testTwoLdapServers() throws Exception {
         // Setup second ldap server
         int port = 33000 + getRandomPortOffset();
-        int sslPort = 33000 + (getRandomPortOffset());
+        int sslPort = 34000 + getRandomPortOffset();
 
-        ApacheDsSSLContainer secondLdapServer = ApacheDSHelper.start(port, sslPort);
+        InMemoryLdapServer secondLdapServer;
 
         String ldapBaseUrl;
         if (getLdapOrLdapSBaseUrl().contains("ldap://")) {
             ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldap://localhost:" + port;
+            secondLdapServer = InMemoryLdapServer.startLdap(port);
         } else {
             ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldaps://localhost:" + sslPort;
+            secondLdapServer = InMemoryLdapServer.startLdapWithTls(port, sslPort, KEYSTORE);
         }
 
         provider.getConfig().setBaseUrl(ldapBaseUrl);
@@ -812,7 +800,7 @@ public abstract class AbstractLdapMockMvcTest {
         }
     }
 
-    private void stopLdapServer(ApacheDsSSLContainer ldapServer) {
+    private void stopLdapServer(InMemoryLdapServer ldapServer) {
         if (ldapServer.isRunning()) {
             ldapServer.stop();
         }
@@ -1099,7 +1087,7 @@ public abstract class AbstractLdapMockMvcTest {
                 .andReturn();
     }
 
-    private int getRandomPortOffset() {
+    int getRandomPortOffset() {
         return (int) (Math.random() * 10000);
     }
 
@@ -1266,11 +1254,6 @@ public abstract class AbstractLdapMockMvcTest {
             assertNotNull(user.getId());
             performAuthentication(userName, "n1cel0ngp455w0rd", HttpStatus.OK);
         }
-    }
-
-    @Test
-    void TlsKeyGenerator_mustBeAvailable_ForTheseTestsToWork() {
-        assertDoesNotThrow(TlsKeyGenerator::new);
     }
 
     void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) {

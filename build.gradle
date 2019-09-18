@@ -60,6 +60,8 @@ subprojects {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
         exclude group: 'org.hamcrest', module: 'hamcrest-library'
         exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+        exclude group: "org.apache.directory.server", module: "apacheds-core"
+        exclude group: "org.apache.directory.server", module: "apacheds-protocol-ldap"
     }
 
     dependencies {
@@ -69,6 +71,7 @@ subprojects {
         testCompile(libraries.junit5JupiterParams)
         testRuntime(libraries.junit5JupiterEngine)
         testRuntime(libraries.junitVintageEngine)
+        testCompile "com.unboundid:unboundid-ldapsdk:4.0.11"
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']

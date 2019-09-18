@@ -18,12 +18,12 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
-import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -36,7 +36,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
@@ -117,8 +116,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
 
     private static final int LDAP_PORT = 23389;
-    private static final int LDAPS_PORT = 23636;
-    private final String ldapServerUrl = "ldap://localhost:" + LDAP_PORT;
 
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -145,7 +142,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
 
-    private static ApacheDsSSLContainer ldapContainer;
+    private static InMemoryLdapServer ldapContainer;
 
     @AfterAll
     static void afterClass() throws Exception {
@@ -154,8 +151,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     @BeforeAll
-    static void startApacheDS() throws Exception {
-        ldapContainer = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
+    static void startLdapContainer() {
+        ldapContainer = InMemoryLdapServer.startLdap(LDAP_PORT);
     }
 
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
@@ -606,7 +603,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
         providerDefinition.setUserDNPatternDelimiter(";");
         providerDefinition.setMailAttributeName("mail");
@@ -626,7 +623,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -655,7 +652,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
