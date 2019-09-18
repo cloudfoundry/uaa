@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -8,9 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -21,10 +20,10 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class LdapMockMvcTests {
@@ -170,228 +169,143 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
         return "ldap://localhost:" + ldapPort;
     }
 
-    @Test
-    void testLdapConfigurationBeforeSave() throws Exception {
-        String identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
-        String adminAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
-        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
-        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
+    @Nested
+    @DefaultTestContext
+    class LdapConfiguration {
 
-        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                getLdapOrLdapSBaseUrl(),
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
+        private IdentityProvider<LdapIdentityProviderDefinition> identityProvider;
+        private LdapIdentityProviderDefinition definition;
+        private IdentityProviderValidationRequest request;
+        private MockHttpServletRequestBuilder baseRequest;
+        private String identityAccessToken;
 
-        IdentityProvider provider = new IdentityProvider();
-        provider.setOriginKey(LDAP);
-        provider.setName("Test ldap provider");
-        provider.setType(LDAP);
-        provider.setConfig(definition);
-        provider.setActive(true);
-        provider.setIdentityZoneId(zone.getId());
+        @BeforeEach
+        void setUp() throws Exception {
+            IdentityProviderValidationRequest.UsernamePasswordAuthentication validUserCredentials = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
+            identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
+            final String adminAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
+            IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
+            String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
 
-        IdentityProviderValidationRequest.UsernamePasswordAuthentication token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
+            definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+                    getLdapOrLdapSBaseUrl(),
+                    "cn=admin,ou=Users,dc=test,dc=com",
+                    "adminsecret",
+                    "dc=test,dc=com",
+                    "cn={0}",
+                    "ou=scopes,dc=test,dc=com",
+                    "member={0}",
+                    "mail",
+                    null,
+                    false,
+                    true,
+                    true,
+                    10,
+                    true
+            );
 
-        IdentityProviderValidationRequest request = new IdentityProviderValidationRequest(provider, token);
-        System.out.println("request = \n" + JsonUtils.writeValueAsString(request));
-        //Happy Day Scenario
-        MockHttpServletRequestBuilder post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            identityProvider = new IdentityProvider<>();
+            identityProvider.setOriginKey(LDAP);
+            identityProvider.setName("Test ldap provider");
+            identityProvider.setType(LDAP);
+            identityProvider.setActive(true);
+            identityProvider.setIdentityZoneId(zone.getId());
+            identityProvider.setConfig(definition);
 
-        MvcResult result = getMockMvc().perform(post)
-                .andExpect(status().isOk())
-                .andReturn();
+            request = new IdentityProviderValidationRequest(identityProvider, validUserCredentials);
 
-        assertEquals("\"ok\"", result.getResponse().getContentAsString());
+            baseRequest = post("/identity-providers/test")
+                    .header("Accept", APPLICATION_JSON_VALUE)
+                    .header("Content-Type", APPLICATION_JSON_VALUE)
+                    .header("Authorization", "Bearer " + zoneAdminToken)
+                    .contentType(APPLICATION_JSON)
+                    .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        }
 
-        //Correct configuration, invalid credentials
-        token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", "koala");
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        @Test
+        void happyPath() throws Exception {
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("\"ok\""));
+        }
 
-        result = getMockMvc().perform(post)
-                .andExpect(status().isExpectationFailed())
-                .andReturn();
-        assertEquals("\"bad credentials\"", result.getResponse().getContentAsString());
+        @Test
+        void invalidUserCredentials() throws Exception {
+            IdentityProviderValidationRequest.UsernamePasswordAuthentication invalidUserCredentials
+                    = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", "!!! BAD PASSWORD !!!");
+            IdentityProviderValidationRequest invalidUserRequest = new IdentityProviderValidationRequest(identityProvider, invalidUserCredentials);
 
-        //Insufficent scope
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + identityAccessToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(invalidUserRequest)))
+                    .andExpect(status().isExpectationFailed())
+                    .andExpect(content().string("\"bad credentials\""));
+        }
 
-        getMockMvc().perform(post).andExpect(status().isForbidden()).andReturn();
+        @Test
+        void insufficientScope() throws Exception {
+            IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
 
+            MockHttpServletRequestBuilder post = post("/identity-providers/test")
+                    .header("Accept", APPLICATION_JSON_VALUE)
+                    .header("Content-Type", APPLICATION_JSON_VALUE)
+                    .header("Authorization", "Bearer " + identityAccessToken)
+                    .contentType(APPLICATION_JSON)
+                    .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
 
-        //Invalid LDAP configuration - change the password of search user
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                getLdapOrLdapSBaseUrl(),
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret23",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            getMockMvc().perform(post)
+                    .andExpect(status().isForbidden());
+        }
 
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+        @Test
+        void invalidBindPassword() throws Exception {
+            definition.setBindPassword("!!!!!!!INVALID_BIND_PASSWORD!!!!!!!");
 
-        //Invalid LDAP configuration - no ldap server
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://foobar:9090",
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("Caused by:")));
+        }
 
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+        @Test
+        void invalidLdapUrl() throws Exception {
+            definition.setBaseUrl("ldap://foobar:9090");
 
-        //Invalid LDAP configuration - invalid search base
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                getLdapOrLdapSBaseUrl(),
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                ",,,,,dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("Caused by:")));
+        }
 
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+        @Test
+        void invalidSearchBase() throws Exception {
+            definition.setUserSearchBase(",,,,,dc=INVALID,dc=SEARCH_BASE");
 
-        token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("Caused by:")));
+        }
 
-        //SSL self signed cert problems
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldaps://localhost:" + ldapSPort,
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                false
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
-        definition.setSkipSSLVerification(true);
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        @Test
+        void unableToConnectToLdapWithInvalidSsl() throws Exception {
+            definition.setBaseUrl("ldaps://localhost:" + ldapSPort);
+            definition.setSkipSSLVerification(false);
 
-        result = getMockMvc().perform(post)
-                .andExpect(status().isOk())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("\"ok\""));
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(containsString("Caused by:")));
+        }
+
+        @Test
+        void ableToConnectToLdapWithInvalidSsl_WithSkipValidation() throws Exception {
+            definition.setBaseUrl("ldaps://localhost:" + ldapSPort);
+
+            getMockMvc().perform(
+                    baseRequest.content(JsonUtils.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("\"ok\""));
+        }
     }
-
 }
