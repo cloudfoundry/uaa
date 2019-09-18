@@ -5,8 +5,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 
-import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.NONE;
-import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.SIMPLE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 
 class LdapMockMvcTests {
     // See below for actual tests. This class is just to set the filename.
@@ -33,7 +33,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
                 "ldap-simple-bind.xml",
                 "ldap-groups-null.xml",
                 "ldap://localhost:" + ldapPort,
-                NONE
+                LDAP_TLS_NONE
         );
     }
 
@@ -82,7 +82,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
                 "ldap-search-and-compare.xml",
                 "ldap-groups-as-scopes.xml",
                 "ldaps://localhost:" + ldapSPort,
-                NONE
+                LDAP_TLS_NONE
         );
     }
 
@@ -131,7 +131,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
                 "ldap-search-and-bind.xml",
                 "ldap-groups-map-to-scopes.xml",
                 "ldap://localhost:" + ldapPort,
-                SIMPLE
+                LDAP_TLS_SIMPLE
         );
     }
 
