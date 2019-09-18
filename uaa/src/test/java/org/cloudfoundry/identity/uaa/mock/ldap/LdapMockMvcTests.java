@@ -32,7 +32,6 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
         super(
                 "ldap-simple-bind.xml",
                 "ldap-groups-null.xml",
-                "ldap://localhost:" + ldapPort,
                 LDAP_TLS_NONE
         );
     }
@@ -62,13 +61,8 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected int getLdapPort() {
-        return ldapPort;
-    }
-
-    @Override
-    protected int getLdapSPort() {
-        return ldapSPort;
+    protected String getLdapOrLdapSBaseUrl() {
+        return "ldap://localhost:" + ldapPort;
     }
 }
 
@@ -81,7 +75,6 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
         super(
                 "ldap-search-and-compare.xml",
                 "ldap-groups-as-scopes.xml",
-                "ldaps://localhost:" + ldapSPort,
                 LDAP_TLS_NONE
         );
     }
@@ -111,13 +104,8 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected int getLdapPort() {
-        return ldapPort;
-    }
-
-    @Override
-    protected int getLdapSPort() {
-        return ldapSPort;
+    protected String getLdapOrLdapSBaseUrl() {
+        return "ldaps://localhost:" + ldapSPort;
     }
 }
 
@@ -130,7 +118,6 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
         super(
                 "ldap-search-and-bind.xml",
                 "ldap-groups-map-to-scopes.xml",
-                "ldap://localhost:" + ldapPort,
                 LDAP_TLS_SIMPLE
         );
     }
@@ -160,12 +147,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected int getLdapPort() {
-        return ldapPort;
-    }
-
-    @Override
-    protected int getLdapSPort() {
-        return ldapSPort;
+    protected String getLdapOrLdapSBaseUrl() {
+        return "ldap://localhost:" + ldapPort;
     }
 }

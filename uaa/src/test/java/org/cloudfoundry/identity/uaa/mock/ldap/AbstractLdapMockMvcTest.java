@@ -103,7 +103,6 @@ public abstract class AbstractLdapMockMvcTest {
 
     private String ldapProfile;
     private String ldapGroup;
-    private String ldapBaseUrl;
     private String tlsConfig;
 
     private String host;
@@ -130,15 +129,12 @@ public abstract class AbstractLdapMockMvcTest {
 
     protected abstract void stopLdapServer() throws Exception;
 
-    protected abstract int getLdapPort();
-
-    protected abstract int getLdapSPort();
+    protected abstract String getLdapOrLdapSBaseUrl();
 
     // Called by child classes. Allows this abstract parent class to act like a parameterized test.
-    AbstractLdapMockMvcTest(String ldapProfile, String ldapGroup, String baseUrl, String tlsConfig) {
+    AbstractLdapMockMvcTest(String ldapProfile, String ldapGroup, String tlsConfig) {
         this.ldapProfile = ldapProfile;
         this.ldapGroup = ldapGroup;
-        this.ldapBaseUrl = baseUrl;
         this.tlsConfig = tlsConfig;
     }
 
@@ -178,7 +174,7 @@ public abstract class AbstractLdapMockMvcTest {
         definition.setLdapProfileFile("ldap/" + ldapProfile);
         definition.setLdapGroupFile("ldap/" + ldapGroup);
         definition.setMaxGroupSearchDepth(10);
-        definition.setBaseUrl(ldapBaseUrl);
+        definition.setBaseUrl(getLdapOrLdapSBaseUrl());
         definition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         definition.setBindPassword("adminsecret");
         definition.setSkipSSLVerification(true);
@@ -454,7 +450,7 @@ public abstract class AbstractLdapMockMvcTest {
         String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
 
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:" + getLdapPort(),
+                getLdapOrLdapSBaseUrl(),
                 "cn=admin,ou=Users,dc=test,dc=com",
                 "adminsecret",
                 "dc=test,dc=com",
@@ -625,7 +621,7 @@ public abstract class AbstractLdapMockMvcTest {
 
         //SSL self signed cert problems
         definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldaps://localhost:" + getLdapSPort(),
+                "ldaps://localhost:44338",
                 "cn=admin,ou=Users,dc=test,dc=com",
                 "adminsecret",
                 "dc=test,dc=com",
@@ -1019,11 +1015,11 @@ public abstract class AbstractLdapMockMvcTest {
 
         ApacheDsSSLContainer secondLdapServer = ApacheDSHelper.start(port, sslPort);
 
-        String originalUrl = ldapBaseUrl;
-        if (ldapBaseUrl.contains("ldap://")) {
-            ldapBaseUrl = ldapBaseUrl + " ldap://localhost:" + port;
+        String ldapBaseUrl;
+        if (getLdapOrLdapSBaseUrl().contains("ldap://")) {
+            ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldap://localhost:" + port;
         } else {
-            ldapBaseUrl = ldapBaseUrl + " ldaps://localhost:" + sslPort;
+            ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldaps://localhost:" + sslPort;
         }
 
         provider.getConfig().setBaseUrl(ldapBaseUrl);
@@ -1038,7 +1034,6 @@ public abstract class AbstractLdapMockMvcTest {
             stopLdapServer(secondLdapServer);
 
         } finally {
-            ldapBaseUrl = originalUrl;
             stopLdapServer();
             stopLdapServer(secondLdapServer);
             Thread.sleep(1500);
