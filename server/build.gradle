@@ -22,6 +22,7 @@ dependencies {
     compile libraries.apacheHttpClient
     compile libraries.springSecurityWeb
     compile libraries.springSecuritySaml
+    compile libraries.springSession
 
     compile(libraries.springSecurityOauth) {
         exclude(module: 'commons-codec')

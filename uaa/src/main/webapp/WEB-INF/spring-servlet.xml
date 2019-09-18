@@ -366,6 +366,7 @@
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
+    <import resource="spring/session.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">

@@ -6,6 +6,12 @@
     <absolute-ordering/>
     <display-name>Oauth 2 / Open ID / Identity Server</display-name>
     <description>CloudFoundry Identity Server</description>
+
+    <filter>
+        <filter-name>springSessionRepositoryFilter</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+    </filter>
+
     <filter>
         <filter-name>springSecurityFilterChain</filter-name>
         <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
@@ -14,6 +20,18 @@
             <param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.spring</param-value>
         </init-param>
     </filter>
+    
+    <filter>
+        <filter-name>backwardsCompatibleScopeParameter</filter-name>
+        <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>springSessionRepositoryFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+    </filter-mapping>
 
     <filter-mapping>
         <filter-name>springSecurityFilterChain</filter-name>
@@ -26,10 +44,6 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-    <filter>
-        <filter-name>backwardsCompatibleScopeParameter</filter-name>
-        <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>
-    </filter>
 
     <listener>
         <listener-class>
