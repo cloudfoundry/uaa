@@ -56,11 +56,11 @@ public class KeyWithCert {
         String privateKeyAlgorithm = privateKey.getAlgorithm();
         String publicKeyAlgorithm = publicKey.getAlgorithm();
 
-        if (privateKeyAlgorithm == "EC") {
+        if (privateKeyAlgorithm.equals("EC")) {
             privateKeyAlgorithm = "ECDSA";
         }
 
-        if (publicKeyAlgorithm == "EC") {
+        if (publicKeyAlgorithm.equals("EC")) {
             publicKeyAlgorithm = "ECDSA";
         }
 
