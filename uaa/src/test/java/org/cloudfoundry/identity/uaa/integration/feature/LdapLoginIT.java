@@ -31,7 +31,6 @@ import java.util.Optional;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
-import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -104,7 +103,7 @@ public class LdapLoginIT {
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
-        performLdapLogin("testzone2", server.getLdapBaseUrl(), true, true, "marissa4", "ldap4");
+        performLdapLogin("testzone2", server.getLdapBaseUrl(), "marissa4", "ldap4");
         Long afterTest = System.currentTimeMillis();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
@@ -114,11 +113,11 @@ public class LdapLoginIT {
 
     @Test
     public void ldap_login_using_utf8_characters() throws Exception {
-        performLdapLogin("testzone2", server.getLdapBaseUrl(), true, true, "\u7433\u8D3A", "koala");
+        performLdapLogin("testzone2", server.getLdapBaseUrl(), "\u7433\u8D3A", "koala");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
-    private void performLdapLogin(String subdomain, String ldapUrl, boolean startTls, boolean skipSSLVerification, String username, String password) throws Exception {
+    private void performLdapLogin(String subdomain, String ldapUrl, String username, String password) throws Exception {
         //ensure that certs have been added to truststore via gradle
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 
@@ -164,9 +163,8 @@ public class LdapLoginIT {
                 true,
                 true,
                 100,
-                false);
-        ldapIdentityProviderDefinition.setTlsConfiguration(startTls ? LDAP_TLS_SIMPLE : LDAP_TLS_NONE);
-        ldapIdentityProviderDefinition.setSkipSSLVerification(skipSSLVerification);
+                true);
+        ldapIdentityProviderDefinition.setTlsConfiguration(LDAP_TLS_NONE);
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(subdomain);
