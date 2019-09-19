@@ -212,9 +212,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(passwordLastModified.getTime());
             cal.add(Calendar.MONTH, expiringPassword);
-            if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                return true;
-            }
+            return cal.getTimeInMillis() < System.currentTimeMillis();
         }
         return false;
     }

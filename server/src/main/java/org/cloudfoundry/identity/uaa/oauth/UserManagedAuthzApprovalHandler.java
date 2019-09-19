@@ -122,9 +122,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                 }
             }
 
-            if (userAuthentication.isAuthenticated()) {
-                return true;
-            }
+            return userAuthentication.isAuthenticated();
 
         } else {
             // Find the stored approvals for that user and client

@@ -559,17 +559,11 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     private boolean validateCurrentClientSecretAdd(String clientSecret) {
-        if(clientSecret != null && clientSecret.split(" ").length != 1){
-            return false;
-        }
-        return true;
+        return clientSecret == null || clientSecret.split(" ").length == 1;
     }
 
     private boolean validateCurrentClientSecretDelete(String clientSecret) {
-        if(clientSecret != null && clientSecret.split(" ").length == 2){
-            return true;
-        }
-        return false;
+        return clientSecret != null && clientSecret.split(" ").length == 2;
     }
 
     @ExceptionHandler(InvalidClientSecretException.class)

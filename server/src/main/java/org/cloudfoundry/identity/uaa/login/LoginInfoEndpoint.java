@@ -654,10 +654,7 @@ public class LoginInfoEndpoint {
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         String redirectUrl = savedRequest.getRedirectUrl();
         String[] client_ids = savedRequest.getParameterValues("client_id");
-        if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
-            return true;
-        }
-        return false;
+        return redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0;
     }
 
     public Map<String, Object> getClientInfo(HttpSession session) {

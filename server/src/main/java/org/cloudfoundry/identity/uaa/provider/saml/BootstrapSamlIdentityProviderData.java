@@ -128,11 +128,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             }
 
             if (skipSslValidation==null) {
-                if (socketFactoryClassName != null) {
-                    skipSslValidation = false;
-                } else {
-                    skipSslValidation = true;
-                }
+                skipSslValidation = socketFactoryClassName == null;
             }
 
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
