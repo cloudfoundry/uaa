@@ -271,7 +271,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     public void testCleanUpUnusedOldTokens_MySQL_In_Another_Timezone() throws Exception {
         //only run tests for MySQL for now.
         Optional<String> dbProfile = Arrays.stream(environment.getActiveProfiles()).filter(s -> s.contains("sql")).findFirst();
-        String db = dbProfile.isPresent() ? dbProfile.get() : "hsqldb";
+        String db = dbProfile.orElse("hsqldb");
 
         Connection con = dataSource.getConnection();
         try {

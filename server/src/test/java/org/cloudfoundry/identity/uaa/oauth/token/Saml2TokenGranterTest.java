@@ -61,6 +61,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.util.Collection;
 import java.util.Date;
@@ -70,6 +71,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
@@ -276,7 +278,7 @@ public class Saml2TokenGranterTest {
 		BasicParserPool parser = new BasicParserPool();
 		parser.setNamespaceAware(true);
 		/* Base64URL encoded */
-		byte bytes[] = xmlString.getBytes("utf-8");
+		byte[] bytes = xmlString.getBytes(UTF_8);
 		if (bytes == null || bytes.length == 0)
 			throw new InsufficientAuthenticationException("Invalid assertion encoding");
 		Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));

@@ -35,10 +35,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
@@ -188,8 +190,8 @@ public class CheckTokenEndpointIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + new String(Base64.encode("cf:".getBytes("UTF-8"))));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("cf:".getBytes(UTF_8))));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
