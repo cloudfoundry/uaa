@@ -115,7 +115,6 @@ public final class SnippetUtils {
     }
 
     public static FieldDescriptor[] subFields(String path, FieldDescriptor... fieldDescriptors) {
-        List<SubField> subFields = Arrays.asList(fieldDescriptors).stream().map(field -> new SubField(path, field)).collect(Collectors.toList());
-        return subFields.toArray(new FieldDescriptor[subFields.size()]);
+        return Arrays.stream(fieldDescriptors).map(field -> new SubField(path, field)).toArray(FieldDescriptor[]::new);
     }
 }

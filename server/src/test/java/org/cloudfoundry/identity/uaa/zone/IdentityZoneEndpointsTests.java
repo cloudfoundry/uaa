@@ -78,11 +78,9 @@ public class IdentityZoneEndpointsTests {
         assertEquals(defaultGroups.size(), captor.getAllValues().size());
         assertThat(defaultGroups,
                    containsInAnyOrder(
-                       captor.getAllValues().stream().map(
-                           g -> g.getDisplayName()
-                       )
-                           .collect(Collectors.toList())
-                           .toArray(new String[0])
+                           captor.getAllValues().stream().map(
+                                   ScimGroup::getDisplayName
+                           ).toArray(String[]::new)
                    )
         );
     }
