@@ -301,7 +301,7 @@ class ScimUserLookupMockMvcTests {
         final int count = 25;
         String[][] result = new String[count][];
         for (int i = 0; i < count; i++) {
-            String id = i > 99 ? String.valueOf(i) : i > 9 ? "0" + String.valueOf(i) : "00" + String.valueOf(i);
+            String id = i > 9 ? "0" + i : "00" + i;
             String email = "joe" + id + "@" + generator.generate().toLowerCase() + ".com";
 
             ScimUser user = new ScimUser();
