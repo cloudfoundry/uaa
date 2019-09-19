@@ -45,7 +45,7 @@ public enum UaaAuthority implements GrantedAuthority {
 
     private final String userType;
 
-    private UaaAuthority(String userType, int value) {
+    UaaAuthority(String userType, int value) {
         this.userType = userType;
         this.value = value;
     }

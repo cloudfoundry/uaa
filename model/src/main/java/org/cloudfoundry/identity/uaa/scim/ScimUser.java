@@ -46,7 +46,7 @@ public class ScimUser extends ScimCore<ScimUser> {
 
         String display;
 
-        public static enum Type {
+        public enum Type {
             DIRECT, INDIRECT
         }
 
