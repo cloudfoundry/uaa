@@ -53,7 +53,7 @@ public class ComparableProviderTest {
             return this;
         }
 
-    };
+    }
 
     @Test
     public void testCompareTo(){

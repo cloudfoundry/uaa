@@ -66,7 +66,7 @@ public class OauthCodeIndexTest extends JdbcTestBase {
         for (String tableName : Arrays.asList(tableName.toLowerCase(), tableName.toUpperCase())) {
             try (
                 Connection connection = dataSource.getConnection();
-                ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true);
+                ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
             ) {
                 while (!found && rs.next()) {
                     found = indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"));

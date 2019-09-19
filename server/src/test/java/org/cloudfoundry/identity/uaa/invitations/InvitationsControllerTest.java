@@ -178,7 +178,7 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
             .param("code", "the_secret_code");
