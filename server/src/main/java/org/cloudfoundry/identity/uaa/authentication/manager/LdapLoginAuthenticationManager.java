@@ -141,7 +141,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                 result = ldapIdentityProviderDefinition.isAutoAddGroups();
             }
         }
-        return result!=null ? result.booleanValue() : true;
+        return result == null || result.booleanValue();
     }
 
     @Override

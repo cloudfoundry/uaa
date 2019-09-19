@@ -168,7 +168,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             String groupName = fields[0];
             groups.putIfAbsent(groupName, null);
 
-            boolean groupAdmin = (3 <= fields.length && "write".equalsIgnoreCase(fields[2])) ? true : false;
+            boolean groupAdmin = 3 <= fields.length && "write".equalsIgnoreCase(fields[2]);
             if (groupAdmin) {
                 groupAdmins.put(groupName, users);
             } else {
