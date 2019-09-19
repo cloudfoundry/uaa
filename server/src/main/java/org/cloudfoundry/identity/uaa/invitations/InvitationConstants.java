@@ -13,6 +13,6 @@ package org.cloudfoundry.identity.uaa.invitations;
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 public interface InvitationConstants {
-    static final String USER_ID = "user_id";
-    static final String EMAIL = "email";
+    String USER_ID = "user_id";
+    String EMAIL = "email";
 }

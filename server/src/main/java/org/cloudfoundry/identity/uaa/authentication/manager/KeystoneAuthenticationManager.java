@@ -62,7 +62,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     }
 
 
-    public static interface KeystoneAuthenticationRequest {
+    public interface KeystoneAuthenticationRequest {
     }
 
     public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest{

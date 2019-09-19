@@ -17,8 +17,8 @@ import java.util.List;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 
 public interface ApprovalsControllerService {
-    public List<Approval> getApprovals(String filter, int startIndex, int count);
-    public List<Approval> updateApprovals(Approval[] approvals);
-    public List<Approval> updateClientApprovals(String clientId, Approval[] approvals);
-    public ActionResult revokeApprovals(String clientId);
+    List<Approval> getApprovals(String filter, int startIndex, int count);
+    List<Approval> updateApprovals(Approval[] approvals);
+    List<Approval> updateClientApprovals(String clientId, Approval[] approvals);
+    ActionResult revokeApprovals(String clientId);
 }

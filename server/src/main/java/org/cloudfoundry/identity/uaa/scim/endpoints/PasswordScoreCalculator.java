@@ -25,5 +25,5 @@ public interface PasswordScoreCalculator {
      * @param userData user-specific data which should not be in the password.
      * @return the score computed for the password
      */
-    public PasswordScore computeScore(String password, String... userData);
+    PasswordScore computeScore(String password, String... userData);
 }
