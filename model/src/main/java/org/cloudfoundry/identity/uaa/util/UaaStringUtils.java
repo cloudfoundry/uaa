@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -276,7 +277,7 @@ public class UaaStringUtils {
         if (s==null) {
             return null;
         } else {
-            return new String(s.getBytes(Charset.forName(ISO_8859_1)), Charset.forName(UTF_8));
+            return new String(s.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
         }
     }
 

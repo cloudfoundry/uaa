@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -83,7 +84,7 @@ public class NativeApplicationIntegrationTests {
         formData.add("password", resource.getPassword());
         formData.add("scope", "cloud_controller.read");
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes("UTF-8"))));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes(StandardCharsets.UTF_8))));
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());

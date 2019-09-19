@@ -70,6 +70,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -276,10 +277,10 @@ public class XOAuthAuthenticationManagerIT {
     public void verify_hmac_256_signature() throws Exception {
         String key = "key";
         String data = "data";
-        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
-        byte[] hmacData = mac.doFinal(data.getBytes("UTF-8"));
+        byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         assertThat(new String(Base64.encodeBase64URLSafe(hmacData)), equalTo(xoAuthAuthenticationManager.hmacSignAndEncode(data, key)));
     }
 

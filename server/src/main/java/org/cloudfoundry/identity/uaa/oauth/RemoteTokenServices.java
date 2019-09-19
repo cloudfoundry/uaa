@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -218,11 +219,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private String getAuthorizationHeader(String clientId, String clientSecret) {
         String creds = String.format("%s:%s", clientId, clientSecret);
-        try {
-            return "Basic " + new String(Base64.encode(creds.getBytes("UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Could not convert String");
-        }
+        return "Basic " + new String(Base64.encode(creds.getBytes(StandardCharsets.UTF_8)));
     }
 
     private Map<String, Object> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {

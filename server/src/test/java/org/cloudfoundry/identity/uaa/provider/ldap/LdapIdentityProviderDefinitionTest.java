@@ -25,6 +25,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -200,7 +201,7 @@ public class LdapIdentityProviderDefinitionTest {
     public Map<String,Object> getLdapConfig(String config) throws UnsupportedEncodingException {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
-        factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes("UTF-8"))});
+        factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes(StandardCharsets.UTF_8))});
         Map<String, Object> map = (Map<String, Object>) factory.getObject().get(LDAP);
         Map<String, Object> result = new HashMap<>();
         result.put(LDAP, map);

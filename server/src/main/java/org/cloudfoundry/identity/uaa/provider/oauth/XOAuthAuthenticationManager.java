@@ -72,6 +72,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -480,7 +481,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             String data = signedRequests[1];
             Map<String, Object> jsonData = null;
             try {
-                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), "UTF-8"), new TypeReference<Map<String,Object>>() {});
+                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<Map<String,Object>>() {});
                 //check signature algorithm
                 if(!jsonData.get("algorithm").equals("HMAC-SHA256")) {
                     logger.debug("Unknown algorithm was used to sign request! No claims returned.");
@@ -513,7 +514,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     protected String hmacSignAndEncode(String data, String key) throws UnsupportedEncodingException {
         MacSigner macSigner = new MacSigner(key);
-        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes("UTF-8"))), "UTF-8");
+        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
