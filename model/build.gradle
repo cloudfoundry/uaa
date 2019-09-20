@@ -21,8 +21,8 @@ dependencies {
 
     testCompile(libraries.junit)
 
-    compileOnly 'org.projectlombok:lombok:1.18.8'
-    annotationProcessor 'org.projectlombok:lombok:1.18.6'
+    compileOnly 'org.projectlombok:lombok:1.18.10'
+    annotationProcessor 'org.projectlombok:lombok:1.18.10'
     testCompile 'org.skyscreamer:jsonassert:1.5.0'
 }
 
