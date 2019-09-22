@@ -136,7 +136,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "client_id" : "cf",
   "authorized_grant_types" : [ "implicit" ],
   "authorities" : [ "uaa.resource", "openid" ],
-  "redirect_uri" : "'"${PROTOCOL}"'://*.dummy.predix.io/**",
+  "redirect_uri" : "'"${PROTOCOL}"'://*.example.com/**",
   "autoapprove" : [ "uaa.resource","openid" ],
   "allowedproviders" : ["uaa"]
 }'
@@ -253,7 +253,7 @@ uaac curl /oauth/clients -X POST -H 'Content-Type: application/json' -H 'Accept:
   "authorities" : [ "uaa.resource", "openid" ],
   "autoapprove" : [ "zones.test-app-zone.admin", "clients.admin", "sps.read", "sps.write", "idps.read", "idps.write", "scim.read", "scim.write" ],
   "allowedproviders" : [ "PredixIntegrationOIDCProvider" ],
-  "redirect_uri" : [ "'"${PROTOCOL}"'://*.dummy.predix.io/**" ]
+  "redirect_uri" : [ "'"${PROTOCOL}"'://*.example.com/**" ]
 }'
 
 #Create OP in test-app-zone

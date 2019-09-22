@@ -104,7 +104,7 @@ public class DegradedSamlLoginTests {
         baseUaaZoneHost = Boolean.valueOf(environment.getProperty("RUN_AGAINST_CLOUD")) ? (publishedHost + "." + cfDomain) : "localhost:8080/uaa";
         protocol = Boolean.valueOf(environment.getProperty("RUN_AGAINST_CLOUD")) ? "https://" : "http://";
         baseUrl = protocol + zoneSubdomain + "." + baseUaaZoneHost;
-        testRedirectUri = protocol +  "test-url.dummy.predix.io";
+        testRedirectUri = protocol +  "www.example.com";
         zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, ZONE_ADMIN, zoneAdminSecret);
         screenShootRule.setWebDriver(webDriver);
     }
@@ -229,7 +229,7 @@ public class DegradedSamlLoginTests {
         //Ensure the browser/webdriver processes all the flows
         webDriver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
         //Get the http archive logs
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
+        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll(); //todo - no har
         logger.info("Entries:"+harLogEntries.size());
         LogEntry logEntry = harLogEntries.get(0);
 
@@ -277,10 +277,8 @@ public class DegradedSamlLoginTests {
 
         //Ensure the browser/webdriver processes all the flows
         webDriver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
-        LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 
-        String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
+        String lastRequestUrl = webDriver.getCurrentUrl();
         logger.info("last request url: " + lastRequestUrl);
         assertThat(lastRequestUrl, Matchers.containsString(testRedirectUri));
         String authcode = lastRequestUrl.split("code=")[1];
@@ -321,7 +319,7 @@ public class DegradedSamlLoginTests {
     }
 
 
-    private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
+    private String getRequestUrlFromHarLogEntry(LogEntry logEntry) //todo: delete
             throws IOException {
 
         Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
