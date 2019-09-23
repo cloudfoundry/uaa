@@ -22,7 +22,7 @@ import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 
 class UaaClientDetailsTest {
     @Nested
-    static class Creation {
+    class Creation {
         private BaseClientDetails testClient;
 
         @BeforeEach
@@ -66,7 +66,7 @@ class UaaClientDetailsTest {
     }
 
     @Nested
-    static class WhenSettingScope {
+    class WhenSettingScope {
         @Test
         void splitsScopesWhichIncludeAComma() {
             UaaClientDetails client = new UaaClientDetails(new BaseClientDetails());
