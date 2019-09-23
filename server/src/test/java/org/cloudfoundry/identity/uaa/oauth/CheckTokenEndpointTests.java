@@ -869,14 +869,14 @@ public class CheckTokenEndpointTests {
     public void testUserAuthoritiesNotInResult() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test
     public void testClientAuthoritiesNotInResult() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -914,7 +914,7 @@ public class CheckTokenEndpointTests {
             .setStatus(ApprovalStatus.DENIED)
             .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -933,7 +933,7 @@ public class CheckTokenEndpointTests {
             .setExpiresAt(new Date(nowMillis))
             .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test

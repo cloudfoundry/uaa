@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.security.web.SecurityFilterChain;
+
+import javax.servlet.*;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -13,13 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.security.web.SecurityFilterChain;
 
 public class SecurityFilterChainPostProcessorTests {
 
@@ -50,7 +45,9 @@ public class SecurityFilterChainPostProcessorTests {
         processor.setAdditionalFilters(additionalFilters);
         processor.postProcessAfterInitialization(fc, "");
         assertEquals(count+1, fc.getFilters().size());
-        assertTrue("filter["+pos+"] should be:"+PositionFilter.class.getSimpleName(), fc.getFilters().get(expectedPos).getClass().equals(PositionFilter.class));
+        assertEquals(String.format("filter[%d] should be:%s", pos, PositionFilter.class.getSimpleName()),
+                fc.getFilters().get(expectedPos).getClass(),
+                PositionFilter.class);
     }
 
     @Test
@@ -72,7 +69,9 @@ public class SecurityFilterChainPostProcessorTests {
         processor.setAdditionalFilters(additionalFilters);
         processor.postProcessAfterInitialization(fc, "");
         assertEquals(count+1, fc.getFilters().size());
-        assertTrue("filter["+clazz.getSimpleName()+"] should be at position:"+expectedPosition, fc.getFilters().get(expectedPosition).getClass().equals(clazz));
+        assertEquals(String.format("filter[%s] should be at position:%d", clazz.getSimpleName(), expectedPosition),
+                fc.getFilters().get(expectedPosition).getClass(),
+                clazz);
     }
 
     @Test

@@ -194,7 +194,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = zone.getConfig();
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
-        assertEquals(false, definition.getTokenPolicy().isRefreshTokenUnique());
+        assertFalse(definition.getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(), definition.getTokenPolicy().getRefreshTokenFormat());
         assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID));
     }

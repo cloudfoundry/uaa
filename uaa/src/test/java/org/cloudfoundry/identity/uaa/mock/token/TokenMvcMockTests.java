@@ -3657,7 +3657,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
         for (String key : mapResponse.keySet()) {
             assertTrue(mapRequest.containsKey(key));
-            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+            assertArrayEquals(mapRequest.get(key), mapResponse.get(key));
         }
         Set<String> requestKeys = new HashSet(mapRequest.keySet());
         requestKeys.removeAll(mapResponse.keySet());
@@ -3711,7 +3711,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Map<String, String[]> mapResponse = UaaUrlUtils.getParameterMap(result.getResponse().getRedirectedUrl());
         for (String key : mapResponse.keySet()) {
             assertTrue(mapRequest.containsKey(key));
-            assertTrue(Arrays.equals(mapRequest.get(key), mapResponse.get(key)));
+            assertArrayEquals(mapRequest.get(key), mapResponse.get(key));
         }
         Set<String> requestKeys = new HashSet(mapRequest.keySet());
         requestKeys.removeAll(mapResponse.keySet());

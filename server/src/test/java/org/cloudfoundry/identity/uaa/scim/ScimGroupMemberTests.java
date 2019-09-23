@@ -12,12 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class ScimGroupMemberTests {
 
@@ -30,19 +27,19 @@ public class ScimGroupMemberTests {
     private static final ScimGroupMember m7 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
 
     @Test
-    public void testHashCode() throws Exception {
-        assertTrue(m1.hashCode() == new ScimGroupMember(m1.getMemberId(), m1.getType()).hashCode());
-        assertTrue(m4.hashCode() == new ScimGroupMember(m1.getMemberId(), m4.getType()).hashCode());
-        assertTrue(m1.hashCode() == m2.hashCode());
-        assertTrue(m1.hashCode() == m3.hashCode());
-        assertFalse(m1.hashCode() == m4.hashCode());
-        assertFalse(m1.hashCode() == m5.hashCode());
-        assertFalse(m1.hashCode() == m6.hashCode());
-        assertFalse(m1.hashCode() == m7.hashCode());
+    public void testHashCode() {
+        assertEquals(m1.hashCode(), new ScimGroupMember(m1.getMemberId(), m1.getType()).hashCode());
+        assertEquals(m4.hashCode(), new ScimGroupMember(m1.getMemberId(), m4.getType()).hashCode());
+        assertEquals(m1.hashCode(), m2.hashCode());
+        assertEquals(m1.hashCode(), m3.hashCode());
+        assertNotEquals(m1.hashCode(), m4.hashCode());
+        assertNotEquals(m1.hashCode(), m5.hashCode());
+        assertNotEquals(m1.hashCode(), m6.hashCode());
+        assertNotEquals(m1.hashCode(), m7.hashCode());
     }
 
     @Test
-    public void testEquals() throws Exception {
+    public void testEquals() {
         assertEquals(m1, new ScimGroupMember(m1.getMemberId(), m1.getType()));
         assertEquals(m3, new ScimGroupMember(m3.getMemberId(), m3.getType()));
         assertEquals(m6, new ScimGroupMember(m6.getMemberId(), m6.getType()));

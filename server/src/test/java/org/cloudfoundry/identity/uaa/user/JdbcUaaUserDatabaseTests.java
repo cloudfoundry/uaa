@@ -227,7 +227,7 @@ class JdbcUaaUserDatabaseTests {
         assertEquals("Joe", joe.getUsername());
         assertEquals("joe@test.org", joe.getEmail());
         assertEquals("joespassword", joe.getPassword());
-        assertEquals(true, joe.isPasswordChangeRequired());
+        assertTrue(joe.isPasswordChangeRequired());
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
                 "authorities does not contain uaa.user");
     }

@@ -39,10 +39,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -171,8 +168,9 @@ public class RefreshTokenSupportIntegrationTests {
         } catch (IllegalArgumentException e) {
             fail("Refreshed token was not a JWT");
         }
-        assertFalse("New access token should be different to the old one.",
-                        newAccessToken.getValue().equals(accessToken.getValue()));
+        assertNotEquals("New access token should be different to the old one.",
+                newAccessToken.getValue(),
+                accessToken.getValue());
 
     }
 

@@ -78,7 +78,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
             Cookie cookie = response.getCookie(token.getParameterName());
             assertNotNull(cookie);
             assertEquals(token.getToken(), cookie.getValue());
-            assertEquals(true, cookie.isHttpOnly());
+            assertTrue(cookie.isHttpOnly());
             assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
             assertNotNull(cookie.getPath());
             assertEquals(expectedCookiePath, cookie.getPath());

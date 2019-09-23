@@ -12,11 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
 import org.junit.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Dave Syer
@@ -49,8 +48,6 @@ public class UaaAuthorityTests {
 
     @Test
     public void testSubstringAuthority() {
-        assertFalse(UaaAuthority.UAA_ADMIN.equals(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")));
-
+        assertNotEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("some.scope.with.subscope.uaa.admin"));
     }
-
 }

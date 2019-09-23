@@ -17,13 +17,13 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,14 +31,8 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
@@ -58,12 +52,8 @@ import java.util.*;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -159,20 +149,20 @@ public class OpenIdTokenGrantsIT {
             Void.class
         );
 
-        Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("localhost", locationComponents.getHost());
-        Assert.assertEquals("/redirect/cf", locationComponents.getPath());
+        assertEquals("localhost", locationComponents.getHost());
+        assertEquals("/redirect/cf", locationComponents.getPath());
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);
 
-        Assert.assertThat(params.get("jti"), not(empty()));
-        Assert.assertEquals("bearer", params.getFirst("token_type"));
-        Assert.assertThat(Integer.parseInt(params.getFirst("expires_in")), Matchers.greaterThan(40000));
+        assertThat(params.get("jti"), not(empty()));
+        assertEquals("bearer", params.getFirst("token_type"));
+        assertThat(Integer.parseInt(params.getFirst("expires_in")), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",
@@ -191,12 +181,12 @@ public class OpenIdTokenGrantsIT {
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat(claims.get("jti"), is(params.get("jti")));
-        Assert.assertThat(claims.get("client_id"), is("cf"));
-        Assert.assertThat(claims.get("cid"), is("cf"));
-        Assert.assertThat(claims.get("user_name"), is(user.getUserName()));
-        Assert.assertThat(((List<String>) claims.get(ClaimConstants.SCOPE)), containsInAnyOrder(scopes));
-        Assert.assertThat(((List<String>) claims.get(ClaimConstants.AUD)), containsInAnyOrder(aud));
+        assertThat(claims.get("jti"), is(params.get("jti")));
+        assertThat(claims.get("client_id"), is("cf"));
+        assertThat(claims.get("cid"), is("cf"));
+        assertThat(claims.get("user_name"), is(user.getUserName()));
+        assertThat(((List<String>) claims.get(ClaimConstants.SCOPE)), containsInAnyOrder(scopes));
+        assertThat(((List<String>) claims.get(ClaimConstants.AUD)), containsInAnyOrder(aud));
     }
 
     @Test
@@ -221,16 +211,16 @@ public class OpenIdTokenGrantsIT {
             new HttpEntity<>(postBody, headers),
             Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
         Map<String, Object> params = responseEntity.getBody();
 
-        Assert.assertTrue(params.get("jti") != null);
-        Assert.assertEquals("bearer", params.get("token_type"));
-        Assert.assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertNotNull(params.get("jti"));
+        assertEquals("bearer", params.get("token_type"));
+        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",

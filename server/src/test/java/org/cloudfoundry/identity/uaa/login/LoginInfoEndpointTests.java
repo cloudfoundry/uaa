@@ -680,11 +680,11 @@ public class LoginInfoEndpointTests {
         Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
         SamlIdentityProviderDefinition clientIdp = iterator.next();
         assertEquals("awesome-idp", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertTrue(clientIdp.isShowSamlLink());
 
         clientIdp = iterator.next();
         assertEquals("my-client-awesome-idp", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertTrue(clientIdp.isShowSamlLink());
         assertEquals(true, model.asMap().get("fieldUsernameShow"));
         assertEquals(true, model.asMap().get("linkCreateAccountShow"));
     }
@@ -705,11 +705,11 @@ public class LoginInfoEndpointTests {
         Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
         SamlIdentityProviderDefinition clientIdp = iterator.next();
         assertEquals("awesome-idp", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertTrue(clientIdp.isShowSamlLink());
 
         clientIdp = iterator.next();
         assertEquals("my-client-awesome-idp", clientIdp.getIdpEntityAlias());
-        assertEquals(true, clientIdp.isShowSamlLink());
+        assertTrue(clientIdp.isShowSamlLink());
         assertEquals(true, model.asMap().get("fieldUsernameShow"));
         assertEquals(true, model.asMap().get("linkCreateAccountShow"));
     }
@@ -989,7 +989,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
     }
 
     @Test
@@ -1006,7 +1006,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
     }
 
     @Test
@@ -1024,7 +1024,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("login_hint").equals(URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8")));
+        assertEquals(model.get("login_hint"), URLEncoder.encode("{\"origin\":\"uaa\"}", UTF_8));
     }
 
     @Test
@@ -1048,7 +1048,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
     }
 
     @Test
@@ -1098,7 +1098,7 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("login_hint").equals("{\"origin\":\"uaa\"}"));
+        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
         assertEquals("idp_discovery/password", redirect);
     }
 
@@ -1182,7 +1182,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertTrue(model.get("error").equals("invalid_login_hint"));
+        assertEquals("invalid_login_hint", model.get("error"));
     }
 
     @Test

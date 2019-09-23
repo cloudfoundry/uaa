@@ -73,7 +73,7 @@ public class MfaProviderTest {
 
         MfaProvider<GoogleMfaProviderConfig> provider = JsonUtils.readValue(json, MfaProvider.class);
 
-        assertEquals(null, provider.getType());
+        assertNull(provider.getType());
         assertEquals("UAA Provider", provider.getName());
         assertNull(provider.getConfig());
     }

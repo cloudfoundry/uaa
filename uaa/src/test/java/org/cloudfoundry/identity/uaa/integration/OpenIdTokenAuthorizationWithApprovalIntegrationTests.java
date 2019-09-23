@@ -24,16 +24,10 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.jwt.Jwt;
@@ -58,8 +52,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -144,16 +137,16 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             new HttpEntity<>(postBody, headers),
             Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
         Map<String, Object> params = responseEntity.getBody();
 
-        Assert.assertTrue(params.get("jti") != null);
-        Assert.assertEquals("bearer", params.get("token_type"));
-        Assert.assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertNotNull(params.get("jti"));
+        assertEquals("bearer", params.get("token_type"));
+        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",

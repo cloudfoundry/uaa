@@ -84,7 +84,7 @@ public class UaaAuthenticationSerializationTests {
         assertEquals("remoteAddr", actualDetails.getOrigin());
         assertEquals("id", actualDetails.getSessionId());
         assertEquals("clientId", actualDetails.getClientId());
-        assertEquals(true, actualDetails.isAddNew());
+        assertTrue(actualDetails.isAddNew());
 
         //validate principal
         UaaPrincipal actualPrincipal = actual.getPrincipal();

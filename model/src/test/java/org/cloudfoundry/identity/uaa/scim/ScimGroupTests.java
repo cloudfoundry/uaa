@@ -24,7 +24,6 @@ import java.util.Collections;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class ScimGroupTests {
     private static final String GROUP_BEFORE_DESCRIPTION = "{\"meta\":{\"version\":0,\"created\":\"2016-01-13T09:01:33.909Z\"},\"zoneId\":\"zoneId\",\"displayName\":\"name\",\"schemas\":[\"urn:scim:schemas:core:1.0\"],\"id\":\"id\"}";
@@ -82,13 +81,13 @@ public class ScimGroupTests {
         group.setZoneId("uaa");
         patch.setZoneId("zoneid");
 
-        assertTrue(group.getZoneId().equals("uaa"));
-        assertTrue(patch.getZoneId().equals("zoneid"));
+        assertEquals("uaa", group.getZoneId());
+        assertEquals("zoneid", patch.getZoneId());
 
         group.patch(patch);
 
-        assertTrue(group.getZoneId().equals("uaa"));
-        assertTrue(patch.getZoneId().equals("zoneid"));
+        assertEquals("uaa", group.getZoneId());
+        assertEquals("zoneid", patch.getZoneId());
     }
 
     @Test

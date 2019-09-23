@@ -40,10 +40,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -82,8 +79,8 @@ public class RemoteAuthenticationEndpointTests {
     public void remoteAuthenticationFailsWithIncorrectCredentials() throws Exception {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), "wrong", null);
-        assertFalse(HttpStatus.OK == response.getStatusCode());
-        assertFalse(testAccounts.getUserName().equals(response.getBody().get("username")));
+        assertNotSame(HttpStatus.OK, response.getStatusCode());
+        assertNotEquals(testAccounts.getUserName(), response.getBody().get("username"));
     }
 
     @Test

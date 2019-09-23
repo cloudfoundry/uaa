@@ -61,7 +61,9 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     count++;
                     logger.info("Validating table [" + name + "]");
-                    assertTrue("Table[" + name + "] is not lower case.", name.toLowerCase().equals(name));
+                    assertEquals(String.format("Table[%s] is not lower case.", name),
+                            name.toLowerCase(),
+                            name);
                 }
             }
             assertEquals("Table count:", DatabaseInformation1_5_3.tableNames.size(), count);
@@ -88,7 +90,7 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                 logger.info("Checking column [" + name + "." + col + "]");
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     logger.info("Validating column [" + name + "." + col + "]");
-                    assertTrue("Column[" + name + "." + col + "] is not lower case.", col.toLowerCase().equals(col));
+                    assertEquals(String.format("Column[%s.%s] is not lower case.", name, col), col.toLowerCase(), col);
                 }
             }
             assertTrue("Getting columns from db metadata should have returned some results", hadSomeResults);

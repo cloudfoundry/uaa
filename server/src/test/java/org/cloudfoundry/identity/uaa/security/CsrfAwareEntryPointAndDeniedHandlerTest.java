@@ -27,9 +27,7 @@ import org.springframework.security.web.csrf.MissingCsrfTokenException;
 
 import javax.servlet.http.HttpServletResponse;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class CsrfAwareEntryPointAndDeniedHandlerTest {
 
@@ -65,7 +63,7 @@ public class CsrfAwareEntryPointAndDeniedHandlerTest {
         handler.handle(request, response, ex);
         assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
         assertEquals("{\"error\":\"Could not verify the provided CSRF token because your session was not found.\"}", response.getContentAsString());
-        assertEquals(null, response.getErrorMessage());
+        assertNull(response.getErrorMessage());
     }
 
     @Test
@@ -86,7 +84,7 @@ public class CsrfAwareEntryPointAndDeniedHandlerTest {
         handler.handle(request, response, ex);
         assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
         assertEquals("{\"error\":\"something\"}", response.getContentAsString());
-        assertEquals(null, response.getErrorMessage());
+        assertNull(response.getErrorMessage());
     }
 
     @Test(expected = NullPointerException.class)

@@ -30,13 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -112,7 +106,7 @@ public class ScimUserTests {
 
         ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
-        assertEquals(null, user.getPassword());
+        assertNull(user.getPassword());
     }
 
     @Test
@@ -366,22 +360,22 @@ public class ScimUserTests {
 
         Group group1 = new Group("id", "display", Group.Type.DIRECT);
         Group group2 = new Group("id", "display", Group.Type.DIRECT);
-        assertTrue(group1.equals(group2));
-        assertTrue(group2.equals(group1));
-        assertTrue(group1.equals(group1));
-        assertTrue(group2.equals(group2));
-        assertFalse(group1.equals(null));
-        assertFalse(group1.equals(new Object()));
+        assertEquals(group1, group2);
+        assertEquals(group2, group1);
+        assertEquals(group1, group1);
+        assertEquals(group2, group2);
+        assertNotEquals(null, group1);
+        assertNotEquals(group1, new Object());
         group1.setValue(null);
-        assertFalse(group1.equals(group2));
-        assertFalse(group2.equals(group1));
+        assertNotEquals(group1, group2);
+        assertNotEquals(group2, group1);
         group2.setValue(null);
-        assertTrue(group1.equals(group2));
+        assertEquals(group1, group2);
         group1.setDisplay(null);
-        assertFalse(group1.equals(group2));
-        assertFalse(group2.equals(group1));
+        assertNotEquals(group1, group2);
+        assertNotEquals(group2, group1);
         group2.setDisplay(null);
-        assertTrue(group1.equals(group2));
+        assertEquals(group1, group2);
         assertNotNull(group2.toString());
     }
 
@@ -416,32 +410,32 @@ public class ScimUserTests {
     public void testEmail() throws Exception {
         ScimUser.Email email1 = new ScimUser.Email();
         ScimUser.Email email2 = new ScimUser.Email();
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setPrimary(true);
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setPrimary(true);
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setType("work");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setType("home");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setType("work");
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setValue("value@value.org");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setValue("value@value.org");
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
     }
 

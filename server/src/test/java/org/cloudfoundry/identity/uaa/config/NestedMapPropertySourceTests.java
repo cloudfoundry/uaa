@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -22,6 +19,8 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Dave Syer
@@ -66,7 +65,7 @@ public class NestedMapPropertySourceTests {
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:", Map.class);
         NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
         assertEquals("bar", properties.getProperty("foo"));
-        assertEquals(null, properties.getProperty("spam"));
+        assertNull(properties.getProperty("spam"));
     }
 
     @Test

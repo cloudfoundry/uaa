@@ -8,6 +8,7 @@ import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsStr
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UserInfoResponseJsonTests {
 
@@ -37,7 +38,7 @@ class UserInfoResponseJsonTests {
         assertEquals("12345", response.getUserId());
         assertEquals("12345", response.getSub());
         assertEquals("olds", response.getUserName());
-        assertEquals(true, response.isEmailVerified());
+        assertTrue(response.isEmailVerified());
 
         assertThat(
                 response.getUserAttributes().get("Key 1"),
