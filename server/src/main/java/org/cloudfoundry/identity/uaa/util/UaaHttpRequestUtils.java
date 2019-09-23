@@ -98,7 +98,7 @@ public abstract class UaaHttpRequestUtils {
             if (attr!=null) {
                 Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
                 if (result!=null) {
-                    return result.booleanValue();
+                    return result;
                 }
             }
         } catch (IllegalStateException x) {

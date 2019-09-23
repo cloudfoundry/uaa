@@ -141,7 +141,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                 result = ldapIdentityProviderDefinition.isAutoAddGroups();
             }
         }
-        return result == null || result.booleanValue();
+        return result == null || result;
     }
 
     @Override
@@ -154,6 +154,6 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                 result = ldapIdentityProviderDefinition.isAddShadowUserOnLogin();
             }
         }
-        return result!=null ? result.booleanValue() : true;
+        return result!=null ? result : true;
     }
 }

@@ -492,7 +492,7 @@ public class ScimUserEndpointsIntegrationTests {
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        assertEquals(new Integer(2), results.get("startIndex"));
+        assertEquals(2, results.get("startIndex"));
     }
 
     @Before
