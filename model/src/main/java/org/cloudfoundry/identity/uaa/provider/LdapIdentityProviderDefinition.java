@@ -20,11 +20,7 @@ import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
@@ -461,45 +457,45 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         LdapIdentityProviderDefinition that = (LdapIdentityProviderDefinition) o;
 
         if (maxGroupSearchDepth != that.maxGroupSearchDepth) return false;
-        if (ldapProfileFile != null ? !ldapProfileFile.equals(that.ldapProfileFile) : that.ldapProfileFile != null)
+        if (!Objects.equals(ldapProfileFile, that.ldapProfileFile))
             return false;
-        if (baseUrl != null ? !baseUrl.equals(that.baseUrl) : that.baseUrl != null) return false;
-        if (referral != null ? !referral.equals(that.referral) : that.referral != null) return false;
-        if (userDNPattern != null ? !userDNPattern.equals(that.userDNPattern) : that.userDNPattern != null)
+        if (!Objects.equals(baseUrl, that.baseUrl)) return false;
+        if (!Objects.equals(referral, that.referral)) return false;
+        if (!Objects.equals(userDNPattern, that.userDNPattern))
             return false;
-        if (userDNPatternDelimiter != null ? !userDNPatternDelimiter.equals(that.userDNPatternDelimiter) : that.userDNPatternDelimiter != null)
+        if (!Objects.equals(userDNPatternDelimiter, that.userDNPatternDelimiter))
             return false;
-        if (bindUserDn != null ? !bindUserDn.equals(that.bindUserDn) : that.bindUserDn != null) return false;
-        if (bindPassword != null ? !bindPassword.equals(that.bindPassword) : that.bindPassword != null) return false;
-        if (userSearchBase != null ? !userSearchBase.equals(that.userSearchBase) : that.userSearchBase != null)
+        if (!Objects.equals(bindUserDn, that.bindUserDn)) return false;
+        if (!Objects.equals(bindPassword, that.bindPassword)) return false;
+        if (!Objects.equals(userSearchBase, that.userSearchBase))
             return false;
-        if (userSearchFilter != null ? !userSearchFilter.equals(that.userSearchFilter) : that.userSearchFilter != null)
+        if (!Objects.equals(userSearchFilter, that.userSearchFilter))
             return false;
-        if (passwordAttributeName != null ? !passwordAttributeName.equals(that.passwordAttributeName) : that.passwordAttributeName != null)
+        if (!Objects.equals(passwordAttributeName, that.passwordAttributeName))
             return false;
-        if (passwordEncoder != null ? !passwordEncoder.equals(that.passwordEncoder) : that.passwordEncoder != null)
+        if (!Objects.equals(passwordEncoder, that.passwordEncoder))
             return false;
-        if (localPasswordCompare != null ? !localPasswordCompare.equals(that.localPasswordCompare) : that.localPasswordCompare != null)
+        if (!Objects.equals(localPasswordCompare, that.localPasswordCompare))
             return false;
-        if (mailAttributeName != null ? !mailAttributeName.equals(that.mailAttributeName) : that.mailAttributeName != null)
+        if (!Objects.equals(mailAttributeName, that.mailAttributeName))
             return false;
-        if (mailSubstitute != null ? !mailSubstitute.equals(that.mailSubstitute) : that.mailSubstitute != null)
+        if (!Objects.equals(mailSubstitute, that.mailSubstitute))
             return false;
-        if (mailSubstituteOverridesLdap != null ? !mailSubstituteOverridesLdap.equals(that.mailSubstituteOverridesLdap) : that.mailSubstituteOverridesLdap != null)
+        if (!Objects.equals(mailSubstituteOverridesLdap, that.mailSubstituteOverridesLdap))
             return false;
-        if (ldapGroupFile != null ? !ldapGroupFile.equals(that.ldapGroupFile) : that.ldapGroupFile != null)
+        if (!Objects.equals(ldapGroupFile, that.ldapGroupFile))
             return false;
-        if (groupSearchBase != null ? !groupSearchBase.equals(that.groupSearchBase) : that.groupSearchBase != null)
+        if (!Objects.equals(groupSearchBase, that.groupSearchBase))
             return false;
-        if (groupSearchFilter != null ? !groupSearchFilter.equals(that.groupSearchFilter) : that.groupSearchFilter != null)
+        if (!Objects.equals(groupSearchFilter, that.groupSearchFilter))
             return false;
-        if (groupsIgnorePartialResults != null ? !groupsIgnorePartialResults.equals(that.groupsIgnorePartialResults) : that.groupsIgnorePartialResults != null)
+        if (!Objects.equals(groupsIgnorePartialResults, that.groupsIgnorePartialResults))
             return false;
-        if (autoAddGroups != null ? !autoAddGroups.equals(that.autoAddGroups) : that.autoAddGroups != null)
+        if (!Objects.equals(autoAddGroups, that.autoAddGroups))
             return false;
-        if (groupSearchSubTree != null ? !groupSearchSubTree.equals(that.groupSearchSubTree) : that.groupSearchSubTree != null)
+        if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree))
             return false;
-        return !(groupRoleAttribute != null ? !groupRoleAttribute.equals(that.groupRoleAttribute) : that.groupRoleAttribute != null);
+        return !(!Objects.equals(groupRoleAttribute, that.groupRoleAttribute));
 
     }
 

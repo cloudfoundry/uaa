@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -84,10 +85,10 @@ implements Cloneable {
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
-        return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
+        return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
 
