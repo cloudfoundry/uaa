@@ -234,7 +234,7 @@ public class OIDCLoginIT {
     private void login(String zoneUrl, String userName, String password) {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/");
-        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("SESSION");
         assertNotNull(beforeLogin);
         assertNotNull(beforeLogin.getValue());
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
@@ -245,7 +245,7 @@ public class OIDCLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-        Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie afterLogin = webDriver.manage().getCookieNamed("SESSION");
         assertNotNull(afterLogin);
         assertNotNull(afterLogin.getValue());
         assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
@@ -268,7 +268,7 @@ public class OIDCLoginIT {
     public void testLoginWithInactiveProviderDoesNotWork() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/");
-        Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie beforeLogin = webDriver.manage().getCookieNamed("SESSION");
         assertNotNull(beforeLogin);
         assertNotNull(beforeLogin.getValue());
         String linkLocation = webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href");
@@ -368,7 +368,7 @@ public class OIDCLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         webDriver.get(baseUrl);
-        Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie cookie = webDriver.manage().getCookieNamed("SESSION");
 
         ServerRunning serverRunning = ServerRunning.isRunning();
         serverRunning.setHostName("localhost");
@@ -438,7 +438,7 @@ public class OIDCLoginIT {
             assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
-            Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
+            Cookie cookie = webDriver.manage().getCookieNamed("SESSION");
 
             ServerRunning serverRunning = ServerRunning.isRunning();
             serverRunning.setHostName(zone.getSubdomain() + ".localhost");

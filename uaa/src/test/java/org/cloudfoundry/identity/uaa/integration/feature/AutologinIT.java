@@ -174,12 +174,12 @@ public class AutologinIT {
                               String.class);
 
 
-        //we are now logged in. retrieve the JSESSIONID
+        //we are now logged in. retrieve the SESSION
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
         int cookiesAdded = 0;
         headers = getAppBasicAuthHttpHeaders();
         for (String cookie : cookies) {
-            if (cookie.startsWith("X-Uaa-Csrf=") || cookie.startsWith("JSESSIONID=")) {
+            if (cookie.startsWith("X-Uaa-Csrf=") || cookie.startsWith("SESSION=")) {
                 headers.add("Cookie", cookie);
                 cookiesAdded++;
             }
@@ -246,7 +246,7 @@ public class AutologinIT {
                                                 new HttpEntity<>(requestBody, getHeaders(cookieStore)),
                                                 String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertThat(cookies, hasItem(startsWith("JSESSIONID")));
+        assertThat(cookies, hasItem(startsWith("SESSION")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             assertThat(cookies, hasItem(startsWith("Saved-Account-")));

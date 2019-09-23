@@ -116,7 +116,7 @@ public class SessionLossDuringOauthFlowIT {
 
 
         //Session Expires (we simulate through deleting the cookie)
-        webDriver.manage().deleteCookieNamed("JSESSIONID");
+        webDriver.manage().deleteCookieNamed("SESSION");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         // Authorize the app for some scopes
@@ -128,7 +128,7 @@ public class SessionLossDuringOauthFlowIT {
 
 
         //Session Expires (we simulate through deleting the cookie)
-        webDriver.manage().deleteCookieNamed("JSESSIONID");
+        webDriver.manage().deleteCookieNamed("SESSION");
         webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
 
         //We should be back on the login page
