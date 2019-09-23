@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.degraded;
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
@@ -9,7 +8,6 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.logging.LogEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +37,6 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -229,11 +224,7 @@ public class DegradedSamlLoginTests {
         //Ensure the browser/webdriver processes all the flows
         webDriver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
         //Get the http archive logs
-        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll(); //todo - no har
-        logger.info("Entries:"+harLogEntries.size());
-        LogEntry logEntry = harLogEntries.get(0);
-
-        String requestUrl = getRequestUrlFromHarLogEntry(logEntry);
+        String requestUrl = webDriver.getCurrentUrl();
         logger.info("request url: " + requestUrl);
         assertThat(requestUrl, Matchers.startsWith(testRedirectUri + "/cf#token_type=bearer&access_token="));
         String tokenprefixedString = requestUrl.split("access_token=")[1];
@@ -318,21 +309,6 @@ public class DegradedSamlLoginTests {
         return String.format("Basic %s", new String(Base64.encode(credentials.getBytes())));
     }
 
-
-    private String getRequestUrlFromHarLogEntry(LogEntry logEntry) //todo: delete
-            throws IOException {
-
-        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
-        System.out.println("message:"+ message);
-        Map<String, Object> log = (Map<String, Object>) message.get("log");
-        System.out.println("log:"+ log);
-        List<Object> entries = (List<Object>) log.get("entries");
-        System.out.println("entries:"+ entries);
-        Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
-        Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
-        String url = (String) request.get("url");
-        return url;
-    }
 
     private boolean findZoneInUaa() {
         RestTemplate zoneAdminClient = IntegrationTestUtils.getClientCredentialsTemplate(
