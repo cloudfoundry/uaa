@@ -226,10 +226,8 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
     @Override
     public int hashCode() {
         int h = 0;
-        Iterator<Entry<K, List<V>>> i = entrySet().iterator();
-        while (i.hasNext()) {
+        for (Entry<K, List<V>> entry : entrySet()) {
             int keyHash = 1;
-            Entry<K, List<V>> entry = i.next();
             if (entry.getKey() == null || entry.getKey() == this) {
                 // no op - don't modify the hash
             } else {
