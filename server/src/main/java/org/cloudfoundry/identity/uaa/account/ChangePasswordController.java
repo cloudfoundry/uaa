@@ -24,7 +24,7 @@ public class ChangePasswordController {
 
     private final ChangePasswordService changePasswordService;
 
-    public ChangePasswordController(ChangePasswordService changePasswordService) {
+    public ChangePasswordController(final ChangePasswordService changePasswordService) {
         this.changePasswordService = changePasswordService;
     }
 

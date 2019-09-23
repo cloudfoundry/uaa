@@ -549,9 +549,7 @@
         <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
-    <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.account.ChangePasswordController">
-        <constructor-arg ref="changePasswordService"/>
-    </bean>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.account" />
 
     <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource">
         <constructor-arg value="messages.properties"/>
