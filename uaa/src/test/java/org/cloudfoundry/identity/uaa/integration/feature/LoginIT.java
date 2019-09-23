@@ -100,7 +100,7 @@ public class LoginIT {
     }
 
     @Test
-    public void check_JSESSIONID_defaults() {
+    public void check_SESSION_defaults() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         List<String> cookies;
@@ -128,20 +128,20 @@ public class LoginIT {
                                           new HttpEntity<>(requestBody, headers),
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        MatcherAssert.assertThat(cookies, hasItem(startsWith("JSESSIONID")));
+        MatcherAssert.assertThat(cookies, hasItem(startsWith("SESSION")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("Current-User")));
         headers.clear();
-        boolean jsessionIdValidated = false;
+        boolean sessionIdValidated = false;
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-            if (cookie.contains("JSESSIONID")) {
-                jsessionIdValidated = true;
+            if (cookie.contains("SESSION")) {
+                sessionIdValidated = true;
                 assertTrue(cookie.contains("HttpOnly"));
                 assertFalse(cookie.contains("Secure"));
 
             }
         }
-        assertTrue("Did not find JSESSIONID", jsessionIdValidated);
+        assertTrue("Did not find SESSION", sessionIdValidated);
     }
 
     @Test
@@ -451,7 +451,7 @@ public class LoginIT {
         String redirectUri = "http://expected.com";
         webDriver.get(baseUrl + "/oauth/authorize?client_id=test&redirect_uri="+redirectUri);
         ((JavascriptExecutor)webDriver).executeScript("document.getElementsByName('X-Uaa-Csrf')[0].value=''");
-        webDriver.manage().deleteCookieNamed("JSESSIONID");
+        webDriver.manage().deleteCookieNamed("SESSION");
 
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 

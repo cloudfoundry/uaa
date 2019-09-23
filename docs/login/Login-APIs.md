@@ -69,7 +69,7 @@ authors is to
   Login Server
 
 Request: `GET /logout.do?redirect=http://myclient/loggedout`  
-Request Headers: `Cookie: JSESSIONID=8765FDUAYSFT7897`  
+Request Headers: `Cookie: SESSION=8765FDUAYSFT7897`
 Response Codes:  
 
     200 - OK (if no redirect supplied)
@@ -96,7 +96,7 @@ Request: example
       state=RANDOM
 
 The request must be authenticated as a user, so usually a session
-cookie (`JSESSIONID`) is required, having been obtained previously
+cookie (`SESSION`) is required, having been obtained previously
 through the Login page.
 
 ### Obtain Authorization Code: `POST /oauth/authorize`

@@ -949,10 +949,10 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
-        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie cookie= webDriver.manage().getCookieNamed("SESSION");
 
         //do an auth code grant
-        //pass up the jsessionid
+        //pass up the session cookie
         System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
 
         serverRunning.setHostName("testzone1.localhost");
@@ -1176,10 +1176,10 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
-        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+        Cookie cookie= webDriver.manage().getCookieNamed("SESSION");
 
         //do an auth code grant
-        //pass up the jsessionid
+        //pass up the session cookie
         System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
 
         serverRunning.setHostName(zoneId+".localhost");

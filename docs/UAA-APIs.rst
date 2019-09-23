@@ -250,7 +250,7 @@ Browser Requests Code: ``GET /oauth/authorize``
 
 * Request Header:
 
-  * ``Cookie: JSESSIONID=ADHGFKHDSJGFGF; Path /`` - the authentication cookie for the client with UAA. If there is no cookie user's browser is redirected to ``/login``, and will eventually come back to ``/oauth/authorize``.
+  * ``Cookie: SESSION=ADHGFKHDSJGFGF; Path /`` - the authentication cookie for the client with UAA. If there is no cookie user's browser is redirected to ``/login``, and will eventually come back to ``/oauth/authorize``.
 
 * Response Header: location as defined in the spec includes ``access_token`` if successful::
 
@@ -589,7 +589,7 @@ Authorization Step 2: User Approves Grant
 Just a normal POST with approval parameters to ``/oauth/authorize``, including the cookie requested in Step 1 (just like a browser would do).  For example::
 
         POST /oauth/authorize
-        Cookie: JSESSIONID=fkserygfkseyrgfv
+        Cookie: SESSION=fkserygfkseyrgfv
 
         user_oauth_approval=true
 
@@ -3403,7 +3403,7 @@ Internal Login: ``POST /login.do``
 * Response Header, includes location if redirect, and cookie for subsequent interaction (e.g. authorization)::
 
     Location: http://myapp.cloudfoundry.com/mycoolpage
-    Set-Cookie: JSESSIONID=ldfjhsdhafgkasd
+    Set-Cookie: SESSION=ldfjhsdhafgkasd
     Set-Cookie: X-Uaa-Csrf=abcdef; Expires=Thu, 04-Aug-2016 18:10:38 GMT; HttpOnly
 
 * Response Codes::
@@ -3438,7 +3438,7 @@ The precise form of this request is not given by the spec (which just says "obta
 * Request: ``POST /oauth/authorize?user_oauth_approval=true``
 * Request Header (needed to ensure the currently authenticated client is the one that is authorizing)::
 
-    Cookie: JSESSIONID=ldfjhsdhafgkasd
+    Cookie: SESSION=ldfjhsdhafgkasd
 
 * Response Header: location as defined in the spec (e.g. includes auth code for that grant type, and error information)
 * Response Codes::
@@ -3454,7 +3454,7 @@ Response Code       ``302 - Found``
 Response Headers    ::
 
                      Location: http://www.google.com/etc/blah
-                     Set-Cookie: JSESSIONID=ldfjhsdhafgkasd
+                     Set-Cookie: SESSION=ldfjhsdhafgkasd
 
 ==================  ===============================================
 
