@@ -2313,25 +2313,6 @@ Wildcard searches such as ``sw`` or ``co`` are not allowed. This endpoint requir
     }
 
 
-Query the strength of a password: ``POST /password/score``
-----------------------------------------------------------
-
-ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
-
-* Request: ``POST /password/score``
-
-    POST /password/score HTTP/1.1
-    Host: uaa.example.com
-    Content-Type: application/x-www-form-encoded
-
-    password=password1&userData=jane,janesdogsname,janescity
-
-* Response
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-    X-Cf-Warnings: Endpoint+deprecated
-
-    {"score": 0, "requiredScore": 0}
 
 
 Inviting Users

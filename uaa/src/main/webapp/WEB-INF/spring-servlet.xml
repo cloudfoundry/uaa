@@ -362,7 +362,6 @@
     <import resource="spring/client-admin-endpoints.xml"/>
     <import resource="spring/resource-endpoints.xml"/>
     <import resource="spring/openid-endpoints.xml"/>
-    <import resource="spring/password-endpoints.xml"/>
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
