@@ -132,11 +132,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     public List<MetadataProvider> getProviders() {
-        List<MetadataProvider> result = new ArrayList<>();
-        for (ExtendedMetadataDelegate delegate : getAvailableProviders()) {
-            result.add(delegate);
-        }
-        return result;
+        return new ArrayList<>(getAvailableProviders());
     }
 
     public List<ExtendedMetadataDelegate> getAvailableProviders() {

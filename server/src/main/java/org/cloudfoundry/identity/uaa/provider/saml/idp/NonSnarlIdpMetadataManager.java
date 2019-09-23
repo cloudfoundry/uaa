@@ -97,11 +97,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
 
     @Override
     public List<MetadataProvider> getProviders() {
-        List<MetadataProvider> result = new ArrayList<>();
-        for (ExtendedMetadataDelegate delegate : getAvailableProviders()) {
-            result.add(delegate);
-        }
-        return result;
+        return new ArrayList<>(getAvailableProviders());
     }
 
     @Override

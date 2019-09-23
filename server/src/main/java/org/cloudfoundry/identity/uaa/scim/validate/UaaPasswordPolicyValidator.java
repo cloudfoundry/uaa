@@ -76,10 +76,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {
-            List<String> errorMessages = new LinkedList<>();
-            for (String s : validator.getMessages(result)) {
-                errorMessages.add(s);
-            }
+            List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
             if (!errorMessages.isEmpty()) {
                 throw new InvalidPasswordException(errorMessages);
             }
