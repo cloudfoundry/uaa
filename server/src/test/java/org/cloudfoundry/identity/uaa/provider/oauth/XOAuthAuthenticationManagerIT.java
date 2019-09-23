@@ -373,7 +373,7 @@ public class XOAuthAuthenticationManagerIT {
 
         assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                is(String.format("Issuer is missing in id_token"))
+                is("Issuer is missing in id_token")
         );
     }
 
@@ -856,7 +856,7 @@ public class XOAuthAuthenticationManagerIT {
 
         assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                is(String.format("Unable to map claim to a username"))
+                is("Unable to map claim to a username")
         );
     }
 

@@ -124,7 +124,8 @@ public class InvitationsEndpoint {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
                     }
                 } else{
-                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid", String.format(email + " is invalid email.")));
+                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid",
+                            email + " is invalid email."));
                 }
             } catch (ScimResourceConflictException x) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.ambiguous", "Multiple users with the same origin matched to the email address."));
