@@ -139,8 +139,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             boolean circular = false;
             String dn = record.get(SpringSecurityLdapTemplate.DN_KEY)[0];
             String[] roleValues = record.get(getGroupRoleAttribute());
-            Set<String> roles = new HashSet<String>();
-            roles.addAll(Arrays.asList(roleValues!=null?roleValues:new String[0]));
+            Set<String> roles = new HashSet<>(Arrays.asList(roleValues != null ? roleValues : new String[0]));
             for (String role : roles) {
                 if (isConvertToUpperCase()) {
                     role = role.toUpperCase();

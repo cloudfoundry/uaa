@@ -73,8 +73,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
             // Get the approved scopes, calculate the denied scope
             Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
-            Set<String> approvedScopes = new HashSet<>();
-            approvedScopes.addAll(autoApprovedScopes);
+            Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
             boolean foundUserApprovalParameter = false;
             for (String approvalParameter : approvalParameters.keySet()) {
                 if (approvalParameter.startsWith(SCOPE_PREFIX)) {
@@ -132,10 +131,8 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                     identityZoneManager.getCurrentIdentityZoneId());
 
             // Look at the scopes and see if they have expired
-            Set<String> validUserApprovedScopes = new HashSet<>();
-            Set<String> approvedScopes = new HashSet<>();
-            approvedScopes.addAll(autoApprovedScopes);
-            validUserApprovedScopes.addAll(autoApprovedScopes);
+            Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
+            Set<String> validUserApprovedScopes = new HashSet<>(autoApprovedScopes);
             Date today = new Date();
             for (Approval approval : userApprovals) {
                 if (approval.getExpiresAt().after(today)) {
@@ -189,8 +186,6 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     @Override
     public Map<String, Object> getUserApprovalRequest(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
-        Map<String, Object> model = new HashMap<String, Object>();
-        model.putAll(authorizationRequest.getRequestParameters());
-        return model;
+        return new HashMap<>(authorizationRequest.getRequestParameters());
     }
 }

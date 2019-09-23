@@ -90,8 +90,7 @@ public class UaaStringUtils {
      * @return new properties with no plaintext passwords and secrets
      */
     public static Map<String, ?> hidePasswords(Map<String, ?> map) {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-        result.putAll(map);
+        Map<String, Object> result = new LinkedHashMap<>(map);
         for (String key : map.keySet()) {
             Object value = map.get(key);
             if (value instanceof String) {
