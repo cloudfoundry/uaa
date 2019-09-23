@@ -47,7 +47,7 @@ public class AccountsController {
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    public AccountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
+    public AccountsController(final AccountCreationService accountCreationService, final IdentityProviderProvisioning identityProviderProvisioning) {
         this.accountCreationService = accountCreationService;
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
