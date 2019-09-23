@@ -384,8 +384,10 @@ public class LoginInfoEndpoint {
         if (fieldUsernameShow && (allowedIdentityProviderKeys != null)) {
             if (!allowedIdentityProviderKeys.contains(OriginKeys.UAA)) {
                 linkCreateAccountShow = false;
+            }
+            if (Collections.singletonList(OriginKeys.LDAP).equals(allowedIdentityProviderKeys)) {
                 model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.LDAP).toString());
-            } else if (!allowedIdentityProviderKeys.contains(OriginKeys.LDAP)) {
+            } else if (Collections.singletonList(UAA).equals(allowedIdentityProviderKeys)) {
                 model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.UAA).toString());
             }
         }
