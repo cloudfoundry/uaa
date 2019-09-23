@@ -30,6 +30,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -59,6 +60,7 @@ public class ForcePasswordChangeController {
     public String handleForcePasswordChange(Model model,
                                             @RequestParam("password")  String password,
                                             @RequestParam("password_confirmation") String passwordConfirmation,
+                                            HttpServletRequest request,
                                             HttpServletResponse response) {
         UaaAuthentication authentication = ((UaaAuthentication)SecurityContextHolder.getContext().getAuthentication());
         UaaPrincipal principal = authentication.getPrincipal();
@@ -78,6 +80,7 @@ public class ForcePasswordChangeController {
         logger.debug(String.format("Successful password change for username:%s in zone:%s ",principal.getName(), IdentityZoneHolder.get().getId()));
         authentication.setRequiresPasswordChange(false);
         authentication.setAuthenticatedTime(System.currentTimeMillis());
+        request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         return "redirect:/force_password_change_completed";
     }
 
