@@ -33,6 +33,7 @@ import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -79,7 +80,7 @@ public class PasswordGrantIT {
     @Test
     public void testUserLoginViaPasswordGrant() throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -98,7 +99,7 @@ public class PasswordGrantIT {
     @Test
     public void testUserLoginViaPasswordGrantLoginHintUaa() throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -118,7 +119,7 @@ public class PasswordGrantIT {
     @Test
     public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -142,7 +143,7 @@ public class PasswordGrantIT {
             createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -169,7 +170,7 @@ public class PasswordGrantIT {
             createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -196,7 +197,7 @@ public class PasswordGrantIT {
     @Test
     public void testUserLoginViaPasswordGrantInvalidLoginHint() throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -221,7 +222,7 @@ public class PasswordGrantIT {
         String userEmail = createUnverifiedUser();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();

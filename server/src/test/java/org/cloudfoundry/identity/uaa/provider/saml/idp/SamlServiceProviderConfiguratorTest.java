@@ -35,6 +35,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -122,14 +123,14 @@ public class SamlServiceProviderConfiguratorTest {
             sp.setIdentityZoneId(zoneId);
             IdentityZoneHolder.set(withId(zoneId));
             conf.validateSamlServiceProvider(sp);
-            when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Arrays.asList(sp));
+            when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Collections.singletonList(sp));
 
             String unwantedZoneId = UUID.randomUUID().toString();
             SamlServiceProvider unwantedSp = mockSamlServiceProviderForZone("uaa");
             unwantedSp.setIdentityZoneId(unwantedZoneId);
             IdentityZoneHolder.set(withId(unwantedZoneId));
             conf.validateSamlServiceProvider(unwantedSp);
-            when(providerProvisioning.retrieveActive(unwantedZoneId)).thenReturn(Arrays.asList(unwantedSp));
+            when(providerProvisioning.retrieveActive(unwantedZoneId)).thenReturn(Collections.singletonList(unwantedSp));
 
             IdentityZone zone = withId(zoneId);
 

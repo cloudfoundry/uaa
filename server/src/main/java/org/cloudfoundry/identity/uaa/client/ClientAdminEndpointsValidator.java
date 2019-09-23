@@ -61,9 +61,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 )
         );
 
-    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
+    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Collections.singletonList(
+            "password"));
 
-    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Arrays.asList("uaa.none"));
+    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Collections.singletonList(
+            "uaa.none"));
 
     private ClientSecretValidator clientSecretValidator;
 

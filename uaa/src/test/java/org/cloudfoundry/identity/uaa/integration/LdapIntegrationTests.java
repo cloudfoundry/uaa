@@ -148,7 +148,7 @@ public class LdapIntegrationTests {
 
         assertEquals(OriginKeys.LDAP, provider.getOriginKey());
 
-        List<String> idps = Arrays.asList(provider.getOriginKey());
+        List<String> idps = Collections.singletonList(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "password,authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);

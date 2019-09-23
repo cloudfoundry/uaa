@@ -222,10 +222,10 @@ public class IdentityZoneConfigurationTests {
     @Test
     public void testDefaultCorsConfiguration() {
         assertEquals(Arrays.asList(new String[] {ACCEPT, AUTHORIZATION, CONTENT_TYPE}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders());
-        assertEquals(Arrays.asList(GET.toString()), definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods());
-        assertEquals(Arrays.asList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris());
+        assertEquals(Collections.singletonList(GET.toString()), definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods());
+        assertEquals(Collections.singletonList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris());
         assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns());
-        assertEquals(Arrays.asList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins());
+        assertEquals(Collections.singletonList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins());
         assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns());
         assertEquals(1728000, definition.getCorsPolicy().getDefaultConfiguration().getMaxAge());
     }

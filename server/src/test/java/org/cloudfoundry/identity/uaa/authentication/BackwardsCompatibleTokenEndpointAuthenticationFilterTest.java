@@ -35,6 +35,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
@@ -156,7 +157,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     @Test
     public void attempt_jwt_token_authentication() throws Exception {
         support = new TokenTestSupport(null);
-        String idToken = support.getIdTokenAsString(Arrays.asList(OPENID));
+        String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         request.addParameter("assertion", idToken);
         filter.doFilter(request, response, chain);

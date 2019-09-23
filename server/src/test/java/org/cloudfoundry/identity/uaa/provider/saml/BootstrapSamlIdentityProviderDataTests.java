@@ -12,32 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.util.*;
+
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class BootstrapSamlIdentityProviderDataTests {
 
@@ -246,7 +235,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
                     Map<String, Object> attributeMappings = new HashMap<>();
                     attributeMappings.put("given_name", "first_name");
-                    attributeMappings.put("external_groups", asList("roles"));
+                    attributeMappings.put("external_groups", Collections.singletonList("roles"));
                     assertEquals(attributeMappings, idp.getAttributeMappings());
                     assertEquals(asList("admin", "user"), idp.getExternalGroupsWhitelist());
                     assertTrue(idp.isShowSamlLink());

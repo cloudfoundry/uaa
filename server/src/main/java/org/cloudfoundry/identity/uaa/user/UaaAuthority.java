@@ -37,9 +37,11 @@ public enum UaaAuthority implements GrantedAuthority {
     public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
                     UAA_USER));
 
-    public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_USER));
+    public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Collections.singletonList(
+            UAA_USER));
 
-    public static final List<UaaAuthority> NONE_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_NONE));
+    public static final List<UaaAuthority> NONE_AUTHORITIES = Collections.unmodifiableList(Collections.singletonList(
+            UAA_NONE));
 
     private final int value;
 

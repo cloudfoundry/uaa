@@ -1165,7 +1165,8 @@ class ScimUserEndpointsMockMvcTests {
         ScimUser user = createUser(uaaAdminToken);
         MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
@@ -1190,7 +1191,8 @@ class ScimUserEndpointsMockMvcTests {
         MfaProvider provider = createMfaProvider(identityZone.getId());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, identityZone.getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
@@ -1261,7 +1263,8 @@ class ScimUserEndpointsMockMvcTests {
         ScimUser user = createUser(uaaAdminToken);
         MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));

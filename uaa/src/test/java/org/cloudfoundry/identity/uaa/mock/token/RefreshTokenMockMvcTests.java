@@ -44,6 +44,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -154,7 +155,8 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         zone = identityZoneProvisioning.update(zone);
 
         String clientId = "refreshclient";
-        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA), 30 * 60, zone);
+        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI,
+                Collections.singletonList(OriginKeys.UAA), 30 * 60, zone);
 
         String username = "testuser";
         user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, "", OriginKeys.UAA, zone.getId());

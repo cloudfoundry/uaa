@@ -76,7 +76,7 @@ public class LinkedMaskingMultiValueMapTests {
         assertEquals(2, map.get("key1").size());
         assertEquals(Arrays.asList("existing value", "value1"), map.get("key1"));
         assertEquals(1, map.get("key2").size());
-        assertEquals(Arrays.asList("value2"), map.get("key2"));
+        assertEquals(Collections.singletonList("value2"), map.get("key2"));
     }
 
     @Test

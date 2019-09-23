@@ -191,7 +191,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         BaseClientDetails updatedClientDetails = new BaseClientDetails();
         updatedClientDetails.setClientId(createdClientDetails.getClientId());
         updatedClientDetails.setScope(Arrays.asList("clients.new", "clients.autoapprove"));
-        updatedClientDetails.setAutoApproveScopes(Arrays.asList("clients.autoapprove"));
+        updatedClientDetails.setAutoApproveScopes(Collections.singletonList("clients.autoapprove"));
         updatedClientDetails.setAuthorizedGrantTypes(createdClientDetails.getAuthorizedGrantTypes());
         updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 

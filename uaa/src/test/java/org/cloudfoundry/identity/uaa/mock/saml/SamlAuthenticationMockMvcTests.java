@@ -43,11 +43,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.StringReader;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -253,7 +249,7 @@ class SamlAuthenticationMockMvcTests {
             idpDefinition.setStoreCustomAttributes(true);
             // External groups will only be found when there is a configured attribute name for them
             Map<String, Object> attributeMappings = new HashMap<>();
-            attributeMappings.put("external_groups", asList("authorities"));
+            attributeMappings.put("external_groups", Collections.singletonList("authorities"));
             idpDefinition.setAttributeMappings(attributeMappings);
         });
 
@@ -367,7 +363,7 @@ class SamlAuthenticationMockMvcTests {
     }
 
     private String performIdpAuthentication() throws Exception {
-        return performIdpAuthentication(asList("uaa.user"));
+        return performIdpAuthentication(Collections.singletonList("uaa.user"));
     }
 
     private String performIdpAuthentication(List<String> authorityNames) throws Exception {

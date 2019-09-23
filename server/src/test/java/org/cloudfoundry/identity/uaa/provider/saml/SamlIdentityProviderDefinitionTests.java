@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -188,7 +189,7 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     public void testSetEmailDomain() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setEmailDomain(Arrays.asList("test.com"));
+        def.setEmailDomain(Collections.singletonList("test.com"));
         assertEquals("test.com", def.getEmailDomain().get(0));
     }
 
@@ -201,7 +202,7 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     public void testSetAuthnContext() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setAuthnContext(Arrays.asList("a-custom-context"));
+        def.setAuthnContext(Collections.singletonList("a-custom-context"));
         assertEquals("a-custom-context", def.getAuthnContext().get(0));
     }
 

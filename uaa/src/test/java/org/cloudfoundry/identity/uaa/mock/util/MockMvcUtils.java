@@ -556,7 +556,7 @@ public final class MockMvcUtils {
         user.setPassword("password");
 
         ScimGroup group = new ScimGroup("scim.invite");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER)));
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId(), USER)));
 
         return new ZoneScimInviteData(
           adminToken,
@@ -848,7 +848,7 @@ public final class MockMvcUtils {
         user.setUserName(random + "@example.com");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(random + "@example.com");
-        user.setEmails(asList(email));
+        user.setEmails(Collections.singletonList(email));
         user.setPassword("secr3T");
         ScimUser createdUser = createUser(mockMvc, accessToken, user);
 
@@ -856,7 +856,7 @@ public final class MockMvcUtils {
             ScimGroup group = getGroup(mockMvc, accessToken, scope);
             if (group == null) {
                 group = new ScimGroup(null, scope, zoneId);
-                group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
+                group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
                 createGroup(mockMvc, accessToken, group);
             } else {
                 List<ScimGroupMember> members = new LinkedList(group.getMembers());
@@ -1071,7 +1071,7 @@ public final class MockMvcUtils {
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaaZoneId());
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc,
           "identity",
@@ -1294,7 +1294,8 @@ public final class MockMvcUtils {
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId) {
-        return getUaaSecurityContext(username, context, currentZoneId, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
+        return getUaaSecurityContext(username, context, currentZoneId,
+                Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")));
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId, Collection<? extends GrantedAuthority> authorities) {

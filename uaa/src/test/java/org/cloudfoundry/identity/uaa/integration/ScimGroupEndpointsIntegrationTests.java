@@ -459,7 +459,7 @@ public class ScimGroupEndpointsIntegrationTests {
         formData.add("client_id", clientId);
         formData.add("scope", scope);
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
             "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 
@@ -475,7 +475,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + token.getValue());
         return headers;

@@ -31,6 +31,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.junit.Assert.assertEquals;
@@ -67,7 +68,7 @@ public class ImplicitTokenGrantIntegrationTests {
     public void authzViaJsonEndpointFailsWithHttpGet() throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         String credentials = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", testAccounts.getUserName(),
                         testAccounts.getPassword());
@@ -83,7 +84,7 @@ public class ImplicitTokenGrantIntegrationTests {
     public void authzViaJsonEndpointSucceedsWithCorrectCredentials() throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(),
                         testAccounts.getPassword());
@@ -102,7 +103,7 @@ public class ImplicitTokenGrantIntegrationTests {
     public void authzViaJsonEndpointSucceedsWithAcceptForm() throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_FORM_URLENCODED));
 
         String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(),
                         testAccounts.getPassword());

@@ -205,8 +205,8 @@ public class TokenTestSupport {
         SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
         requestedAuthScopes = Arrays.asList(READ, WRITE,OPENID);
         clientScopes = Arrays.asList(READ, WRITE,OPENID);
-        readScope = Arrays.asList(READ);
-        writeScope = Arrays.asList(WRITE);
+        readScope = Collections.singletonList(READ);
+        writeScope = Collections.singletonList(WRITE);
         expandedScopes = Arrays.asList(READ, WRITE, DELETE,OPENID);
         resourceIds = Arrays.asList(SCIM, CLIENTS);
         expectedJson = "[\""+READ+"\",\""+WRITE+"\",\""+OPENID+"\"]";
@@ -311,7 +311,7 @@ public class TokenTestSupport {
         Set<String> amr = new HashSet<>();
         amr.addAll(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
-        userAuthentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX)));
+        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX)));
 
         HashMap<String, String> requestParams = Maps.newHashMap();
         requestParams.put("grant_type", GRANT_TYPE_PASSWORD);

@@ -33,10 +33,7 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -137,13 +134,13 @@ public class UserTokenGranterTest {
 
     @Test(expected = InvalidClientException.class)
     public void test_wrong_requesting_grant_type() {
-        requestingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        requestingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
         missing_parameter("non existent");
     }
 
     @Test(expected = InvalidClientException.class)
     public void test_wrong_receiving_grant_type() {
-        receivingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        receivingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
         missing_parameter("non existent");
     }
 

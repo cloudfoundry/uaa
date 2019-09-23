@@ -10,6 +10,7 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -48,7 +49,8 @@ class InvitationsEndpointDocs extends EndpointDocs {
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
-        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null, Arrays.asList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
+        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null,
+                Collections.singletonList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
         token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.invite", null, true);
     }
 

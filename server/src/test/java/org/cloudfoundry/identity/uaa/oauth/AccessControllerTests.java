@@ -93,7 +93,7 @@ public class AccessControllerTests {
 
     @Test
     public void approvedScopes_doNotShowUpForApproval_ifAutoApprovedHasTrue() throws Exception {
-        performAutoApprovedScopeTest(Arrays.asList("true"));
+        performAutoApprovedScopeTest(Collections.singletonList("true"));
     }
 
     private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) throws Exception {
@@ -108,8 +108,8 @@ public class AccessControllerTests {
         ScimGroup scimGroup1 = new ScimGroup("resource.scope1");
         ScimGroup scimGroup2 = new ScimGroup("resource.scope2");
         when(provisioning.query(any(), any()))
-            .thenReturn(new ArrayList<>(Arrays.asList(scimGroup1)))
-            .thenReturn(new ArrayList<>(Arrays.asList(scimGroup2)));
+            .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup1)))
+            .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup2)));
         controller.setClientDetailsService(clientDetailsService);
         controller.setGroupProvisioning(provisioning);
 

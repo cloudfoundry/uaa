@@ -32,11 +32,7 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_MAP;
@@ -122,9 +118,10 @@ public class UserInfoEndpointTests {
     public void testSunnyDay() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertEquals("olds", userInfoResponse.getUserName());
         assertEquals("Dale Olds", userInfoResponse.getFullName());
@@ -140,9 +137,10 @@ public class UserInfoEndpointTests {
     public void testVerifiedUser() {
         UaaUser user = userDatabase.retrieveUserByName("somename", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "somename",
-            "comr@dstal.in", new HashSet<>(Arrays.asList("openid")));
+            "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertEquals("somename", userInfoResponse.getUserName());
         assertTrue(userInfoResponse.isEmailVerified());
@@ -153,9 +151,10 @@ public class UserInfoEndpointTests {
         user.setPreviousLogonTime(null);
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertNull(map.getPreviousLogonSuccess());
     }
@@ -187,7 +186,7 @@ public class UserInfoEndpointTests {
         assertThat(infoRoles, containsInAnyOrder(roles.toArray()));
 
         //remove permissions
-        request = createOauthRequest(Arrays.asList("openid"));
+        request = createOauthRequest(Collections.singletonList("openid"));
         map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
         assertNull(map.getUserAttributes());
         assertNull(map.getRoles());
@@ -209,7 +208,7 @@ public class UserInfoEndpointTests {
     public void testMissingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
             "olds@vmware.com");
-        endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList("openid")), authentication));
     }
 
 }

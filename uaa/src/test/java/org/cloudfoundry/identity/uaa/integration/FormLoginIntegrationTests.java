@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -54,7 +55,7 @@ public class FormLoginIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     Header header = new BasicHeader(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
-    List<Header> headers = Arrays.asList(header);
+    List<Header> headers = Collections.singletonList(header);
 
     BasicCookieStore cookieStore = new BasicCookieStore();
     CloseableHttpClient httpclient;

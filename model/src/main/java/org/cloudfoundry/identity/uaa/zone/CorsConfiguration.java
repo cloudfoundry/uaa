@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -31,14 +32,14 @@ public class CorsConfiguration {
      * origins are allowed to use the "X-Requested-With" header in CORS
      * requests.
      */
-    private List<String> allowedOrigins = Arrays.asList(".*");
+    private List<String> allowedOrigins = Collections.singletonList(".*");
     private final List<Pattern> allowedOriginPatterns = new ArrayList<>();
 
     /**
      * A comma delimited list of regular expression patterns that defines which
      * UAA URIs allow the "X-Requested-With" header in CORS requests.
      */
-    private List<String> allowedUris = Arrays.asList(".*");
+    private List<String> allowedUris = Collections.singletonList(".*");
     private final List<Pattern> allowedUriPatterns = new ArrayList<>();
 
     /**
@@ -48,7 +49,7 @@ public class CorsConfiguration {
      */
     private List<String> allowedHeaders = Arrays.asList(ACCEPT, AUTHORIZATION, CONTENT_TYPE);
 
-    private List<String> allowedMethods = Arrays.asList(GET.toString());
+    private List<String> allowedMethods = Collections.singletonList(GET.toString());
 
     private boolean allowedCredentials = false;
 

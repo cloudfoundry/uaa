@@ -187,7 +187,7 @@ class PasswordGrantAuthenticationManagerTest {
         assertEquals(Collections.singletonList("koala"), body.get("password"));
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(Collections.singletonList(APPLICATION_JSON), headers.getAccept());
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
         assertNotNull(headers.get("Authorization"));
         assertEquals(1, headers.get("Authorization").size());
@@ -239,7 +239,7 @@ class PasswordGrantAuthenticationManagerTest {
         assertEquals(Collections.singletonList("koala"), body.get("password"));
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(Collections.singletonList(APPLICATION_JSON), headers.getAccept());
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
         assertNotNull(headers.get("Authorization"));
         assertEquals(1, headers.get("Authorization").size());
@@ -494,7 +494,7 @@ class PasswordGrantAuthenticationManagerTest {
         assertNull(body.get("missingvalue"));
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(Collections.singletonList(APPLICATION_JSON), headers.getAccept());
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
         assertNotNull(headers.get("Authorization"));
         assertEquals(1, headers.get("Authorization").size());
@@ -508,7 +508,7 @@ class PasswordGrantAuthenticationManagerTest {
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
 
         instance.authenticate(auth);
@@ -525,7 +525,7 @@ class PasswordGrantAuthenticationManagerTest {
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("ldap"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("ldap"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
 
         instance.authenticate(auth);
@@ -569,7 +569,7 @@ class PasswordGrantAuthenticationManagerTest {
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
 
@@ -618,7 +618,7 @@ class PasswordGrantAuthenticationManagerTest {
         assertEquals(Collections.singletonList("koala"), body.get("password"));
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertEquals(Arrays.asList(APPLICATION_JSON), headers.getAccept());
+        assertEquals(Collections.singletonList(APPLICATION_JSON), headers.getAccept());
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
         assertNotNull(headers.get("Authorization"));
         assertEquals(1, headers.get("Authorization").size());
@@ -659,7 +659,7 @@ class PasswordGrantAuthenticationManagerTest {
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
         when(clientDetails.getAdditionalInformation()).thenReturn(additionalInformation);
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
 

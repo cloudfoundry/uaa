@@ -494,14 +494,14 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
+            return new SearchResults<>(Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
                 clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
-                            attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
+                            attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
         } catch (SpelParseException e) {
             throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
                             HttpStatus.BAD_REQUEST.value());

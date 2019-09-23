@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -588,7 +589,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         scimUser.setUserName(username);
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(username);
-        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setEmails(Collections.singletonList(email));
         scimUser.setOrigin(OriginKeys.UAA);
         return jdbcScimUserProvisioning.createUser(scimUser, "secret", IdentityZoneHolder.get().getId());
     }

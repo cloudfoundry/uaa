@@ -302,7 +302,7 @@ public class ScimUserTests {
         user.setUserName("joe");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("foo@bar.com");
-        user.setEmails(Arrays.asList(email));
+        user.setEmails(Collections.singletonList(email));
         StandardEvaluationContext context = new StandardEvaluationContext(user);
         assertTrue(new SpelExpressionParser().parseExpression(
                         "userName == 'joe' and !(emails.?[value=='foo@bar.com']).empty").getValue(context,
@@ -320,7 +320,7 @@ public class ScimUserTests {
 
         ScimUser.Email email1 = new ScimUser.Email();
         email1.setValue("email1@bar.com");
-        user.setEmails(new LinkedList<>(Arrays.asList(email1)));
+        user.setEmails(new LinkedList<>(Collections.singletonList(email1)));
         assertEquals("email1@bar.com", user.getPrimaryEmail());
 
         email1.setPrimary(true);
@@ -455,7 +455,7 @@ public class ScimUserTests {
         assertEquals("value",p1.getValue());
         assertEquals("type", p1.getType());
         ScimUser user = new ScimUser();
-        user.setPhoneNumbers(Arrays.asList(p1));
+        user.setPhoneNumbers(Collections.singletonList(p1));
         try {
             p1.setType(null);
             user.addPhoneNumber(p1.getValue());
@@ -506,7 +506,7 @@ public class ScimUserTests {
         ScimUser.Email newMail = new ScimUser.Email();
         newMail.setPrimary(true);
         newMail.setValue("newTest@example.org");
-        patch.setEmails(Arrays.asList(newMail));
+        patch.setEmails(Collections.singletonList(newMail));
         user.patch(patch);
         assertEquals("newTest@example.org", user.getPrimaryEmail());
     }
@@ -714,7 +714,7 @@ public class ScimUserTests {
     @Test
     public void testPatchUserChangePhone() {
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertEquals(2, user.getPhoneNumbers().size());
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
@@ -727,7 +727,7 @@ public class ScimUserTests {
         assertNull(patch.getPhoneNumbers());
 
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertEquals(1, user.getPhoneNumbers().size());
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
@@ -765,7 +765,7 @@ public class ScimUserTests {
 
         patch.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
 
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());

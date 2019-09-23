@@ -49,13 +49,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -82,7 +76,8 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     public void createTokenStore() throws Exception {
         jdbcTemplate.update("delete from oauth_code");
 
-        List<GrantedAuthority> userAuthorities = Arrays.<GrantedAuthority>asList(new SimpleGrantedAuthority("openid"));
+        List<GrantedAuthority> userAuthorities = Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority(
+                "openid"));
 
         store = new UaaTokenStore(dataSource);
         legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);

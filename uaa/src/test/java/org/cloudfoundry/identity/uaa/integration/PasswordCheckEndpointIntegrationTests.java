@@ -17,6 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -42,7 +43,7 @@ public class PasswordCheckEndpointIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("password", "password1");
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/password/score", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -58,7 +59,7 @@ public class PasswordCheckEndpointIntegrationTests {
         formData.add("password", "joe@joesplace.blah");
         formData.add("userData", "joe,joe@joesplace.blah,joesdogsname");
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/password/score", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());

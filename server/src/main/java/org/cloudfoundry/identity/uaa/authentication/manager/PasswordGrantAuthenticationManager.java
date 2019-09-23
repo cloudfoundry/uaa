@@ -39,10 +39,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -144,7 +141,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         String auth = clientId + ":" + clientSecret;
         headers.add("Authorization","Basic "+Base64Utils.encodeToString(auth.getBytes()));

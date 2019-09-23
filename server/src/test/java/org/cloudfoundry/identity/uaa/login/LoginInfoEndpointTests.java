@@ -915,7 +915,7 @@ public class LoginInfoEndpointTests {
     @Test(expected = HttpMediaTypeNotAcceptableException.class)
     public void testLoginWithInvalidMediaType() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), Arrays.asList(MediaType.TEXT_XML));
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML));
     }
 
     @Test
@@ -1137,7 +1137,7 @@ public class LoginInfoEndpointTests {
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
 
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
@@ -1180,7 +1180,7 @@ public class LoginInfoEndpointTests {
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
 
 
-        endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertTrue(model.get("error").equals("invalid_login_hint"));
     }
@@ -1327,7 +1327,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
@@ -1391,7 +1391,7 @@ public class LoginInfoEndpointTests {
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-OIDC-idp1\"}"});
 
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
@@ -1411,7 +1411,7 @@ public class LoginInfoEndpointTests {
         SavedRequest savedRequest = (SavedRequest) mockHttpServletRequest.getSession().getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"ldap\"}"});
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("{\"origin\":\"ldap\"}", model.get("login_hint"));
         assertEquals("login", redirect);
@@ -1449,7 +1449,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
@@ -1471,7 +1471,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("{\"origin\":\"ldap\"}", model.get("login_hint"));
         assertEquals("login", redirect);
@@ -1494,7 +1494,7 @@ public class LoginInfoEndpointTests {
 
         endpoint.setClientDetailsService(clientDetailsService);
 
-        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
         assertEquals("login", redirect);

@@ -23,6 +23,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -88,11 +89,11 @@ public class PasswordGrantIntegrationTests {
         );
         client.setClientSecret("secret");
         Map<String, Object> additional = new HashMap();
-        additional.put(ClientConstants.REQUIRED_USER_GROUPS, Arrays.asList("non.existent"));
+        additional.put(ClientConstants.REQUIRED_USER_GROUPS, Collections.singletonList("non.existent"));
         client.setAdditionalInformation(additional);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
         headers.add("Authorization", "Bearer "+adminToken);
         headers.setContentType(APPLICATION_JSON);
 
@@ -106,7 +107,7 @@ public class PasswordGrantIntegrationTests {
 
     private ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
         headers.add("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();

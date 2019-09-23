@@ -19,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
@@ -145,8 +146,8 @@ public class ScimGroupTests {
         group.setMembers(Arrays.asList(member1, member2, member3));
         ScimGroupMember member = new ScimGroupMember(member1.getMemberId());
         member.setOperation("DELETE");
-        patch.setMembers(Arrays.asList(
-            member
+        patch.setMembers(Collections.singletonList(
+                member
         ));
         group.patch(patch);
         assertEquals(2, group.getMembers().size());
@@ -177,7 +178,7 @@ public class ScimGroupTests {
 
     @Test
     public void testAddOneMember() {
-        patch.setMembers(Arrays.asList(member1));
+        patch.setMembers(Collections.singletonList(member1));
         group.setMembers(Arrays.asList(member2, member3));
         assertEquals(2, group.getMembers().size());
         group.patch(patch);

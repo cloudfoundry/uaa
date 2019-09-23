@@ -142,7 +142,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     public void testNonUAAOriginUser() throws Exception {
         Authentication authentication = new UaaAuthentication(
             new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null, IdentityZoneHolder.get().getId()),
-            Arrays.asList(UaaAuthority.UAA_USER),
+                Collections.singletonList(UaaAuthority.UAA_USER),
             null
         );
 
@@ -361,7 +361,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
             new UaaPrincipal("user-id-001", "bob", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId()),
-            Arrays.asList(UaaAuthority.UAA_USER),
+                Collections.singletonList(UaaAuthority.UAA_USER),
             null
         );
 

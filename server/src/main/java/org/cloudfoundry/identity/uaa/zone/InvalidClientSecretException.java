@@ -14,7 +14,7 @@ public class InvalidClientSecretException extends InvalidClientDetailsException 
 
     public InvalidClientSecretException(String message) {
         super(message);
-        errorMessages = Arrays.asList(message);
+        errorMessages = Collections.singletonList(message);
     }
 
     public InvalidClientSecretException(List<String> errorMessages) {

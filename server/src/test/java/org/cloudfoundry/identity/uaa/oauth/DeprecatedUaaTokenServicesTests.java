@@ -608,7 +608,7 @@ public class DeprecatedUaaTokenServicesTests {
     @Test
     public void test_missing_required_user_groups() {
 
-        tokenSupport.defaultClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("uaa.admin"));
+        tokenSupport.defaultClient.addAdditionalInformation(REQUIRED_USER_GROUPS, singletonList("uaa.admin"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -928,7 +928,7 @@ public class DeprecatedUaaTokenServicesTests {
     @Test(expected = InvalidTokenException.class)
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
-        clientDetails.setAutoApproveScopes(Arrays.asList());
+        clientDetails.setAutoApproveScopes(emptyList());
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
           Collections.singletonMap(CLIENT_ID, clientDetails)
@@ -1063,7 +1063,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void create_id_token_with_roles_scope() {
-        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        Jwt idTokenJwt = getIdToken(singletonList(OPENID));
         assertTrue(idTokenJwt.getClaims().contains("\"amr\":[\"ext\",\"rba\",\"mfa\"]"));
     }
 
@@ -1081,7 +1081,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void create_id_token_without_roles_scope() {
-        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        Jwt idTokenJwt = getIdToken(singletonList(OPENID));
         assertFalse(idTokenJwt.getClaims().contains("\"roles\""));
     }
 
@@ -1095,7 +1095,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void create_id_token_without_profile_scope() {
-        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        Jwt idTokenJwt = getIdToken(singletonList(OPENID));
         assertFalse(idTokenJwt.getClaims().contains("\"given_name\":"));
         assertFalse(idTokenJwt.getClaims().contains("\"family_name\":"));
         assertFalse(idTokenJwt.getClaims().contains("\"phone_number\":"));
@@ -1103,7 +1103,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void create_id_token_with_last_logon_time_claim() {
-        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        Jwt idTokenJwt = getIdToken(singletonList(OPENID));
         assertTrue(idTokenJwt.getClaims().contains("\"previous_logon_time\":12365"));
     }
 

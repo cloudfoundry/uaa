@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +34,7 @@ public class SamlServiceProviderDefinitionTest {
         assertEquals(0, definition.getStaticCustomAttributes().size());
         Map<String,Object> staticAttributes = new HashMap<>();
         staticAttributes.put("string-value", "string");
-        staticAttributes.put("list-value", Arrays.asList("string"));
+        staticAttributes.put("list-value", Collections.singletonList("string"));
         definition.setStaticCustomAttributes(staticAttributes);
         assertNotNull(definition.getStaticCustomAttributes());
         assertEquals(2, definition.getStaticCustomAttributes().size());

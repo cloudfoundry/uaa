@@ -126,7 +126,7 @@ public class StatelessMfaAuthenticationFilterTests {
         storedOAuth2Request = mock(OAuth2Request.class);
         UaaPrincipal uaaPrincipal = new UaaPrincipal("1", "marissa", "marissa@test.org", OriginKeys.UAA, null, zone.getId());
         uaaAuthentication = new UaaAuthentication(uaaPrincipal, Collections.emptyList(), mock(UaaAuthenticationDetails.class));
-        uaaAuthentication.setAuthenticationMethods(new HashSet<>(asList("pwd")));
+        uaaAuthentication.setAuthenticationMethods(new HashSet<>(Collections.singletonList("pwd")));
         authentication = new OAuth2Authentication(storedOAuth2Request, uaaAuthentication);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -135,7 +135,7 @@ public class StatelessMfaAuthenticationFilterTests {
         when(googleAuthenticator.isValidCode(any(), eq(123456))).thenReturn(true);
         when(googleAuthenticator.isValidCode(any(), not(eq(123456)))).thenReturn(false);
         when(googleAuthenticator.getUserGoogleMfaCredentials(anyString(), anyString())).thenReturn(mock(UserGoogleMfaCredentials.class));
-        grantTypes = new HashSet<>(Arrays.asList("password"));
+        grantTypes = new HashSet<>(Collections.singletonList("password"));
 
         mfaProvider = mock(MfaProviderProvisioning.class);
         when(mfaProvider.retrieveByName(anyString(), anyString())).thenReturn(

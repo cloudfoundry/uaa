@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 
@@ -254,7 +255,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
-        List<String> clientIdpAliases = asList("non-existent");
+        List<String> clientIdpAliases = Collections.singletonList("non-existent");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
         assertEquals(0, clientIdps.size());
     }

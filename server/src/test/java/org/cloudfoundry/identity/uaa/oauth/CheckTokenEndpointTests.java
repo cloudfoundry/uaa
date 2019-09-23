@@ -324,7 +324,7 @@ public class CheckTokenEndpointTests {
         BaseClientDetails client =
                 new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
                         "scim.read, scim.write", "http://localhost:8080/uaa");
-        client.setAutoApproveScopes(Arrays.asList("zones.*.admin"));
+        client.setAutoApproveScopes(Collections.singletonList("zones.*.admin"));
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", client);
 
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);

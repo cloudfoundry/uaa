@@ -147,7 +147,7 @@ public class TokenValidationTest {
                 entry("jti", "8b14f193-8212-4af2-9927-e3ae903f94a6"),
                 entry("nonce", "04e2e934200b4b9fbe5d4e70ae18ba8e"),
                 entry("sub", "a7f07bf6-e720-4652-8999-e980189cef54"),
-                entry("scope", Arrays.asList("acme.dev")),
+                entry("scope", Collections.singletonList("acme.dev")),
                 entry("client_id", "app"),
                 entry("cid", "app"),
                 entry("azp", "app"),
@@ -173,7 +173,7 @@ public class TokenValidationTest {
 
         inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
-        uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
+        uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.emptyList());
         inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);

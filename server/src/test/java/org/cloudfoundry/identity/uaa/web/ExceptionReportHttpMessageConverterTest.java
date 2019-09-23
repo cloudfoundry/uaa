@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.mock.http.MockHttpOutputMessage;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class ExceptionReportHttpMessageConverterTest {
             new HttpMessageConverter<?>[]{httpMessageConverter});
 
         when(httpMessageConverter.canWrite(any(Class.class), any(MediaType.class))).thenReturn(true);
-        when(httpMessageConverter.getSupportedMediaTypes()).thenReturn(Arrays.asList(APPLICATION_JSON));
+        when(httpMessageConverter.getSupportedMediaTypes()).thenReturn(Collections.singletonList(APPLICATION_JSON));
     }
 
     @Test

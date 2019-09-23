@@ -30,10 +30,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -90,7 +87,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         mockUserDetails(userDetails);
         mockUaaWithUser();
         userAttributes = new LinkedMultiValueMap<>();
-        userAttributes.put("1", Arrays.asList("1"));
+        userAttributes.put("1", Collections.singletonList("1"));
         userAttributes.put("2", Arrays.asList("2", "3"));
         externalGroups = Arrays.asList("role1", "role2", "role3");
     }

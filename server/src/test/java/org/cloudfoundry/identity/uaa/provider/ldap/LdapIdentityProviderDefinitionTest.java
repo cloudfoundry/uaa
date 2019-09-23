@@ -26,11 +26,7 @@ import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
@@ -428,7 +424,7 @@ public class LdapIdentityProviderDefinitionTest {
     @Test
     public void testSetEmailDomain() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        def.setEmailDomain(Arrays.asList("test.com"));
+        def.setEmailDomain(Collections.singletonList("test.com"));
         assertEquals("test.com", def.getEmailDomain().get(0));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals("test.com", def.getEmailDomain().get(0));
@@ -440,9 +436,9 @@ public class LdapIdentityProviderDefinitionTest {
         List<String> externalGroupsWhitelist = new ArrayList<>();
         externalGroupsWhitelist.add("value");
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+        assertEquals(Collections.singletonList("value"), def.getExternalGroupsWhitelist());
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+        assertEquals(Collections.singletonList("value"), def.getExternalGroupsWhitelist());
     }
 
     @Test

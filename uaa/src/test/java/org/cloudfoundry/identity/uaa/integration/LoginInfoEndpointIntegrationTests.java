@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -57,7 +58,7 @@ public class LoginInfoEndpointIntegrationTests {
     public void testHappyDayHtml() throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
+        headers.setAccept(Collections.singletonList(MediaType.TEXT_HTML));
         ResponseEntity<String> response = serverRunning.getForString("/login", headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         String body = response.getBody();

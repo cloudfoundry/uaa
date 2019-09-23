@@ -20,11 +20,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.validation.AbstractBindingResult;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -83,7 +79,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
                     users.add(user);
                     ScimGroupMember member = new ScimGroupMember(user.getId());
                     ScimGroup group = webApplicationContext.getBean(ScimGroupEndpoints.class).getGroup(zone.getValue().get(i).getId(), new MockHttpServletResponse());
-                    group.setMembers(Arrays.asList(member));
+                    group.setMembers(Collections.singletonList(member));
                     webApplicationContext.getBean(ScimGroupEndpoints.class).updateGroup(group, group.getId(),String.valueOf(group.getVersion()), new MockHttpServletResponse());
                 }finally {
                     IdentityZoneHolder.clear();

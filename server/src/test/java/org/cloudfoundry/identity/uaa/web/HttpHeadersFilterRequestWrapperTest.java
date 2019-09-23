@@ -60,7 +60,7 @@ public class HttpHeadersFilterRequestWrapperTest {
 
     @Test
     public void filter_is_case_insensitive() throws Exception {
-        request = new HttpHeadersFilterRequestWrapper(Arrays.asList("x-forwarded-host"), mock);
+        request = new HttpHeadersFilterRequestWrapper(Collections.singletonList("x-forwarded-host"), mock);
         assertNull(request.getHeader("X-Forwarded-Host"));
         assertNotNull(request.getHeader("X-Forwarded-For"));
     }
@@ -78,7 +78,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     public void filtered_available_headers() throws Exception {
         request = new HttpHeadersFilterRequestWrapper(BAD_HEADERS, mock);
         List<String> actual = Collections.list(request.getHeaderNames());
-        List<String> wanted = Arrays.asList("Other-header");
+        List<String> wanted = Collections.singletonList("Other-header");
         assertThat(actual, containsInAnyOrder(wanted.toArray()));
     }
 

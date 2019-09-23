@@ -169,11 +169,12 @@ public class ClientAdminEndpointsIntegrationTests {
             ClientDetailsModification detailsModification = new ClientDetailsModification();
             detailsModification.setClientId(ids[i]);
             detailsModification.setScope(Arrays.asList("foo", "bar"));
-            detailsModification.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+            detailsModification.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
             detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
             clients[i] = detailsModification;
             clients[i].setClientSecret("secret");
-            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                    Collections.singletonList("bar")));
             clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         ResponseEntity<ClientDetailsModification[]> result =
@@ -343,7 +344,8 @@ public class ClientAdminEndpointsIntegrationTests {
             ids[i] = gen.generate();
             clients[i] = new BaseClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
-            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                    Collections.singletonList("bar")));
         }
         clients[clients.length - 1].setClientSecret(null);
         ResponseEntity<UaaException> result =
@@ -371,7 +373,8 @@ public class ClientAdminEndpointsIntegrationTests {
             ids[i] = gen.generate();
             clients[i] = new BaseClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
-            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+            clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                    Collections.singletonList("bar")));
             clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         clients[clients.length - 1].setClientId(ids[0]);
@@ -446,7 +449,8 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
         client.setAccessTokenValiditySeconds(60);
         client.setRefreshTokenValiditySeconds(120);
-        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("rab")));
+        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                Collections.singletonList("rab")));
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
             serverRunning.getUrl("/oauth/clients/{client}"),
@@ -786,7 +790,8 @@ public class ClientAdminEndpointsIntegrationTests {
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         ClientDetailsModification client = detailsModification;
         client.setClientSecret(secret);
-        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                Collections.singletonList("bar")));
         client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
             HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -802,7 +807,8 @@ public class ClientAdminEndpointsIntegrationTests {
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
-        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
+        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+                Collections.singletonList("bar")));
         client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
             HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -816,7 +822,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     public HttpHeaders getAuthenticatedHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + token);
         return headers;
@@ -835,7 +841,7 @@ public class ClientAdminEndpointsIntegrationTests {
         formData.add("client_id", clientId);
         formData.add("scope", scope);
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
             "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 
@@ -856,7 +862,7 @@ public class ClientAdminEndpointsIntegrationTests {
         formData.add("username", username);
         formData.add("password", password);
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
             "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 

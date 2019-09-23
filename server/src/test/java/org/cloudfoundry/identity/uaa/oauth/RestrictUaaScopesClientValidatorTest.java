@@ -42,7 +42,7 @@ public class RestrictUaaScopesClientValidatorTest {
     @Test
     public void testValidate() throws Exception {
         List<ClientDetailsValidator.Mode> restrictModes = Arrays.asList(CREATE, MODIFY);
-        List<ClientDetailsValidator.Mode> nonRestrictModes = Arrays.asList(DELETE);
+        List<ClientDetailsValidator.Mode> nonRestrictModes = Collections.singletonList(DELETE);
         BaseClientDetails client = new BaseClientDetails("clientId","","","client_credentials,password","");
 
         for (String s : badScopes) {

@@ -32,7 +32,7 @@ public class InvalidPasswordException extends ScimException {
 
     public InvalidPasswordException(String message) {
         super(message, HttpStatus.BAD_REQUEST);
-        errorMessages = Arrays.asList(message);
+        errorMessages = Collections.singletonList(message);
     }
 
     public InvalidPasswordException(List<String> errorMessages) {
@@ -42,7 +42,7 @@ public class InvalidPasswordException extends ScimException {
 
     public InvalidPasswordException(String message, HttpStatus httpStatus) {
         super(message, httpStatus);
-        errorMessages = Arrays.asList(message);
+        errorMessages = Collections.singletonList(message);
     }
 
     public List<String> getErrorMessages() {

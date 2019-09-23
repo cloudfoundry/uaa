@@ -37,10 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.security.Security;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -247,12 +244,12 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.setLogoutDefaultRedirectUrl("/configured_login");
         bootstrap.setLogoutDisableRedirectParameter(false);
         bootstrap.setLogoutRedirectParameterName("test");
-        bootstrap.setLogoutRedirectWhitelist(Arrays.asList("http://single-url"));
+        bootstrap.setLogoutRedirectWhitelist(Collections.singletonList("http://single-url"));
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertEquals("/configured_login", config.getLinks().getLogout().getRedirectUrl());
         assertEquals("test", config.getLinks().getLogout().getRedirectParameterName());
-        assertEquals(Arrays.asList("http://single-url"), config.getLinks().getLogout().getWhitelist());
+        assertEquals(Collections.singletonList("http://single-url"), config.getLinks().getLogout().getWhitelist());
         assertFalse(config.getLinks().getLogout().isDisableRedirectParameter());
     }
 

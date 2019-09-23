@@ -31,14 +31,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
 
@@ -72,7 +65,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
                 logger.debug(String.format("Updating zone id:%s; old subdomain: %s; new subdomain: %s;", dupZone.getId(), dupZone.getSubdomain(), newsubdomain));
                 dupZone.setSubdomain(newsubdomain);
                 dupZone = updateIdentityZone(dupZone, jdbcTemplate);
-                zones.put(newsubdomain, Arrays.asList(dupZone));
+                zones.put(newsubdomain, Collections.singletonList(dupZone));
             }
         }
         for (IdentityZone zone : identityZones) {

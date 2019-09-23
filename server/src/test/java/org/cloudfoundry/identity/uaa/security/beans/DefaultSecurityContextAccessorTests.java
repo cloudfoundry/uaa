@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.provider.authentication.OAuth2Authent
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -113,7 +114,7 @@ class DefaultSecurityContextAccessorTests {
     @Test
     void zoneAdminClientIsAdmin() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", null);
-        authorizationRequest.setScope(Arrays.asList("zones." + IdentityZoneHolder.get().getId() + ".admin"));
+        authorizationRequest.setScope(Collections.singletonList("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_VALUE, "eyJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI2ZjIxOTFlYi1iODY2LTQxZDUtYTBjNy1kZTg0ZTE3OTQ3MjIiLCJzdWIiOiJhZG1pbiIsImF1dGhvcml0aWVzIjpbInNjaW0ucmVhZCIsInVhYS5hZG1pbiIsInpvbmVzLmU5ZmY4ZDJmLTk5ODEtNDhkNi04MmIzLWNjYTc0ZGY5YzFmZS5hZG1pbiIsInBhc3N3b3JkLndyaXRlIiwic2NpbS53cml0ZSIsImNsaWVudHMud3JpdGUiLCJjbGllbnRzLnJlYWQiLCJ6b25lcy5yZWFkIiwiY2xpZW50cy5zZWNyZXQiXSwic2NvcGUiOlsic2NpbS5yZWFkIiwidWFhLmFkbWluIiwiem9uZXMuZTlmZjhkMmYtOTk4MS00OGQ2LTgyYjMtY2NhNzRkZjljMWZlLmFkbWluIiwicGFzc3dvcmQud3JpdGUiLCJzY2ltLndyaXRlIiwiY2xpZW50cy53cml0ZSIsImNsaWVudHMucmVhZCIsInpvbmVzLnJlYWQiLCJjbGllbnRzLnNlY3JldCJdLCJjbGllbnRfaWQiOiJhZG1pbiIsImNpZCI6ImFkbWluIiwiYXpwIjoiYWRtaW4iLCJncmFudF90eXBlIjoiY2xpZW50X2NyZWRlbnRpYWxzIiwicmV2X3NpZyI6ImVjMWMzN2M0IiwiaWF0IjoxNDM2NTcwMjkzLCJleHAiOjE0MzY2MTM0OTMsImlzcyI6Imh0dHBzOi8vdWFhLmlkZW50aXR5LmNmLWFwcC5jb20vb2F1dGgvdG9rZW4iLCJ6aWQiOiJ1YWEiLCJhdWQiOlsiYWRtaW4iLCJzY2ltIiwidWFhIiwiem9uZXMuZTlmZjhkMmYtOTk4MS00OGQ2LTgyYjMtY2NhNzRkZjljMWZlIiwicGFzc3dvcmQiLCJjbGllbnRzIiwiem9uZXMiXX0.ajpOTnvAvHWPEXEZI4XXDIO_Omp03VgQ64W2bfbrGSIVB0lBujegXvXe-61bRqiKKbbkk85Z6AXUfz6aZXb2hjKPeZr8P9ydy23bSCsl9QNsM9D_h3KHzTkJ9G-34aMTpVi8hxmfr_UQ6J-37zoTTIQrk5nxIiwxc4HcKkl_p68");

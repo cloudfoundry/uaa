@@ -266,7 +266,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                         logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", values, authentication.getPrincipal().getId()));
                     }
                 } else if (acr instanceof String) {
-                    authentication.setAuthContextClassRef(new HashSet(Arrays.asList((String) acr)));
+                    authentication.setAuthContextClassRef(new HashSet(Collections.singletonList((String) acr)));
                 } else {
                     logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
                 }
@@ -554,7 +554,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             p.put("value", tokenKey);
             p.put("kty", isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
             logger.debug("Key configured, returning.");
-            return new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(p)));
+            return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
         }
         URL tokenKeyUrl = config.getTokenKeyUrl();
         if (tokenKeyUrl == null || !StringUtils.hasText(tokenKeyUrl.toString())) {

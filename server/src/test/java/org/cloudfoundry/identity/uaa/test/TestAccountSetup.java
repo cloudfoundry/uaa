@@ -244,7 +244,7 @@ public class TestAccountSetup extends TestWatchman {
         String email = user.getEmail();
         if (email != null) {
             @SuppressWarnings("unchecked")
-            List<Map<String, String>> emails = Arrays.asList(Collections.singletonMap("value", email));
+            List<Map<String, String>> emails = Collections.singletonList(Collections.singletonMap("value", email));
             result.put("emails", emails);
         }
         String givenName = user.getGivenName();

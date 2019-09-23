@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -71,7 +72,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
 
         authentication = new UaaAuthentication(
             new UaaPrincipal("id", "bob", "bob@bob.bob", UAA, null, IdentityZone.getUaaZoneId()),
-            asList(UaaAuthority.UAA_USER),
+                Collections.singletonList(UaaAuthority.UAA_USER),
             new UaaAuthenticationDetails(false, null, UAA, "12345")
         );
         authMethods = asList("pwd", "mfa", "otp");

@@ -134,7 +134,7 @@ public class IdpInitiatedLoginControllerTests {
         provider.setActive(true);
         provider.setEntityId(entityID);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
         controller.initiate(entityID, request, response);
     }
 
@@ -147,7 +147,7 @@ public class IdpInitiatedLoginControllerTests {
         provider.setEntityId(entityID);
         provider.setActive(false);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
         controller.initiate(entityID, request, response);
     }
 
@@ -180,7 +180,7 @@ public class IdpInitiatedLoginControllerTests {
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
 
         doReturn(responseUrl).when(controller).getAssertionConsumerURL(anyString());
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
 
 
         when(webSsoProfile.buildIdpInitiatedAuthnRequest(

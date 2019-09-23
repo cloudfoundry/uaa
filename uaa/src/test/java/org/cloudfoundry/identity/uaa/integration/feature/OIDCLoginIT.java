@@ -512,7 +512,7 @@ public class OIDCLoginIT {
         config.setRelyingPartyId("8c5ea049-869e-47f8-a492-852a05f507af");
         config.setRelyingPartySecret(null);
         config.setIssuer("https://sts.windows.net/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/");
-        config.setScopes(Arrays.asList("openid"));
+        config.setScopes(Collections.singletonList("openid"));
         config.setResponseType("code id_token");
         return config;
     }
