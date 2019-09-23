@@ -1533,7 +1533,7 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Arrays.asList(MediaType.TEXT_HTML));
 
-        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
+        assertFalse(model.containsAttribute("login_hint"));
         assertEquals("login", redirect);
 
         Map<String, String> oauthLinks = (Map<String, String>)model.get(OAUTH_LINKS);
