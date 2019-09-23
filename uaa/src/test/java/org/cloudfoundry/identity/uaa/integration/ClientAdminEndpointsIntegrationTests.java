@@ -185,8 +185,8 @@ public class ClientAdminEndpointsIntegrationTests {
                 ClientDetailsModification[].class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         validateClients(clients, result.getBody());
-        for (int i = 0; i < ids.length; i++) {
-            ClientDetails client = getClient(ids[i]);
+        for (String id : ids) {
+            ClientDetails client = getClient(id);
             assertNotNull(client);
         }
         return result.getBody();
@@ -355,8 +355,8 @@ public class ClientAdminEndpointsIntegrationTests {
                 new HttpEntity<BaseClientDetails[]>(clients, headers),
                 UaaException.class);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        for (int i = 0; i < ids.length; i++) {
-            ClientDetails client = getClient(ids[i]);
+        for (String id : ids) {
+            ClientDetails client = getClient(id);
             assertNull(client);
         }
     }
@@ -385,8 +385,8 @@ public class ClientAdminEndpointsIntegrationTests {
                 new HttpEntity<BaseClientDetails[]>(clients, headers),
                 UaaException.class);
         assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
-        for (int i = 0; i < ids.length; i++) {
-            ClientDetails client = getClient(ids[i]);
+        for (String id : ids) {
+            ClientDetails client = getClient(id);
             assertNull(client);
         }
     }
@@ -474,10 +474,10 @@ public class ClientAdminEndpointsIntegrationTests {
         BaseClientDetails[] clients = doCreateClients();
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
-        for (int i = 0; i < clients.length; i++) {
-            clients[i].setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
-            clients[i].setAccessTokenValiditySeconds(60);
-            clients[i].setRefreshTokenValiditySeconds(120);
+        for (BaseClientDetails c : clients) {
+            c.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
+            c.setAccessTokenValiditySeconds(60);
+            c.setRefreshTokenValiditySeconds(120);
         }
         ResponseEntity<BaseClientDetails[]> result =
             serverRunning.getRestTemplate().exchange(
@@ -487,8 +487,8 @@ public class ClientAdminEndpointsIntegrationTests {
                 BaseClientDetails[].class);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         validateClients(clients, result.getBody());
-        for (int i = 0; i < clients.length; i++) {
-            ClientDetails client = getClient(clients[i].getClientId());
+        for (BaseClientDetails c : clients) {
+            ClientDetails client = getClient(c.getClientId());
             assertNotNull(client);
             assertEquals((Integer) 120, client.getRefreshTokenValiditySeconds());
             assertEquals((Integer) 60, client.getAccessTokenValiditySeconds());
@@ -504,12 +504,12 @@ public class ClientAdminEndpointsIntegrationTests {
             serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients/tx/delete"),
                 HttpMethod.POST,
-                new HttpEntity<BaseClientDetails[]>(clients, headers),
+                    new HttpEntity<>(clients, headers),
                 BaseClientDetails[].class);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         validateClients(clients, result.getBody());
-        for (int i = 0; i < clients.length; i++) {
-            ClientDetails client = getClient(clients[i].getClientId());
+        for (BaseClientDetails c : clients) {
+            ClientDetails client = getClient(c.getClientId());
             assertNull(client);
         }
     }
@@ -529,8 +529,8 @@ public class ClientAdminEndpointsIntegrationTests {
                 BaseClientDetails[].class);
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
         clients[clients.length - 1].setClientId(oldId);
-        for (int i = 0; i < clients.length; i++) {
-            ClientDetails client = getClient(clients[i].getClientId());
+        for (BaseClientDetails c : clients) {
+            ClientDetails client = getClient(c.getClientId());
             assertNotNull(client);
         }
     }

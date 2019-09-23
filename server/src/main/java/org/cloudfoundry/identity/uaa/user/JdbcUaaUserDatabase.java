@@ -198,8 +198,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
             List<String> newMemberIdList = new ArrayList<>();
 
-            for (int i = 0; i < results.size(); i++) {
-                Map<String, Object> record = results.get(i);
+            for (Map<String, Object> record : results) {
                 String displayName = (String) record.get("displayName");
                 String groupId = (String) record.get("id");
                 if (!authorities.contains(displayName)) {
