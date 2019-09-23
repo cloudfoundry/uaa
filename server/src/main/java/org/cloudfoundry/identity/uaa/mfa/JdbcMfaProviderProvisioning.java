@@ -101,14 +101,12 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
 
     @Override
     public MfaProvider retrieve(String id, String zoneId) {
-        MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return provider;
+        return jdbcTemplate.queryForObject(MFA_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
     public MfaProvider retrieveByName(String name, String zoneId) {
-        MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_NAME_QUERY, mapper, name, zoneId);
-        return provider;
+        return jdbcTemplate.queryForObject(MFA_PROVIDER_BY_NAME_QUERY, mapper, name, zoneId);
     }
 
     @Override

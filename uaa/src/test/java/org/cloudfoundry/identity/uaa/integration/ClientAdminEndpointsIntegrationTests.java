@@ -805,15 +805,14 @@ public class ClientAdminEndpointsIntegrationTests {
         detailsModification.setScope(Arrays.asList("oauth.login", "oauth.approvals", "foo", "bar"));
         detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        ClientDetailsModification client = detailsModification;
-        client.setClientSecret("secret");
-        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
+        detailsModification.setClientSecret("secret");
+        detailsModification.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                 Collections.singletonList("bar")));
-        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
+        detailsModification.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+            HttpMethod.POST, new HttpEntity<BaseClientDetails>(detailsModification, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
-        return client;
+        return detailsModification;
     }
 
     public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {

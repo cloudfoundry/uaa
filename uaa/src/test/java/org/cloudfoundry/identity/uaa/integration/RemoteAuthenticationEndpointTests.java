@@ -185,8 +185,7 @@ public class RemoteAuthenticationEndpointTests {
             parameters.setAll(additionalParams);
         }
 
-        ResponseEntity<Map> result = restTemplate.exchange(serverRunning.getUrl("/authenticate"),
+        return restTemplate.exchange(serverRunning.getUrl("/authenticate"),
                         HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
-        return result;
     }
 }

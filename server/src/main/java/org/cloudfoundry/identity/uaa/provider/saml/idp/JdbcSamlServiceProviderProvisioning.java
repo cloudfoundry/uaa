@@ -79,8 +79,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public SamlServiceProvider retrieve(String id, String zoneId) {
-        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return serviceProvider;
+        return jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
@@ -114,9 +113,8 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public SamlServiceProvider retrieveByEntityId(String entityId, String zoneId) {
-        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ENTITY_ID_QUERY, mapper,
+        return jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ENTITY_ID_QUERY, mapper,
                 entityId, zoneId);
-        return serviceProvider;
     }
 
     @Override

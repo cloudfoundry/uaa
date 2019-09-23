@@ -140,11 +140,10 @@ class ScimSearchQueryConverterTests {
         // There is always an implied "and also the identity zone must match the zone in which the
         // user performed the query" clause, which also causes an extra param on the filter, so
         // account for that in all of the expectations here
-        final int identityZoneIdParamIndex = expectedParamCount;
         String expectedIdentityZoneWhereClause = expectCaseInsensitiveDbBehavior ?
-                " AND identity_zone_id = :__value_" + identityZoneIdParamIndex
+                " AND identity_zone_id = :__value_" + expectedParamCount
                 :
-                " AND LOWER(identity_zone_id) = LOWER(:__value_" + identityZoneIdParamIndex + ")";
+                " AND LOWER(identity_zone_id) = LOWER(:__value_" + expectedParamCount + ")";
         String expectedSql = "(" + expectedWhereClauseBeforeIdentityZoneCheck + expectedIdentityZoneWhereClause + ")";
         if (StringUtils.hasText(expectedOrderByClause)) {
             expectedSql += " " + expectedOrderByClause;

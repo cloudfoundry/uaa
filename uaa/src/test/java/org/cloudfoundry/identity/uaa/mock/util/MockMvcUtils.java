@@ -1012,9 +1012,8 @@ public final class MockMvcUtils {
         detailsModification.setAuthorizedGrantTypes(grantTypes);
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(authorities));
         detailsModification.setRegisteredRedirectUri(redirectUris);
-        ClientDetailsModification client = detailsModification;
-        client.setClientSecret(secret);
-        return client;
+        detailsModification.setClientSecret(secret);
+        return detailsModification;
     }
 
     public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)

@@ -235,10 +235,9 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testWildcardIntersect1() {
         Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
-        Set<String> requested = client;
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
-        Set<String> result = factory.intersectScopes(requested, client, user);
+        Set<String> result = factory.intersectScopes(client, client, user);
         assertEquals(2, result.size());
         assertTrue(result.contains("space.1.developer"));
         assertTrue(result.contains("space.2.developer"));
@@ -279,10 +278,9 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testWildcardIntersect5() {
         Set<String> client = new HashSet<>(Arrays.asList("space.*.developer","space.*.admin", "space.3.operator"));
-        Set<String> requested = client;
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
-        Set<String> result = factory.intersectScopes(requested, client, user);
+        Set<String> result = factory.intersectScopes(client, client, user);
         assertEquals(4, result.size());
         assertTrue(result.contains("space.1.admin"));
         assertTrue(result.contains("space.3.operator"));

@@ -72,8 +72,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieve(String id, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
@@ -92,14 +91,12 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE, mapper, origin, zoneId, true);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE, mapper, origin, zoneId, true);
     }
 
     @Override
     public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, zoneId);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, zoneId);
     }
 
     @Override

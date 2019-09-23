@@ -40,10 +40,9 @@ public class BadCredentialsListener implements ApplicationListener<Authenticatio
 
     @Override
     public void onApplicationEvent(AuthenticationFailureBadCredentialsEvent event) {
-        AuthenticationFailureBadCredentialsEvent bce = event;
-        String principal = bce.getAuthentication().getName();
-        UaaAuthenticationDetails details = (UaaAuthenticationDetails) bce.getAuthentication().getDetails();
-        if (bce.getException() instanceof UsernameNotFoundException) {
+        String principal = event.getAuthentication().getName();
+        UaaAuthenticationDetails details = (UaaAuthenticationDetails) event.getAuthentication().getDetails();
+        if (event.getException() instanceof UsernameNotFoundException) {
             publisher.publishEvent(new PrincipalNotFoundEvent(principal, details, IdentityZoneHolder.getCurrentZoneId()));
         }
         else {

@@ -348,9 +348,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
         Set<String> scopes = extractScopes(requestParameters, targetClient);
         Set<String> resourceIds = getResourceIds(targetClient, scopes);
-        TokenRequest tokenRequest = new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
 
-        return tokenRequest;
+        return new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {

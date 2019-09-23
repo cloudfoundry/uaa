@@ -546,8 +546,7 @@ public class ScimGroupEndpoints {
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
-        ScimGroupMember membership = membershipManager.removeMemberById(groupId, memberId, identityZoneManager.getCurrentIdentityZoneId());
-        return membership;
+        return membershipManager.removeMemberById(groupId, memberId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @ExceptionHandler

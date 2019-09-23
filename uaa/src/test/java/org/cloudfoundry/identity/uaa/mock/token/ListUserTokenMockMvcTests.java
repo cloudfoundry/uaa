@@ -119,8 +119,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     List<String> getTokenIds(List<RevocableToken> tokens) {
-        List<String> accessTokens = tokens.stream().map(RevocableToken::getTokenId).collect(Collectors.toList());
-        return accessTokens;
+        return tokens.stream().map(RevocableToken::getTokenId).collect(Collectors.toList());
 
     }
 

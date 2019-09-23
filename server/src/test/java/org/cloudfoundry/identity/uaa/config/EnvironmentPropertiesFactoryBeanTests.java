@@ -13,16 +13,16 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collections;
-import java.util.Properties;
-
 import org.cloudfoundry.identity.uaa.impl.config.EnvironmentPropertiesFactoryBean;
 import org.junit.Test;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Dave Syer
@@ -49,9 +49,8 @@ public class EnvironmentPropertiesFactoryBeanTests {
     }
 
     private Properties getProperties(String input) {
-        Properties properties = StringUtils.splitArrayElementsIntoProperties(
+        return StringUtils.splitArrayElementsIntoProperties(
                         StringUtils.commaDelimitedListToStringArray(input), "=");
-        return properties;
     }
 
 }

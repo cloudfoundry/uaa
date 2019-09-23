@@ -263,8 +263,7 @@ public class Saml2TokenGranterTest {
         try {
             AssertionMarshaller marshaller = new AssertionMarshaller();
             Element plaintextElement = marshaller.marshall(assertion);
-            String serializedElement = XMLHelper.nodeToString(plaintextElement);
-            return serializedElement;
+            return XMLHelper.nodeToString(plaintextElement);
         } catch(Exception e) {
         }
         return null;

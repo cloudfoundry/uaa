@@ -26,10 +26,8 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
         headers.set("Cache-Control", "no-store");
         headers.set("Pragma", "no-cache");
 
-        ResponseEntity<OAuth2Exception> response = new ResponseEntity<OAuth2Exception>(e, headers,
+        return new ResponseEntity<OAuth2Exception>(e, headers,
             HttpStatus.valueOf(status));
-
-        return response;
 
     }
 

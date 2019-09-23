@@ -65,8 +65,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieve(String id) {
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }
@@ -75,8 +74,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieveIgnoreActiveFlag(String id) {
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }
@@ -92,8 +90,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         if (subdomain==null) {
             throw new EmptyResultDataAccessException("Subdomain cannot be null", 1);
         }
-        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
-        return identityZone;
+        return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
     }
 
     @Override

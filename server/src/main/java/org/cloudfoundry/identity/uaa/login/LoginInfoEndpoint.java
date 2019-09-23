@@ -548,16 +548,15 @@ public class LoginInfoEndpoint {
                         .orElse(request.getParameter("login_hint"));
 
         if (loginHintParam != null) {
-            String loginHint = loginHintParam;
             // parse login_hint in JSON format
-            UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHint);
+            UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
             if (uaaLoginHint != null) {
-                logger.debug("Received login hint: " + loginHint);
+                logger.debug("Received login hint: " + loginHintParam);
                 logger.debug("Received login hint with origin: " + uaaLoginHint.getOrigin());
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
                     if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin())) {
                         // in case of uaa/ldap, pass value to login page
-                        model.addAttribute("login_hint", loginHint);
+                        model.addAttribute("login_hint", loginHintParam);
                         samlIdentityProviders.clear();
                         oauthIdentityProviders.clear();
                     } else {
@@ -586,7 +585,8 @@ public class LoginInfoEndpoint {
                 // login_hint in JSON format was not available, try old format (email domain)
                 List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdentityProviders =
                         allIdentityProviders.entrySet().stream().filter(
-                                idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(loginHint)
+                                idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(
+                                        loginHintParam)
                         ).collect(Collectors.toList());
                 if (matchingIdentityProviders.size() > 1) {
                     throw new IllegalStateException(
@@ -641,10 +641,9 @@ public class LoginInfoEndpoint {
         List<IdentityProvider> identityProviders =
                 xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
 
-        Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
+        return identityProviders.stream()
                 .filter(p -> allowedIdps == null || allowedIdps.contains(p.getOriginKey()))
                 .collect(idpsMapCollector);
-        return identityProviderDefinitions;
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {

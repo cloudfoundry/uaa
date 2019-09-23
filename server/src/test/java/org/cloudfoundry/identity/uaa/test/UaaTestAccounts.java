@@ -134,8 +134,7 @@ public class UaaTestAccounts implements TestAccounts {
     }
 
     public String getJsonCredentials(String username, String password) {
-        String credentials = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
-        return credentials;
+        return String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
     }
 
     public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {

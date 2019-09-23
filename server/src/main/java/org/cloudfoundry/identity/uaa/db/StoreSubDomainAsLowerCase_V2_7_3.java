@@ -105,8 +105,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
     private IdentityZone retrieveIdentityZone(String id, JdbcTemplate jdbcTemplate) {
         String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }

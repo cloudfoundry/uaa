@@ -19,13 +19,7 @@ import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
-import org.cloudfoundry.identity.uaa.resources.ActionResult;
-import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
-import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
-import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.resources.*;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -60,25 +54,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -224,9 +205,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
-        ClientDetails ret = removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
 
-        return ret;
+        return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
     }
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)

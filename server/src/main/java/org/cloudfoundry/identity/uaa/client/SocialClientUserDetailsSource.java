@@ -177,8 +177,7 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
         if (userInfoUrl.contains("twitter.com")) {
             key = "screen_name";
         }
-        String value = map.get(key);
-        return value;
+        return map.get(key);
     }
 
 }

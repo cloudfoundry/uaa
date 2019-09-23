@@ -466,16 +466,9 @@ public class CorsFilterTests {
     }
 
     private static FilterChain newMockFilterChain() {
-        FilterChain filterChain = new FilterChain() {
-
-            @Override
-            public void doFilter(final ServletRequest request, final ServletResponse response)
-                    throws IOException,
-                    ServletException {
-                // Do nothing.
-            }
+        return (request, response) -> {
+            // Do nothing.
         };
-        return filterChain;
     }
 
 }

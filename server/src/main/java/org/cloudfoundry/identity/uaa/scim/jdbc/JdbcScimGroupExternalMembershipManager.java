@@ -235,9 +235,8 @@ public class JdbcScimGroupExternalMembershipManager
                                                         final String zoneId)
             throws ScimResourceNotFoundException {
         try {
-            ScimGroupExternalMember u = jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
+            return jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
                     rowMapper, zoneId, groupId, origin, externalGroup);
-            return u;
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("The mapping between groupId " + groupId + " and external group "
                     + externalGroup + " does not exist");

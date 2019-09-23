@@ -197,8 +197,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
                         .content(JsonUtils.writeValueAsString(mfaProvider))
                         .accept(APPLICATION_JSON)).andReturn().getResponse();
         assertThat(HttpStatus.CREATED.value(), is(createResponse.getStatus()));
-        MfaProvider createdMfaProvider = JsonUtils.readValue(createResponse.getContentAsString(), MfaProvider.class);
-        return createdMfaProvider;
+        return JsonUtils.readValue(createResponse.getContentAsString(), MfaProvider.class);
     }
 
 }

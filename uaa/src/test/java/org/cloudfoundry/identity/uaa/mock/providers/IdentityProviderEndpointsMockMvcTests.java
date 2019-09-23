@@ -619,10 +619,9 @@ class IdentityProviderEndpointsMockMvcTests {
             requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
 
-        MvcResult result = mockMvc.perform(requestBuilder)
+        return mockMvc.perform(requestBuilder)
                 .andExpect(resultMatcher)
                 .andReturn();
-        return result;
     }
 
     private void testRetrieveIdps(boolean retrieveActive) throws Exception {

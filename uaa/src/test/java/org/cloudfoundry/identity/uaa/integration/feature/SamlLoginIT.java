@@ -1013,8 +1013,7 @@ public class SamlLoginIT {
 
     public void two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        String zoneId = zoneName;
-        String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
+        String zoneUrl = baseUrl.replace("localhost", zoneName +".localhost");
 
 
         //identity client token
@@ -1026,7 +1025,9 @@ public class SamlLoginIT {
 
         //create the zone
 
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl,
+                zoneName,
+                zoneName, null);
 
         String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
 

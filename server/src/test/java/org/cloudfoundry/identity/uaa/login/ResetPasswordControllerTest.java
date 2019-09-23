@@ -366,8 +366,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
                                                         UaaUserDatabase userDatabase) {
-            ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
-            return controller;
+            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
         }
     }
 

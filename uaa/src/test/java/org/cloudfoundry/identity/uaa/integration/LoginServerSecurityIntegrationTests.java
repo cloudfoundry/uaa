@@ -447,8 +447,7 @@ public class LoginServerSecurityIntegrationTests {
     private String getAuthorizationEncodedValue(String username, String password) {
         String auth = username + ":" + password;
         byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-        String authHeader = "Basic " + new String( encodedAuth );
-        return authHeader;
+        return "Basic " + new String( encodedAuth );
     }
 
 
