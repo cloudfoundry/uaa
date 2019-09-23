@@ -13,19 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
-import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +33,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A username/password authentication endpoint (only intended) for use by the
@@ -158,9 +153,7 @@ public class RemoteAuthenticationEndpoint {
 
         if (context.getAuthentication() instanceof OAuth2Authentication) {
             OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
-            if (authentication.isClientOnly()) {
-                return true;
-            }
+            return authentication.isClientOnly();
         }
         return false;
     }

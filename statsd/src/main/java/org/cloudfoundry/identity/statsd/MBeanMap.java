@@ -176,10 +176,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 		if (map.size() > 2) {
 			return false;
 		}
-		if (map.containsKey("key") && map.containsKey("value")) {
-			return true;
-		}
-		return false;
+		return map.containsKey("key") && map.containsKey("value");
 	}
 
 }

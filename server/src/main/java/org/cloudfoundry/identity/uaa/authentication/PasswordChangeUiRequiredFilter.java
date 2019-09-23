@@ -1,5 +1,12 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -7,13 +14,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
 
@@ -79,9 +79,7 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication instanceof UaaAuthentication) {
             UaaAuthentication uaa = (UaaAuthentication)authentication;
-            if (uaa.isAuthenticated() && !uaa.isRequiresPasswordChange() && completed.matches(request)) {
-                return true;
-            }
+            return uaa.isAuthenticated() && !uaa.isRequiresPasswordChange() && completed.matches(request);
         }
         return false;
     }
