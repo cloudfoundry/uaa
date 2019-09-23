@@ -115,23 +115,23 @@ public class LinkedMaskingMultiValueMapTests {
     public void testSelfReferenceKey() {
         objectMap.add(objectMap, "value1");
         String s = objectMap.toString();
-        assertTrue(s.indexOf("this map") >= 0);
+        assertTrue(s.contains("this map"));
     }
 
     @Test
     public void testSelfReferenceValue() {
         objectMap.add("key1", objectMap);
         String s = objectMap.toString();
-        assertTrue(s.indexOf("this map") >= 0);
+        assertTrue(s.contains("this map"));
     }
 
     @Test
     public void doNotPrintPassword() {
         map.add("password", "password-value");
         String s = map.toString();
-        assertTrue(s.indexOf("password") >= 0);
-        assertFalse(s.indexOf("password-value") >= 0);
-        assertTrue(s.indexOf("PROTECTED") >= 0);
+        assertTrue(s.contains("password"));
+        assertFalse(s.contains("password-value"));
+        assertTrue(s.contains("PROTECTED"));
     }
 
     @Test
@@ -143,11 +143,11 @@ public class LinkedMaskingMultiValueMapTests {
             map.add("password", "password-value");
             map.add("code", "code-value");
             String s = map.toString();
-            assertTrue(s.indexOf("password") >= 0);
-            assertFalse(s.indexOf("password-value") >= 0);
-            assertTrue(s.indexOf("code") >= 0);
-            assertFalse(s.indexOf("code-value") >= 0);
-            assertTrue(s.indexOf("PROTECTED") >= 0);
+            assertTrue(s.contains("password"));
+            assertFalse(s.contains("password-value"));
+            assertTrue(s.contains("code"));
+            assertFalse(s.contains("code-value"));
+            assertTrue(s.contains("PROTECTED"));
         }
     }
 
