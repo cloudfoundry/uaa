@@ -434,7 +434,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.6</version>
+      <version>42.2.8</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
