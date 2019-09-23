@@ -30,8 +30,6 @@ import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @WithDatabaseContext

@@ -26,7 +26,6 @@ import org.mockito.Mockito;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;

@@ -20,12 +20,9 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -38,15 +35,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertNotSame;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpMethod.GET;
 

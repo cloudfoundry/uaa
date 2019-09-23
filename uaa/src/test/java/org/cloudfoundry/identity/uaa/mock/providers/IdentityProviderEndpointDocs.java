@@ -48,7 +48,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;

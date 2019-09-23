@@ -37,7 +37,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;

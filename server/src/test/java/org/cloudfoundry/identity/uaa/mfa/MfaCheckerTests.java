@@ -21,7 +21,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class MfaCheckerTests {

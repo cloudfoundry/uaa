@@ -41,9 +41,6 @@ import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 public class UaaMetricsFilterTests {

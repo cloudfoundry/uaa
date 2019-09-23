@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 

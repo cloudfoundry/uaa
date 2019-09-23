@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
-import org.bouncycastle.crypto.generators.BCrypt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

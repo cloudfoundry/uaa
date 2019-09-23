@@ -30,7 +30,6 @@ import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;

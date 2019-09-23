@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;

@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

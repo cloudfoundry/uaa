@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;

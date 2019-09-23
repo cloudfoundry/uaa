@@ -37,7 +37,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @WithDatabaseContext
