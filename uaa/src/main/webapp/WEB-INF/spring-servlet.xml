@@ -466,10 +466,7 @@
         <property name="mfaChecker" ref="mfaChecker"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
-        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
-    </bean>
-
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />
     <context:annotation-config/>
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
