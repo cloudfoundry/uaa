@@ -144,9 +144,7 @@ public class FakeJavaMailSender implements JavaMailSender {
                 sb.append("From=").append(Arrays.toString(getFrom().toArray()));
                 sb.append("; To=").append(Arrays.toString(getRecipients(Message.RecipientType.TO).toArray()));
                 sb.append("; Content=").append(getContentString());
-            }catch (MessagingException x) {
-                sb.append("Message=").append(mimeMessage);
-            }catch (IOException x) {
+            }catch (MessagingException | IOException x) {
                 sb.append("Message=").append(mimeMessage);
             }
             sb.append('}');

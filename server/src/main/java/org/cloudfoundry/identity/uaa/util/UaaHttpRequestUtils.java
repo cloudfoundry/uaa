@@ -69,11 +69,7 @@ public abstract class UaaHttpRequestUtils {
     private static SSLContext getNonValidatingSslContext() {
         try {
             return new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
-        } catch (KeyManagementException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (KeyStoreException e) {
+        } catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }

@@ -125,9 +125,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
                 IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain+generator.generate(), subdomain);
                 identityZone.setSubdomain(subdomain);
                 createIdentityZoneThroughSQL(identityZone);
-            } catch (SQLException x) {
-                assumeTrue("DB is not case sensitive. No need for this test", false);
-            } catch (DuplicateKeyException x) {
+            } catch (SQLException | DuplicateKeyException x) {
                 assumeTrue("DB is not case sensitive. No need for this test", false);
             }
         }
