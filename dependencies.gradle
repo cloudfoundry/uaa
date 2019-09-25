@@ -34,6 +34,7 @@ libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyC
 libraries.hamcrest = "org.hamcrest:hamcrest:${versions.hamcrestVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:${versions.jacksonVersion}"
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
+libraries.jacksonDataformatYaml = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jacksonVersion}"
 libraries.jsonPath = "com.jayway.jsonpath:json-path:${versions.jsonPathVersion}"
 libraries.jsonPathAssert = "com.jayway.jsonpath:json-path-assert:${versions.jsonPathVersion}"
 libraries.junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api"
