@@ -108,6 +108,24 @@ public class InvitationsIT {
         screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
+
+        String userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "user_only_for_invitations_test");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
+
+        userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "testinvite@test.org");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
     }
 
     @Before
