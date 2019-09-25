@@ -48,6 +48,7 @@ allprojects {
     apply plugin: 'maven'
     group = 'org.cloudfoundry.identity'
 
+    apply plugin: 'jacoco'
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
     apply plugin: 'propdeps-idea'
@@ -326,7 +327,7 @@ def jacocoRootReportConfiguration = {
     additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
     sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
     classDirectories = files(subprojects.sourceSets.main.output)
-    //executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
+    executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
     reports {
         html.enabled = true
         xml.enabled = true
