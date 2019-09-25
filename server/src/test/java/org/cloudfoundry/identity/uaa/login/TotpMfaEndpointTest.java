@@ -43,6 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
@@ -200,6 +201,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus);
 
         assertEquals("/login/mfa/completed", ((RedirectView)returnView.getView()).getUrl());
@@ -220,6 +222,7 @@ public class TotpMfaEndpointTest {
         endpoint.validateCode(mock(Model.class),
                               Integer.toString(code),
                               mock(UserGoogleMfaCredentials.class),
+                              new MockHttpServletRequest(),
                               sessionStatus
         );
         verify(userGoogleMfaCredentialsProvisioning).saveUserCredentials(ArgumentMatchers.any(UserGoogleMfaCredentials.class));
@@ -240,6 +243,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
 
@@ -267,6 +271,7 @@ public class TotpMfaEndpointTest {
           mock(Model.class),
           Integer.toString(code),
           mock(UserGoogleMfaCredentials.class),
+          new MockHttpServletRequest(),
           sessionStatus
         );
 
@@ -287,6 +292,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
 
@@ -306,6 +312,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             "",
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());
@@ -324,6 +331,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             "asdf123",
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());
