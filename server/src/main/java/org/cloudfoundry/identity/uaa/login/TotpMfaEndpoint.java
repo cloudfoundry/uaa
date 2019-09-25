@@ -51,6 +51,7 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -133,6 +134,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     public ModelAndView validateCode(Model model,
                                      @RequestParam("code") String code,
                                      @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials,
+                                     HttpServletRequest request,
                                      SessionStatus sessionStatus)
       throws UaaPrincipalIsNotInSession {
         UaaAuthentication uaaAuth = getUaaAuthentication();
@@ -153,6 +155,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
                 uaaAuth.setAuthenticationMethods(authMethods);
                 publish(new MfaAuthenticationSuccessEvent(getUaaUser(uaaPrincipal), uaaAuth, getMfaProvider().getType().toValue(), IdentityZoneHolder.getCurrentZoneId()));
                 sessionStatus.setComplete();
+                request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
                 return new ModelAndView(new RedirectView(mfaCompleteUrl, true));
             }
             logger.debug("Code authorization failed for user: " + uaaPrincipal.getId());
