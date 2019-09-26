@@ -139,7 +139,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 		safePut(map, key, value, true);
 	}
 
-	private void verySafePut(Map<? extends Object, Object> map, Object key, Object value) {
+	private void verySafePut(Map<?, Object> map, Object key, Object value) {
 		@SuppressWarnings("unchecked")
 		Map<Object, Object> target = (Map<Object, Object>) map;
 		safePut(target, key, value);
