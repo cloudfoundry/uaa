@@ -782,12 +782,11 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) throws Exception {
-        ClientDetailsModification detailsModification = new ClientDetailsModification();
-        detailsModification.setClientId(new RandomValueStringGenerator().generate());
-        detailsModification.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
-        detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
-        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        ClientDetailsModification client = detailsModification;
+        ClientDetailsModification client = new ClientDetailsModification();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
+        client.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
+        client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         client.setClientSecret(secret);
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                 Collections.singletonList("bar")));
