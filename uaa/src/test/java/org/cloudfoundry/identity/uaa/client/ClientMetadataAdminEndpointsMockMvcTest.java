@@ -129,10 +129,10 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
         ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(), new TypeReference<ArrayList<ClientMetadata>>() {
         });
 
-        assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId1))));
-        assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2))));
-        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId3) && m.getAppIcon().equals(client3Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client3Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client3Metadata.isShowOnHomePage()));
-        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId4) && m.getAppIcon().equals(client4Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client4Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client4Metadata.isShowOnHomePage()));
+        assertThat(clientMetadataList, not(PredicateMatcher.has(m -> m.getClientId().equals(clientId1))));
+        assertThat(clientMetadataList, not(PredicateMatcher.has(m -> m.getClientId().equals(clientId2))));
+        assertThat(clientMetadataList, PredicateMatcher.has(m -> m.getClientId().equals(clientId3) && m.getAppIcon().equals(client3Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client3Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client3Metadata.isShowOnHomePage()));
+        assertThat(clientMetadataList, PredicateMatcher.has(m -> m.getClientId().equals(clientId4) && m.getAppIcon().equals(client4Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client4Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client4Metadata.isShowOnHomePage()));
     }
 
     @Test

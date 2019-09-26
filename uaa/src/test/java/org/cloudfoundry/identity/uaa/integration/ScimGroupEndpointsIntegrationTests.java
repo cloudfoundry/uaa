@@ -158,7 +158,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private ScimGroup createGroup(String name, ScimGroupMember... members) {
         ScimGroup g = new ScimGroup(null, name, IdentityZoneHolder.get().getId());
-        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember>emptyList();
+        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.emptyList();
         g.setMembers(m);
         ScimGroup g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, ScimGroup.class).getBody();
         assertEquals(name, g1.getDisplayName());
@@ -171,7 +171,7 @@ public class ScimGroupEndpointsIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "*");
         ScimGroup g = new ScimGroup(null, name, IdentityZoneHolder.get().getId());
-        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember>emptyList();
+        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.emptyList();
         g.setMembers(m);
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
@@ -184,7 +184,7 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private void validateUserGroups(String id, String... groups) {
-        List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.<String>emptyList();
+        List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.emptyList();
         assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size());
         for (ScimUser.Group g : getUser(id).getGroups()) {
             assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
