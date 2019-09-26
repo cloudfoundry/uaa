@@ -28,7 +28,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;

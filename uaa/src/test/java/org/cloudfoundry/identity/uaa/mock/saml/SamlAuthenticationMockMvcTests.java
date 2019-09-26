@@ -48,7 +48,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.beust.jcommander.internal.Lists.newArrayList;
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;

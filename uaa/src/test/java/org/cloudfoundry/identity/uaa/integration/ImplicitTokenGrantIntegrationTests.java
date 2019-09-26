@@ -30,7 +30,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;

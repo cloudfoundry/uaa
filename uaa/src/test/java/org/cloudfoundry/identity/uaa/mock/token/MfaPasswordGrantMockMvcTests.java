@@ -20,7 +20,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.removeEventListener;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;

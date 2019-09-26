@@ -18,7 +18,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 

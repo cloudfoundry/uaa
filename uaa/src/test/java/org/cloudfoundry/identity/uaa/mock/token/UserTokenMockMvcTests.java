@@ -31,7 +31,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
