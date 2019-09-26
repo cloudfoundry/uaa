@@ -56,12 +56,9 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
-        return Collections.unmodifiableList(
-            samlProviders
+        return samlProviders
                 .stream()
-                .map(p -> p.getProvider().getConfig())
-                .collect(Collectors.toList())
-        );
+                .map(p -> p.getProvider().getConfig()).collect(Collectors.toUnmodifiableList());
     }
 
     protected void parseIdentityProviderDefinitions() {
