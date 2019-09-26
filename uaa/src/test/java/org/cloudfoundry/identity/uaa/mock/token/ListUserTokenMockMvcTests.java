@@ -214,7 +214,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         if (result.getResponse().getStatus() == 200) {
             String response = result.getResponse().getContentAsString();
             List<RevocableToken> tokenList = JsonUtils.readValue(response, new TypeReference<List<RevocableToken>>() {});
-            tokenList.stream().forEach(t -> assertNull(t.getValue()));
+            tokenList.forEach(t -> assertNull(t.getValue()));
             return tokenList;
         } else {
             return emptyList();

@@ -368,10 +368,9 @@ class IdentityZoneEndpointsMockMvcTests {
         String id = generator.generate();
         createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         List<String> groups = webApplicationContext.getBean(JdbcScimGroupProvisioning.class)
-                .retrieveAll(id).stream().map(g -> g.getDisplayName()).collect(Collectors.toList());
+                .retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
 
         ZoneManagementScopes.getSystemScopes()
-                .stream()
                 .forEach(
                         scope ->
                                 assertTrue("Scope:" + scope + " should have been bootstrapped into the new zone", groups.contains(scope))

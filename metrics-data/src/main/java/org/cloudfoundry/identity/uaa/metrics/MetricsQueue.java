@@ -92,7 +92,7 @@ public class MetricsQueue  {
         MutableDouble averageDatabaseQueryTime = new MutableDouble(0);
         MutableLong databaseIntolerableQueryCount = new MutableLong(0);
         MutableDouble averageDatabaseIntolerableQueryTime = new MutableDouble(0);
-        statistics.entrySet().stream().forEach( s -> {
+        statistics.entrySet().forEach(s -> {
             RequestMetricSummary summary = s.getValue();
             averageTime.set(addAverages(count.get(),
                                         averageTime.get(),

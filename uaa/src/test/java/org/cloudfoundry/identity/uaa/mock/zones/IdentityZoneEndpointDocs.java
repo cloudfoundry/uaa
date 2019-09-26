@@ -172,7 +172,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 .stream()
                 .filter(zone -> !IdentityZone.getUaaZoneId().equals(zone.getId()))
                 .forEach(zone -> {
-                    deleteMe.values().stream().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
+                    deleteMe.values().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
                 });
     }
 

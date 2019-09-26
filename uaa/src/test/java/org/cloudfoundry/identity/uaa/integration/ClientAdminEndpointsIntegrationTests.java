@@ -733,8 +733,7 @@ public class ClientAdminEndpointsIntegrationTests {
                 Approval[].class,
                 filter);
         assertEquals(HttpStatus.OK, approvals.getStatusCode());
-        List<Approval> approvalList = Arrays.asList(approvals.getBody()).stream().filter(a -> clientId.equals(a.getClientId())).collect(toList());
-        return approvalList.toArray(new Approval[0]);
+        return Arrays.stream(approvals.getBody()).filter(a -> clientId.equals(a.getClientId())).toArray(Approval[]::new);
     }
 
 
