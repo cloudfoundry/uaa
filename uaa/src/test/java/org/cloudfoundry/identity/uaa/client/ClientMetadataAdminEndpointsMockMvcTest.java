@@ -43,7 +43,6 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     private String adminClientTokenWithClientsWrite;
     private MultitenantJdbcClientDetailsService clients;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
-    private UaaTestAccounts testAccounts;
     private String adminClientTokenWithClientsRead;
     private MockMvc mockMvc;
     private TestClient testClient;
@@ -57,7 +56,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
 
         testClient = new TestClient(mockMvc);
 
-        testAccounts = UaaTestAccounts.standard(null);
+        UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         adminClientTokenWithClientsRead = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),

@@ -38,8 +38,6 @@ class InvitationsEndpointDocs extends EndpointDocs {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String domain;
     private String clientId;
-    private String clientSecret;
-    private String authorities;
     private String token;
 
     @BeforeEach
@@ -47,8 +45,8 @@ class InvitationsEndpointDocs extends EndpointDocs {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         domain = generator.generate().toLowerCase() + ".com";
         clientId = generator.generate().toLowerCase();
-        clientSecret = generator.generate().toLowerCase();
-        authorities = "scim.read,scim.invite";
+        String clientSecret = generator.generate().toLowerCase();
+        String authorities = "scim.read,scim.invite";
         MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null,
                 Collections.singletonList("scim.invite"), Collections.singletonList("client_credentials"), authorities);
         token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.invite", null, true);

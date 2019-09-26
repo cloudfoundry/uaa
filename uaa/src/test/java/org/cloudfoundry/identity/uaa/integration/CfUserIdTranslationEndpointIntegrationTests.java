@@ -54,11 +54,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
 
     private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String userEndpoint = "/Users";
-
     private final String idsEndpoint = "/ids/Users";
-
-    private ScimUser joe;
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -84,10 +80,11 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         user.setGroups(Arrays.asList(new Group(null, "uaa.user"), new Group(null, "orgs.foo")));
         user.setVerified(true);
 
+        String userEndpoint = "/Users";
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
                         ScimUser.class);
 
-        joe = newuser.getBody();
+        ScimUser joe = newuser.getBody();
         assertEquals(JOE, joe.getUserName());
 
         PasswordChangeRequest change = new PasswordChangeRequest();

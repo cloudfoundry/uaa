@@ -27,8 +27,6 @@ public class MBeanMap extends AbstractMap<String, Object>{
 
 	private Map<String, Object> map = new HashMap<>();
 
-	private boolean initialized = false;
-
 	private final MBeanInfo info;
 
 	private final MBeanServerConnection server;
@@ -60,6 +58,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 
 	@Override
 	public Set<java.util.Map.Entry<String, Object>> entrySet() {
+		boolean initialized = false;
 		if (!initialized && info != null) {
 			MBeanAttributeInfo[] attributes = info.getAttributes();
 			for (MBeanAttributeInfo attribute : attributes) {

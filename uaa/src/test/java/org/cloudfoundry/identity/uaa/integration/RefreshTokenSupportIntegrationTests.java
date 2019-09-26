@@ -55,14 +55,6 @@ public class RefreshTokenSupportIntegrationTests {
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
-    private ResourceOwnerPasswordResourceDetails resource;
-
-    @Before
-    public void init() {
-        resource = testAccounts.getDefaultResourceOwnerPasswordResource();
-
-    }
-
     @Test
     public void testTokenRefreshedCorrectFlow() throws Exception {
         BasicCookieStore cookies = new BasicCookieStore();

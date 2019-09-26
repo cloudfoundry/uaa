@@ -58,7 +58,6 @@ public class MfaProviderEndpointsMockMvcTests {
 
     private MfaProviderProvisioning mfaProviderProvisioning;
 
-    private TestClient testClient;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -68,7 +67,7 @@ public class MfaProviderEndpointsMockMvcTests {
                 .addFilter(springSecurityFilterChain)
                 .build();
 
-        testClient = new TestClient(mockMvc);
+        TestClient testClient = new TestClient(mockMvc);
 
         mfaProviderProvisioning = webApplicationContext.getBean(JdbcMfaProviderProvisioning.class);
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",

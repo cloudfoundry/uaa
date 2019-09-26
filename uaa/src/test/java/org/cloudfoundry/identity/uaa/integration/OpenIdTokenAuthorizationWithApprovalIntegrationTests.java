@@ -62,8 +62,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_O
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
-    private final String userEndpoint = "/Users";
-
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -416,6 +414,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         user.setActive(true);
         user.setPassword("s3Cret");
 
+        String userEndpoint = "/Users";
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
 

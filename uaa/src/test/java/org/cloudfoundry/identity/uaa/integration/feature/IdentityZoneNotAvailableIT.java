@@ -30,8 +30,6 @@ public class IdentityZoneNotAvailableIT {
 
     private String zoneUrl;
 
-    private String baseUrl = "http://localhost:8080/uaa";
-
     @Parameterized.Parameters(name = "{index}: zoneUrl[{0}];")
     public static List<Object[]> data() {
         return Arrays.asList(new Object[][]{
@@ -47,6 +45,7 @@ public class IdentityZoneNotAvailableIT {
     @Before
     public void setUp() throws Exception {
         String[] scope = {"uaa.admin"};
+        String baseUrl = "http://localhost:8080/uaa";
         ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, scope, "admin", "adminsecret");
         restTemplate = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);

@@ -52,7 +52,6 @@ public class UaaMetricsEmitter {
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     private final MetricsUtils metricsUtils;
-    private NotificationEmitter emitter;
     private boolean notificationsEnabled;
     private ConcurrentMap<String, Long> delta = new ConcurrentHashMap<>();
 
@@ -216,7 +215,7 @@ public class UaaMetricsEmitter {
     public void enableNotification() {
         try {
             logger.debug("Trying to enable notification");
-            emitter = metricsUtils.getUaaMetricsSubscriber(server);
+            NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
             emitter.addNotificationListener((notification, handback) -> {
                 String key = notification.getType();
                 String prefix = key.startsWith("/") ? key.substring(1) : key;

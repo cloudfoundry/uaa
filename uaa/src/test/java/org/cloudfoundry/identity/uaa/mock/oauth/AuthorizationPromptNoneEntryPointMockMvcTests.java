@@ -45,7 +45,6 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
-    private TestClient testClient;
 
     @BeforeEach
     void setup() throws Exception {
@@ -54,7 +53,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                 .addFilter(springSecurityFilterChain)
                 .build();
 
-        testClient = new TestClient(mockMvc);
+        TestClient testClient = new TestClient(mockMvc);
 
         BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         client.setAutoApproveScopes(Collections.singletonList("openid"));

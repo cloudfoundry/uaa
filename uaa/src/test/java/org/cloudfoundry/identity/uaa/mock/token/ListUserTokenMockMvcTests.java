@@ -46,7 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     private ClientDetails client1withTokensListScope, client2,client3;
-    private ScimUser user1withTokensListScope, user2, user3;
+    private ScimUser user1withTokensListScope;
+    private ScimUser user2;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MultiValueMap<String, String> tokensPerUser = new LinkedMultiValueMap<>();
     private MultiValueMap<String, String> tokensPerClient = new LinkedMultiValueMap<>();
@@ -57,7 +58,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     void createUsersAndClients() throws Exception {
         user1withTokensListScope = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
         user2 = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        user3 = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        ScimUser user3 = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
         client1withTokensListScope = setUpClients(generator.generate(), "", "tokens.list,scim.read", "password,refresh_token", false);
         client2 = setUpClients(generator.generate(), "", "scim.read","password,refresh_token", false);
         client3 = setUpClients(generator.generate(), "", "scim.read","password,refresh_token", false);

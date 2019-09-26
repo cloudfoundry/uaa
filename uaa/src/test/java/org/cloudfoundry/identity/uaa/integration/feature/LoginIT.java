@@ -87,7 +87,6 @@ public class LoginIT {
 
     @Autowired
     SimpleSmtpServer simpleSmtpServer;
-    private String testzone3;
 
     @Before
     @After
@@ -105,7 +104,7 @@ public class LoginIT {
     public void check_JSESSIONID_defaults() throws Exception {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        List<String> cookies = Collections.EMPTY_LIST;
+        List<String> cookies;
         LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
         requestBody.add("username", testAccounts.getUserName());
         requestBody.add("password", testAccounts.getPassword());
@@ -471,7 +470,7 @@ public class LoginIT {
     }
 
     private String createDiscoveryZone() {
-        testzone3 = "testzone3";
+        String testzone3 = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")

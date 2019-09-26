@@ -49,8 +49,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
-    private final String CLIENT_ID = "oauth_showcase_password_grant";
-    private final String CLIENT_SECRET = "secret";
     private String token;
     private String idToken;
     private String basic;
@@ -63,10 +61,12 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void get_token_to_check() throws Exception {
         String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
 
+        String clientId = "oauth_showcase_password_grant";
+        String clientSecret = "secret";
         String content = mockMvc.perform(
             post("/oauth/token")
-                .param("client_id", CLIENT_ID)
-                .param("client_secret", CLIENT_SECRET)
+                .param("client_id", clientId)
+                .param("client_secret", clientSecret)
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
                 .param("username", username)
                 .param("password", SECRET)
@@ -79,7 +79,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         Map<String,Object> tokenMap = JsonUtils.readValue(content, new TypeReference<Map<String, Object>>() {});
         token = (String) tokenMap.get("access_token");
         idToken = (String) tokenMap.get("id_token");
-        basic = new String(Base64.encodeBase64((CLIENT_ID +":"+ CLIENT_SECRET).getBytes()));
+        basic = new String(Base64.encodeBase64((clientId +":"+ clientSecret).getBytes()));
         allowQueryString = checkTokenEndpoint.isAllowQueryString();
         checkTokenEndpoint.setAllowQueryString(false);
     }

@@ -90,7 +90,6 @@ public class ClientAdminEndpointsIntegrationTests {
 
     private OAuth2AccessToken token;
     private HttpHeaders headers;
-    private List<Approval> approvalList;
     private List<ClientDetailsModification> clientDetailsModifications;
 
     @Before
@@ -734,7 +733,7 @@ public class ClientAdminEndpointsIntegrationTests {
                 Approval[].class,
                 filter);
         assertEquals(HttpStatus.OK, approvals.getStatusCode());
-        approvalList = Arrays.asList(approvals.getBody()).stream().filter(a -> clientId.equals(a.getClientId())).collect(toList());
+        List<Approval> approvalList = Arrays.asList(approvals.getBody()).stream().filter(a -> clientId.equals(a.getClientId())).collect(toList());
         return approvalList.toArray(new Approval[0]);
     }
 
