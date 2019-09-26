@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
@@ -80,7 +81,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "login")
                 .param(SCOPE, "openid oauth.approvals")
                 .param(REDIRECT_URI, "http://localhost/app")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -145,7 +146,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -209,7 +210,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -246,7 +247,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -284,7 +285,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(

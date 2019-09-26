@@ -18,6 +18,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 
@@ -125,7 +126,7 @@ public class SessionPageIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         Cookie currentUserCookie = webDriver.manage().getCookieNamed("Current-User");
-        CurrentUserInformation currentUserInformation = JsonUtils.readValue(URLDecoder.decode(currentUserCookie.getValue(), "UTF-8"), CurrentUserInformation.class);
+        CurrentUserInformation currentUserInformation = JsonUtils.readValue(URLDecoder.decode(currentUserCookie.getValue(), StandardCharsets.UTF_8), CurrentUserInformation.class);
 
         String userId = currentUserInformation.getUserId();
         testPage = "file://" + System.getProperty("user.dir") + "/src/test/resources/session_frame_test.html#" + userId;

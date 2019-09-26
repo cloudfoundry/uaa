@@ -30,6 +30,7 @@ import org.springframework.web.client.RestOperations;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -125,7 +126,7 @@ public class PasswordGrantIT {
         postBody.add("grant_type", "password");
         postBody.add("username", testAccounts.getUserName());
         postBody.add("password", testAccounts.getPassword());
-        postBody.add("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"));
+        postBody.add("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8));
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
                 HttpMethod.POST,

@@ -74,6 +74,7 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -2584,7 +2585,7 @@ public class LoginMockMvcTests {
         Matcher matcher = pattern.matcher(html);
         assertTrue(matcher.find());
         String group = matcher.group(1);
-        assertEquals(expectedUrl, URLDecoder.decode(group, "UTF-8"));
+        assertEquals(expectedUrl, URLDecoder.decode(group, StandardCharsets.UTF_8));
     }
 
     private static MockHttpSession setUpClientAndProviderForIdpDiscovery(

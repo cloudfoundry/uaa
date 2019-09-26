@@ -224,14 +224,14 @@ public class LoginIT {
     public void testLoginHint() throws Exception {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
-        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", "UTF-8");
+        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
         assertEquals("Cloud Foundry", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
         attemptLogin(newUserEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
 
-        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", "UTF-8");
+        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
         assertEquals("Cloud Foundry", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));

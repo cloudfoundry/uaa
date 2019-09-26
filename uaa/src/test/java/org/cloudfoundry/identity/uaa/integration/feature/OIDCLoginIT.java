@@ -59,6 +59,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -290,7 +291,7 @@ public class OIDCLoginIT {
     @Test
     public void testLoginWithLoginHintUaa() throws Exception {
         webDriver.get(zoneUrl + "/logout.do");
-        String loginHint = URLEncoder.encode("{\"origin\":\"puppy\"}", "utf-8");
+        String loginHint = URLEncoder.encode("{\"origin\":\"puppy\"}", StandardCharsets.UTF_8);
 
         webDriver.get(zoneUrl + "/login?login_hint=" + loginHint);
 

@@ -73,6 +73,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -242,7 +243,7 @@ public class SamlLoginIT {
         String firstUrl = "/oauth/authorize?"
                 + "client_id=" + clientId
                 + "&response_type=code"
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, "UTF-8");
+                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
 
         webDriver.get(baseUrl + firstUrl);
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
@@ -413,7 +414,7 @@ public class SamlLoginIT {
         clientDetails.setClientSecret("secret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
-        webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, "UTF-8") + "&client_id=test-logout-redirect");
+        webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8) + "&client_id=test-logout-redirect");
         assertEquals(redirectUrl, webDriver.getCurrentUrl());
     }
 

@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
@@ -99,7 +100,7 @@ public class XOAuthAuthenticationFilter implements Filter {
             if(!hasText(message)) {
                 message = ex.getClass().getSimpleName();
             }
-            String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, "UTF-8");
+            String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, StandardCharsets.UTF_8);
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
             return false;
         }

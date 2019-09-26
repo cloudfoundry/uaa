@@ -11,6 +11,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -57,7 +58,7 @@ public class CurrentUserCookieFactoryTest {
     public void getCookie_containsUrlEncodedJsonBody() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
         assertEquals("%7B%22userId%22%3A%22user-guid%22%7D", cookie.getValue());
-        String decoded = URLDecoder.decode(cookie.getValue(), "UTF-8");
+        String decoded = URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8);
         JsonNode parsedCookie = JsonUtils.readTree(decoded);
         assertEquals("\"user-guid\"", parsedCookie.get("userId").toString());
     }

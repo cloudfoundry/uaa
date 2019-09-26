@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -363,7 +364,7 @@ public class TotpMfaEndpointIntegrationTests {
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
         for(String param : qparams) {
             if(param.contains("issuer=")) {
-                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
+                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, StandardCharsets.UTF_8));
                 break;
             }
         }

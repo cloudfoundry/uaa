@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static org.mockito.Mockito.mock;
@@ -52,8 +53,8 @@ class ClientBasicAuthenticationFilterTests {
     @Nested
     class ByDefault {
         private void addBasicAuthHeader(MockHttpServletRequest request, String clientId, String clientSecret) throws UnsupportedEncodingException {
-            String encodedClientId = URLEncoder.encode(clientId, "UTF-8");
-            String encodedClientSecret = URLEncoder.encode(clientSecret, "UTF-8");
+            String encodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
+            String encodedClientSecret = URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
             String encodedCredentials = new String(
                 Base64.getEncoder().encode((encodedClientId + ":" + encodedClientSecret).getBytes())
             );

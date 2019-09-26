@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import javax.servlet.http.Cookie;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class CurrentUserCookieFactory {
     private int sessionTimeout;
@@ -26,7 +27,7 @@ public class CurrentUserCookieFactory {
 
     private String urlEncode(String value) throws CurrentUserCookieEncodingException {
         try {
-            return URLEncoder.encode(value, "UTF-8");
+            return URLEncoder.encode(value, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new CurrentUserCookieEncodingException(e);
         }

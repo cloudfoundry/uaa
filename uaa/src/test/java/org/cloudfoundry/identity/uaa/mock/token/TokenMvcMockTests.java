@@ -70,6 +70,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -4069,11 +4070,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String[] kv = url.getQuery().split("&");
         for (String pair : kv) {
             int i = pair.indexOf("=");
-            String key = i > 0 ? URLDecoder.decode(pair.substring(0, i), "UTF-8") : pair;
+            String key = i > 0 ? URLDecoder.decode(pair.substring(0, i), StandardCharsets.UTF_8) : pair;
             if (!params.containsKey(key)) {
                 params.put(key, new LinkedList<String>());
             }
-            String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), "UTF-8") : null;
+            String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), StandardCharsets.UTF_8) : null;
             params.get(key).add(value);
         }
         return params;

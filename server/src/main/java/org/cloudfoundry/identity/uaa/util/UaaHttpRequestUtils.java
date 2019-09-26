@@ -29,6 +29,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import javax.net.ssl.SSLContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -81,11 +82,7 @@ public abstract class UaaHttpRequestUtils {
     }
 
     private static String encodeParameter(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     public static boolean isAcceptedInvitationAuthentication() {

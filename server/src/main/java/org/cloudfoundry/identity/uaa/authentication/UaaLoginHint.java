@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class UaaLoginHint {
     private String origin;
@@ -15,7 +16,7 @@ public class UaaLoginHint {
             return null;
         }
         try {
-            loginHint = URLDecoder.decode(loginHint, "UTF-8");
+            loginHint = URLDecoder.decode(loginHint, StandardCharsets.UTF_8);
             return mapper.readValue(loginHint, UaaLoginHint.class);
         } catch (IOException e) {
             return null;

@@ -67,6 +67,7 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static com.beust.jcommander.internal.Lists.newArrayList;
@@ -269,7 +270,7 @@ public abstract class AbstractLdapMockMvcTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("form_redirect_uri")))
-                .andExpect(content().string(containsString(URLEncoder.encode(redirectUri, "UTF-8"))));
+                .andExpect(content().string(containsString(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8))));
 
 
         getMockMvc().perform(
