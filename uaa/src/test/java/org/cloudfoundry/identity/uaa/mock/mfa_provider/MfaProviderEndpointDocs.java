@@ -113,7 +113,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> getGoogleMfaProvider() {
-        return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<GoogleMfaProviderConfig>()
+        return new MfaProvider<GoogleMfaProviderConfig>()
                 .setName("sampleGoogleMfaProvider" + new RandomValueStringGenerator(6).generate())
                 .setType(GOOGLE_AUTHENTICATOR)
                 .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));

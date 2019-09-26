@@ -136,10 +136,10 @@ public class ImplicitGrantIT {
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat((String) claims.get("jti"), is(params.getFirst("jti")));
-        Assert.assertThat((String) claims.get("client_id"), is("cf"));
-        Assert.assertThat((String) claims.get("cid"), is("cf"));
-        Assert.assertThat((String) claims.get("user_name"), is(testAccounts.getUserName()));
+        Assert.assertThat(claims.get("jti"), is(params.getFirst("jti")));
+        Assert.assertThat(claims.get("client_id"), is("cf"));
+        Assert.assertThat(claims.get("cid"), is("cf"));
+        Assert.assertThat(claims.get("user_name"), is(testAccounts.getUserName()));
 
         Assert.assertThat(((List<String>) claims.get("scope")), containsInAnyOrder(scopes));
 

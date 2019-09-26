@@ -84,7 +84,7 @@ public class ForcedPasswordChangeIT {
 
     @Before
     public void setUp() throws Exception {
-        restTemplate = (RestTemplate)serverRunning.createRestTemplate();
+        restTemplate = serverRunning.createRestTemplate();
         int randomInt = new SecureRandom().nextInt();
         adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin scim.write scim.read");
         userEmail = "user" + randomInt + "@example.com";
