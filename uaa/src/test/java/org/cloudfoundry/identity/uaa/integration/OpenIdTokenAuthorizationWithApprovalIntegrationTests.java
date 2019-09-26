@@ -336,7 +336,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher.toString()));
+            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
         String code = location.split("code=")[1].split("&")[0];
         exchangeCodeForToken(clientId, redirectUri, clientSecret, code, formData);
@@ -382,7 +382,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher.toString()));
+            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
 
     }

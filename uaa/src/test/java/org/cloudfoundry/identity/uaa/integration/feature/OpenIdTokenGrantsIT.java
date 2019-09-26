@@ -357,7 +357,7 @@ public class OpenIdTokenGrantsIT {
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(redirectUri + responseTypeMatcher.toString()));
+            location.matches(redirectUri + responseTypeMatcher));
 
         formData.clear();
         formData.add("client_id", clientId);
