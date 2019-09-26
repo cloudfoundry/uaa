@@ -292,7 +292,7 @@ public class LoginIT {
         body.add("username", testAccounts.getUserName());
         body.add("password", testAccounts.getPassword());
         HttpHeaders headers = new HttpHeaders();
-        headers.add(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login.do",
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
@@ -315,7 +315,7 @@ public class LoginIT {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
             HttpMethod.GET,
             new HttpEntity<>(null, headers),
