@@ -295,8 +295,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
 
     private ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
             searchUsersParameters,
-            new ParameterDescriptor[]{parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
-    );
+            parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING)));
 
     private FieldDescriptor[] searchWithAttributesResponseFields = {
             fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),

@@ -50,7 +50,7 @@ class InvitationsEndpointDocs extends EndpointDocs {
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
         MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null,
-                Collections.singletonList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
+                Collections.singletonList("scim.invite"), Collections.singletonList("client_credentials"), authorities);
         token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.invite", null, true);
     }
 

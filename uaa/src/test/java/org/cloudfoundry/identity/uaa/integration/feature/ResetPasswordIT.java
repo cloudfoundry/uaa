@@ -34,6 +34,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
@@ -98,7 +99,7 @@ public class ResetPasswordIT {
         testClient.createScimClient(adminAccessToken, scimClientId);
         BaseClientDetails authCodeClient = new BaseClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://example.redirect.com");
         authCodeClient.setClientSecret("scimsecret");
-        authCodeClient.setAutoApproveScopes(Arrays.asList(new String[] {"uaa.user"}));
+        authCodeClient.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         IntegrationTestUtils.createClient(adminAccessToken, baseUrl, authCodeClient);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         testClient.createUser(scimAccessToken, username, email, "secr3T", true);
