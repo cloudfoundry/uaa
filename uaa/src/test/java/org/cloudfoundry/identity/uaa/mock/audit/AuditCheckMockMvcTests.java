@@ -791,8 +791,7 @@ class AuditCheckMockMvcTests {
                 .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
         String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
-                scimUser.getUserName(),
-                testAccounts.getAdminClientId());
+                scimUser.getUserName());
         assertLogMessageWithSession(testLogger.getLatestMessage(),
                 UserCreatedEvent, createdUser.getId(), logMessage);
     }
@@ -854,9 +853,7 @@ class AuditCheckMockMvcTests {
 
             String logMessage = format(" ('[\"user_id=%s\",\"username=%s\"]'): ",
                     createdUser.getId(),
-                    scimUser.getUserName(),
-                    scimWriteUser.getId(),
-                    scimWriteUser.getUserName());
+                    scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserCreatedEvent.toString() + " "));
             assertThat(actualLogMessage, containsString(format("principal=%s,", createdUser.getId())));
@@ -898,9 +895,7 @@ class AuditCheckMockMvcTests {
 
             String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
-                    scimUser.getUserName(),
-                    scimWriteUser.getId(),
-                    scimWriteUser.getUserName());
+                    scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserDeletedEvent.toString() + " "));
             assertThat(actualLogMessage, containsString(format("principal=%s,", scimUser.getId())));
@@ -955,8 +950,7 @@ class AuditCheckMockMvcTests {
 
         String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
-                username,
-                "login");
+                username);
 
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0),
                 UserCreatedEvent, createdUser.getId(), logMessage);
@@ -1053,8 +1047,7 @@ class AuditCheckMockMvcTests {
 
             String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
-                    scimUser.getUserName(),
-                    testAccounts.getAdminClientId());
+                    scimUser.getUserName());
             assertLogMessageWithSession(testLogger.getLatestMessage(),
                     UserDeletedEvent, scimUser.getId(), logMessage);
         }
