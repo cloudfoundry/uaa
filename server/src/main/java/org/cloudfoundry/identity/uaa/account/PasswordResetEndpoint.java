@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -35,11 +35,15 @@ import static org.springframework.http.HttpStatus.*;
 public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;
+    private final IdentityZoneManager identityZoneManager;
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
     private ExpiringCodeStore codeStore;
 
-    public PasswordResetEndpoint(ResetPasswordService resetPasswordService) {
+    public PasswordResetEndpoint(
+            final ResetPasswordService resetPasswordService,
+            final IdentityZoneManager identityZoneManager) {
         this.resetPasswordService = resetPasswordService;
+        this.identityZoneManager = identityZoneManager;
     }
 
     public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
@@ -72,7 +76,7 @@ public class PasswordResetEndpoint {
     }
 
     private ExpiringCode getExpiringCode(String code) {
-        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         if (expiringCode == null) {
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
@@ -115,7 +119,7 @@ public class PasswordResetEndpoint {
         codeData.put("username", username);
         codeData.put(OAuth2Utils.CLIENT_ID, clientId);
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
