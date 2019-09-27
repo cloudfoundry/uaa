@@ -77,9 +77,8 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
 
         Set<String> clientWhitelist = getClientWhitelist(request);
         Set<String> combinedWhitelist = combineSets(whitelist, clientWhitelist);
-        String whiteListRedirect = findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
 
-        return whiteListRedirect;
+        return findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
     }
 
     private boolean isInternalRedirect(String targetUrl, HttpServletRequest request) {

@@ -470,11 +470,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         if ("signed_request".equals(config.getResponseType())) {
-            String signedRequest = idToken;
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: " + signedRequest);
+            logger.debug("Validating signed_request: " + idToken);
             //split request into signature and data
-            String[] signedRequests = signedRequest.split("\\.", 2);
+            String[] signedRequests = idToken.split("\\.", 2);
             //parse signature
             String signature = signedRequests[0];
             //parse data and convert to json object

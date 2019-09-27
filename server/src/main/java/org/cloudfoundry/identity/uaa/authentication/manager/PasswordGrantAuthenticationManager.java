@@ -198,8 +198,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider.");
         }
         XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, idToken, null, null);
-        Authentication authResult = xoAuthAuthenticationManager.authenticate(token);
-        return authResult;
+        return xoAuthAuthenticationManager.authenticate(token);
     }
 
     private boolean providerSupportsPasswordGrant(IdentityProvider provider) {
@@ -221,8 +220,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
         String clientId = clientAuth.getName();
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-        List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        return allowedProviders;
+        return (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
     }
 
     @Override
