@@ -113,7 +113,7 @@ public class UaaMapUtils {
         return new AbstractMap.SimpleEntry<>(key, value);
     }
 
-    public static <K extends Comparable<? super K>, V extends Object> Map<K, V> sortByKeys(Map<K,V> map) {
+    public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K,V> map) {
         List<Entry<K, V>> sortedEntries = map
             .entrySet()
             .stream()
@@ -130,7 +130,7 @@ public class UaaMapUtils {
         return result;
     }
 
-    public static <K extends Comparable<? super K>, V extends Object> String prettyPrintYaml(Map<K,V> map) {
+    public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K,V> map) {
         DumperOptions dump = new DumperOptions();
         dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         dump.setPrettyFlow(true);
