@@ -106,7 +106,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
             int indexCount = 0;
             do {
                 String indexName = rs.getString("INDEX_NAME");
-                Short indexType = rs.getShort("TYPE");
+                short indexType = rs.getShort("TYPE");
                 if (shouldCompareIndex(indexName)) {
                     assertTrue("Testing index: " + indexName, testColumn(TEST_INDEX, indexName, "", indexType));
                     indexCount++;

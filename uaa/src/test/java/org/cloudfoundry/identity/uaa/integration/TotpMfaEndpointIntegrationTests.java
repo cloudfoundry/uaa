@@ -285,8 +285,8 @@ public class TotpMfaEndpointIntegrationTests {
 
     private void verifyCodeOnRegistration(String key, String expectedUrlPath) {
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        Integer verificationCode = authenticator.getTotpPassword(key);
-        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
+        int verificationCode = authenticator.getTotpPassword(key);
+        webDriver.findElement(By.name("code")).sendKeys(Integer.toString(verificationCode));
         webDriver.findElement(By.cssSelector("form button")).click();
 
         assertEquals(zoneUrl + expectedUrlPath, webDriver.getCurrentUrl());
