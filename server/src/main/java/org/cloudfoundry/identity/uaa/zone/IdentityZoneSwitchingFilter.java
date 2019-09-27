@@ -18,9 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -166,8 +164,6 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
                 identityZone = dao.retrieve(identityZoneId);
             }
         } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ignored) {
-        } catch (Exception ex) {
-            throw ex;
         }
         return identityZone;
     }

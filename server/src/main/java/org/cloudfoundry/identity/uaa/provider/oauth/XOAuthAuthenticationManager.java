@@ -62,8 +62,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -607,23 +605,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        try {
-            logger.debug(String.format("Performing token exchange with url:%s and request:%s", requestUri, body));
-            // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
-            // setup by the bean initializer.
-            ResponseEntity<Map<String, String>> responseEntity =
-                getRestTemplate(config)
-                    .exchange(requestUri,
-                              HttpMethod.POST,
-                              requestEntity,
-                              new ParameterizedTypeReference<Map<String, String>>() {
-                              }
-                    );
-            logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-            return responseEntity.getBody().get(getResponseType(config));
-        } catch (HttpServerErrorException | HttpClientErrorException ex) {
-            throw ex;
-        }
+        logger.debug(String.format("Performing token exchange with url:%s and request:%s", requestUri, body));
+        // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
+        // setup by the bean initializer.
+        ResponseEntity<Map<String, String>> responseEntity =
+            getRestTemplate(config)
+                .exchange(requestUri,
+                          HttpMethod.POST,
+                          requestEntity,
+                          new ParameterizedTypeReference<Map<String, String>>() {
+                          }
+                );
+        logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
+        return responseEntity.getBody().get(getResponseType(config));
     }
 
     private String getClientAuthHeader(AbstractXOAuthIdentityProviderDefinition config) {
