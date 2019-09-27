@@ -87,7 +87,7 @@ public class SamlServiceProviderEndpoints {
     @RequestMapping(method = GET)
     public ResponseEntity<List<SamlServiceProvider>> retrieveServiceProviders(
         @RequestParam(value = "active_only", required = false) String activeOnly) {
-        Boolean retrieveActiveOnly = Boolean.valueOf(activeOnly);
+        boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
         List<SamlServiceProvider> serviceProviderList =
             serviceProviderProvisioning.retrieveAll(retrieveActiveOnly,
                                                     IdentityZoneHolder.get().getId());
