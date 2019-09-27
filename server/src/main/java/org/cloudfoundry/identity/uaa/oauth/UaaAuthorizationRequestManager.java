@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -271,21 +270,10 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> result = new HashSet<>(userScopes);
 
         Set<Pattern> clientWildcards = constructWildcards(clientScopes);
-        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!matches(clientWildcards, scope)) {
-                iter.remove();
-            }
-        }
+        result.removeIf(scope1 -> !matches(clientWildcards, scope1));
 
         Set<Pattern> requestedWildcards = constructWildcards(requestedScopes);
-        // Weed out disallowed requestedScopes:
-        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!matches(requestedWildcards, scope)) {
-                iter.remove();
-            }
-        }
+        result.removeIf(scope -> !matches(requestedWildcards, scope));
 
         return result;
     }
