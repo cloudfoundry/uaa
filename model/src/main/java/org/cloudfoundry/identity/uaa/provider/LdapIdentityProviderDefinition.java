@@ -495,7 +495,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             return false;
         if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree))
             return false;
-        return !(!Objects.equals(groupRoleAttribute, that.groupRoleAttribute));
+        return Objects.equals(groupRoleAttribute, that.groupRoleAttribute);
 
     }
 
