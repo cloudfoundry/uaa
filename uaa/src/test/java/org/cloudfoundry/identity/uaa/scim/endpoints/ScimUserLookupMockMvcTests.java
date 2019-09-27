@@ -221,6 +221,7 @@ class ScimUserLookupMockMvcTests {
         String[] usernames = new String[25];
         int index = 0;
         for (String[] entry : testUsers) {
+            // TODO: do this more elegantly please. Maybe use a join?
             builder.append("userName eq \"" + entry[1] + "\"");
             builder.append(" or ");
             usernames[index++] = entry[1];

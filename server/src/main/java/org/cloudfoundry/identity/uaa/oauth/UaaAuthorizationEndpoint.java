@@ -29,7 +29,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.*;
+import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
+import org.springframework.security.oauth2.common.exceptions.ClientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
+import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
+import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
+import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -68,13 +78,18 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.security.Principal;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.stream;
 import static java.util.Collections.EMPTY_SET;
@@ -594,7 +609,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         for (String key : additionalInformation.keySet()) {
             Object value = additionalInformation.get(key);
             if (value != null) {
-                url.append("&" + encode(key) + "=" + encode(value.toString()));
+                url.append("&").append(encode(key)).append("=").append(encode(value.toString()));
             }
         }
 
@@ -673,16 +688,16 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         UriComponentsBuilder template = UriComponentsBuilder.fromUriString(authorizationRequest.getRedirectUri());
         StringBuilder values = new StringBuilder();
 
-        values.append("error=" + encode(failure.getOAuth2ErrorCode()));
-        values.append("&error_description=" + encode(failure.getMessage()));
+        values.append("error=").append(encode(failure.getOAuth2ErrorCode()));
+        values.append("&error_description=").append(encode(failure.getMessage()));
 
         if (authorizationRequest.getState() != null) {
-            values.append("&state=" + encode(authorizationRequest.getState()));
+            values.append("&state=").append(encode(authorizationRequest.getState()));
         }
 
         if (failure.getAdditionalInformation() != null) {
             for (Map.Entry<String, String> additionalInfo : failure.getAdditionalInformation().entrySet()) {
-                values.append("&" + encode(additionalInfo.getKey()) + "=" + encode(additionalInfo.getValue()));
+                values.append("&").append(encode(additionalInfo.getKey())).append("=").append(encode(additionalInfo.getValue()));
             }
         }
 
