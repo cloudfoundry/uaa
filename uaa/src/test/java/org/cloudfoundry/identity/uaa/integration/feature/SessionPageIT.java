@@ -41,6 +41,7 @@ public class SessionPageIT {
     @Before
     public void setUp() {
         testPage = "file://" + System.getProperty("user.dir") + "/src/test/resources/session_frame_test.html#~";
+        webDriver.manage().deleteAllCookies();
     }
 
     @After
