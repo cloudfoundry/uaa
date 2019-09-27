@@ -129,7 +129,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             getGroupSearchBase(),
             getGroupSearchFilter(),
             new String[]{userDn, username},
-            getAttributeNames().toArray(new String[getAttributeNames().size()]));
+            getAttributeNames().toArray(new String[0]));
 
         if (logger.isDebugEnabled()) {
             logRoles(userRoles);

@@ -108,7 +108,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
             factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
 
-            factory.setResources(resources.toArray(new Resource[resources.size()]));
+            factory.setResources(resources.toArray(new Resource[0]));
 
             Map<String, Object> map = factory.getObject();
             String yamlStr = (new Yaml()).dump(map);

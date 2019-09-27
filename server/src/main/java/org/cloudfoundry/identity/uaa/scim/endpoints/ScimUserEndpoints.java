@@ -390,7 +390,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                                               startIndex,
                                                               count,
                                                               result.size(),
-                                                              attributes.toArray(new String[attributes.size()]),
+                                                              attributes.toArray(new String[0]),
                                                               mapper,
                                                               Arrays.asList(ScimCore.SCHEMAS)
             );

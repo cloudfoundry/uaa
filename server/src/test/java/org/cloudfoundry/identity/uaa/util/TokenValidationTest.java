@@ -300,7 +300,7 @@ public class TokenValidationTest {
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group1", "group2"));
         List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList("group1,group2");
 
-        authorities.addAll(AuthorityUtils.createAuthorityList(uaaUserGroups.toArray(new String[uaaUserGroups.size()])));
+        authorities.addAll(AuthorityUtils.createAuthorityList(uaaUserGroups.toArray(new String[0])));
         uaaUser = uaaUser.authorities(authorities);
 
         validation.checkClientAndUser(uaaClient, uaaUser);

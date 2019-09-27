@@ -118,7 +118,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
         List<Resource> resources = new ArrayList<>();
         ByteArrayResource resource = new ByteArrayResource(sampleYaml.getBytes());
         resources.add(resource);
-        factory.setResources(resources.toArray(new Resource[resources.size()]));
+        factory.setResources(resources.toArray(new Resource[0]));
         Map<String, Object> tmpdata = factory.getObject();
         Map<String, Map<String, Object>> dataList = new HashMap<>();
         for (Map.Entry<String, Map<String, Object>> entry : ((Map<String, Map<String, Object>>)tmpdata.get("mfa-providers")).entrySet()) {

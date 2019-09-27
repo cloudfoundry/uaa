@@ -236,7 +236,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
                 fieldWithPath("totalResults").description("The number of groups that matched the given filter"),
                 fieldWithPath("schemas").description("`[ \"urn:scim:schemas:core:1.0\" ]`")
         ));
-        Snippet listGroupResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
+        Snippet listGroupResponseFields = responseFields(fields.toArray(new FieldDescriptor[0]));
 
         mockMvc.perform(getList).andExpect(status().isOk())
                 .andDo(document("{ClassName}/listScimGroups",
