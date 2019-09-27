@@ -389,9 +389,7 @@ class JdbcScimGroupProvisioningTests {
     void sqlInjectionAttackInSortByFieldFails() {
         final String invalidSortBy = "id; select * from oauth_client_details order by id";
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> {
-                    dao.query("id pr", invalidSortBy, true, zoneId);
-                },
+                () -> dao.query("id pr", invalidSortBy, true, zoneId),
                 is("Invalid sort field: " + invalidSortBy)
         );
     }

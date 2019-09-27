@@ -900,9 +900,7 @@ class ScimUserEndpointsMockMvcTests {
 
                 zoneSeeder.withClientWithImplicitPasswordRefreshTokenGrants()
                         .withUser(user)
-                        .afterSeeding(zs -> {
-                            regularUser = zs.getUserByEmail("initialEmail@test.org");
-                        });
+                        .afterSeeding(zs -> regularUser = zs.getUserByEmail("initialEmail@test.org"));
             }
 
             @Test

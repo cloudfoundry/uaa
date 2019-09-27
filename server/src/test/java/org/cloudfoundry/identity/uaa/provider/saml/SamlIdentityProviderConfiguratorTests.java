@@ -151,9 +151,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     public void testAddNullProvider() {
-        Assertions.assertThrows(NullPointerException.class, () -> {
-            configurator.validateSamlIdentityProviderDefinition(null);
-        });
+        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null));
     }
 
     @Test

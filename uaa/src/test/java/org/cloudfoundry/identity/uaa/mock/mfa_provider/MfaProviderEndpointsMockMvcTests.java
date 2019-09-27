@@ -326,9 +326,7 @@ public class MfaProviderEndpointsMockMvcTests {
         MockMvcUtils.deleteIdentityZone(identityZone.getId(), mockMvc);
 
         final String mfaProviderId = mfaProvider.getId();
-        assertThrows(EmptyResultDataAccessException.class, () -> {
-            providerProvisioning.retrieve(mfaProviderId, identityZone.getId());
-        });
+        assertThrows(EmptyResultDataAccessException.class, () -> providerProvisioning.retrieve(mfaProviderId, identityZone.getId()));
     }
 
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {

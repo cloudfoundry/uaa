@@ -102,11 +102,9 @@ class TokenKeyEndpointTests {
     void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() {
         configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "someKey"));
 
-        assertThrows(AccessDeniedException.class, () -> {
-            tokenKeyEndpoint.getKey(
-                    new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"))
-            );
-        });
+        assertThrows(AccessDeniedException.class, () -> tokenKeyEndpoint.getKey(
+                new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"))
+        ));
     }
 
     @Test
