@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.account;
 
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -30,6 +29,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Date;
 
@@ -48,26 +49,22 @@ class PasswordResetEndpointTest {
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore expiringCodeStore;
     private PasswordValidator passwordValidator;
-    private ResetPasswordService resetPasswordService;
-    private MultitenantClientServices clientDetailsService;
-    private ResourcePropertySource resourcePropertySource;
-    private Date yesterday = new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24));
+    private Date yesterday = Date.from(LocalDateTime.now().minusDays(1).atZone(ZoneId.systemDefault()).toInstant());
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         expiringCodeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
-        clientDetailsService = mock(MultitenantClientServices.class);
-        resourcePropertySource = mock(ResourcePropertySource.class);
-        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
+        ResourcePropertySource resourcePropertySource = mock(ResourcePropertySource.class);
+        ResetPasswordService resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
         controller.setCodeStore(expiringCodeStore);
         controller.setMessageConverters(new HttpMessageConverter[]{new ExceptionReportHttpMessageConverter()});
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, null, null);
-
 
         when(
                 expiringCodeStore.generateCode(
@@ -158,7 +155,7 @@ class PasswordResetEndpointTest {
     @Test
     void creatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
         when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
-                .thenReturn(Collections.<ScimUser>emptyList());
+                .thenReturn(Collections.emptyList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -172,14 +169,14 @@ class PasswordResetEndpointTest {
     @Test
     void creatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
         when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
-                .thenReturn(Collections.<ScimUser>emptyList());
+                .thenReturn(Collections.emptyList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.addEmail("user@example.com");
         user.setOrigin(OriginKeys.LDAP);
         when(scimUserProvisioning.query("userName eq \"user@example.com\"", IdentityZoneHolder.get().getId()))
-                .thenReturn(Collections.<ScimUser>singletonList(user));
+                .thenReturn(Collections.singletonList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -215,7 +212,7 @@ class PasswordResetEndpointTest {
                 .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
         when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
-                .thenReturn(Collections.<ScimUser>emptyList());
+                .thenReturn(Collections.emptyList());
         user.setOrigin(OriginKeys.LDAP);
         when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
