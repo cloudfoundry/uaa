@@ -189,12 +189,8 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
             String config = configNode != null ? (configNode.isTextual() ? configNode.textValue() : configNode.toString()) : null;
             AbstractMfaProviderConfig definition = null;
             if(type != null) {
-                switch(type) {
-                    case GOOGLE_AUTHENTICATOR:
-                        definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
-                        break;
-                    default:
-                        break;
+                if (type == MfaProviderType.GOOGLE_AUTHENTICATOR) {
+                    definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
                 }
             }
 

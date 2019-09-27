@@ -141,12 +141,8 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
             //deserialize based on type
             String config = rs.getString(pos++);
             AbstractMfaProviderConfig definition = null;
-            switch(result.getType()) {
-                case GOOGLE_AUTHENTICATOR:
-                    definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
-                    break;
-                default:
-                    break;
+            if (result.getType() == MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR) {
+                definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
             }
             result.setConfig(definition);
             result.setIdentityZoneId(rs.getString(pos++));
