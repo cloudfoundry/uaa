@@ -110,12 +110,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNull(entry.getValue().getKey());
-                assertNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNull(value.getKey());
+            assertNull(value.getPassphrase());
+        });
     }
 
     private IdentityZone createZone() {
@@ -129,12 +127,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNotNull(entry.getValue().getKey());
-                assertNotNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNotNull(value.getKey());
+            assertNotNull(value.getPassphrase());
+        });
         return zone;
     }
 
@@ -147,12 +143,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNotNull(entry.getValue().getKey());
-                assertNotNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNotNull(value.getKey());
+            assertNotNull(value.getPassphrase());
+        });
 
     }
 }

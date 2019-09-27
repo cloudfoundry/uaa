@@ -169,11 +169,11 @@ public class UaaMetricsEmitter {
         Map<String, MemoryUsage> memory = new HashMap<>();
         memory.put("heap", memoryBean.getHeapMemoryUsage());
         memory.put("non-heap", memoryBean.getNonHeapMemoryUsage());
-        memory.entrySet().forEach(m -> {
-            statsDClient.gauge(prefix + m.getKey() + ".init", m.getValue().getInit());
-            statsDClient.gauge(prefix + m.getKey() + ".committed", m.getValue().getCommitted());
-            statsDClient.gauge(prefix + m.getKey() + ".used", m.getValue().getUsed());
-            statsDClient.gauge(prefix + m.getKey() + ".max", m.getValue().getMax());
+        memory.forEach((key, value) -> {
+            statsDClient.gauge(prefix + key + ".init", value.getInit());
+            statsDClient.gauge(prefix + key + ".committed", value.getCommitted());
+            statsDClient.gauge(prefix + key + ".used", value.getUsed());
+            statsDClient.gauge(prefix + key + ".max", value.getMax());
         });
 
     }

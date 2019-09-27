@@ -92,35 +92,34 @@ public class MetricsQueue  {
         MutableDouble averageDatabaseQueryTime = new MutableDouble(0);
         MutableLong databaseIntolerableQueryCount = new MutableLong(0);
         MutableDouble averageDatabaseIntolerableQueryTime = new MutableDouble(0);
-        statistics.entrySet().forEach(s -> {
-            RequestMetricSummary summary = s.getValue();
+        statistics.forEach((key, summary) -> {
             averageTime.set(addAverages(count.get(),
-                                        averageTime.get(),
-                                        summary.getCount(),
-                                        summary.getAverageTime())
+                    averageTime.get(),
+                    summary.getCount(),
+                    summary.getAverageTime())
             );
             count.add(summary.getCount());
 
             averageIntolerableTime.set(addAverages(intolerableCount.get(),
-                                                   averageIntolerableTime.get(),
-                                                   summary.getIntolerableCount(),
-                                                   summary.getAverageIntolerableTime())
+                    averageIntolerableTime.get(),
+                    summary.getIntolerableCount(),
+                    summary.getAverageIntolerableTime())
             );
             intolerableCount.add(summary.getIntolerableCount());
 
             averageDatabaseQueryTime.set(addAverages(databaseQueryCount.get(),
-                                                     averageDatabaseQueryTime.get(),
-                                                     summary.getDatabaseQueryCount(),
-                                                     summary.getAverageDatabaseQueryTime()
-                                                     )
+                    averageDatabaseQueryTime.get(),
+                    summary.getDatabaseQueryCount(),
+                    summary.getAverageDatabaseQueryTime()
+                    )
             );
             databaseQueryCount.add(summary.getDatabaseQueryCount());
 
             averageDatabaseIntolerableQueryTime.set(addAverages(databaseIntolerableQueryCount.get(),
-                                                           averageDatabaseIntolerableQueryTime.get(),
-                                                     summary.getDatabaseIntolerableQueryCount(),
-                                                     summary.getAverageDatabaseIntolerableQueryTime()
-                                         )
+                    averageDatabaseIntolerableQueryTime.get(),
+                    summary.getDatabaseIntolerableQueryCount(),
+                    summary.getAverageDatabaseIntolerableQueryTime()
+                    )
             );
             databaseIntolerableQueryCount.add(summary.getDatabaseIntolerableQueryCount());
 
