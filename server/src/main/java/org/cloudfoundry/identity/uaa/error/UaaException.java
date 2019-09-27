@@ -119,7 +119,7 @@ public class UaaException extends RuntimeException {
      */
     public static UaaException valueOf(Map<String, String> errorParams) {
         String errorCode = errorParams.get(ERROR);
-        String errorMessage = errorParams.containsKey(DESCRIPTION) ? errorParams.get(DESCRIPTION) : null;
+        String errorMessage = errorParams.getOrDefault(DESCRIPTION, null);
         int status = DEFAULT_STATUS;
         if (errorParams.containsKey(STATUS)) {
             try {
