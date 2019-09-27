@@ -194,7 +194,7 @@ public class LdapIdentityProviderDefinitionTest {
         assertNotEquals(deserialized, deserialized2);
     }
 
-    public Map<String,Object> getLdapConfig(String config) throws UnsupportedEncodingException {
+    public Map<String,Object> getLdapConfig(String config) {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes(StandardCharsets.UTF_8))});

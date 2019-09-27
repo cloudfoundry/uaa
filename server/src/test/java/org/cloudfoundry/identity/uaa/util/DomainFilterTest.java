@@ -90,7 +90,7 @@ public class DomainFilterTest {
     private SamlIdentityProviderDefinition samlDef2;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         client = new BaseClientDetails("clientid","", "", "","","");
         uaaDef = new UaaIdentityProviderDefinition(null, null);
         ldapDef = new LdapIdentityProviderDefinition();
@@ -123,7 +123,7 @@ public class DomainFilterTest {
     }
 
     @Test
-    public void test_null_arguments() throws Exception {
+    public void test_null_arguments() {
         assertThat(filter.filter(null,null,null), Matchers.containsInAnyOrder());
         assertThat(filter.filter(null,null,email), Matchers.containsInAnyOrder());
         assertThat(filter.filter(null,client,null), Matchers.containsInAnyOrder());

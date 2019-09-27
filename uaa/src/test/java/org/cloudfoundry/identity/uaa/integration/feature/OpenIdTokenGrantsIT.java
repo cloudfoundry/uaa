@@ -130,7 +130,7 @@ public class OpenIdTokenGrantsIT {
     }
 
     @Test
-    public void testImplicitGrant() throws Exception {
+    public void testImplicitGrant() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
@@ -190,7 +190,7 @@ public class OpenIdTokenGrantsIT {
     }
 
     @Test
-    public void testPasswordGrant() throws Exception {
+    public void testPasswordGrant() {
         String basicDigestHeaderValue = "Basic "
             + new String(Base64.encodeBase64(("cf:").getBytes()));
 
@@ -234,19 +234,19 @@ public class OpenIdTokenGrantsIT {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndCode() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndToken() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndToken() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
     }

@@ -87,7 +87,7 @@ public class ResetPasswordIT {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecureRandom secureRandom = new SecureRandom();
 
         scimClientId = "scim" + secureRandom.nextInt();

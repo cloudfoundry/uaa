@@ -38,7 +38,7 @@ public class UserInfoTableTest extends JdbcTestBase {
 
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.active.profiles")!=null) {
             environment.setActiveProfiles(System.getProperty("spring.active.profiles"));

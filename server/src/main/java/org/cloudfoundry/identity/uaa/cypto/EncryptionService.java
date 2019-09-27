@@ -84,7 +84,7 @@ public class EncryptionService {
         return randomArray;
     }
 
-    private byte[] generateKey(byte[] salt) throws UnsupportedEncodingException {
+    private byte[] generateKey(byte[] salt) {
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(new SHA256Digest());
 
         gen.init(this.passphrase.getBytes(StandardCharsets.UTF_8), salt, PBKDF2_ITERATIONS);

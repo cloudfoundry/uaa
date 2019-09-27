@@ -118,7 +118,7 @@ public class StatelessMfaAuthenticationFilterTests {
     }
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         zone = MultitenancyFixture.identityZone("id", "id");
         zone.getConfig().getMfaConfig().setEnabled(true).setProviderName("mfa-provider-name");
         IdentityZoneHolder.set(zone);
@@ -202,7 +202,7 @@ public class StatelessMfaAuthenticationFilterTests {
         checkMfaCodeNoMfaInteraction();
     }
 
-    private void checkMfaCodeNoMfaInteraction() throws ServletException, IOException {
+    private void checkMfaCodeNoMfaInteraction() {
         try {
             filter.checkMfaCode(request);
         } catch (Exception e) {
@@ -262,7 +262,7 @@ public class StatelessMfaAuthenticationFilterTests {
     }
 
     @Test
-    public void invalid_mfa_code() throws Exception {
+    public void invalid_mfa_code() {
         request.setParameter(MFA_CODE, "54321");
         exception.expect(InvalidMfaCodeException.class);
         checkMfaCode();

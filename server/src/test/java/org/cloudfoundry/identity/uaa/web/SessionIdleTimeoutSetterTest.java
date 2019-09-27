@@ -15,7 +15,7 @@ public class SessionIdleTimeoutSetterTest {
     private HttpSession session;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         event = mock(HttpSessionCreatedEvent.class);
         session = mock(HttpSession.class);
         when(event.getSession()).thenReturn(session);
@@ -43,7 +43,7 @@ public class SessionIdleTimeoutSetterTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
 }

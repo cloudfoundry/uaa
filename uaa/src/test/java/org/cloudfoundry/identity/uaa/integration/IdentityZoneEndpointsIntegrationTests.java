@@ -91,7 +91,7 @@ public class IdentityZoneEndpointsIntegrationTests {
     }
 
     @Test
-    public void testCreateZone() throws Exception {
+    public void testCreateZone() {
         zoneId = UUID.randomUUID().toString();
         String requestBody = "{\"id\":\""+ zoneId +"\", \"subdomain\":\""+ zoneId +"\", \"name\":\"testCreateZone() "+ zoneId +"\"}";
 

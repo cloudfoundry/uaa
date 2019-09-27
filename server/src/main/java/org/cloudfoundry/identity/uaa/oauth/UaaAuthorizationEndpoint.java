@@ -249,7 +249,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     // This method handles /oauth/authorize calls when user is not logged in and the prompt=none param is used
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
         String clientId = request.getParameter(OAuth2Utils.CLIENT_ID);
         String redirectUri = request.getParameter(OAuth2Utils.REDIRECT_URI);
         String[] responseTypes = ofNullable(request.getParameter(OAuth2Utils.RESPONSE_TYPE)).map(rt -> rt.split(" ")).orElse(new String[0]);

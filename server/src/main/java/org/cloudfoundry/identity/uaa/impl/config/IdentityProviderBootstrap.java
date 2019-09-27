@@ -273,7 +273,7 @@ public class IdentityProviderBootstrap
         }
     }
 
-    protected void updateDefaultZoneUaaIDP() throws JSONException {
+    protected void updateDefaultZoneUaaIDP() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);

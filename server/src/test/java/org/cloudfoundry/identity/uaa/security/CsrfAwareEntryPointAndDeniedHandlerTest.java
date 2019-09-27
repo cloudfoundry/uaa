@@ -36,7 +36,7 @@ public class CsrfAwareEntryPointAndDeniedHandlerTest {
     protected MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Before
-    public void setUpCsrfAccessDeniedHandler() throws Exception {
+    public void setUpCsrfAccessDeniedHandler() {
         response.setCommitted(false);
     }
 

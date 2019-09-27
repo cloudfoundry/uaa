@@ -272,7 +272,7 @@ public class Saml2TokenGranterTest {
 	/*
 	 * Unmarshall XML string to OpenSAML XMLObject
 	 */
-	private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException, UnsupportedEncodingException {
+	private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException {
 		BasicParserPool parser = new BasicParserPool();
 		parser.setNamespaceAware(true);
 		/* Base64URL encoded */

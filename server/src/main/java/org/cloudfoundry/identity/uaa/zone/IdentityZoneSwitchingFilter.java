@@ -156,7 +156,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
     }
 
-    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) throws IOException {
+    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) {
         IdentityZone identityZone = null;
 
         try {

@@ -141,7 +141,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    protected void initializeProviderData(ExtendedMetadataDelegate provider) throws MetadataProviderException {
+    protected void initializeProviderData(ExtendedMetadataDelegate provider) {
 
     }
 
@@ -224,7 +224,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     /**
      * {@inheritDoc}
      */
-    public List<RoleDescriptor> getRole(String entityID, QName roleName) throws MetadataProviderException {
+    public List<RoleDescriptor> getRole(String entityID, QName roleName) {
         List<RoleDescriptor> roleDescriptors = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -246,8 +246,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
      * {@inheritDoc}
      */
     @Override
-    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol)
-        throws MetadataProviderException {
+    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol) {
         RoleDescriptor roleDescriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -318,7 +317,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public EntityDescriptor getEntityDescriptor(String entityID) throws MetadataProviderException {
+    public EntityDescriptor getEntityDescriptor(String entityID) {
         EntityDescriptor descriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);

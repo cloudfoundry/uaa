@@ -95,7 +95,7 @@ public class RemoteAuthenticationEndpointTests {
         }
     }
 
-    public void validateOrigin(String username, String password, String origin, Map<String,Object> info) throws Exception {
+    public void validateOrigin(String username, String password, String origin, Map<String,Object> info) {
         ResponseEntity<Map> authResp = authenticate(username,password, info);
         assertEquals(HttpStatus.OK, authResp.getStatusCode());
 

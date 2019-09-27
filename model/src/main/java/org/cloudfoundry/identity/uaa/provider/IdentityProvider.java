@@ -319,7 +319,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
         @Override
-        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) {
             IdentityProvider result = new IdentityProvider();
             //determine the type of IdentityProvider
             JsonNode node = JsonUtils.readTree(jp);

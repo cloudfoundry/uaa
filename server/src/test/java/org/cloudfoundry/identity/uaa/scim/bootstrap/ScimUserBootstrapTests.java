@@ -141,7 +141,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void slatedForDeleteDoesNotAdd() throws Exception {
+    void slatedForDeleteDoesNotAdd() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Arrays.asList(joe, mabel), false, Arrays.asList("joe", "mabel"));
@@ -160,7 +160,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void addedUsersAreVerified() throws Exception {
+    void addedUsersAreVerified() {
         UaaUser uaaJoe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(uaaJoe), false, Collections.emptyList());
 
@@ -173,7 +173,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canAddUserWithAuthorities() throws Exception {
+    void canAddUserWithAuthorities() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -198,7 +198,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void noOverrideByDefault() throws Exception {
+    void noOverrideByDefault() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -218,7 +218,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canOverride() throws Exception {
+    void canOverride() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -238,7 +238,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canOverrideAuthorities() throws Exception {
+    void canOverrideAuthorities() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -258,7 +258,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canRemoveAuthorities() throws Exception {
+    void canRemoveAuthorities() {
         RandomValueStringGenerator randomValueStringGenerator = new RandomValueStringGenerator();
         String joeUserId = "joe" + randomValueStringGenerator.generate();
         UaaUser joe = new UaaUser(joeUserId, "password", "joe@test.org", "Joe", "User");
@@ -279,7 +279,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canUpdateUsers() throws Exception {
+    void canUpdateUsers() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.modifyOrigin(OriginKeys.UAA);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -302,7 +302,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void unsuccessfulAttemptToUpdateUsersNotFatal() throws Exception {
+    void unsuccessfulAttemptToUpdateUsersNotFatal() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
         bootstrap.afterPropertiesSet();
@@ -315,7 +315,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void updateUserWithEmptyPasswordDoesNotChangePassword() throws Exception {
+    void updateUserWithEmptyPasswordDoesNotChangePassword() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.modifyOrigin(OriginKeys.UAA);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
@@ -334,7 +334,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void uaaUserGetsVerifiedSetToTrue() throws Exception {
+    void uaaUserGetsVerifiedSetToTrue() {
         String origin = OriginKeys.UAA;
         String email = "test@test.org";
         String firstName = "FirstName";
@@ -365,7 +365,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void externalInvitedUserGetsVerifiedSetToFalse() throws Exception {
+    void externalInvitedUserGetsVerifiedSetToFalse() {
         String origin = "testOrigin";
         addIdentityProvider(jdbcTemplate, origin);
         String email = "test@test.org";
@@ -407,7 +407,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void canUpdateEmailThroughEvent() throws Exception {
+    void canUpdateEmailThroughEvent() {
         String[] externalAuthorities = new String[]{"extTest1", "extTest2", "extTest3"};
         String[] userAuthorities = new String[]{"usrTest1", "usrTest2", "usrTest3"};
         String origin = "testOrigin";
@@ -454,7 +454,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void testGroupsFromEventAreMadeUnique() throws Exception {
+    void testGroupsFromEventAreMadeUnique() {
         String[] externalAuthorities = new String[]{"extTest1", "extTest2", "extTest3"};
         String[] userAuthorities = new String[]{"usrTest1", "usrTest2", "usrTest3"};
         String origin = "testOrigin";
@@ -488,7 +488,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    void addUsersWithSameUsername() throws Exception {
+    void addUsersWithSameUsername() {
         String origin = "testOrigin";
         addIdentityProvider(jdbcTemplate, origin);
         String email = "test@test.org";
@@ -565,7 +565,7 @@ class ScimUserBootstrapTests {
             String zoneId,
             JdbcScimUserProvisioning jdbcScimUserProvisioning,
             JdbcScimGroupProvisioning jdbcScimGroupProvisioning,
-            JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) throws Exception {
+            JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User", origin, zoneId);
         UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User", origin, zoneId);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(
@@ -583,7 +583,7 @@ class ScimUserBootstrapTests {
             final JdbcTemplate jdbcTemplate,
             final JdbcScimUserProvisioning jdbcScimUserProvisioning,
             final JdbcScimGroupProvisioning jdbcScimGroupProvisioning,
-            final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) throws Exception {
+            final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) {
         String[] externalAuthorities = new String[]{"extTest1", "extTest2", "extTest3"};
         String[] userAuthorities = new String[]{"usrTest1", "usrTest2", "usrTest3"};
         String origin = "testOrigin";

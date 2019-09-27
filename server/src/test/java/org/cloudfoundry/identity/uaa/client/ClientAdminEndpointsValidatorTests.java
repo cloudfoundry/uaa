@@ -72,7 +72,7 @@ public class ClientAdminEndpointsValidatorTests {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
-    public void createClient() throws Exception {
+    public void createClient() {
         client = new BaseClientDetails("newclient","","","client_credentials","");
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
@@ -92,28 +92,28 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void test_validate_user_token_grant_type() throws Exception {
+    public void test_validate_user_token_grant_type() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_USER_TOKEN));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
 
     @Test
-    public void test_validate_saml_bearer_grant_type() throws Exception {
+    public void test_validate_saml_bearer_grant_type() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_SAML2_BEARER));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
 
     @Test
-    public void test_validate_jwt_bearer_grant_type() throws Exception {
+    public void test_validate_jwt_bearer_grant_type() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singletonList(caller.getClientId() + ".read"));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
     }
 
-    public void validate_rejectsMalformedUrls() throws Exception {
+    public void validate_rejectsMalformedUrls() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(Collections.singleton("httasdfasp://anything.comadfsfdasfdsa"));
 
@@ -121,7 +121,7 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void validate_allowsAUrlWithUnderscore() throws Exception {
+    public void validate_allowsAUrlWithUnderscore() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(Collections.singleton("http://foo_name.anything.com/"));
 
@@ -129,7 +129,7 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void test_validate_jwt_bearer_grant_type_without_secret_for_update() throws Exception {
+    public void test_validate_jwt_bearer_grant_type_without_secret_for_update() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singleton(caller.getClientId()+".write"));
         client.setClientSecret("");
@@ -137,7 +137,7 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void test_validate_jwt_bearer_grant_type_without_secret() throws Exception {
+    public void test_validate_jwt_bearer_grant_type_without_secret() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singleton(caller.getClientId()+".write"));
         client.setClientSecret("");
@@ -147,7 +147,7 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void test_validate_jwt_bearer_grant_type_without_scopes() throws Exception {
+    public void test_validate_jwt_bearer_grant_type_without_scopes() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         expectedException.expect(InvalidClientDetailsException.class);
         expectedException.expectMessage("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER);
@@ -155,7 +155,7 @@ public class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void testValidate_Should_Allow_Prefix_Names() throws Exception {
+    public void testValidate_Should_Allow_Prefix_Names() {
 
         client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority("uaa.resource")));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));

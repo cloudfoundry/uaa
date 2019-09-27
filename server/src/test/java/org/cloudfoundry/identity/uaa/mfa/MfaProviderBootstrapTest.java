@@ -92,7 +92,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testAfterPropertiesSet() throws Exception {
+    public void testAfterPropertiesSet() {
         bootstrap.setMfaProviders(sampleData);
         bootstrap.afterPropertiesSet();
         verify(provisioning).create(expectedGoogleProviders.get(0), "uaa");
@@ -100,7 +100,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testBootstrapWithSomeExistingProviders() throws Exception {
+    public void testBootstrapWithSomeExistingProviders() {
         provisioning.create(expectedGoogleProviders.get(0), "uaa");
         reset(provisioning);
         bootstrap.setMfaProviders(parseMfaYaml(sampleMfaYaml.replace("mfa provider description", "new description")));

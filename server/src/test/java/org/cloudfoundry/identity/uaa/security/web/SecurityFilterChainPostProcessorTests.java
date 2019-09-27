@@ -75,58 +75,58 @@ public class SecurityFilterChainPostProcessorTests {
     }
 
     @Test
-    public void testBeforePlacement1() throws Exception {
+    public void testBeforePlacement1() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.before(TestFilter1.class), new BeforeFilter());
         testClassPlacementFilter(BeforeFilter.class, 1);
     }
 
     @Test
-    public void testBeforePlacement2() throws Exception {
+    public void testBeforePlacement2() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.before(TestFilter2.class), new BeforeFilter());
         testClassPlacementFilter(BeforeFilter.class, 2);
     }
 
     @Test
-    public void testBeforePlacement3() throws Exception {
+    public void testBeforePlacement3() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.before(TestFilter3.class), new BeforeFilter());
         testClassPlacementFilter(BeforeFilter.class, 3);
     }
 
     @Test
-    public void testBeforePlacementWhenMissing() throws Exception {
+    public void testBeforePlacementWhenMissing() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.before(PositionFilter.class), new BeforeFilter());
         testClassPlacementFilter(BeforeFilter.class, count);
     }
 
     @Test
-    public void testAfterPlacement1() throws Exception {
+    public void testAfterPlacement1() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(TestFilter1.class), new AfterFilter());
         testClassPlacementFilter(AfterFilter.class, 2);
     }
 
     @Test
-    public void testAfterPlacement2() throws Exception {
+    public void testAfterPlacement2() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(TestFilter2.class), new AfterFilter());
         testClassPlacementFilter(AfterFilter.class, 3);
     }
 
     @Test
-    public void testAfterPlacement3() throws Exception {
+    public void testAfterPlacement3() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(TestFilter3.class), new AfterFilter());
         testClassPlacementFilter(AfterFilter.class, 4);
     }
 
     @Test
-    public void testAfterPlacementWhenMissing() throws Exception {
+    public void testAfterPlacementWhenMissing() {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(PositionFilter.class), new AfterFilter());
         testClassPlacementFilter(AfterFilter.class, count);
     }
 
     public static class TestFilter1 implements Filter {
 
-        @Override public void init(FilterConfig filterConfig) throws ServletException {}
+        @Override public void init(FilterConfig filterConfig) {}
 
-        @Override public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {}
+        @Override public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {}
 
         @Override public void destroy() {}
     }

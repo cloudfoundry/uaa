@@ -221,7 +221,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testLoginHint() throws Exception {
+    public void testLoginHint() {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
         String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", StandardCharsets.UTF_8);

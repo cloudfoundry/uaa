@@ -55,7 +55,7 @@ class LimitedModeNegativeTests {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 

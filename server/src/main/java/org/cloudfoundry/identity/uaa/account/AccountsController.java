@@ -116,7 +116,7 @@ public class AccountsController {
     @RequestMapping(value = "/verify_user", method = GET)
     public String verifyUser(Model model,
                                 @RequestParam("code") String code,
-                                HttpServletResponse response, HttpSession session) throws IOException {
+                                HttpServletResponse response, HttpSession session) {
 
         AccountCreationService.AccountCreationResponse accountCreation;
         try {

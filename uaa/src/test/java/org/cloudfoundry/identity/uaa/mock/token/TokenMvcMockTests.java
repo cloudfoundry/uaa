@@ -4062,7 +4062,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     }
 
-    private static Map<String, List<String>> splitQuery(URL url) throws UnsupportedEncodingException {
+    private static Map<String, List<String>> splitQuery(URL url) {
         Map<String, List<String>> params = new LinkedHashMap<>();
         String[] kv = url.getQuery().split("&");
         for (String pair : kv) {

@@ -29,12 +29,12 @@ public class HealthzEndpointTests {
     private MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
-    public void testGetHealthz() throws Exception {
+    public void testGetHealthz() {
         assertEquals("ok\n", endpoint.getHealthz(response));
     }
 
     @Test
-    public void shutdown_sends_stopping() throws Exception {
+    public void shutdown_sends_stopping() {
         long now = System.currentTimeMillis();
         assertEquals("ok\n", endpoint.getHealthz(response));
         runShutdownHook();
@@ -45,7 +45,7 @@ public class HealthzEndpointTests {
     }
 
     @Test
-    public void shutdown_without_sleep() throws Exception {
+    public void shutdown_without_sleep() {
         long now = System.currentTimeMillis();
         endpoint = new HealthzEndpoint(-1);
         runShutdownHook();

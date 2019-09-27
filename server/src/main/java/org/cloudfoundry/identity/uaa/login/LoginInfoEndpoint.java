@@ -614,17 +614,14 @@ public class LoginInfoEndpoint {
                 String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idpForRedirect, entityID, IdentityZoneHolder.get());
                 return "redirect:/" + url;
             } else if (idpForRedirect instanceof AbstractXOAuthIdentityProviderDefinition) {
-                try {
-                    String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition) idpForRedirect);
-                    return "redirect:" + redirectUrl;
-                } catch (UnsupportedEncodingException e) {
-                }
+                String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition) idpForRedirect);
+                return "redirect:" + redirectUrl;
             }
         }
         return null;
     }
 
-    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
+    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) {
         return xoAuthProviderConfigurator.getCompleteAuthorizationURI(alias, UaaUrlUtils.getBaseURL(request), definition);
     }
 

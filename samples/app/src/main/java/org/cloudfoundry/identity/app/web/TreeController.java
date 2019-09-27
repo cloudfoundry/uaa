@@ -57,7 +57,7 @@ public class TreeController {
         model.addAttribute("attributes", attributes);
     }
 
-    private void loadItems(Model model, String type) throws Exception {
+    private void loadItems(Model model, String type) {
         List<Map<String, Object>> items = getItems(type);
         model.addAttribute("items", items);
         model.addAttribute("name", StringUtils.capitalize(type));

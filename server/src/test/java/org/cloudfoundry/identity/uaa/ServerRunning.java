@@ -314,12 +314,12 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         client.setErrorHandler(new ResponseErrorHandler() {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;

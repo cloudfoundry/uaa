@@ -154,7 +154,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndCode() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
         //approved
@@ -164,7 +164,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         //approved
@@ -174,7 +174,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndToken() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndToken() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
         //approved

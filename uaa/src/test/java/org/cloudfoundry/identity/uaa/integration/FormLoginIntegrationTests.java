@@ -60,7 +60,7 @@ public class FormLoginIntegrationTests {
     CloseableHttpClient httpclient;
 
     @Before
-    public void createHttpClient() throws Exception {
+    public void createHttpClient() {
         httpclient = HttpClients.custom()
             .setDefaultRequestConfig(RequestConfig.DEFAULT)
             .setDefaultHeaders(headers)

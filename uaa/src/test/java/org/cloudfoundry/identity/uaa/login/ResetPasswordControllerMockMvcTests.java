@@ -398,7 +398,7 @@ public class ResetPasswordControllerMockMvcTests {
         return createChangePasswordRequest(user, code, useCSRF, "newpassw0rDl", "newpassw0rDl");
     }
 
-    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF, String password, String passwordConfirmation) throws Exception {
+    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF, String password, String passwordConfirmation) {
         return createChangePasswordRequest(user,code.getCode(),useCSRF, password,passwordConfirmation);
     }
 

@@ -57,7 +57,7 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
     }
 
     @Override
-    public void migrate(Connection connection) throws Exception {
+    public void migrate(Connection connection) {
         if ("hsqldb".equals(type)) {
             //we don't have this problem with hsqldb
             logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");

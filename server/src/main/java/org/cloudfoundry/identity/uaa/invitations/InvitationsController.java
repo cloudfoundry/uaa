@@ -259,7 +259,7 @@ public class InvitationsController {
                                    @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
                                    Model model,
                                    HttpServletRequest request,
-                                   HttpServletResponse response) throws IOException {
+                                   HttpServletResponse response) {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
 
@@ -325,7 +325,7 @@ public class InvitationsController {
                                        @RequestParam("enterprise_password") String password,
                                        @RequestParam("enterprise_email") String email,
                                        @RequestParam("code") String code,
-                                       Model model, HttpServletResponse response) throws IOException {
+                                       Model model, HttpServletResponse response) {
 
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         if (expiringCode==null) {

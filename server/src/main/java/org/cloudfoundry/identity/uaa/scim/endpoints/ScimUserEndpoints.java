@@ -537,7 +537,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(scimUserProvisioning, "ScimUserProvisioning must be set");
         Assert.notNull(membershipManager, "ScimGroupMembershipManager must be set");
         Assert.notNull(approvalStore, "ApprovalStore must be set");

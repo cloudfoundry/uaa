@@ -131,7 +131,7 @@ public class IdentityProviderEndpointsTest {
         retrieve_oauth_provider_by_id("", OriginKeys.OIDC10);
     }
 
-    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_oauth_provider_by_id(String id, String type) throws Exception {
+    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_oauth_provider_by_id(String id, String type) {
         IdentityProvider provider = getXOAuthProvider();
         provider.setType(type);
         when(identityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(provider);
@@ -150,7 +150,7 @@ public class IdentityProviderEndpointsTest {
         retrieve_ldap_provider_by_id("");
     }
 
-    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_ldap_provider_by_id(String id) throws Exception {
+    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_ldap_provider_by_id(String id) {
         when(identityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(getLdapDefinition());
         ResponseEntity<IdentityProvider> ldap = identityProviderEndpoints.retrieveIdentityProvider(id, true);
         assertNotNull(ldap);
@@ -163,14 +163,14 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_bind_password() throws Exception {
+    public void remove_bind_password() {
         remove_sensitive_data(() -> getLdapDefinition(),
                               LDAP,
                               (spy) -> verify((LdapIdentityProviderDefinition)spy, times(1)).setBindPassword(isNull()));
     }
 
     @Test
-    public void remove_client_secret() throws Exception {
+    public void remove_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             remove_sensitive_data(() -> getXOAuthProvider(),
                                   type,
@@ -189,7 +189,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_client_secret_wrong_origin() throws Exception {
+    public void remove_client_secret_wrong_origin() {
         IdentityProvider provider = getXOAuthProvider();
         AbstractXOAuthIdentityProviderDefinition spy = Mockito.spy((AbstractXOAuthIdentityProviderDefinition) provider.getConfig());
         provider.setConfig(spy);
@@ -199,7 +199,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_bind_password_non_ldap() throws Exception {
+    public void remove_bind_password_non_ldap() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition spy = Mockito.spy((LdapIdentityProviderDefinition)provider.getConfig());
         provider.setConfig(spy);
@@ -209,7 +209,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_bind_password() throws Exception {
+    public void patch_bind_password() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition def = (LdapIdentityProviderDefinition) provider.getConfig();
         def.setBindPassword(null);
@@ -223,7 +223,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_client_secret() throws Exception {
+    public void patch_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getXOAuthProvider();
             AbstractXOAuthIdentityProviderDefinition def = provider.getConfig();
@@ -240,7 +240,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_bind_password_non_ldap() throws Exception {
+    public void patch_bind_password_non_ldap() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition spy = Mockito.spy((LdapIdentityProviderDefinition)provider.getConfig());
         provider.setConfig(spy);
@@ -250,7 +250,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void retrieve_all_providers_redacts_data() throws Exception {
+    public void retrieve_all_providers_redacts_data() {
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
             .thenReturn(Arrays.asList(getLdapDefinition(), getXOAuthProvider()));
         ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);

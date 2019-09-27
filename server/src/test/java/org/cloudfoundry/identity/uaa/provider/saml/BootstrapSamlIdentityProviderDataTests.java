@@ -143,7 +143,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         ;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         bootstrap = new BootstrapSamlIdentityProviderData();
         singleAdd = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
@@ -174,7 +174,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     private Map<String, Map<String, Object>> sampleData = parseYaml(sampleYaml);
 
     @Test
-    public void testCloneIdentityProviderDefinition() throws Exception {
+    public void testCloneIdentityProviderDefinition() {
         SamlIdentityProviderDefinition clone = singleAdd.clone();
         assertEquals(singleAdd, clone);
         assertNotSame(singleAdd, clone);
@@ -216,7 +216,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     protected void testGetIdentityProviderDefinitions(int count) throws Exception {
         testGetIdentityProviderDefinitions(count, true);
     }
-    protected void testGetIdentityProviderDefinitions(int count, boolean addData) throws Exception {
+    protected void testGetIdentityProviderDefinitions(int count, boolean addData) {
         if (addData) {
             bootstrap.setIdentityProviders(sampleData);
             bootstrap.afterPropertiesSet();
@@ -304,7 +304,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
 
     @Test
-    public void testCanParseASimpleSamlConfig() throws Exception {
+    public void testCanParseASimpleSamlConfig() {
         String yaml = "  providers:\n" +
           "    my-okta:\n" +
           "      assertionConsumerIndex: 0\n" +
@@ -326,7 +326,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
     
     @Test
-    public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
+    public void testSetAddShadowUserOnLoginFromYaml() {
         String yaml = "  providers:\n" +
             "    provider-without-shadow-user-definition:\n" +
             "      storeCustomAttributes: true\n" +

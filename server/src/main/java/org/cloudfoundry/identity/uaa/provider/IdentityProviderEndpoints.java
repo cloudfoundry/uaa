@@ -133,7 +133,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     @RequestMapping(value = "{id}", method = DELETE)
     @Transactional
-    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, identityZoneManager.getCurrentIdentityZoneId());
         if (publisher!=null && existing!=null) {
             existing.setSerializeConfigRaw(rawConfig);

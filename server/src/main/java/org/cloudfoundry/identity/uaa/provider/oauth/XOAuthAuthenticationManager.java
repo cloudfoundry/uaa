@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -42,6 +40,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -68,7 +68,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -493,9 +492,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 }
                 //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
                 return jsonData;
-            } catch (UnsupportedEncodingException e) {
-                logger.error("Unsupported encoding", e);
-                return null;
             } catch (Exception e) {
                 logger.error("Exception", e);
                 return null;
@@ -511,7 +507,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    protected String hmacSignAndEncode(String data, String key) throws UnsupportedEncodingException {
+    protected String hmacSignAndEncode(String data, String key) {
         MacSigner macSigner = new MacSigner(key);
         return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
     }

@@ -87,7 +87,7 @@ class TokenKeyEndpointMockMvcTests {
     private WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    void setSigningKeyAndDefaultClient() throws Exception {
+    void setSigningKeyAndDefaultClient() {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)

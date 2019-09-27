@@ -117,7 +117,7 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() throws Exception {
+    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -241,7 +241,7 @@ public class PasswordGrantIT {
 
     }
 
-    private String createUnverifiedUser() throws Exception {
+    private String createUnverifiedUser() {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");

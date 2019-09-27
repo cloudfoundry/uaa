@@ -428,7 +428,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     }
 
-    private void createTestClient(String name, String secret, String scope) throws Exception {
+    private void createTestClient(String name, String secret, String scope) {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
@@ -439,7 +439,7 @@ public class ScimGroupEndpointsIntegrationTests {
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
     }
 
-    private void deleteTestClient(String clientId) throws Exception {
+    private void deleteTestClient(String clientId) {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(

@@ -105,7 +105,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     @Override
-    public void setProviders(List<MetadataProvider> newProviders) throws MetadataProviderException {
+    public void setProviders(List<MetadataProvider> newProviders) {
     }
 
     @Override
@@ -122,7 +122,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     @Override
-    public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
+    public void addMetadataProvider(MetadataProvider newProvider) {
         //no op
     }
 
@@ -234,9 +234,8 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
      * Method populates local storage of IDP and SP names and verifies any name conflicts which might arise.
      *
      * @param provider provider to initialize
-     * @throws MetadataProviderException error
      */
-    protected void initializeProviderData(ExtendedMetadataDelegate provider) throws MetadataProviderException {
+    protected void initializeProviderData(ExtendedMetadataDelegate provider) {
     }
 
     @Override
@@ -375,9 +374,8 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
      *
      * @param result     result set
      * @param descriptor descriptor to parse
-     * @throws MetadataProviderException in case signature validation fails
      */
-    private void addDescriptor(List<String> result, EntityDescriptor descriptor) throws MetadataProviderException {
+    private void addDescriptor(List<String> result, EntityDescriptor descriptor) {
 
         String entityID = descriptor.getEntityID();
         log.debug("Found metadata EntityDescriptor with ID", entityID);
@@ -570,7 +568,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
         // Only explicit dependency
     }
 
-    public EntitiesDescriptor getEntitiesDescriptor(String name) throws MetadataProviderException {
+    public EntitiesDescriptor getEntitiesDescriptor(String name) {
         EntitiesDescriptor descriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entities descriptor with name: {}", name);
@@ -589,7 +587,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     /** {@inheritDoc} */
-    public EntityDescriptor getEntityDescriptor(String entityID) throws MetadataProviderException {
+    public EntityDescriptor getEntityDescriptor(String entityID) {
         EntityDescriptor descriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -608,7 +606,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     /** {@inheritDoc} */
-    public List<RoleDescriptor> getRole(String entityID, QName roleName) throws MetadataProviderException {
+    public List<RoleDescriptor> getRole(String entityID, QName roleName) {
         List<RoleDescriptor> roleDescriptors = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -627,8 +625,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
     }
 
     /** {@inheritDoc} */
-    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol)
-        throws MetadataProviderException {
+    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol) {
         RoleDescriptor roleDescriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -886,7 +883,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
         }
 
         /** {@inheritDoc} */
-        public void validate(boolean validateDescendants) throws ValidationException {
+        public void validate(boolean validateDescendants) {
         }
 
         /** {@inheritDoc} */

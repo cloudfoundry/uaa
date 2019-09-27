@@ -30,7 +30,7 @@ import java.util.Arrays;
  */
 public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
     @Override
-    public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) {
         JsonNode node = JsonUtils.readTree(p);
         String kty = node.get("kty").asText("Unknown");
         if(Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {

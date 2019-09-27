@@ -45,7 +45,7 @@ class MfaCheckerTests {
     static class BooleanArgumentsProvider implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(true),
                     Arguments.of(false)

@@ -916,7 +916,7 @@ public class IntegrationTestUtils {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
-    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -948,7 +948,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateIdentityProvider(
-            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) throws Exception {
+            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );

@@ -91,7 +91,7 @@ public class AppApprovalIT {
     }
 
     @Test
-    public void testApprovingAnApp() throws Exception {
+    public void testApprovingAnApp() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
             HttpMethod.GET,
             null,
@@ -163,7 +163,7 @@ public class AppApprovalIT {
     }
 
     @Test
-    public void testScopeDescriptions() throws Exception {
+    public void testScopeDescriptions() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
             HttpMethod.GET,
             null,
@@ -195,7 +195,7 @@ public class AppApprovalIT {
     }
 
     @Test
-    public void testInvalidAppRedirectDisplaysError() throws Exception {
+    public void testInvalidAppRedirectDisplaysError() {
         ScimUser user = createUnapprovedUser(serverRunning);
 
         // given we vist the app (specifying an invalid redirect - incorrect protocol https)

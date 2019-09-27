@@ -117,7 +117,7 @@ public class LdapLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
-    private void performLdapLogin(String subdomain, String ldapUrl, String username, String password) throws Exception {
+    private void performLdapLogin(String subdomain, String ldapUrl, String username, String password) {
         //ensure that certs have been added to truststore via gradle
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 

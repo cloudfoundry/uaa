@@ -52,7 +52,7 @@ class ClientBasicAuthenticationFilterTests {
 
     @Nested
     class ByDefault {
-        private void addBasicAuthHeader(MockHttpServletRequest request, String clientId, String clientSecret) throws UnsupportedEncodingException {
+        private void addBasicAuthHeader(MockHttpServletRequest request, String clientId, String clientSecret) {
             String encodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
             String encodedClientSecret = URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
             String encodedCredentials = new String(

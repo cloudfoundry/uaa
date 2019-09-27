@@ -180,7 +180,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         List<ScimGroup> groupInfos = groups.keySet().stream().filter(n -> StringUtils.hasText(n)).map(n -> getOrCreateGroup(n)).collect(Collectors.toList());
         for (int i = 0; i < groupInfos.size(); i++) {
             ScimGroup g = groupInfos.get(i);

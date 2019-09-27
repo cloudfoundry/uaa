@@ -68,7 +68,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }

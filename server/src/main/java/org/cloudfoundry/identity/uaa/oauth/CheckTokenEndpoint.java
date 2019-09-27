@@ -85,7 +85,7 @@ public class CheckTokenEndpoint implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
     }
 
@@ -203,7 +203,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 
     @ExceptionHandler(UaaException.class)
-    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) throws Exception {
+    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
     }

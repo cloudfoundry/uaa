@@ -54,7 +54,7 @@ public class SystemAuthenticationTest {
     }
 
     @Test
-    public void setAuthenticated() throws Exception {
+    public void setAuthenticated() {
         auth.setAuthenticated(false);
         isAuthenticated();
     }

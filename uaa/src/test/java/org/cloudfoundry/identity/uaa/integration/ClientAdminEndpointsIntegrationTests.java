@@ -776,7 +776,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return response.getBody();
     }
 
-    private ClientDetailsModification createClient(String... grantTypes) throws Exception {
+    private ClientDetailsModification createClient(String... grantTypes) {
         return createClientWithSecret("secret", grantTypes);
     }
 
@@ -824,7 +824,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return headers;
     }
 
-    private OAuth2AccessToken getClientCredentialsAccessToken(String scope) throws Exception {
+    private OAuth2AccessToken getClientCredentialsAccessToken(String scope) {
         String clientId = testAccounts.getAdminClientId();
         String clientSecret = testAccounts.getAdminClientSecret();
 

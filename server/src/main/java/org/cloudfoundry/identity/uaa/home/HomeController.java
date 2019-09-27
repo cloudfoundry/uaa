@@ -148,7 +148,7 @@ public class HomeController {
     }
 
     @RequestMapping("/oauth_error")
-    public String error_oauth() throws URISyntaxException {
+    public String error_oauth() {
         return "external_auth_error";
     }
 

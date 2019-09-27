@@ -33,7 +33,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
     public WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    void populateDataUsingEndpoints() throws Exception {
+    void populateDataUsingEndpoints() {
 
         RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
 
@@ -91,7 +91,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
     }
 
     @Test
-    void test_Ensure_That_New_Fields_NotNull() throws Exception {
+    void test_Ensure_That_New_Fields_NotNull() {
         assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
         assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
     }

@@ -118,7 +118,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
     }
 
     @Override
-    public T getObject() throws Exception {
+    public T getObject() {
         if (configuration == null) {
             afterPropertiesSet();
         }

@@ -29,7 +29,7 @@ public class SamlServiceProviderDefinitionTest {
     }
 
     @Test
-    public void no_static_attributes_by_default() throws Exception {
+    public void no_static_attributes_by_default() {
         assertNotNull(definition.getStaticCustomAttributes());
         assertEquals(0, definition.getStaticCustomAttributes().size());
         Map<String,Object> staticAttributes = new HashMap<>();
@@ -49,25 +49,25 @@ public class SamlServiceProviderDefinitionTest {
     }
 
     @Test
-    public void testGetFileTypeFailsAndIsNoLongerSupported() throws Exception {
+    public void testGetFileTypeFailsAndIsNoLongerSupported() {
         definition.setMetaDataLocation(System.getProperty("user.home"));
         assertEquals(UNKNOWN, definition.getType());
     }
 
     @Test
-    public void testGetUrlTypeMustBeValidUrl() throws Exception {
+    public void testGetUrlTypeMustBeValidUrl() {
         definition.setMetaDataLocation("http");
         assertEquals(UNKNOWN, definition.getType());
     }
 
     @Test
-    public void testGetUrlWhenValid() throws Exception {
+    public void testGetUrlWhenValid() {
         definition.setMetaDataLocation("http://uaa.com/saml/idp/metadata");
         assertEquals(URL, definition.getType());
     }
 
     @Test
-    public void testGetDataTypeIsValid() throws Exception {
+    public void testGetDataTypeIsValid() {
         definition.setMetaDataLocation("<?xml");
         assertEquals(UNKNOWN, definition.getType());
 
@@ -79,7 +79,7 @@ public class SamlServiceProviderDefinitionTest {
     }
 
     @Test
-    public void testGetDataTypeWhenValid() throws Exception {
+    public void testGetDataTypeWhenValid() {
         definition.setMetaDataLocation(SamlTestUtils.SAML_SP_METADATA);
         assertEquals(DATA, definition.getType());
     }

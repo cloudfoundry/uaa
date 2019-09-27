@@ -61,14 +61,14 @@ public class IdentityZoneEndpointsTests {
     }
 
     @Test
-    public void create_zone() throws Exception {
+    public void create_zone() {
         zone = createZone();
         endpoints.createIdentityZone(zone, mock(BindingResult.class));
         verify(zoneDao, times(1)).create(same(zone));
     }
 
     @Test
-    public void groups_are_created() throws Exception {
+    public void groups_are_created() {
         zone = createZone();
         endpoints.createUserGroups(zone);
         ArgumentCaptor<ScimGroup> captor = ArgumentCaptor.forClass(ScimGroup.class);
@@ -85,7 +85,7 @@ public class IdentityZoneEndpointsTests {
     }
 
     @Test
-    public void group_creation_called_on_create() throws Exception {
+    public void group_creation_called_on_create() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         zone = createZone();
         spy.createIdentityZone(zone, mock(BindingResult.class));
@@ -93,7 +93,7 @@ public class IdentityZoneEndpointsTests {
     }
 
     @Test
-    public void group_creation_called_on_update() throws Exception {
+    public void group_creation_called_on_update() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         zone = createZone();
         when(zoneDao.retrieveIgnoreActiveFlag(zone.getId())).thenReturn(zone);

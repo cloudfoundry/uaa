@@ -169,7 +169,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void adding_ExternalMappingToGroup_IsCaseInsensitive() throws Exception {
+    public void adding_ExternalMappingToGroup_IsCaseInsensitive() {
         createGroupMapping();
         ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "CN=engineering,OU=groups,DC=example,DC=com", origin, IdentityZoneHolder.get().getId());
         assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());

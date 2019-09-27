@@ -218,7 +218,7 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @Test
-    public void handle_exception() throws Exception {
+    public void handle_exception() {
         String view = controller.handleException(new ProviderNotFoundException("message"), request, response);
         assertEquals(400, response.getStatus());
         assertEquals("message", request.getAttribute("saml_error"));

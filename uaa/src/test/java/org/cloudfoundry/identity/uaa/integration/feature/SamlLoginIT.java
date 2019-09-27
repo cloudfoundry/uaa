@@ -138,7 +138,7 @@ public class SamlLoginIT {
     private static SamlTestUtils samlTestUtils;
 
     @BeforeClass
-    public static void setupSamlUtils() throws Exception {
+    public static void setupSamlUtils() {
         assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         samlTestUtils = new SamlTestUtils();
         try {
@@ -256,7 +256,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void incorrectResponseFromSamlIDP_showErrorFromSaml() throws Exception {
+    public void incorrectResponseFromSamlIDP_showErrorFromSaml() {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -355,7 +355,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSingleLogoutWithLogoutRedirect() throws Exception {
+    public void testSingleLogoutWithLogoutRedirect() {
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -486,8 +486,7 @@ public class SamlLoginIT {
     }
 
     protected BaseClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
-            String redirectUri)
-            throws Exception {
+            String redirectUri) {
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
@@ -519,8 +518,7 @@ public class SamlLoginIT {
         return clientDetails;
     }
 
-    protected void deleteUser(String origin, String username)
-            throws Exception {
+    protected void deleteUser(String origin, String username) {
 
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning,
                                                                                "admin", "adminsecret");
@@ -544,7 +542,7 @@ public class SamlLoginIT {
         perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
     }
 
-    public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) throws Exception {
+    public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
@@ -636,7 +634,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void test_RelayState_redirect_from_idp() throws Exception {
+    public void test_RelayState_redirect_from_idp() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
 
@@ -700,7 +698,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSamlLoginClientIDPAuthorizationAutomaticRedirectInZone1() throws Exception {
+    public void testSamlLoginClientIDPAuthorizationAutomaticRedirectInZone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
 
@@ -770,7 +768,7 @@ public class SamlLoginIT {
 
 
     @Test
-    public void testSamlLogin_Map_Groups_In_Zone1() throws Exception {
+    public void testSamlLogin_Map_Groups_In_Zone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
@@ -1106,7 +1104,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSamlLogin_Email_In_ID_Token_When_UserID_IsNotEmail() throws Exception {
+    public void testSamlLogin_Email_In_ID_Token_When_UserID_IsNotEmail() {
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone4";
@@ -1216,7 +1214,7 @@ public class SamlLoginIT {
 
 
     @Test
-    public void testSimpleSamlPhpLoginInTestZone1Works() throws Exception {
+    public void testSimpleSamlPhpLoginInTestZone1Works() {
         String zoneId = "testzone1";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -1394,7 +1392,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testLoginClientIDPAuthorizationAlreadyLoggedIn() throws Exception {
+    public void testLoginClientIDPAuthorizationAlreadyLoggedIn() {
         webDriver.get(baseUrl + "/logout.do");
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 

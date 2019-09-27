@@ -59,7 +59,7 @@ public class ChangeEmailIT {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
@@ -74,7 +74,7 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmailWithLogout() throws Exception {
+    public void testChangeEmailWithLogout() {
         String newEmail = testChangeEmail(true);
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome"));
@@ -86,7 +86,7 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmailWithoutLogout() throws Exception {
+    public void testChangeEmailWithoutLogout() {
         String newEmail = testChangeEmail(false);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Account Settings"));
         assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified."));

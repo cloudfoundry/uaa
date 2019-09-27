@@ -39,7 +39,7 @@ public class SessionPageIT {
     String testPage;
 
     @Before
-    public void setUp() throws UnsupportedEncodingException {
+    public void setUp() {
         testPage = "file://" + System.getProperty("user.dir") + "/src/test/resources/session_frame_test.html#~";
     }
 
@@ -49,7 +49,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() throws UnsupportedEncodingException {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("noUser")).click();
@@ -57,7 +57,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() throws UnsupportedEncodingException {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("sameUser")).click();
@@ -65,7 +65,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("differentUser")).click();
@@ -73,7 +73,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("wrongClient")).click();
@@ -81,28 +81,28 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsChangedWhenNoUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenNoUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("noUser")).click();
         assertMessage("unchanged");
     }
 
     @Test
-    public void testFrameReportsChangedWhenSameUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenSameUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("sameUser")).click();
         assertMessage("unchanged");
     }
 
     @Test
-    public void testFrameReportsChangedWhenDifferentUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenDifferentUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("differentUser")).click();
         assertMessage("changed");
     }
 
     @Test
-    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("wrongClient")).click();
         assertMessage("error");
@@ -118,7 +118,7 @@ public class SessionPageIT {
         assertEquals(expected, webDriver.findElement(By.id("message")).getText());
     }
 
-    private void doLogin() throws UnsupportedEncodingException {
+    private void doLogin() {
 
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());

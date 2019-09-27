@@ -90,7 +90,7 @@ class ClientAdminEndpointsTests {
     }
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         testZone.setId("testzone");
         mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         endpoints = spy(new ClientAdminEndpoints(mockSecurityContextAccessor));
@@ -216,7 +216,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetails() throws Exception {
+    void testCreateClientDetails() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
@@ -273,7 +273,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetails_With_Secret_Satisfying_Complex_Policy() throws Exception {
+    void testCreateClientDetails_With_Secret_Satisfying_Complex_Policy() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
         IdentityZoneHolder.set(testZone);
         String complexPolicySatisfyingSecret = "Secret1@";
@@ -287,7 +287,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void test_Get_Restricted_Scopes_List() throws Exception {
+    void test_Get_Restricted_Scopes_List() {
         assertEquals(new UaaScopes().getUaaScopes(), endpoints.getRestrictedClientScopes());
         endpoints.setRestrictedScopesValidator(null);
         assertNull(endpoints.getRestrictedClientScopes());
@@ -368,7 +368,7 @@ class ClientAdminEndpointsTests {
 
 
     @Test
-    void testMultipleCreateClientDetails() throws Exception {
+    void testMultipleCreateClientDetails() {
         ClientDetails[] results = endpoints.createClientDetailsTx(inputs);
         assertEquals("We should have created " + inputs.length + " clients.", inputs.length, results.length);
         for (int i = 0; i < inputs.length; i++) {
@@ -404,7 +404,7 @@ class ClientAdminEndpointsTests {
 
 
     @Test
-    void testCreateClientDetailsWithClientCredentials() throws Exception {
+    void testCreateClientDetailsWithClientCredentials() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         input.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
@@ -414,7 +414,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetailsWithJwtBearer() throws Exception {
+    void testCreateClientDetailsWithJwtBearer() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -429,7 +429,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetailsWithAdditionalInformation() throws Exception {
+    void testCreateClientDetailsWithAdditionalInformation() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         detail.setAdditionalInformation(input.getAdditionalInformation());
@@ -439,7 +439,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testResourceServerCreation() throws Exception {
+    void testResourceServerCreation() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(detail);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -517,7 +517,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testGetClientDetails() throws Exception {
+    void testGetClientDetails() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(input);
         input.setScope(Collections.singletonList(input.getClientId() + ".read"));
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
@@ -775,7 +775,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testValidScopeIsNotRestrictedByCaller() throws Exception {
+    void testValidScopeIsNotRestrictedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
@@ -802,7 +802,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testAuthorityAllowedByCaller() throws Exception {
+    void testAuthorityAllowedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
@@ -901,7 +901,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientWithAutoapproveScopesList() throws Exception {
+    void testCreateClientWithAutoapproveScopesList() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -928,7 +928,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientWithAutoapproveScopesTrue() throws Exception {
+    void testCreateClientWithAutoapproveScopesTrue() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);

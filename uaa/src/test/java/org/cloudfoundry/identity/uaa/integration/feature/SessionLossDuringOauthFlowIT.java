@@ -90,7 +90,7 @@ public class SessionLossDuringOauthFlowIT {
     }
 
     @Test
-    public void testApprovingAnApp() throws Exception {
+    public void testApprovingAnApp() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
             HttpMethod.GET,
             null,

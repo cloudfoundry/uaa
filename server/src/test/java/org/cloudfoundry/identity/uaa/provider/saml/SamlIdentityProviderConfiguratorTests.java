@@ -121,7 +121,7 @@ public class SamlIdentityProviderConfiguratorTests {
     IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         bootstrap = new BootstrapSamlIdentityProviderData();
         configurator = new SamlIdentityProviderConfigurator();
         configurator.setParserPool(new BasicParserPool());
@@ -155,7 +155,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testAddNullProviderAlias() throws Exception {
+    public void testAddNullProviderAlias() {
         singleAdd.setIdpEntityAlias(null);
 
         Assertions.assertThrows(NullPointerException.class, () -> {
@@ -243,7 +243,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
+    public void testGetIdentityProviderDefinititonsForAllowedProviders() {
         List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
         assertEquals(2, clientIdps.size());
@@ -252,7 +252,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
+    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
         List<String> clientIdpAliases = Collections.singletonList("non-existent");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
         assertEquals(0, clientIdps.size());
@@ -272,7 +272,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void shouldTimeoutWhenFetchingMetadataURL() throws Exception {
+    public void shouldTimeoutWhenFetchingMetadataURL() {
         slowHttpServer.run();
 
         expectedException.expect(NullPointerException.class);

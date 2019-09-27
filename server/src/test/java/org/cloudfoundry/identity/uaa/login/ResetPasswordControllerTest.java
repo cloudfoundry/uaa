@@ -92,7 +92,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.set(IdentityZone.getUaa());
 

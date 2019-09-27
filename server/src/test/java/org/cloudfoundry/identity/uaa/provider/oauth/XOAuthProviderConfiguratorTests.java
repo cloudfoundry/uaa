@@ -152,7 +152,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void issuer_not_found() throws Exception {
+    public void issuer_not_found() {
         String issuer = "https://accounts.google.com";
         exception.expect(IncorrectResultSizeDataAccessException.class);
         exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
@@ -212,14 +212,14 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getParameterizedClass() throws Exception {
+    public void getParameterizedClass() {
         assertEquals(OIDCIdentityProviderDefinition.class, oidc.getParameterizedClass());
         assertEquals(RawXOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
     }
 
 
     @Test
-    public void getCompleteAuthorizationURI_includesNonceOnOIDC() throws UnsupportedEncodingException {
+    public void getCompleteAuthorizationURI_includesNonceOnOIDC() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
 
         Map<String, String> queryParams =
@@ -228,7 +228,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() throws UnsupportedEncodingException {
+    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth);
 
         Map<String, String> queryParams =

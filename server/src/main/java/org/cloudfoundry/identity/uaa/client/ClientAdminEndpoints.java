@@ -224,7 +224,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) {
         getRestrictedScopesValidator().validate(client, Mode.CREATE);
         return createClientDetails(client);
     }
@@ -256,7 +256,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
@@ -298,7 +298,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
-                    @PathVariable("client") String clientId) throws Exception {
+                    @PathVariable("client") String clientId) {
         Assert.state(clientId.equals(client.getClientId()),
                         format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
         ClientDetails details = client;
@@ -321,7 +321,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
+    public ClientDetails removeClientDetails(@PathVariable String client) {
         ClientDetails details = clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId());
         doProcessDeletes(new ClientDetails[]{details});
         return removeSecret(details);
@@ -331,7 +331,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
+    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
@@ -343,7 +343,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
+    public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
@@ -449,7 +449,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                     @RequestParam(required = false, defaultValue = "client_id") String sortBy,
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count) throws Exception {
+                    @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (count > clientMaxCount) {
             count = clientMaxCount;

@@ -91,7 +91,7 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
-    public void test_clone() throws Exception {
+    public void test_clone() {
         definition.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
         definition.setSkipSslValidation(true);
         definition.setStoreCustomAttributes(true);
@@ -112,25 +112,25 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
-    public void test_Get_FileType_Fails_and_is_No_Longer_Supported() throws Exception {
+    public void test_Get_FileType_Fails_and_is_No_Longer_Supported() {
         definition.setMetaDataLocation(System.getProperty("user.home"));
         assertEquals(UNKNOWN, definition.getType());
     }
 
     @Test
-    public void test_Get_URL_Type_Must_Be_Valid_URL() throws Exception {
+    public void test_Get_URL_Type_Must_Be_Valid_URL() {
         definition.setMetaDataLocation("http");
         assertEquals(UNKNOWN, definition.getType());
     }
 
     @Test
-    public void test_Get_URL_When_Valid() throws Exception {
+    public void test_Get_URL_When_Valid() {
         definition.setMetaDataLocation("http://uaa.com/saml/metadata");
         assertEquals(URL, definition.getType());
     }
 
     @Test
-    public void test_Get_Data_Type_Must_Be_Valid_Data() throws Exception {
+    public void test_Get_Data_Type_Must_Be_Valid_Data() {
         definition.setMetaDataLocation("<?xml");
         assertEquals(UNKNOWN, definition.getType());
 
@@ -142,7 +142,7 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
-    public void test_Get_Data_Type_When_Valid() throws Exception {
+    public void test_Get_Data_Type_When_Valid() {
         definition.setMetaDataLocation(IDP_METADATA);
         assertEquals(DATA, definition.getType());
     }
@@ -181,7 +181,7 @@ public class SamlIdentityProviderDefinitionTests {
         "</md:EntityDescriptor>";
 
     @Test
-    public void testSetIdpEntityAlias() throws Exception {
+    public void testSetIdpEntityAlias() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setIdpEntityAlias("testalias");
     }
@@ -207,7 +207,7 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
-    public void testGetSocketFactoryClassName() throws Exception {
+    public void testGetSocketFactoryClassName() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
         assertNull(def.getSocketFactoryClassName());

@@ -54,7 +54,7 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 

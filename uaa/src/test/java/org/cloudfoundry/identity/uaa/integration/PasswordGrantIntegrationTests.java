@@ -39,7 +39,7 @@ public class PasswordGrantIntegrationTests {
     RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
 
     @Test
-    public void testUserLoginViaPasswordGrant() throws Exception {
+    public void testUserLoginViaPasswordGrant() {
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
     }
@@ -73,7 +73,7 @@ public class PasswordGrantIntegrationTests {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
-    protected BaseClientDetails addUserGroupsRequiredClient() throws Exception {
+    protected BaseClientDetails addUserGroupsRequiredClient() {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(
             serverRunning.getBaseUrl(),
             "admin",
@@ -129,7 +129,7 @@ public class PasswordGrantIntegrationTests {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
 
             }
         });

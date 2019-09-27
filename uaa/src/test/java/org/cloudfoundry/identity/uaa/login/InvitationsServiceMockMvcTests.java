@@ -406,7 +406,7 @@ public class InvitationsServiceMockMvcTests {
         return MockMvcUtils.inviteUser(webApplicationContext, mockMvc, email, userInviteToken, subdomain, clientId, expectedOrigin, REDIRECT_URI);
     }
 
-    private static String extractInvitationCode(String inviteLink) throws Exception {
+    private static String extractInvitationCode(String inviteLink) {
         return MockMvcUtils.extractInvitationCode(inviteLink);
     }
 

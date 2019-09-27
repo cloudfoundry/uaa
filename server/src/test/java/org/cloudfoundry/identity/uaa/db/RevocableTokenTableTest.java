@@ -52,7 +52,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     );
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));

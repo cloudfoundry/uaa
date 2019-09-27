@@ -36,7 +36,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
     private String authoritiesColumnName = "authorities";
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));

@@ -69,7 +69,7 @@ public class LdapIntegrationTests {
     }
 
     @Test
-    public void test_LDAP_Custom_User_Attributes_In_ID_Token() throws Exception {
+    public void test_LDAP_Custom_User_Attributes_In_ID_Token() {
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         final String COST_CENTER = "costCenter";

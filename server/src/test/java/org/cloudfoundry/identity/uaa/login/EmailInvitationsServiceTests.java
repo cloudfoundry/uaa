@@ -78,7 +78,7 @@ public class EmailInvitationsServiceTests {
 
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
@@ -90,7 +90,7 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void acceptInvitationNoClientId() throws Exception {
+    public void acceptInvitationNoClientId() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -123,7 +123,7 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void acceptInvitation_withoutPasswordUpdate() throws Exception {
+    public void acceptInvitation_withoutPasswordUpdate() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -159,7 +159,7 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void acceptInvitationWithClientNotFound() throws Exception {
+    public void acceptInvitationWithClientNotFound() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -182,7 +182,7 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void acceptInvitationWithValidRedirectUri() throws Exception {
+    public void acceptInvitationWithValidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
@@ -207,7 +207,7 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void acceptInvitationWithInvalidRedirectUri() throws Exception {
+    public void acceptInvitationWithInvalidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");

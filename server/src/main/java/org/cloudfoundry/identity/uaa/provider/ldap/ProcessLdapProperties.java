@@ -74,7 +74,7 @@ public class ProcessLdapProperties {
         return disableSslVerification;
     }
 
-    public SSLSocketFactory getSSLSocketFactory() throws NoSuchAlgorithmException, KeyManagementException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public SSLSocketFactory getSSLSocketFactory() throws IllegalAccessException, InstantiationException, ClassNotFoundException {
         Class<?> clazz = Class.forName((String) (process(new HashMap()).get(LDAP_SSL_SOCKET_FACTORY)), true, ProcessLdapProperties.class.getClassLoader());
         return (SSLSocketFactory) clazz.newInstance();
     }

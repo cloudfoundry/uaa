@@ -2593,7 +2593,7 @@ public class LoginMockMvcTests {
             JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
             RandomValueStringGenerator generator,
             String originKey,
-            IdentityZone zone) throws Exception {
+            IdentityZone zone) {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
             .setMetaDataLocation(metadata)

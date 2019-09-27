@@ -23,7 +23,7 @@ class LimitSqlAdapterFactoryTest {
     static class LimitSqlAdapterArgumentsProvider implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(null, HsqlDbLimitSqlAdapter.class),
                     Arguments.of(EMPTY_LIST, HsqlDbLimitSqlAdapter.class),

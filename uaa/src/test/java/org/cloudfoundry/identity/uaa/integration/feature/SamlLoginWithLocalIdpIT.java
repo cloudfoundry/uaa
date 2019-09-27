@@ -268,7 +268,7 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     @Test
-    public void idp_initiated_login_invalid_sp() throws Exception {
+    public void idp_initiated_login_invalid_sp() {
         //zone1 is IDP (create SP config and user here)
         //zone2 is SP (create IDP config here)
         //start at zone_1_url
@@ -305,7 +305,7 @@ public class SamlLoginWithLocalIdpIT {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void idp_initiated_login() throws Exception {
+    public void idp_initiated_login() {
         //zone1 is IDP (create SP config and user here)
         //zone2 is SP (create IDP config here)
         //start at zone_1_url
@@ -910,7 +910,7 @@ public class SamlLoginWithLocalIdpIT {
         );
     }
 
-    private String getZoneAdminToken(RestTemplate adminClient, String zoneId) throws Exception {
+    private String getZoneAdminToken(RestTemplate adminClient, String zoneId) {
         String zoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, zoneAdminEmail, "firstname", "lastname", zoneAdminEmail, true);
 
@@ -964,7 +964,7 @@ public class SamlLoginWithLocalIdpIT {
         }
     }
 
-    private ScimUser createZoneUser(String idpZoneId, String zoneAdminToken, String zoneUserEmail, String zoneUrl) throws Exception {
+    private ScimUser createZoneUser(String idpZoneId, String zoneAdminToken, String zoneUserEmail, String zoneUrl) {
         String zoneAdminClientId = new RandomValueStringGenerator().generate() + "-" + idpZoneId + "-admin";
         BaseClientDetails clientDetails = new BaseClientDetails(zoneAdminClientId, null, "uaa.none",
                 "client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
@@ -977,7 +977,7 @@ public class SamlLoginWithLocalIdpIT {
                 true, "1234567890");
     }
 
-    private ScimUser getZoneUser(String zoneId, String zoneAdminToken, String zoneUserEmail, String zoneUrl, String origin) throws Exception {
+    private ScimUser getZoneUser(String zoneId, String zoneAdminToken, String zoneUserEmail, String zoneUrl, String origin) {
         String zoneAdminClientId = new RandomValueStringGenerator().generate() + "-" + zoneId + "-admin";
         BaseClientDetails clientDetails = new BaseClientDetails(zoneAdminClientId, null, "uaa.none",
                 "client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
@@ -1061,7 +1061,7 @@ public class SamlLoginWithLocalIdpIT {
     }
 
     public static SamlServiceProvider createSamlServiceProvider(String name, String entityId, String baseUrl,
-                                                                ServerRunning serverRunning, SamlServiceProviderDefinition samlServiceProviderDefinition) throws Exception {
+                                                                ServerRunning serverRunning, SamlServiceProviderDefinition samlServiceProviderDefinition) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
           IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";

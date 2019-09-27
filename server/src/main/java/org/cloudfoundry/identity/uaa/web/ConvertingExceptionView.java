@@ -77,9 +77,8 @@ public class ConvertingExceptionView implements View {
      * 
      * @param servletRequest current HTTP request
      * @return the HttpInputMessage instance to use
-     * @throws Exception in case of errors
      */
-    protected HttpInputMessage createHttpInputMessage(HttpServletRequest servletRequest) throws Exception {
+    protected HttpInputMessage createHttpInputMessage(HttpServletRequest servletRequest) {
         return new ServletServerHttpRequest(servletRequest);
     }
 
@@ -92,9 +91,8 @@ public class ConvertingExceptionView implements View {
      * 
      * @param servletResponse current HTTP response
      * @return the HttpInputMessage instance to use
-     * @throws Exception in case of errors
      */
-    protected HttpOutputMessage createHttpOutputMessage(HttpServletResponse servletResponse) throws Exception {
+    protected HttpOutputMessage createHttpOutputMessage(HttpServletResponse servletResponse) {
         return new ServletServerHttpResponse(servletResponse);
     }
 

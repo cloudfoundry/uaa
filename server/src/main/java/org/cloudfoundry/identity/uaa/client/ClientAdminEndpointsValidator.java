@@ -87,7 +87,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
     }
 

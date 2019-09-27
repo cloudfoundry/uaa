@@ -102,7 +102,7 @@ public class InvitationsIT {
     private String testInviteEmail;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
@@ -170,7 +170,7 @@ public class InvitationsIT {
         performInviteUser(userEmail, true);
     }
 
-    public void performInviteUser(String email, boolean isVerified) throws Exception {
+    public void performInviteUser(String email, boolean isVerified) {
         webDriver.get(baseUrl + "/logout.do");
         String redirectUri = baseUrl + "/profile";
         String code = createInvitation(email, email, redirectUri, OriginKeys.UAA);
@@ -248,7 +248,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+    public void testInsecurePasswordDisplaysErrorMessage() {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());

@@ -275,7 +275,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testMfaDisabledByDefault() throws Exception {
+    public void testMfaDisabledByDefault() {
         assertFalse(bootstrap.isMfaEnabled());
     }
 

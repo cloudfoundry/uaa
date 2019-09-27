@@ -36,7 +36,7 @@ public class AccessControllerTests {
     private AccessController controller = new AccessController();
 
     @Test
-    public void testSunnyDay() throws Exception {
+    public void testSunnyDay() {
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
@@ -49,7 +49,7 @@ public class AccessControllerTests {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testSchemePreserved() throws Exception {
+    public void testSchemePreserved() {
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
         controller.setClientDetailsService(clientDetailsService);
@@ -67,7 +67,7 @@ public class AccessControllerTests {
     }
 
     @Test
-    public void testClientDisplayName() throws Exception {
+    public void testClientDisplayName() {
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
@@ -96,7 +96,7 @@ public class AccessControllerTests {
         performAutoApprovedScopeTest(Collections.singletonList("true"));
     }
 
-    private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) throws Exception {
+    private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) {
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");

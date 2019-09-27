@@ -51,7 +51,7 @@ public class OauthCodeIndexTest extends JdbcTestBase {
     }
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if ( springProfile!=null ) {
             environment.setActiveProfiles(springProfile);

@@ -261,7 +261,7 @@ public class UaaMetricsEmitter {
             parser = new SpelExpressionParser();
         }
 
-        public Object get(String expression) throws Exception {
+        public Object get(String expression) {
             return get(expression, Object.class);
         }
 

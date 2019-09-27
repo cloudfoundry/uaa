@@ -80,7 +80,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     private boolean selfServiceToReset = false;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
@@ -89,7 +89,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
     }

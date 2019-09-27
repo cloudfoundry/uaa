@@ -38,7 +38,7 @@ public class TimeBasedExpiringValueMapTest {
     private Object value1 = new Object(), value2 = new Object();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         map = new TimeBasedExpiringValueMap<>(timeService, TIMEOUT);
     }
 

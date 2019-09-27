@@ -289,7 +289,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void testLoginWithLoginHintUaa() throws Exception {
+    public void testLoginWithLoginHintUaa() {
         webDriver.get(zoneUrl + "/logout.do");
         String loginHint = URLEncoder.encode("{\"origin\":\"puppy\"}", StandardCharsets.UTF_8);
 

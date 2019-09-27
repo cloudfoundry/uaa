@@ -74,7 +74,7 @@ public class LimitedModeUaaFilterTests {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         statusFile.delete();
     }
 
@@ -171,7 +171,7 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void disable_enable_uses_cache_to_avoid_file_access() throws Exception {
+    public void disable_enable_uses_cache_to_avoid_file_access() {
         File spy = spy(statusFile);
         doCallRealMethod().when(spy).exists();
         filter.setTimeService(timeService);
