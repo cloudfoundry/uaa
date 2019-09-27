@@ -238,7 +238,7 @@ public class AccessController {
 
             result.add(map);
         }
-        Collections.sort(result, (map1, map2) -> {
+        result.sort((map1, map2) -> {
             String code1 = map1.get("code");
             String code2 = map2.get("code");
             int i;
