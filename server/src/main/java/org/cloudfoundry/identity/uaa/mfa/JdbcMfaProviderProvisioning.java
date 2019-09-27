@@ -50,18 +50,15 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
         mfaProviderValidator.validate(provider);
         final String id = UUID.randomUUID().toString();
         try {
-            jdbcTemplate.update(CREATE_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, id);
-                    ps.setString(pos++, provider.getName());
-                    ps.setString(pos++, provider.getType().toValue());
-                    ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
-                    ps.setString(pos++, zoneId);
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                }
+            jdbcTemplate.update(CREATE_PROVIDER_SQL, ps -> {
+                int pos = 1;
+                ps.setString(pos++, id);
+                ps.setString(pos++, provider.getName());
+                ps.setString(pos++, provider.getType().toValue());
+                ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
+                ps.setString(pos++, zoneId);
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
             });
         } catch (DuplicateKeyException e) {
             String message = e.getMostSpecificCause().getMessage();

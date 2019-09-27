@@ -98,13 +98,10 @@ public class ApiController {
             this.template = template;
             this.context.addPropertyAccessor(new MapAccessor());
             this.helper = new PropertyPlaceholderHelper("${", "}");
-            this.resolver = new PlaceholderResolver() {
-                @Override
-                public String resolvePlaceholder(String name) {
-                    Expression expression = parser.parseExpression(name);
-                    Object value = expression.getValue(context);
-                    return value == null ? null : value.toString();
-                }
+            this.resolver = name -> {
+                Expression expression = parser.parseExpression(name);
+                Object value = expression.getValue(context);
+                return value == null ? null : value.toString();
             };
         }
 

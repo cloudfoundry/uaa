@@ -598,14 +598,11 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = post(fullPath)
-                .with(new RequestPostProcessor() {
-                    @Override
-                    public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-                        request.setServerPort(8080);
-                        request.setRequestURI(fullPath);
-                        request.setServerName(host);
-                        return request;
-                    }
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(fullPath);
+                    request.setServerName(host);
+                    return request;
                 })
                 .contextPath("/uaa")
                 .accept(APPLICATION_JSON)

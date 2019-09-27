@@ -122,20 +122,17 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
         validate(serviceProvider);
         final String id = UUID.randomUUID().toString();
         try {
-            jdbcTemplate.update(CREATE_SERVICE_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, id);
-                    ps.setInt(pos++, serviceProvider.getVersion());
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setString(pos++, serviceProvider.getName());
-                    ps.setString(pos++, serviceProvider.getEntityId());
-                    ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
-                    ps.setString(pos++, zoneId);
-                    ps.setBoolean(pos++, serviceProvider.isActive());
-                }
+            jdbcTemplate.update(CREATE_SERVICE_PROVIDER_SQL, ps -> {
+                int pos = 1;
+                ps.setString(pos++, id);
+                ps.setInt(pos++, serviceProvider.getVersion());
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setString(pos++, serviceProvider.getName());
+                ps.setString(pos++, serviceProvider.getEntityId());
+                ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
+                ps.setString(pos++, zoneId);
+                ps.setBoolean(pos++, serviceProvider.isActive());
             });
         } catch (DuplicateKeyException e) {
             throw new SamlSpAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -146,18 +143,15 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     @Override
     public SamlServiceProvider update(final SamlServiceProvider serviceProvider, String zoneId) {
         validate(serviceProvider);
-        jdbcTemplate.update(UPDATE_SERVICE_PROVIDER_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setInt(pos++, serviceProvider.getVersion() + 1);
-                ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
-                ps.setString(pos++, serviceProvider.getName());
-                ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
-                ps.setBoolean(pos++, serviceProvider.isActive());
-                ps.setString(pos++, serviceProvider.getId().trim());
-                ps.setString(pos++, zoneId);
-            }
+        jdbcTemplate.update(UPDATE_SERVICE_PROVIDER_SQL, ps -> {
+            int pos = 1;
+            ps.setInt(pos++, serviceProvider.getVersion() + 1);
+            ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+            ps.setString(pos++, serviceProvider.getName());
+            ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
+            ps.setBoolean(pos++, serviceProvider.isActive());
+            ps.setString(pos++, serviceProvider.getId().trim());
+            ps.setString(pos++, zoneId);
         });
         return retrieve(serviceProvider.getId(), zoneId);
     }
