@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;

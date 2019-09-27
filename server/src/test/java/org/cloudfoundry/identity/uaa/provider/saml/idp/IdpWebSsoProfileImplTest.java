@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.opensaml.common.SAMLException;
 import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.io.MarshallingException;

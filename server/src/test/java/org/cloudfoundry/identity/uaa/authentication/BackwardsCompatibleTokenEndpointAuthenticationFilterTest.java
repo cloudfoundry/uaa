@@ -34,7 +34,6 @@ import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
-import java.util.Arrays;
 import java.util.Collections;
 
 import static java.util.Optional.ofNullable;

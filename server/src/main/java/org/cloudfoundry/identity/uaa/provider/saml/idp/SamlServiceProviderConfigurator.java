@@ -30,7 +30,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;

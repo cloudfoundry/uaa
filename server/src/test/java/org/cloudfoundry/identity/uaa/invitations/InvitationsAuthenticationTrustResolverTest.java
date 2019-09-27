@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;

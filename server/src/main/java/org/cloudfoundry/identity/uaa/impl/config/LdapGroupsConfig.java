@@ -6,7 +6,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 

@@ -12,7 +12,6 @@ package org.cloudfoundry.identity.uaa.provider.saml; /**************************
  *******************************************************************************/
 
 import org.junit.Test;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.XMLObject;
 
 import static org.junit.Assert.*;

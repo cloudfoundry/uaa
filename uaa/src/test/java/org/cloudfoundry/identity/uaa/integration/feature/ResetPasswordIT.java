@@ -33,7 +33,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 

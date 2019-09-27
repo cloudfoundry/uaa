@@ -26,8 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Arrays.asList;
-
 public class SearchResultsFactory {
     public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(
         List<T> input,

@@ -17,7 +17,6 @@ import org.springframework.beans.factory.FactoryBean;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 /**
  * Factory for Map that reads from a YAML source. YAML is a nice human-readable

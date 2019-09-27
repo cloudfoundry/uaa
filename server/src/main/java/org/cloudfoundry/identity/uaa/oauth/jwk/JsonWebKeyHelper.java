@@ -18,7 +18,6 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 

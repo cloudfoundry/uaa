@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.util.StringUtils.hasText;
 

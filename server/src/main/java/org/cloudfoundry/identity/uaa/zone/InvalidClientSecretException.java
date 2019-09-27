@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 

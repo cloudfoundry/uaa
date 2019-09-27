@@ -18,7 +18,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -66,7 +65,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mfa.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;

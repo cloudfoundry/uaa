@@ -24,8 +24,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 
 public class TimeBasedExpiringValueMapTest {

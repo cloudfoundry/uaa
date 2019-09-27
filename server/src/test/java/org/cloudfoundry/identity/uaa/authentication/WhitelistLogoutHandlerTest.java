@@ -22,7 +22,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static java.util.Collections.EMPTY_LIST;

@@ -16,8 +16,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**

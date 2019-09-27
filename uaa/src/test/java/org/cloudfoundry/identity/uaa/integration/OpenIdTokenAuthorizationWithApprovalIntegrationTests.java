@@ -44,7 +44,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
-import java.io.IOException;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.extractCookieCsrf;

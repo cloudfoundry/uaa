@@ -33,7 +33,6 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.*;
 
 import static org.hamcrest.CoreMatchers.is;

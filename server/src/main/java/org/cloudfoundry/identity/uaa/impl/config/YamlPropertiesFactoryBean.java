@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.springframework.beans.factory.FactoryBean;
 
-import java.util.Map;
 import java.util.Properties;
 
 /**
