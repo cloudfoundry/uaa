@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -44,18 +44,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -217,7 +216,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         String results = response.getHeaders().getLocation().toString();
-        assertNotNull("There should be scopes: " + results, results.contains("#access_token"));
+        assertTrue("There should be scopes: " + results, results.contains("#access_token"));
     }
 
     @Test
@@ -263,7 +262,7 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test
@@ -280,7 +279,7 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test
@@ -326,7 +325,7 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test

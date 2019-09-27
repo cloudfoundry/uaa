@@ -224,7 +224,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
         );
         for (ScimGroupExternalMember member : externalMappings) {
             assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
-            assertNotNull(testGroups.remove(member.getExternalGroup()));
+            testGroups.remove(member.getExternalGroup());
         }
 
         assertEquals(testGroups.size(), 0);
@@ -314,7 +314,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
                 .getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
-                assertNotNull(testGroups.remove(member.getGroupId()));
+                testGroups.remove(member.getGroupId());
             }
 
             assertEquals(testGroups.size(), 0);
@@ -327,7 +327,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
                             .getExternalGroupMapsByExternalGroup("cn=hr,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
-                assertNotNull(testGroups.remove(member.getGroupId()));
+                testGroups.remove(member.getGroupId());
             }
 
             assertEquals(testGroups.size(), 0);
@@ -336,7 +336,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
                             .getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings2) {
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
-                assertNotNull(testGroups.remove(member.getGroupId()));
+                testGroups.remove(member.getGroupId());
             }
 
             assertEquals(testGroups.size(), 0);
@@ -349,7 +349,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
                             .getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
-                assertNotNull(testGroups.remove(member.getGroupId()));
+                testGroups.remove(member.getGroupId());
             }
 
             assertEquals(testGroups.size(), 0);
