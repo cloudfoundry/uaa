@@ -184,9 +184,4 @@ public class ScimGroupTests {
         assertEquals(3, group.getMembers().size());
 
     }
-
-    @Test
-    public void test_toString() {
-        group.toString();
-    }
 }
