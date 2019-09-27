@@ -65,7 +65,7 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
         See: https://www.pivotaltracker.com/story/show/155725419
     */
     @Test
-    public void insertMissingPrimaryKeys_whenOldMigrationWithoutPrimaryKeyModificationHasAlreadyRun() throws SQLException {
+    public void insertMissingPrimaryKeys_whenOldMigrationWithoutPrimaryKeyModificationHasAlreadyRun() {
         List<MigrationTest> migrationTest = Arrays.asList(new MigrationTest() {
             // 2.4.1: removing the primary key column here would replicate the state before the migration was 'modified'.
             @Override
@@ -74,7 +74,7 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
             }
 
             @Override
-            public void runAssertions() throws Exception {
+            public void runAssertions() {
                 jdbcTemplate.execute("ALTER TABLE group_membership drop column id");
                 jdbcTemplate.execute("ALTER TABLE external_group_mapping drop column id");
             }

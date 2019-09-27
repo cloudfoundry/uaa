@@ -34,12 +34,12 @@ public class ComparableProviderTest {
         }
 
         @Override
-        public XMLObject doGetMetadata() throws MetadataProviderException {
+        public XMLObject doGetMetadata() {
             return null;
         }
 
         @Override
-        public byte[] fetchMetadata() throws MetadataProviderException {
+        public byte[] fetchMetadata() {
             return new byte[0];
         }
 

@@ -143,20 +143,20 @@ public class Saml2TokenGranterTest {
     }
 
     @Test
-    public void test_not_authenticated() throws Exception {
+    public void test_not_authenticated() {
         when(authentication.isAuthenticated()).thenReturn(false);
         granter.validateRequest(tokenRequest);
     }
 
     @Test
-    public void test_not_a_user_authentication() throws Exception {
+    public void test_not_a_user_authentication() {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         granter.validateRequest(tokenRequest);
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void test_no_grant_type() throws Exception {
+    public void test_no_grant_type() {
         missing_parameter(GRANT_TYPE);
     }
 

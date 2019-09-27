@@ -50,7 +50,7 @@ public class ForcePasswordChangeController {
     private ResetPasswordService resetPasswordService;
 
     @RequestMapping(value="/force_password_change", method= GET)
-    public String forcePasswordChangePage(Model model) throws IOException {
+    public String forcePasswordChangePage(Model model) {
         String email = ((UaaAuthentication)SecurityContextHolder.getContext().getAuthentication()).getPrincipal().getEmail();
         model.addAttribute("email", email);
         return "force_password_change";
@@ -60,7 +60,7 @@ public class ForcePasswordChangeController {
     public String handleForcePasswordChange(Model model,
                                             @RequestParam("password")  String password,
                                             @RequestParam("password_confirmation") String passwordConfirmation,
-                                            HttpServletResponse response) throws IOException {
+                                            HttpServletResponse response) {
         UaaAuthentication authentication = ((UaaAuthentication)SecurityContextHolder.getContext().getAuthentication());
         UaaPrincipal principal = authentication.getPrincipal();
         String email = principal.getEmail();

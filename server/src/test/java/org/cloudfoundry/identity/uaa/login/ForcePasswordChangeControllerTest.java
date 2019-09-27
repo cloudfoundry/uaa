@@ -39,7 +39,7 @@ public class ForcePasswordChangeControllerTest  extends TestClassNullifier {
     private UaaAuthentication authentication;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         ForcePasswordChangeController controller = new ForcePasswordChangeController();
         resetPasswordService = mock(ResetPasswordService.class);
         controller.setResetPasswordService(resetPasswordService);

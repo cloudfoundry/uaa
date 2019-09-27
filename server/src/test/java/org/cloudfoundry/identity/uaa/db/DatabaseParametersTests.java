@@ -51,12 +51,12 @@ public class DatabaseParametersTests extends JdbcTestBase {
     }
 
     @Test
-    public void initial_size() throws Exception {
+    public void initial_size() {
         assertEquals(0, getDataSource().getInitialSize());
     }
 
     @Test
-    public void validation_query_timeout() throws Exception {
+    public void validation_query_timeout() {
         assertEquals(5, getDataSource().getValidationQueryTimeout());
     }
 

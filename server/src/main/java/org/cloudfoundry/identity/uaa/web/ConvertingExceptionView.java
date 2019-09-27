@@ -58,7 +58,7 @@ public class ConvertingExceptionView implements View {
     }
 
     @Override
-    public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) {
         try {
             HttpInputMessage inputMessage = createHttpInputMessage(request);
             HttpOutputMessage outputMessage = createHttpOutputMessage(response);

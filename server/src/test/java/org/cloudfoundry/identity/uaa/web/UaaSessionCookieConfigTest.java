@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 public class UaaSessionCookieConfigTest {
 
     @Test
-    public void testSetServletContext() throws Exception {
+    public void testSetServletContext() {
         ServletContext context = mock(ServletContext.class);
         UaaSessionCookieConfig config = new UaaSessionCookieConfig();
         SessionCookieConfig cookie = mock(SessionCookieConfig.class);
@@ -46,7 +46,7 @@ public class UaaSessionCookieConfigTest {
     }
 
     @Test
-    public void verify_cookie_tracking_mode() throws Exception {
+    public void verify_cookie_tracking_mode() {
         ServletContext context = mock(ServletContext.class);
         UaaSessionCookieConfig config = new UaaSessionCookieConfig();
         SessionCookieConfig cookie = mock(SessionCookieConfig.class);

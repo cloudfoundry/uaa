@@ -44,7 +44,7 @@ public class RemoteAuthenticationEndpointTests {
     private OAuth2Authentication loginAuthentication;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", OriginKeys.UAA, null, null);
         success = new UsernamePasswordAuthenticationToken(principal, null);
 
@@ -56,7 +56,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void successfulAuthenticationGives200Status() throws Exception {
+    public void successfulAuthenticationGives200Status() {
 
         when(am.authenticate(any(Authentication.class))).thenReturn(success);
         @SuppressWarnings("rawtypes")
@@ -65,7 +65,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void accountNotVerifiedExceptionGives403Status() throws Exception {
+    public void accountNotVerifiedExceptionGives403Status() {
         when(am.authenticate(any(Authentication.class))).thenThrow(new AccountNotVerifiedException("failed"));
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
@@ -73,7 +73,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void authenticationExceptionGives401Status() throws Exception {
+    public void authenticationExceptionGives401Status() {
         when(am.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("failed"));
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
@@ -81,7 +81,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void otherExceptionGives500Status() throws Exception {
+    public void otherExceptionGives500Status() {
         when(am.authenticate(any(Authentication.class))).thenThrow(new RuntimeException("error"));
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
@@ -89,7 +89,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void successfulLoginAuthenticationInvokesLoginAuthManager() throws Exception {
+    public void successfulLoginAuthenticationInvokesLoginAuthManager() {
         SecurityContextHolder.getContext().setAuthentication(loginAuthentication);
         when(am.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("Invalid authentication manager invoked"));
         when(loginAuthMgr.authenticate(any(Authentication.class))).thenReturn(new UsernamePasswordAuthenticationToken("joe", null));

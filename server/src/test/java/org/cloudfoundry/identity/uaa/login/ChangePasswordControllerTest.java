@@ -60,7 +60,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     private List<String> authMethods;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         changePasswordService = mock(ChangePasswordService.class);
         ChangePasswordController controller = new ChangePasswordController(changePasswordService);

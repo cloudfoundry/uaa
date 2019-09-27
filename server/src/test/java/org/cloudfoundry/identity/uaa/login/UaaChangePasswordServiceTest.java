@@ -48,7 +48,7 @@ public class UaaChangePasswordServiceTest {
     private PasswordValidator passwordValidator;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
         scimUserProvisioning = mock(ScimUserProvisioning.class);
@@ -57,12 +57,12 @@ public class UaaChangePasswordServiceTest {
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testChangePasswordWithNoCurrentPasswordOrUsername() throws Exception {
+    public void testChangePasswordWithNoCurrentPasswordOrUsername() {
         subject.changePassword(null, null, "newPassword");
     }
 
     @Test(expected = InvalidPasswordException.class)
-    public void testChangePasswordWithInvalidNewPassword() throws Exception {
+    public void testChangePasswordWithInvalidNewPassword() {
         doThrow(new InvalidPasswordException("")).when(passwordValidator).validate("invPawd");
         subject.changePassword("username", "currentPassword", "invPawd");
     }

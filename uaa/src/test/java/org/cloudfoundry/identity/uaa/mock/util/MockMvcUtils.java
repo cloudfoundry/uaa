@@ -257,7 +257,7 @@ public final class MockMvcUtils {
         return resultActions;
     }
 
-    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) throws Exception {
+    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) {
         String zoneId = zone.getId();
         MfaProvider provider = new MfaProvider();
         provider.setName(new RandomValueStringGenerator(5).generate().toLowerCase());
@@ -283,7 +283,7 @@ public final class MockMvcUtils {
         return tempFile;
     }
 
-    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) throws Exception {
+    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) {
         context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
     }
 
@@ -408,7 +408,7 @@ public final class MockMvcUtils {
     }
 
 
-    public static String extractInvitationCode(String inviteLink) throws Exception {
+    public static String extractInvitationCode(String inviteLink) {
         Pattern p = Pattern.compile("accept\\?code=(.*)");
         Matcher m = p.matcher(inviteLink);
 
@@ -978,8 +978,7 @@ public final class MockMvcUtils {
             .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
-      throws Exception {
+    public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone) {
 
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         service.addClientDetails(clientDetails, zone.getId());
@@ -1015,8 +1014,7 @@ public final class MockMvcUtils {
         return detailsModification;
     }
 
-    public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
-      throws Exception {
+    public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone) {
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         service.updateClientDetails(clientDetails, zone.getId());
         return (BaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());

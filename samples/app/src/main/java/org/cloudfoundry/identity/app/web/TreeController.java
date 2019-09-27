@@ -64,7 +64,7 @@ public class TreeController {
         model.addAttribute("title", "Your " + StringUtils.capitalize(type));
     }
 
-    private List<Map<String, Object>> getItems(String type) throws Exception {
+    private List<Map<String, Object>> getItems(String type) {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> result = restTemplate.getForObject(treeUrlPattern, List.class, type);
         return result;

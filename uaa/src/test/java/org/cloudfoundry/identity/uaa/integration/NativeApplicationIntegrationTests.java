@@ -58,7 +58,7 @@ public class NativeApplicationIntegrationTests {
      * profile).
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "password");
@@ -77,7 +77,7 @@ public class NativeApplicationIntegrationTests {
      * tests that a client secret is required.
      */
     @Test
-    public void testSecretRequired() throws Exception {
+    public void testSecretRequired() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "password");
         formData.add("username", resource.getUsername());

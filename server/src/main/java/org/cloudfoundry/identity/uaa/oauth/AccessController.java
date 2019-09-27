@@ -101,7 +101,7 @@ public class AccessController {
 
     @RequestMapping("/oauth/confirm_access")
     public String confirm(Map<String, Object> model, final HttpServletRequest request, Principal principal,
-                    SessionStatus sessionStatus) throws Exception {
+                    SessionStatus sessionStatus) {
 
         if (!(principal instanceof Authentication)) {
             sessionStatus.setComplete();
@@ -274,7 +274,7 @@ public class AccessController {
     }
 
     @RequestMapping("/oauth/error")
-    public String handleError(WebRequest request, Map<String, Object> model) throws Exception {
+    public String handleError(WebRequest request, Map<String, Object> model) {
         // There is already an error entry in the model
         Object object = request.getAttribute("error", RequestAttributes.SCOPE_REQUEST);
         if (object != null) {

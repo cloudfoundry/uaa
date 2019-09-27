@@ -240,7 +240,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         parseIdentityProviderDefinitions();
     }
 

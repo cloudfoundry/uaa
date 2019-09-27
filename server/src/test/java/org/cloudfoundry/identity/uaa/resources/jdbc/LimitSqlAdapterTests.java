@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 public class LimitSqlAdapterTests extends JdbcTestBase {
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         jdbcTemplate.update("create table delete_top_rows_test (id varchar(10), expires integer, payload varchar(20))");
         jdbcTemplate.update("insert into delete_top_rows_test values (?,?,?)", "X", 1, "some-data");
         jdbcTemplate.update("insert into delete_top_rows_test values (?,?,?)", "M", 2, "some-data");
@@ -40,14 +40,14 @@ public class LimitSqlAdapterTests extends JdbcTestBase {
     }
 
     @Test
-    public void revocable_token_delete_syntax() throws Exception {
+    public void revocable_token_delete_syntax() {
         //tests that the query succeed, nothing else
         String query = limitSqlAdapter.getDeleteExpiredQuery("revocable_tokens", "token_id", "expires_at", 500);
         jdbcTemplate.update(query, System.currentTimeMillis());
     }
 
     @Test
-    public void test_delete_top_rows() throws Exception {
+    public void test_delete_top_rows() {
         assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'X'", Integer.class));
         assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'A'", Integer.class));
         jdbcTemplate.update(

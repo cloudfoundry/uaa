@@ -168,7 +168,7 @@ public class UserIdConversionEndpointsTests {
     }
 
     @Test
-    public void noActiveIdps_ReturnsEmptyResources() throws Exception {
+    public void noActiveIdps_ReturnsEmptyResources() {
         when(provisioning.retrieveActive(anyString())).thenReturn(Collections.emptyList());
         SearchResults<?> searchResults = endpoints.findUsers("username eq \"foo\"", "ascending", 0, 100, false);
         assertTrue(searchResults.getResources().isEmpty());

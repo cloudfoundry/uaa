@@ -61,7 +61,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     private JdbcScimUserProvisioning userProvisioning;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);

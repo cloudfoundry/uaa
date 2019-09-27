@@ -45,7 +45,7 @@ public class OAuth2ClientAuthenticationFilterTests {
     }
 
     @Test
-    public void testCloudFoundryAuthentication() throws Exception {
+    public void testCloudFoundryAuthentication() {
         OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(new AuthorizationCodeResourceDetails(), context);
         setUpContext("cf.token");
         filter.setRestTemplate(restTemplate);
@@ -56,7 +56,7 @@ public class OAuth2ClientAuthenticationFilterTests {
     }
 
     @Test
-    public void testGithubAuthentication() throws Exception {
+    public void testGithubAuthentication() {
         OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(new AuthorizationCodeResourceDetails(), context);
         setUpContext("github.token");
         filter.setRestTemplate(restTemplate);
@@ -67,7 +67,7 @@ public class OAuth2ClientAuthenticationFilterTests {
     }
 
     @Test
-    public void testFacebookAuthentication() throws Exception {
+    public void testFacebookAuthentication() {
         AuthorizationCodeResourceDetails resource = new AuthorizationCodeResourceDetails();
         resource.setAuthenticationScheme(AuthenticationScheme.query);
         OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(resource, context);

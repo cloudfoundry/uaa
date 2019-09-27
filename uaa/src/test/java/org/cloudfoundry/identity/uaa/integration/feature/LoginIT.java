@@ -101,7 +101,7 @@ public class LoginIT {
     }
 
     @Test
-    public void check_JSESSIONID_defaults() throws Exception {
+    public void check_JSESSIONID_defaults() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         List<String> cookies;
@@ -205,7 +205,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testSuccessfulLoginNewUser() throws Exception {
+    public void testSuccessfulLoginNewUser() {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
@@ -241,7 +241,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testNoZoneFound() throws Exception {
+    public void testNoZoneFound() {
         assertTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
         assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
@@ -255,7 +255,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testPasscodeRedirect() throws Exception {
+    public void testPasscodeRedirect() {
         webDriver.get(baseUrl + "/passcode");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
@@ -265,7 +265,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testUnsuccessfulLogin() throws Exception {
+    public void testUnsuccessfulLogin() {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
@@ -275,7 +275,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccessDeniedIfCsrfIsMissing() throws Exception {
+    public void testAccessDeniedIfCsrfIsMissing() {
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(new ResponseErrorHandler() {
             @Override
@@ -284,7 +284,7 @@ public class LoginIT {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
 
         });
@@ -311,7 +311,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testRedirectAfterUnsuccessfulLogin() throws Exception {
+    public void testRedirectAfterUnsuccessfulLogin() {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -345,7 +345,7 @@ public class LoginIT {
     }
 
     @Test
-    public void userLockedoutAfterUnsuccessfulAttempts() throws Exception {
+    public void userLockedoutAfterUnsuccessfulAttempts() {
         String userEmail = createAnotherUser();
 
         webDriver.get(baseUrl + "/logout.do");
@@ -366,7 +366,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testBuildInfo() throws Exception {
+    public void testBuildInfo() {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
@@ -374,7 +374,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccountChooserManualLogin() throws Exception {
+    public void testAccountChooserManualLogin() {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
@@ -394,7 +394,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccountChooserFlow() throws Exception {
+    public void testAccountChooserFlow() {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);

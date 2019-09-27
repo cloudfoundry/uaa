@@ -391,7 +391,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    public void implicitAndAuthCodeGrantClient() throws Exception {
+    public void implicitAndAuthCodeGrantClient() {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "implicit,authorization_code", "uaa.none");
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
@@ -402,7 +402,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    public void implicitGrantClientWithoutSecretIsOk() throws Exception {
+    public void implicitGrantClientWithoutSecretIsOk() {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "implicit", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
@@ -412,7 +412,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    public void passwordGrantClientWithoutSecretIsOk() throws Exception {
+    public void passwordGrantClientWithoutSecretIsOk() {
         BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "password", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
@@ -722,7 +722,7 @@ public class ClientAdminEndpointsIntegrationTests {
         assertNull(getClient(deletedClientId));
     }
 
-    private Approval[] getApprovals(String token, String clientId) throws Exception {
+    private Approval[] getApprovals(String token, String clientId) {
         String filter = "client_id eq \"" + clientId + "\"";
         HttpHeaders headers = getAuthenticatedHeaders(token);
 
@@ -737,7 +737,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
 
-    private Approval[] addApprovals(String token, String clientId) throws Exception {
+    private Approval[] addApprovals(String token, String clientId) {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[]{
@@ -780,7 +780,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return createClientWithSecret("secret", grantTypes);
     }
 
-    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) throws Exception {
+    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) {
         ClientDetailsModification client = new ClientDetailsModification();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
@@ -796,7 +796,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return client;
     }
 
-    private ClientDetailsModification createApprovalsClient(String... grantTypes) throws Exception {
+    private ClientDetailsModification createApprovalsClient(String... grantTypes) {
         ClientDetailsModification detailsModification = new ClientDetailsModification();
         detailsModification.setClientId(new RandomValueStringGenerator().generate());
         detailsModification.setScope(Arrays.asList("oauth.login", "oauth.approvals", "foo", "bar"));
@@ -831,7 +831,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return getClientCredentialsAccessToken(clientId, clientSecret, scope);
     }
 
-    private OAuth2AccessToken getClientCredentialsAccessToken(String clientId, String clientSecret, String scope) throws Exception {
+    private OAuth2AccessToken getClientCredentialsAccessToken(String clientId, String clientSecret, String scope) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
@@ -850,7 +850,7 @@ public class ClientAdminEndpointsIntegrationTests {
         return accessToken;
     }
 
-    private OAuth2AccessToken getUserAccessToken(String clientId, String clientSecret, String username, String password, String scope) throws Exception {
+    private OAuth2AccessToken getUserAccessToken(String clientId, String clientSecret, String username, String password, String scope) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "password");
         formData.add("client_id", clientId);

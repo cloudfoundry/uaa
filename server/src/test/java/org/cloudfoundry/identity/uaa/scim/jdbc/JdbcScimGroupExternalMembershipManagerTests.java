@@ -107,7 +107,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_group_mapping() throws Exception {
+    public void test_group_mapping() {
         createGroupMapping();
         assertEquals(1, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,IdentityZoneHolder.get().getId()).size());
         assertEquals(0, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,"id").size());

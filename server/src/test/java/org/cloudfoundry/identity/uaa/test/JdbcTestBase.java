@@ -40,7 +40,7 @@ public class JdbcTestBase extends TestClassNullifier {
         setUp(environment);
     }
 
-    public void setUp(MockEnvironment environment) throws Exception {
+    public void setUp(MockEnvironment environment) {
         this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);

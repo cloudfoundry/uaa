@@ -92,7 +92,7 @@ public class ImplicitGrantIT {
     }
 
     @Test
-    public void testDefaultScopes() throws Exception {
+    public void testDefaultScopes() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
@@ -148,7 +148,7 @@ public class ImplicitGrantIT {
     }
 
     @Test
-    public void testInvalidScopes() throws Exception {
+    public void testInvalidScopes() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 

@@ -184,7 +184,7 @@ public class CheckTokenEndpointIntegrationTests {
     }
 
     @Test
-    public void testForbidden() throws Exception {
+    public void testForbidden() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();

@@ -83,7 +83,7 @@ public class ClientAdminBootstrap implements
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         addNewClients();
         updateAutoApproveClients();
     }

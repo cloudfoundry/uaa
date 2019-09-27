@@ -47,7 +47,7 @@ public class LdapIdentityProviderDefinitionTest {
     private LdapIdentityProviderDefinition ldapIdentityProviderDefinition;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
 
     }
 
@@ -115,7 +115,7 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
-    public void testSearchAndBindConfiguration() throws Exception {
+    public void testSearchAndBindConfiguration() {
         ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
             "ldap://localhost:389/",
             "cn=admin,ou=Users,dc=test,dc=com",

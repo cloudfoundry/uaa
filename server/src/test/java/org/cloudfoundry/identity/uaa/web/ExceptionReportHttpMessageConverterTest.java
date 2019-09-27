@@ -28,7 +28,7 @@ public class ExceptionReportHttpMessageConverterTest {
     private HttpOutputMessage httpOutputMessage;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         exceptionReportHttpMessageConverter = new ExceptionReportHttpMessageConverter();
 
         httpMessageConverter = mock(HttpMessageConverter.class);

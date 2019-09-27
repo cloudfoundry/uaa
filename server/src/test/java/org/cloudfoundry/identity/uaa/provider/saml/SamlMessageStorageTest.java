@@ -35,13 +35,13 @@ public class SamlMessageStorageTest {
     private Map<String, XMLObject> messages;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         storage = new SamlMessageStorage();
         messages = (Map<String, XMLObject>) ReflectionTestUtils.getField(storage, "messages");
     }
 
     @Test
-    public void store_and_retrieve_message() throws Exception {
+    public void store_and_retrieve_message() {
         XMLObject message = mock(XMLObject.class);
         assertEquals(0, messages.size());
         storage.storeMessage("id", message);

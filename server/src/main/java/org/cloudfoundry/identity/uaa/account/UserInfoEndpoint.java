@@ -45,7 +45,7 @@ public class UserInfoEndpoint implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(userDatabase != null, "A user database must be provided");
     }
 

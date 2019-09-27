@@ -233,7 +233,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(approvalStore, "Please supply an approvals manager");
         Assert.notNull(userDatabase, "Please supply a user database");
     }

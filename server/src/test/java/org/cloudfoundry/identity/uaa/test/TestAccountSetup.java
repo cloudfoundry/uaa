@@ -273,12 +273,12 @@ public class TestAccountSetup extends TestWatchman {
         client.setErrorHandler(new OAuth2ErrorHandler(client.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();

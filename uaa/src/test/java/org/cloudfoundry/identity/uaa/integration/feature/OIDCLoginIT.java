@@ -252,7 +252,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulLoginWithOIDCProvider() throws Exception {
+    public void successfulLoginWithOIDCProvider() {
         Long beforeTest = System.currentTimeMillis();
         validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
@@ -265,7 +265,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void testLoginWithInactiveProviderDoesNotWork() throws Exception {
+    public void testLoginWithInactiveProviderDoesNotWork() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/");
         Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
@@ -299,7 +299,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulLoginWithOIDCProviderWithExternalGroups() throws Exception {
+    public void successfulLoginWithOIDCProviderWithExternalGroups() {
 
         validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
@@ -311,7 +311,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulLoginWithOIDCProviderAndClientAuthInBody() throws Exception {
+    public void successfulLoginWithOIDCProviderAndClientAuthInBody() {
         identityProvider.getConfig().setClientAuthInBody(true);
         assertTrue(identityProvider.getConfig().isClientAuthInBody());
         updateProvider();
@@ -320,7 +320,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulLoginWithOIDCProviderSetsLastLogin() throws Exception {
+    public void successfulLoginWithOIDCProviderSetsLastLogin() {
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
         doLogout(zoneUrl);
         login(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
@@ -353,7 +353,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void testShadowUserNameDefaultsToOIDCSubjectClaim() throws Exception {
+    public void testShadowUserNameDefaultsToOIDCSubjectClaim() {
         Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
         identityProvider.getConfig().setAttributeMappings(attributeMappings);
@@ -481,7 +481,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void testResponseTypeRequired() throws Exception {
+    public void testResponseTypeRequired() {
         BaseClientDetails uaaClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", baseUrl);
         uaaClient.setClientSecret("secret");
         uaaClient.setAutoApproveScopes(Collections.singleton("true"));

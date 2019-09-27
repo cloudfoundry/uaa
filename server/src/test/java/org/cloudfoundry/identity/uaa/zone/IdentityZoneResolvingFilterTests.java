@@ -118,7 +118,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain() {
             @Override
-            public void doFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
+            public void doFilter(ServletRequest request, ServletResponse response) {
                 assertNotNull(IdentityZoneHolder.get());
                 assertEquals(expectedSubdomain, IdentityZoneHolder.get().getSubdomain());
                 wasFilterExecuted = true;
@@ -156,21 +156,21 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setDefaultZoneHostnamesWithNull() throws Exception {
+    public void setDefaultZoneHostnamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(null);
         assertTrue(filter.getDefaultZoneHostnames().isEmpty());
     }
 
     @Test
-    public void setAdditionalZoneHostnamesWithNull() throws Exception {
+    public void setAdditionalZoneHostnamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setAdditionalInternalHostnames(null);
         assertTrue(filter.getDefaultZoneHostnames().isEmpty());
     }
 
     @Test
-    public void setRestoreZoneHostnamesWithNull() throws Exception {
+    public void setRestoreZoneHostnamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.restoreDefaultHostnames(null);
@@ -178,7 +178,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setDefaultZoneHostnames() throws Exception {
+    public void setDefaultZoneHostnames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));
@@ -188,7 +188,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setAdditionalZoneHostnames() throws Exception {
+    public void setAdditionalZoneHostnames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setAdditionalInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.setAdditionalInternalHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));
@@ -198,7 +198,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setRestoreZoneHostnames() throws Exception {
+    public void setRestoreZoneHostnames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.restoreDefaultHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));

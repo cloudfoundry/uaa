@@ -64,7 +64,7 @@ public class ImplicitTokenGrantIntegrationTests {
     }
 
     @Test
-    public void authzViaJsonEndpointFailsWithHttpGet() throws Exception {
+    public void authzViaJsonEndpointFailsWithHttpGet() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -80,7 +80,7 @@ public class ImplicitTokenGrantIntegrationTests {
     }
 
     @Test
-    public void authzViaJsonEndpointSucceedsWithCorrectCredentials() throws Exception {
+    public void authzViaJsonEndpointSucceedsWithCorrectCredentials() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -99,7 +99,7 @@ public class ImplicitTokenGrantIntegrationTests {
     }
 
     @Test
-    public void authzViaJsonEndpointSucceedsWithAcceptForm() throws Exception {
+    public void authzViaJsonEndpointSucceedsWithAcceptForm() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_FORM_URLENCODED));
@@ -119,7 +119,7 @@ public class ImplicitTokenGrantIntegrationTests {
     }
 
     @Test
-    public void authzWithIntermediateFormLoginSucceeds() throws Exception {
+    public void authzWithIntermediateFormLoginSucceeds() {
 
         BasicCookieStore cookies = new BasicCookieStore();
 

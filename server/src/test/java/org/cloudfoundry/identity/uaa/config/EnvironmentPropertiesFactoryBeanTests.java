@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 public class EnvironmentPropertiesFactoryBeanTests {
 
     @Test
-    public void testDefaultProperties() throws Exception {
+    public void testDefaultProperties() {
         EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
         factory.setDefaultProperties(getProperties("foo=foo"));
         Properties properties = factory.getObject();
@@ -39,7 +39,7 @@ public class EnvironmentPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testNullProperties() throws Exception {
+    public void testNullProperties() {
         EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(new MapPropertySource("foo", Collections.singletonMap("foo", null)));

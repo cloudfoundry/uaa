@@ -362,7 +362,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void whenUserIdNotFound_throwsException() throws Exception {
+    void whenUserIdNotFound_throwsException() {
         when(mockUaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
 
         assertThrows(IdTokenCreationException.class,

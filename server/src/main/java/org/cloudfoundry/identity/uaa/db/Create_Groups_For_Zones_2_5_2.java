@@ -32,7 +32,7 @@ public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
     private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         String groupCreateSQL = "INSERT INTO groups (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 

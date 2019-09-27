@@ -38,7 +38,7 @@ public class PasswordCheckEndpointIntegrationTests {
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
     @Test
-    public void passwordPostSucceeds() throws Exception {
+    public void passwordPostSucceeds() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("password", "password1");
         HttpHeaders headers = new HttpHeaders();
@@ -53,7 +53,7 @@ public class PasswordCheckEndpointIntegrationTests {
     }
 
     @Test
-    public void passwordPostWithUserDataSucceeds() throws Exception {
+    public void passwordPostWithUserDataSucceeds() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("password", "joe@joesplace.blah");
         formData.add("userData", "joe,joe@joesplace.blah,joesdogsname");

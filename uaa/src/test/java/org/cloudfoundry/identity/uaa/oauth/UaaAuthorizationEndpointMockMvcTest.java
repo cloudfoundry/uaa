@@ -217,7 +217,7 @@ class UaaAuthorizationEndpointMockMvcTest {
         );
     }
 
-    private MockHttpServletRequestBuilder implicitGrantAuthorizeRequest(String redirectUri) throws UnsupportedEncodingException {
+    private MockHttpServletRequestBuilder implicitGrantAuthorizeRequest(String redirectUri) {
         return get("/oauth/authorize")
                 .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                 .param(RESPONSE_TYPE, "token")
@@ -227,7 +227,7 @@ class UaaAuthorizationEndpointMockMvcTest {
                 .session(session);
     }
 
-    private MockHttpServletRequestBuilder authCodeAuthorizeRequest(String redirectUri) throws UnsupportedEncodingException {
+    private MockHttpServletRequestBuilder authCodeAuthorizeRequest(String redirectUri) {
         return get("/oauth/authorize")
                 .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                 .param(RESPONSE_TYPE, "code")

@@ -52,7 +52,7 @@ public class RemoteAuthenticationEndpointTests {
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Test
-    public void remoteAuthenticationSucceedsWithCorrectCredentials() throws Exception {
+    public void remoteAuthenticationSucceedsWithCorrectCredentials() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), testAccounts.getPassword(), null);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -76,7 +76,7 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void remoteAuthenticationFailsWithIncorrectCredentials() throws Exception {
+    public void remoteAuthenticationFailsWithIncorrectCredentials() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), "wrong", null);
         assertNotSame(HttpStatus.OK, response.getStatusCode());

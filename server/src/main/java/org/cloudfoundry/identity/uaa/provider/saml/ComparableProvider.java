@@ -24,7 +24,7 @@ public interface ComparableProvider extends Comparable<ComparableProvider> {
     String getZoneId();
 
     XMLObject doGetMetadata() throws MetadataProviderException;
-    byte[] fetchMetadata() throws MetadataProviderException;
+    byte[] fetchMetadata();
 
     default String getEntityID() throws MetadataProviderException {
         fetchMetadata();

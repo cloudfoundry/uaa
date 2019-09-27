@@ -53,7 +53,7 @@ public class HealthzEndpoint {
 
     @RequestMapping("/healthz")
     @ResponseBody
-    public String getHealthz(HttpServletResponse response) throws Exception {
+    public String getHealthz(HttpServletResponse response) {
         if (stopping) {
             logger.debug("Received /healthz request during shutdown. Returning 'stopping'");
             response.setStatus(503);

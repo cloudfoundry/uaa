@@ -130,9 +130,9 @@ public abstract class AbstractLdapMockMvcTest {
         return mockMvc;
     }
 
-    protected abstract void ensureLdapServerIsRunning() throws Exception;
+    protected abstract void ensureLdapServerIsRunning();
 
-    protected abstract void stopLdapServer() throws Exception;
+    protected abstract void stopLdapServer();
 
     protected abstract String getLdapOrLdapSBaseUrl();
 
@@ -1208,7 +1208,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes() {
         String username = "marissa4";
         String password = "ldap4";
         String[] list = new String[]{
@@ -1221,7 +1221,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() {
 
         String username = "marissa5";
         String password = "ldap5";
@@ -1233,7 +1233,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() {
         String username = "marissa6";
         String password = "ldap6";
         String[] list = new String[]{

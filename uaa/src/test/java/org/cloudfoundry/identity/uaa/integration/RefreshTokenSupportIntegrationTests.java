@@ -56,7 +56,7 @@ public class RefreshTokenSupportIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Test
-    public void testTokenRefreshedCorrectFlow() throws Exception {
+    public void testTokenRefreshedCorrectFlow() {
         BasicCookieStore cookies = new BasicCookieStore();
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();

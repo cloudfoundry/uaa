@@ -84,7 +84,7 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponseForSamlRequestWithUnspecifiedNameID() throws MessageEncodingException, SAMLException,
+    public void testBuildResponseForSamlRequestWithUnspecifiedNameID() throws SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
@@ -110,7 +110,7 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponseForSamlRequestWithEmailAddressNameID() throws MessageEncodingException, SAMLException,
+    public void testBuildResponseForSamlRequestWithEmailAddressNameID() throws SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
@@ -136,7 +136,7 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponse() throws MessageEncodingException, SAMLException, MetadataProviderException,
+    public void testBuildResponse() throws SAMLException, MetadataProviderException,
             SecurityException, MarshallingException, SignatureException {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
@@ -264,7 +264,7 @@ public class IdpWebSsoProfileImplTest {
     }
 
     @Test
-    public void testBuildResponseWithSignedAssertion() throws MessageEncodingException, SAMLException,
+    public void testBuildResponseWithSignedAssertion() throws SAMLException,
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
         String authenticationId = UUID.randomUUID().toString();
         Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);

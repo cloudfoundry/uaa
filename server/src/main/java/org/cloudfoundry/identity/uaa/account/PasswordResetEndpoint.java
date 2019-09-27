@@ -73,7 +73,7 @@ public class PasswordResetEndpoint {
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
                                                                @RequestParam(required = false, value = "client_id") String clientId,
-                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) throws IOException {
+                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
         if (clientId == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication instanceof OAuth2Authentication) {

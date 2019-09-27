@@ -73,7 +73,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     private UaaPrincipal principal = new UaaPrincipal("userid","username","username@test.org", OriginKeys.UAA, null, IdentityZone.getUaaZoneId());
 
     @Before
-    public void createTokenStore() throws Exception {
+    public void createTokenStore() {
         jdbcTemplate.update("delete from oauth_code");
 
         List<GrantedAuthority> userAuthorities = Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority(
@@ -104,7 +104,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_deserialization_of_uaa_authentication() throws Exception {
+    public void test_deserialization_of_uaa_authentication() {
         UaaAuthentication modifiedAuthentication = (UaaAuthentication) uaaAuthentication.getUserAuthentication();
         MultiValueMap<String,String> userAttributes = new LinkedMultiValueMap<>();
         userAttributes.put("atest", Arrays.asList("test1","test2","test3"));
@@ -132,7 +132,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_ConsumeClientCredentials_From_OldStore() throws  Exception {
+    public void test_ConsumeClientCredentials_From_OldStore() {
         String code = legacyCodeServices.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         OAuth2Authentication authentication = store.consumeAuthorizationCode(code);
@@ -142,35 +142,35 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testStoreToken_ClientCredentials() throws Exception {
+    public void testStoreToken_ClientCredentials() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void testStoreToken_PasswordGrant_UsernamePasswordAuthentication() throws Exception {
+    public void testStoreToken_PasswordGrant_UsernamePasswordAuthentication() {
         String code = store.createAuthorizationCode(usernamePasswordAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void testStoreToken_PasswordGrant_UaaAuthentication() throws Exception {
+    public void testStoreToken_PasswordGrant_UaaAuthentication() {
         String code = store.createAuthorizationCode(uaaAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void deserialize_from_old_format() throws Exception {
+    public void deserialize_from_old_format() {
         OAuth2Authentication authentication = store.deserializeOauth2Authentication(UAA_AUTHENTICATION_DATA_OLD_STYLE);
         assertNotNull(authentication);
         assertEquals(principal, authentication.getUserAuthentication().getPrincipal());
     }
 
     @Test
-    public void testRetrieveToken() throws Exception {
+    public void testRetrieveToken() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         OAuth2Authentication authentication = store.consumeAuthorizationCode(code);
@@ -191,7 +191,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void testRetrieve_Expired_Token() throws Exception {
+    public void testRetrieve_Expired_Token() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         jdbcTemplate.update("update oauth_code set expiresat = 1");
@@ -199,14 +199,14 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void testRetrieve_Non_Existent_Token() throws Exception {
+    public void testRetrieve_Non_Existent_Token() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[] {code}, Integer.class), is(1));
         store.consumeAuthorizationCode("non-existent");
     }
 
     @Test
-    public void testCleanUpExpiredTokensBasedOnExpiresField() throws Exception {
+    public void testCleanUpExpiredTokensBasedOnExpiresField() {
         int count = 10;
         String lastCode = null;
         for (int i=0; i<count; i++) {
@@ -226,7 +226,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testCleanUpLegacyCodes_Codes_Without_ExpiresAt_After_3_Days() throws Exception {
+    public void testCleanUpLegacyCodes_Codes_Without_ExpiresAt_After_3_Days() {
         int count = 10;
         long oneday = 1000 * 60 * 60 * 24;
         for (int i=0; i<count; i++) {

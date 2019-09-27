@@ -175,7 +175,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(scimUserEndpoints, "ScimUserEndpoints must be set");
     }
 }

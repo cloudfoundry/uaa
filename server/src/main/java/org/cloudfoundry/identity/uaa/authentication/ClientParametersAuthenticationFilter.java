@@ -34,7 +34,7 @@ import java.util.Map;
 public class ClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
 
     @Override
-    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
+    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
         if (!StringUtils.hasText(req.getHeader("Authorization"))  && isUrlEncodedForm(req)) {
             doClientCredentialLogin(req, loginInfo, clientId);
         }

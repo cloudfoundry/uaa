@@ -89,7 +89,7 @@ public class UaaTokenEndpointTests {
     }
 
     @Test
-    public void setAllowedRequestMethods() throws Exception {
+    public void setAllowedRequestMethods() {
         Set<HttpMethod> methods = (Set<HttpMethod>) ReflectionTestUtils.getField(endpoint, "allowedRequestMethods");
         assertNotNull(methods);
         assertEquals(2, methods.size());

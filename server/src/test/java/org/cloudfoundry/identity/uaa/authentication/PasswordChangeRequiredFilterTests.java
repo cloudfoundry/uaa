@@ -45,7 +45,7 @@ public class PasswordChangeRequiredFilterTests {
     private FilterChain chain;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         authentication = new UaaAuthentication(
             new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
             emptyList(),
@@ -63,7 +63,7 @@ public class PasswordChangeRequiredFilterTests {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }

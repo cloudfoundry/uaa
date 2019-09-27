@@ -50,7 +50,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     }
 
     @BeforeAll
-    static void beforeAll() throws Exception {
+    static void beforeAll() {
         ldapContainer = InMemoryLdapServer.startLdap(ldapPort);
     }
 
@@ -60,7 +60,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected void ensureLdapServerIsRunning() throws Exception {
+    protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
             ldapContainer = InMemoryLdapServer.startLdap(ldapPort);
         }
@@ -93,7 +93,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     }
 
     @BeforeAll
-    static void beforeAll() throws Exception {
+    static void beforeAll() {
         ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
     }
 
@@ -103,7 +103,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected void ensureLdapServerIsRunning() throws Exception {
+    protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
             ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
         }
@@ -136,7 +136,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     }
 
     @BeforeAll
-    static void beforeAll() throws Exception {
+    static void beforeAll() {
         ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
     }
 
@@ -146,7 +146,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected void ensureLdapServerIsRunning() throws Exception {
+    protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
             ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
         }

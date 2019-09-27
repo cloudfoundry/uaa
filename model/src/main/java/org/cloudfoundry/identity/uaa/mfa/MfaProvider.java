@@ -174,7 +174,7 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public static class MfaProviderDeserializer extends JsonDeserializer<MfaProvider> {
 
         @Override
-        public MfaProvider deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        public MfaProvider deserialize(JsonParser p, DeserializationContext ctxt) {
             MfaProvider result =  new MfaProvider();
 
             JsonNode node = JsonUtils.readTree(p);

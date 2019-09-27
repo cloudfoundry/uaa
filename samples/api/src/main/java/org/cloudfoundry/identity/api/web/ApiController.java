@@ -71,7 +71,7 @@ public class ApiController {
     }
 
     @RequestMapping("/info")
-    public View info(Map<String, Object> model, Principal principal) throws Exception {
+    public View info(Map<String, Object> model, Principal principal) {
         model.put("loginUrl", loginUrl);
         model.put("uaaUrl", uaaUrl);
         if (principal != null) {

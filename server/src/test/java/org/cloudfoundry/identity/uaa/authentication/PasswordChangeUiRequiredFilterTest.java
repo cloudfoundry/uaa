@@ -62,7 +62,7 @@ public class PasswordChangeUiRequiredFilterTest {
 
 
     @Test
-    public void isIgnored() throws Exception {
+    public void isIgnored() {
         for (String s : Arrays.asList("/login/mfa", "/login/mfa/register", "/login/mfa/verify.do")) {
             request.setPathInfo(s);
             assertTrue("Is ignored:"+s, filter.isIgnored(request, response));

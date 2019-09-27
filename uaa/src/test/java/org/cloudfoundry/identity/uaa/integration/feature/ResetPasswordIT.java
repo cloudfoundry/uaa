@@ -106,18 +106,18 @@ public class ResetPasswordIT {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         webDriver.get(baseUrl + "/logout.do");
     }
 
     @Test
-    public void resettingAPasswordWithUsername() throws Exception {
+    public void resettingAPasswordWithUsername() {
         beginPasswordReset(username);
         finishPasswordReset(username, email);
     }
 
     @Test
-    public void resettingAPasswordWithPrimaryEmail() throws Exception {
+    public void resettingAPasswordWithPrimaryEmail() {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         beginPasswordReset(email);
@@ -126,7 +126,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_with_clientRedirect() throws Exception {
+    public void resetPassword_with_clientRedirect() {
         webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
@@ -200,7 +200,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resettingAPasswordForANonExistentUser() throws Exception {
+    public void resettingAPasswordForANonExistentUser() {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         beginPasswordReset("nonexistent_user");
@@ -209,7 +209,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resettingAPasswordWithInvalidPassword() throws Exception {
+    public void resettingAPasswordWithInvalidPassword() {
         // Go to Forgot Password page
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
@@ -223,7 +223,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void codesCanOnlyBeUsedOnce() throws Exception {
+    public void codesCanOnlyBeUsedOnce() {
         // Go to Forgot Password page
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
@@ -236,7 +236,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
+    public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() {
         String newPassword = new RandomValueStringGenerator(260).generate();
         beginPasswordReset(username);
 
@@ -250,7 +250,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() throws Exception {
+    public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() {
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
         webDriver.get(link);

@@ -90,7 +90,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     @RequestMapping(value = {"/register"}, method = RequestMethod.GET)
     public String generateQrUrl(Model model,
                                 @ModelAttribute("uaaMfaCredentials") UserGoogleMfaCredentials credentials)
-      throws NoSuchAlgorithmException, WriterException, IOException, UaaPrincipalIsNotInSession {
+      throws WriterException, IOException, UaaPrincipalIsNotInSession {
         UaaPrincipal uaaPrincipal = getSessionAuthPrincipal();
         MfaProvider provider = getMfaProvider();
         if (mfaCredentialsProvisioning.activeUserCredentialExists(uaaPrincipal.getId(), provider.getId())) {

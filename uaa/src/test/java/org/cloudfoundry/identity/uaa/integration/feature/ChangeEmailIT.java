@@ -94,7 +94,7 @@ public class ChangeEmailIT {
         assertThat(webDriver.findElement(By.cssSelector(".profile")).getText(), containsString(newEmail));
     }
 
-    public String testChangeEmail(boolean logout) throws Exception {
+    public String testChangeEmail(boolean logout) {
         signIn(userEmail, "secr3T");
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
@@ -131,7 +131,7 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmailWithClientRedirect() throws Exception{
+    public void testChangeEmailWithClientRedirect() {
         signIn(userEmail, "secr3T");
 
         webDriver.get(baseUrl + "/change_email?client_id=app");

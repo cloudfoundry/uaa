@@ -78,7 +78,7 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrant() throws Exception {
+    public void testUserLoginViaPasswordGrant() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -97,7 +97,7 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaa() throws Exception {
+    public void testUserLoginViaPasswordGrantLoginHintUaa() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -195,7 +195,7 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantInvalidLoginHint() throws Exception {
+    public void testUserLoginViaPasswordGrantInvalidLoginHint() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));

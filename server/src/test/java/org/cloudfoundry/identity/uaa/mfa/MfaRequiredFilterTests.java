@@ -54,7 +54,7 @@ public class MfaRequiredFilterTests {
     private FilterChain chain;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         authentication = new UaaAuthentication(
             new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
             emptyList(),
@@ -75,7 +75,7 @@ public class MfaRequiredFilterTests {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
@@ -88,19 +88,19 @@ public class MfaRequiredFilterTests {
     }
 
     @Test
-    public void authentication_missing() throws Exception {
+    public void authentication_missing() {
         SecurityContextHolder.clearContext();
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 
     @Test
-    public void anonymous_authentication() throws Exception {
+    public void anonymous_authentication() {
         SecurityContextHolder.getContext().setAuthentication(mock(AnonymousAuthenticationToken.class));
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 
     @Test
-    public void unknown_authentication() throws Exception {
+    public void unknown_authentication() {
         SecurityContextHolder.getContext().setAuthentication(mock(UsernamePasswordAuthenticationToken.class));
         assertFalse(filter.isMfaRequiredAndMissing());
     }
@@ -114,7 +114,7 @@ public class MfaRequiredFilterTests {
     }
 
     @Test
-    public void mfa_not_enabled() throws Exception {
+    public void mfa_not_enabled() {
         when(mfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(false);
         assertFalse(filter.isMfaRequiredAndMissing());
     }

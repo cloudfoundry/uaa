@@ -63,7 +63,7 @@ public class LdapLoginIT {
     private Optional<String> alertError = Optional.empty();
 
     @BeforeClass
-    public static void startLocalLdap() throws Exception {
+    public static void startLocalLdap() {
         server = InMemoryLdapServer.startLdap(33389);
     }
 
@@ -73,7 +73,7 @@ public class LdapLoginIT {
     }
 
     @Before
-    public void clearWebDriverOfCookies() throws Exception {
+    public void clearWebDriverOfCookies() {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
         assertTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 

@@ -166,8 +166,6 @@ public class SamlServiceProviderConfigurator {
             metadata = fixedHttpMetaDataProvider.fetchMetadata(def.getMetaDataLocation(), def.isSkipSslValidation());
         } catch (RestClientException e) {
             throw new MetadataProviderException("Unavailable Metadata Provider", e);
-        } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }
         def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
         return configureXMLMetadata(provider);

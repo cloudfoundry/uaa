@@ -74,17 +74,17 @@ public class ScimUserEndpointsIntegrationTests {
     private List<ScimUser> scimUsers;
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
         client = (RestTemplate)serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
@@ -124,7 +124,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void createUserSucceeds() throws Exception {
+    public void createUserSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe1 = response.getBody();
         assertEquals(JOE, joe1.getUserName());
@@ -141,7 +141,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void createUserSucceedsWithVerifiedIsFalse() throws Exception {
+    public void createUserSucceedsWithVerifiedIsFalse() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", false);
         ScimUser joe1 = response.getBody();
         assertEquals(JOE, joe1.getUserName());
@@ -158,7 +158,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void verifyUser() throws Exception {
+    public void verifyUser() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", false);
         ScimUser joe1 = response.getBody();
         assertEquals(JOE, joe1.getUserName());
@@ -178,7 +178,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void verifyUserNotFound() throws Exception {
+    public void verifyUserNotFound() {
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}/verify"),
             HttpMethod.GET,
@@ -193,7 +193,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void createUserWithNoEmailFails() throws Exception {
+    public void createUserWithNoEmailFails() {
         ScimUser user = new ScimUser();
         user.setPassword("password");
         user.setUserName("dave");
@@ -210,7 +210,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void getUserHasEtag() throws Exception {
+    public void getUserHasEtag() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = response.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -226,7 +226,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void updateUserSucceeds() throws Exception {
+    public void updateUserSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = response.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -245,7 +245,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void updateUserNameSucceeds() throws Exception {
+    public void updateUserNameSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = response.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -265,7 +265,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void updateUserWithBadAttributeFails() throws Exception {
+    public void updateUserWithBadAttributeFails() {
 
         ResponseEntity<ScimUser> created = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = created.getBody();
@@ -284,7 +284,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
-    public void testJsonCaseInsensitivity() throws Exception {
+    public void testJsonCaseInsensitivity() {
 
         ResponseEntity<ScimUser> created = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = created.getBody();
@@ -302,7 +302,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void updateUserWithNewAuthoritiesSucceeds() throws Exception {
+    public void updateUserWithNewAuthoritiesSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         ScimUser joe = response.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -347,7 +347,7 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void createUserTwiceFails() throws Exception {
+    public void createUserTwiceFails() {
         ScimUser user = new ScimUser();
         user.setPassword("password");
         user.setUserName(JOEL);
@@ -369,7 +369,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void createUserWithJustACaseChangeFails() throws Exception {
+    public void createUserWithJustACaseChangeFails() {
         String userName = JOEL;
         String userNameDifferenceCase = userName.toUpperCase();
 
@@ -403,7 +403,7 @@ public class ScimUserEndpointsIntegrationTests {
     // -X DELETE
     // -H "If-Match: 0" http://localhost:8080/uaa/User/joel
     @Test
-    public void deleteUserWithWrongIdFails() throws Exception {
+    public void deleteUserWithWrongIdFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = deleteUser("9999", 0);
         @SuppressWarnings("unchecked")
@@ -417,7 +417,7 @@ public class ScimUserEndpointsIntegrationTests {
     // -X DELETE
     // http://localhost:8080/uaa/User/joel
     @Test
-    public void deleteUserWithNoEtagSucceeds() throws Exception {
+    public void deleteUserWithNoEtagSucceeds() {
         ScimUser deleteMe = createUser(DELETE_ME, "Delete", "Me", "deleteme@blah.com").getBody();
 
         @SuppressWarnings("rawtypes")
@@ -427,7 +427,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void getReturnsNotFoundForNonExistentUser() throws Exception {
+    public void getReturnsNotFoundForNonExistentUser() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.GET,
             new HttpEntity<Void>((Void) null), Map.class, "9999");
@@ -439,7 +439,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void findUsers() throws Exception {
+    public void findUsers() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 
@@ -461,7 +461,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     @Test
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void findUsersWithAttributes() throws Exception {
+    public void findUsersWithAttributes() {
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -475,7 +475,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void findUsersWithSortBy() throws Exception {
+    public void findUsersWithSortBy() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?sortBy=emails.value", Map.class);
         @SuppressWarnings("unchecked")
@@ -485,7 +485,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void findUsersWithPagination() throws Exception {
+    public void findUsersWithPagination() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=2&count=3", Map.class);
         @SuppressWarnings("unchecked")
@@ -508,7 +508,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     @Test
-    public void findUsersWithExtremePagination() throws Exception {
+    public void findUsersWithExtremePagination() {
         for (int i = 0; i < 501; i++) {
             ResponseEntity<ScimUser> scimUserResponseEntity = createUser(
                 new RandomValueStringGenerator().generate().toLowerCase(),

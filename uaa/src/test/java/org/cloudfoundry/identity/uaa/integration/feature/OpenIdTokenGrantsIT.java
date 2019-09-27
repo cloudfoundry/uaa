@@ -96,7 +96,7 @@ public class OpenIdTokenGrantsIT {
     private String[] openid = new String[] {"openid"};
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
@@ -175,7 +175,7 @@ public class OpenIdTokenGrantsIT {
         validateToken("id_token", params.toSingleValueMap(), openid, new String[] {"cf"});
     }
 
-    private void validateToken(String paramName, Map params, String[] scopes, String[] aud) throws java.io.IOException {
+    private void validateToken(String paramName, Map params, String[] scopes, String[] aud) {
         Jwt access_token = JwtHelper.decode((String)params.get(paramName));
 
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
@@ -251,7 +251,7 @@ public class OpenIdTokenGrantsIT {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
     }
 
-    private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) {
 
         BasicCookieStore cookies = new BasicCookieStore();
 

@@ -86,7 +86,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testParseMfaProviders() throws Exception {
+    public void testParseMfaProviders() {
         bootstrap.setMfaProviders(sampleData);
         assertThat(bootstrap.getMfaProviders(),  containsInAnyOrder(expectedGoogleProviders.toArray()));
     }

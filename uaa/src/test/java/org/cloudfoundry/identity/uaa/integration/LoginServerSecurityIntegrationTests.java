@@ -102,12 +102,12 @@ public class LoginServerSecurityIntegrationTests {
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
@@ -159,7 +159,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateReturnsUserID() throws Exception {
+    public void testAuthenticateReturnsUserID() {
         params.set("username", JOE);
         params.set("password", "Passwo3d");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -171,7 +171,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateMarissaReturnsUserID() throws Exception {
+    public void testAuthenticateMarissaReturnsUserID() {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -183,7 +183,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateMarissaFails() throws Exception {
+    public void testAuthenticateMarissaFails() {
         params.set("username", testAccounts.getUserName());
         params.set("password", "");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -191,7 +191,7 @@ public class LoginServerSecurityIntegrationTests {
     }
 
     @Test
-    public void testAuthenticateDoesNotReturnsUserID() throws Exception {
+    public void testAuthenticateDoesNotReturnsUserID() {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -203,7 +203,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserForCf() throws Exception {
+    public void testLoginServerCanAuthenticateUserForCf() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
         params.set("username", userForLoginServer.getUserName());
@@ -222,7 +222,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserForAuthorizationCode() throws Exception {
+    public void testLoginServerCanAuthenticateUserForAuthorizationCode() {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
         params.set("username", userForLoginServer.getUserName());
@@ -238,7 +238,7 @@ public class LoginServerSecurityIntegrationTests {
     }
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() throws Exception {
+    public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
         params.set("user_id", userForLoginServer.getId());
@@ -255,7 +255,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testMissingUserInfoIsError() throws Exception {
+    public void testMissingUserInfoIsError() {
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
         params.remove("username");
         @SuppressWarnings("rawtypes")
@@ -268,7 +268,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testMissingUsernameIsError() throws Exception {
+    public void testMissingUsernameIsError() {
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
@@ -285,7 +285,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testWrongUsernameIsErrorAddNewEnabled() throws Exception {
+    public void testWrongUsernameIsErrorAddNewEnabled() {
 
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
@@ -308,7 +308,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testWrongUsernameIsErrorAddNewDisabled() throws Exception {
+    public void testWrongUsernameIsErrorAddNewDisabled() {
 
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
@@ -331,7 +331,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAddNewUserWithWrongEmailFormat() throws Exception {
+    public void testAddNewUserWithWrongEmailFormat() {
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
@@ -355,7 +355,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCfPasswordToken() throws Exception {
+    public void testLoginServerCfPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -380,7 +380,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerWithoutBearerToken() throws Exception {
+    public void testLoginServerWithoutBearerToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -401,7 +401,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCfInvalidClientPasswordToken() throws Exception {
+    public void testLoginServerCfInvalidClientPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -423,7 +423,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(AppClient.class)
-    public void testLoginServerCfInvalidClientToken() throws Exception {
+    public void testLoginServerCfInvalidClientToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);

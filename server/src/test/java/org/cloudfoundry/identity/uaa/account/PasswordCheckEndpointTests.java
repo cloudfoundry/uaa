@@ -26,7 +26,7 @@ import static junit.framework.Assert.assertEquals;
 public class PasswordCheckEndpointTests {
 
     @Test
-    public void checkReturnsExpectedScore() throws Exception {
+    public void checkReturnsExpectedScore() {
         PasswordCheckEndpoint pc = new PasswordCheckEndpoint();
         MockHttpServletResponse response = new MockHttpServletResponse();
         PasswordScore score = pc.passwordScore("password1", "", response);

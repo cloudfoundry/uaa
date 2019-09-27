@@ -32,7 +32,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     private Authentication authentication = mock(Authentication.class);
 
     @Before
-    public void createDatasource() throws Exception {
+    public void createDatasource() {
         db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate);
         cleanUp();
     }
@@ -56,7 +56,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testCreateAndUpdateSamlServiceProviderInDefaultZone() throws Exception {
+    public void testCreateAndUpdateSamlServiceProviderInDefaultZone() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
 
@@ -105,7 +105,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testCreateSamlServiceProviderInOtherZone() throws Exception {
+    public void testCreateSamlServiceProviderInOtherZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
 
@@ -125,7 +125,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
-    public void testGetSamlServiceProviderForWrongZone() throws Exception {
+    public void testGetSamlServiceProviderForWrongZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
 
@@ -138,7 +138,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
-    public void testUpdateSamlServiceProviderInWrongZone() throws Exception {
+    public void testUpdateSamlServiceProviderInWrongZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
 
@@ -170,7 +170,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test(expected = SamlSpAlreadyExistsException.class)
-    public void testCreateSamlServiceProviderWithSameEntityIdInDefaultZone() throws Exception {
+    public void testCreateSamlServiceProviderWithSameEntityIdInDefaultZone() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
@@ -179,7 +179,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test(expected = SamlSpAlreadyExistsException.class)
-    public void testCreateSamlServiceProviderWithSameEntityIdInOtherZone() throws Exception {
+    public void testCreateSamlServiceProviderWithSameEntityIdInOtherZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
         IdentityZoneHolder.set(zone);
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
@@ -188,7 +188,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testCreateSamlServiceProviderWithSameEntityIdInDifferentZones() throws Exception {
+    public void testCreateSamlServiceProviderWithSameEntityIdInDifferentZones() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);

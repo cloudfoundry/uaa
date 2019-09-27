@@ -76,7 +76,7 @@ public class ScimUserBootstrap implements
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         List<UaaUser> users = new LinkedList<>(ofNullable(this.users).orElse(emptyList()));
         List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
         users.removeIf(u -> deleteMe.contains(u.getUsername()));

@@ -43,7 +43,7 @@ public class IdentityZoneNotAvailableIT {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         String[] scope = {"uaa.admin"};
         String baseUrl = "http://localhost:8080/uaa";
         ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, scope, "admin", "adminsecret");

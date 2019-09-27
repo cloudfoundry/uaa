@@ -80,7 +80,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public void setProviders(List<MetadataProvider> newProviders) throws MetadataProviderException {
+    public void setProviders(List<MetadataProvider> newProviders) {
     }
 
     @Override
@@ -88,7 +88,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
+    public void addMetadataProvider(MetadataProvider newProvider) {
     }
 
     @Override

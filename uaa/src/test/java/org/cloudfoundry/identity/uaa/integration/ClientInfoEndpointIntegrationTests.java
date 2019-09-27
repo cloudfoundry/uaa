@@ -44,7 +44,7 @@ public class ClientInfoEndpointIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Test
-    public void testGetClientInfo() throws Exception {
+    public void testGetClientInfo() {
 
         HttpHeaders headers = new HttpHeaders();
         AuthorizationCodeResourceDetails app = testAccounts.getDefaultAuthorizationCodeResource();
@@ -59,7 +59,7 @@ public class ClientInfoEndpointIntegrationTests {
     }
 
     @Test
-    public void testImplicitClientInfo() throws Exception {
+    public void testImplicitClientInfo() {
 
         HttpHeaders headers = new HttpHeaders();
         ImplicitResourceDetails app = testAccounts.getDefaultImplicitResource();
@@ -74,7 +74,7 @@ public class ClientInfoEndpointIntegrationTests {
     }
 
     @Test
-    public void testUnauthenticated() throws Exception {
+    public void testUnauthenticated() {
 
         HttpHeaders headers = new HttpHeaders();
         ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();

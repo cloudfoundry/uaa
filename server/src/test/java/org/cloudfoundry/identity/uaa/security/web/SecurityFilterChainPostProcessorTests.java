@@ -24,7 +24,7 @@ public class SecurityFilterChainPostProcessorTests {
     private int count;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         List<Filter> filters = new LinkedList<>();
         filters.add(new TestFilter1());
         filters.add(new TestFilter2());
@@ -35,7 +35,7 @@ public class SecurityFilterChainPostProcessorTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
 
     }
 
@@ -51,21 +51,21 @@ public class SecurityFilterChainPostProcessorTests {
     }
 
     @Test
-    public void testPosition0Filter() throws Exception {
+    public void testPosition0Filter() {
         testPositionFilter(0);
     }
 
     @Test
-    public void testPosition1Filter() throws Exception {
+    public void testPosition1Filter() {
         testPositionFilter(1);
     }
 
     @Test
-    public void testPositionLastFilter() throws Exception {
+    public void testPositionLastFilter() {
         testPositionFilter(Integer.MAX_VALUE);
     }
 
-    private void testClassPlacementFilter(Class<?> clazz, int expectedPosition) throws Exception {
+    private void testClassPlacementFilter(Class<?> clazz, int expectedPosition) {
         processor.setAdditionalFilters(additionalFilters);
         processor.postProcessAfterInitialization(fc, "");
         assertEquals(count+1, fc.getFilters().size());

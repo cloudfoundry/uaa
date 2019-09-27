@@ -99,7 +99,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void minimalJsonMapsToUser() throws Exception {
+    public void minimalJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
                         "  \"userName\": \"bjensen@example.com\"\n" +
                         "}";
@@ -110,7 +110,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void passwordJsonMapsToUser() throws Exception {
+    public void passwordJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
                         "  \"userName\": \"bjensen@example.com\",\n" +
                         "  \"password\": \"foo\"\n" +
@@ -155,7 +155,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void userWithGroupsMapsToJson() throws Exception {
+    public void userWithGroupsMapsToJson() {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
@@ -167,7 +167,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void emailsAreMappedCorrectly() throws Exception {
+    public void emailsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"emails\": [\n" +
                         "{\"value\": \"bj@jensen.org\",\"type\": \"other\"}," +
@@ -184,7 +184,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void groupsAreMappedCorrectly() throws Exception {
+    public void groupsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"groups\": [\n" +
                         "{\"value\": \"12345\",\"display\": \"uaa.admin\"}," +
@@ -196,7 +196,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void datesAreMappedCorrectly() throws Exception {
+    public void datesAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
@@ -290,7 +290,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testSpelFilter() throws Exception {
+    public void testSpelFilter() {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
@@ -304,7 +304,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testSetPrimaryEmail() throws Exception {
+    public void testSetPrimaryEmail() {
         ScimUser user = new ScimUser();
 
 
@@ -349,7 +349,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testGroupSettersGetters() throws Exception {
+    public void testGroupSettersGetters() {
         Group group = new Group("id", "display", Group.Type.DIRECT);
         group.setType(Group.Type.DIRECT);
         assertEquals(Group.Type.DIRECT, group.getType());
@@ -380,7 +380,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testName() throws Exception {
+    public void testName() {
         ScimUser.Name name1 = new ScimUser.Name();
         assertNull(name1.getFamilyName());
         assertNull(name1.getFormatted());
@@ -407,7 +407,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testEmail() throws Exception {
+    public void testEmail() {
         ScimUser.Email email1 = new ScimUser.Email();
         ScimUser.Email email2 = new ScimUser.Email();
         assertEquals(email1, email2);
@@ -440,7 +440,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testPhoneNumber() throws Exception {
+    public void testPhoneNumber() {
         ScimUser.PhoneNumber p1 = new ScimUser.PhoneNumber();
         assertNull(p1.getType());
         assertNull(p1.getValue());
@@ -461,7 +461,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testPasswordLastModified() throws Exception {
+    public void testPasswordLastModified() {
         ScimUser user = new ScimUser();
         assertNull(user.getPasswordLastModified());
         user.setId("someid");
@@ -475,7 +475,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void user_verified_byDefault() throws Exception {
+    public void user_verified_byDefault() {
         ScimUser user = new ScimUser();
         assertTrue(user.isVerified());
     }

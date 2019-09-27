@@ -36,7 +36,7 @@ public class DynamicPasswordComparator implements org.springframework.security.c
         throw new UnsupportedOperationException();
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         LdapSecurityConstants test = PasswordUtil.findAlgorithm("{sha}YaE1CJ6sVhov987e77A5db7QAPg=".getBytes());
         System.out.println(test);
     }

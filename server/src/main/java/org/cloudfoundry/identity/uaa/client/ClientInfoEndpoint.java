@@ -43,7 +43,7 @@ public class ClientInfoEndpoint implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
     }
 

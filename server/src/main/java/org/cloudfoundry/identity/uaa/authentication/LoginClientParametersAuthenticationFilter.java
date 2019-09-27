@@ -33,7 +33,7 @@ import java.util.Map;
 public class LoginClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
 
     @Override
-    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
+    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
         if (loginInfo.isEmpty()) {
             throw new BadCredentialsException("Request does not contain credentials.");
         } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {

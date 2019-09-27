@@ -107,17 +107,17 @@ public class ScimGroupEndpointsIntegrationTests {
     private List<ScimGroup> scimGroups;
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
         client = (RestTemplate) serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
 
@@ -214,7 +214,7 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    public void createGroupSucceeds() throws Exception {
+    public void createGroupSucceeds() {
         ScimGroup g1 = createGroup(CFID);
         // Check we can GET the group
         ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
@@ -449,7 +449,7 @@ public class ScimGroupEndpointsIntegrationTests {
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
-    private OAuth2AccessToken getClientCredentialsAccessToken(String scope) throws Exception {
+    private OAuth2AccessToken getClientCredentialsAccessToken(String scope) {
 
         String clientId = testAccounts.getAdminClientId();
         String clientSecret = testAccounts.getAdminClientSecret();

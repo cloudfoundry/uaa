@@ -180,7 +180,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
         Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
         Assert.state(clientDetailsValidator != null, "A ClientDetailsValidator must be provided");
@@ -188,7 +188,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
     @ResponseBody
-    public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
+    public ClientDetails getClientDetails(@PathVariable String client) {
         try {
             return removeSecret(clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId()));
         } catch (InvalidClientException e) {
@@ -203,7 +203,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+    public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
 
         return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
@@ -212,7 +212,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public List<String> getRestrictedClientScopes() throws Exception {
+    public List<String> getRestrictedClientScopes() {
         if (restrictedScopesValidator instanceof RestrictUaaScopesClientValidator) {
             return ((RestrictUaaScopesClientValidator)restrictedScopesValidator).getUaaScopes().getUaaScopes();
         } else {
@@ -233,7 +233,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
-    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }

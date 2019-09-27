@@ -109,18 +109,18 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
 
     @Test
-    public void findUsersWithExplicitFilterSucceeds() throws Exception {
+    public void findUsersWithExplicitFilterSucceeds() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq \"" + JOE + "\"",
                         Map.class);
@@ -131,7 +131,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitEmailFails() throws Exception {
+    public void findUsersExplicitEmailFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw \"joe\"",
                         Map.class);
@@ -142,7 +142,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitPresentFails() throws Exception {
+    public void findUsersExplicitPresentFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=pr userType", Map.class);
         @SuppressWarnings("unchecked")
@@ -152,7 +152,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitGroupFails() throws Exception {
+    public void findUsersExplicitGroupFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co \"foo\"",
                         Map.class);

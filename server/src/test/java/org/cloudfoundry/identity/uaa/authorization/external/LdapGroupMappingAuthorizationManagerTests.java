@@ -97,21 +97,21 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void testAllLdapGroups() throws Exception {
+    public void testAllLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(ldapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1,sa2));
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
     @Test
-    public void testAllNonLdapGroups() throws Exception {
+    public void testAllNonLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(nonLdapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1,sa2,sa3));
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
     @Test
-    public void testMixedGroups() throws Exception {
+    public void testMixedGroups() {
         Set<GrantedAuthority> mixed = new HashSet<>();
         mixed.add(sa1);
         mixed.add(sa3);

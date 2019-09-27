@@ -39,7 +39,7 @@ public class LoginInfoEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/info</code> endpoint
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/info", Map.class);
@@ -54,7 +54,7 @@ public class LoginInfoEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/login</code> endpoint
      */
     @Test
-    public void testHappyDayHtml() throws Exception {
+    public void testHappyDayHtml() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.TEXT_HTML));

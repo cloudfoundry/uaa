@@ -80,7 +80,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     private ScimUser user;
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
 
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"oauth.login"}, "login", "loginsecret");
@@ -89,12 +89,12 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         loginClient.setErrorHandler(new OAuth2ErrorHandler(clientCredentials) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
 
@@ -102,19 +102,19 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true).getBody();
     }
 
     @Test
-    public void testOpenIdTokenUsingLoginClientOauthTokenEndpoint() throws Exception {
+    public void testOpenIdTokenUsingLoginClientOauthTokenEndpoint() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -234,7 +234,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 
-    private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) {
 
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -341,7 +341,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         return code;
     }
 
-    private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.ALL));

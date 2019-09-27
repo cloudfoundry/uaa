@@ -67,7 +67,7 @@ class MfaUiRequiredFilterTests {
     private IdentityZone mfaEnabledZone;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         requestCache = mock(RequestCache.class);
         logoutMatcher = new AntPathRequestMatcher("/logout.do");
         filter = new MfaUiRequiredFilter("/login/mfa/**",

@@ -59,7 +59,7 @@ public class IdpSamlAuthenticationSuccessHandler implements AuthenticationSucces
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException, ServletException {
+            Authentication authentication) throws ServletException {
 
         SAMLMessageContext context = ((UaaAuthentication) authentication).getSamlMessageContext();
 

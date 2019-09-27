@@ -1118,7 +1118,7 @@ public class IntegrationTestUtils {
                                                   String clientId,
                                                   String clientSecret,
                                                   String username,
-                                                  String password) throws Exception {
+                                                  String password) {
 
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
                 .get("access_token");

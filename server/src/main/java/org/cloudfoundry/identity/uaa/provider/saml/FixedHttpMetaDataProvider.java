@@ -27,7 +27,7 @@ public class FixedHttpMetaDataProvider {
     private UrlContentCache cache;
 
 
-    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException, URISyntaxException {
+    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException {
         validateMetadataURL(metadataURL);
 
         if (isSkipSSLValidation) {

@@ -183,12 +183,12 @@ public class TotpMfaEndpointIntegrationTests {
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;
@@ -236,7 +236,7 @@ public class TotpMfaEndpointIntegrationTests {
     }
 
     @Test
-    public void checkAccessForTotpPage() throws Exception {
+    public void checkAccessForTotpPage() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl + "/login/mfa/register");

@@ -129,7 +129,7 @@ public class InvitationsControllerTest {
     ScimUserProvisioning scimUserProvisioning;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();

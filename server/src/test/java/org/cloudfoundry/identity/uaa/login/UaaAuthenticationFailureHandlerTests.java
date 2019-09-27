@@ -50,7 +50,7 @@ public class UaaAuthenticationFailureHandlerTests {
     private CurrentUserCookieFactory cookieFactory;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         failureHandler = new ExceptionMappingAuthenticationFailureHandler();
         Map<String, String> errorMap = new HashMap<>();
         errorMap.put("org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException", "/force_password_change");
@@ -80,7 +80,7 @@ public class UaaAuthenticationFailureHandlerTests {
     }
 
     @Test
-    public void logout() throws Exception {
+    public void logout() {
         uaaAuthenticationFailureHandler.logout(request, response, mock(Authentication.class));
         validateCookie();
     }

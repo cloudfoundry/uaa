@@ -19,7 +19,7 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
         return super.translate(e);
     }
 
-    private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) throws IOException {
+    private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) {
 
         int status = e.getHttpErrorCode();
         HttpHeaders headers = new HttpHeaders();

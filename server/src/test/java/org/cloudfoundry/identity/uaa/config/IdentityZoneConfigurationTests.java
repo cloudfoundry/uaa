@@ -58,7 +58,7 @@ public class IdentityZoneConfigurationTests {
     }
 
     @Test
-    public void default_user_groups_when_json_is_deserialized() throws Exception {
+    public void default_user_groups_when_json_is_deserialized() {
         definition.setUserConfig(null);
         String s = JsonUtils.writeValueAsString(definition);
         assertThat(s, not(containsString("userConfig")));

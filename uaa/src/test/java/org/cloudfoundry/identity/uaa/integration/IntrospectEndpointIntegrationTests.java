@@ -183,7 +183,7 @@ public class IntrospectEndpointIntegrationTests {
     }
 
     @Test
-    public void testForbidden() throws Exception {
+    public void testForbidden() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();

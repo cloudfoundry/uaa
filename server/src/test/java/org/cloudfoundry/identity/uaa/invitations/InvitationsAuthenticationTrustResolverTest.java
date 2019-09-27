@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 public class InvitationsAuthenticationTrustResolverTest {
 
     @Test
-    public void testIsAnonymous() throws Exception {
+    public void testIsAnonymous() {
         InvitationsAuthenticationTrustResolver resolver = new InvitationsAuthenticationTrustResolver();
         AnonymousAuthenticationToken invitedAuthenticationToken = new AnonymousAuthenticationToken("key", new Object(),
                 Collections.singletonList(UaaAuthority.UAA_INVITED));

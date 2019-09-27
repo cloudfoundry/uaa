@@ -70,7 +70,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private TokenTestSupport support;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
 
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -95,7 +95,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         ofNullable(support).ifPresent(TokenTestSupport::clear);

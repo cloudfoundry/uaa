@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 public class ClientDetailsModificationTests {
 
     @Test
-    public void testClientDetailsModificationDeserialize() throws Exception {
+    public void testClientDetailsModificationDeserialize() {
         String data = "{\"scope\":\n" +
             "        [\"bar\",\"foo\",\"oauth.approvals\"],\n" +
             "        \"client_id\":\"Kn30XB\",\n" +

@@ -44,7 +44,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void test_is_disabled() throws Exception {
+    public void test_is_disabled() {
         commonLoginPolicy = spy(new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, timeService, false));
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
         assertTrue(result.isAllowed());

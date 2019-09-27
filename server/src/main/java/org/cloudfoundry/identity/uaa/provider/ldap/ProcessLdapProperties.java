@@ -52,7 +52,7 @@ public class ProcessLdapProperties {
         this.tlsConfig = tlsConfig;
     }
 
-    public Map process(Map map) throws KeyManagementException, NoSuchAlgorithmException {
+    public Map process(Map map) {
         Map result = new LinkedHashMap(map);
         if (isDisableSslVerification()) {
             result.put(LDAP_SSL_SOCKET_FACTORY, SKIP_SSL_VERIFICATION_SOCKET_FACTORY);

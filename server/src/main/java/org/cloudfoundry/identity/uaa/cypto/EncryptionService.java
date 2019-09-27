@@ -78,7 +78,7 @@ public class EncryptionService {
         }
     }
 
-    private byte[] generateRandomArray(int sizeInBytes) throws NoSuchAlgorithmException {
+    private byte[] generateRandomArray(int sizeInBytes) {
         final byte[] randomArray = new byte[sizeInBytes];
         random.nextBytes(randomArray);
         return randomArray;

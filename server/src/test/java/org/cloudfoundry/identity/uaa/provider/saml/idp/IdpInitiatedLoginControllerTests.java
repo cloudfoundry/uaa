@@ -71,7 +71,7 @@ public class IdpInitiatedLoginControllerTests {
     private IdpWebSsoProfile webSsoProfile;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         controller = spy(new IdpInitiatedLoginController());
         configurator = mock(SamlServiceProviderConfigurator.class);
         controller.setConfigurator(configurator);
@@ -92,20 +92,20 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void missing_sp_parameter() throws Exception {
+    public void missing_sp_parameter() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Missing sp request parameter.");
         controller.initiate(null, request, response);
     }
 
     @Test
-    public void invalid_sp_parameter() throws Exception {
+    public void invalid_sp_parameter() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Invalid sp entity ID.");
         request.setParameter("sp", "invalid");
@@ -139,7 +139,7 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @Test
-    public void disabled_provider() throws Exception {
+    public void disabled_provider() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Service provider is disabled.");
         String entityID = "validEntityID";
