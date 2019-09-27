@@ -94,6 +94,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -274,8 +275,7 @@ public class LoginInfoEndpoint {
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
-        return Arrays.asList(ofNullable(cookies).orElse(new Cookie[]{}))
-                .stream()
+        return Arrays.stream(ofNullable(cookies).orElse(new Cookie[]{}))
                 .filter(c -> c.getName().startsWith("Saved-Account"))
                 .map(c -> {
                     try {
@@ -284,7 +284,7 @@ public class LoginInfoEndpoint {
                         return null;
                     }
                 })
-                .filter(c -> c != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -544,7 +544,7 @@ public class LoginInfoEndpoint {
                 ofNullable(session)
                         .flatMap(s -> ofNullable((SavedRequest) s.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE)))
                         .flatMap(sr -> ofNullable(sr.getParameterValues("login_hint")))
-                        .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst())
+                        .flatMap(lhValues -> Arrays.stream(lhValues).findFirst())
                         .orElse(request.getParameter("login_hint"));
 
         if (loginHintParam != null) {

@@ -55,7 +55,7 @@ public class XOAuthIdentityProviderConfigValidator extends BaseIdentityProviderV
 
 
         if (!errors.isEmpty()) {
-            String errorMessages = errors.stream().collect(Collectors.joining(","));
+            String errorMessages = String.join(",", errors);
             throw new IllegalArgumentException("Invalid config for Identity Provider " + errorMessages);
         }
     }

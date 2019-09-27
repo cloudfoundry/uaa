@@ -99,8 +99,8 @@ public class TokenPolicy {
     @JsonIgnore
     public void setKeys(Map<String, String> keys) {
         if (keys != null) {
-            keys.entrySet().stream().forEach(e -> {
-                if (!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
+            keys.forEach((key, value) -> {
+                if (!StringUtils.hasText(value) || !StringUtils.hasText(key)) {
                     throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
                 }
             });

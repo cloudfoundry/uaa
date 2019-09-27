@@ -339,7 +339,6 @@ class JdbcScimGroupProvisioningTests {
         dao.onApplicationEvent(event);
         List<String> groups = dao.retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
         ZoneManagementScopes.getSystemScopes()
-                .stream()
                 .forEach(scope ->
                         assertTrue(groups.contains(scope), "Scope:" + scope + " should have been bootstrapped into the new zone")
                 );

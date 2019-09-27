@@ -129,7 +129,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     }
 
     protected void removeTokenValues(List<RevocableToken> result) {
-        result.stream().forEach(t -> t.setValue(null));
+        result.forEach(t -> t.setValue(null));
     }
 
     @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)

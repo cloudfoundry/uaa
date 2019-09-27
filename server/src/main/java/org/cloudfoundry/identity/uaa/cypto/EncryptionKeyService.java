@@ -25,7 +25,7 @@ public class EncryptionKeyService {
         if (!keysWithoutPassphrase.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",
-                String.join(", ", keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.toList()))
+                      keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
               )
             );
         }
@@ -34,7 +34,7 @@ public class EncryptionKeyService {
         if (!invalidLengthKeys.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("The required length of the encryption passphrases for [%s] need to be at least 8 characters long.",
-                String.join(", ", invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.toList()))
+                      invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
               )
             );
         }
@@ -51,7 +51,7 @@ public class EncryptionKeyService {
         if (!duplicateKeyLabels.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[%s]",
-                String.join(", ", duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.toList()))
+                      duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.joining(", "))
               )
             );
         }

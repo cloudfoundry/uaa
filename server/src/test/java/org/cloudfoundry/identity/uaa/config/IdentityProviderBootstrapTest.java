@@ -340,7 +340,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         List<IdentityProviderWrapper> wrappers = new LinkedList<>();
         oauthProviderConfig
             .entrySet()
-            .stream()
             .forEach(
                 p -> {
                     IdentityProvider provider = new IdentityProvider();

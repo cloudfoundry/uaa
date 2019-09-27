@@ -186,7 +186,6 @@ public class BootstrapSamlIdentityProviderDataTests {
         bootstrap.afterPropertiesSet();
         testGetIdentityProviderDefinitions(4, false);
         bootstrap.getSamlProviders()
-            .stream()
             .forEach(p -> assertThat(p.isOverride(), is(true)));
     }
 

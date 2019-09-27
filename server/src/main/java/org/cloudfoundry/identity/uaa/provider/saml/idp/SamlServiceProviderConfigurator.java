@@ -112,7 +112,7 @@ public class SamlServiceProviderConfigurator {
           null != spSsoDescriptor.getNameIDFormats() &&
           !spSsoDescriptor.getNameIDFormats().isEmpty()) {
             // The SP explicitly states the NameID formats it supports, we should check that we support at least one.
-            if (!spSsoDescriptor.getNameIDFormats().stream().anyMatch(
+            if (spSsoDescriptor.getNameIDFormats().stream().noneMatch(
               format -> this.supportedNameIDs.contains(format.getFormat()))) {
                 throw new MetadataProviderException(
                   "UAA does not support any of the NameIDFormats specified in the metadata for entity: "

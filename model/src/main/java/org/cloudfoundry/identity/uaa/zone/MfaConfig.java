@@ -23,7 +23,7 @@ public class MfaConfig {
         return "MfaConfig: {" +
                 "enabled:" + enabled +
                 ", providerName:\"" + providerName + '\"' +
-                ", identityProviders:" + Arrays.toString(identityProviders.stream().toArray()) +
+                ", identityProviders:" + Arrays.toString(identityProviders.toArray()) +
                 '}';
     }
 

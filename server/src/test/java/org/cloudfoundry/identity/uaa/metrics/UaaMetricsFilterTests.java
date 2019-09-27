@@ -263,7 +263,7 @@ public class UaaMetricsFilterTests {
         map.add("/identity-zones","/identity-zones");
         map.add("/identity-zones","/identity-zones/some/value");
         map.add("/saml/login","/saml/login/value");
-        map.entrySet().stream().forEach(
+        map.entrySet().forEach(
             entry -> {
                 for (String s : entry.getValue()) {
                     setRequestData(s);

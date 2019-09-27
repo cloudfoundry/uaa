@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -94,7 +95,7 @@ public class SearchResultsFactory {
         Assert.state(input.size() <= count,
                         "Cannot build search results from parent list. Use subList before you call this method.");
 
-        Map<String, JsonPath> jsonPaths = asList(attributes).stream()
+        Map<String, JsonPath> jsonPaths = Arrays.stream(attributes)
             .collect(new MapCollector<>(attribute -> attribute, attribute -> {
                 String jsonPath = "$." + mapper.mapToInternal(attribute);
                 return JsonPath.compile(jsonPath);
