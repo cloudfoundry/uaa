@@ -10,18 +10,16 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.endpoints;
+package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint;
-import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
-import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
@@ -42,7 +40,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
