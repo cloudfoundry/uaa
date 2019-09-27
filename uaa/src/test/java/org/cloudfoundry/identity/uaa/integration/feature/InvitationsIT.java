@@ -183,7 +183,7 @@ public class InvitationsIT {
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         assertEquals(invitedUserId, currentUserId);
 
@@ -324,7 +324,7 @@ public class InvitationsIT {
         try {
             userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
             scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);

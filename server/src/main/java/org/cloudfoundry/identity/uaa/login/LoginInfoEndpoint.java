@@ -336,7 +336,7 @@ public class LoginInfoEndpoint {
             ldapIdentityProvider = providerProvisioning.retrieveByOrigin(
                     OriginKeys.LDAP, IdentityZoneHolder.get().getId()
             );
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException ignored) {
         }
         IdentityProvider uaaIdentityProvider =
                 providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
@@ -717,7 +717,7 @@ public class LoginInfoEndpoint {
             IdentityProvider providerForOrigin = null;
             try {
                 providerForOrigin = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            } catch (DataAccessException e) {
+            } catch (DataAccessException ignored) {
             }
             if (providerForOrigin != null) {
                 if (providerForOrigin.getConfig() instanceof OIDCIdentityProviderDefinition) {
@@ -782,7 +782,7 @@ public class LoginInfoEndpoint {
             String[] client_ids = savedRequest.getParameterValues("client_id");
             try {
                 clientDetails = clientDetailsService.loadClientByClientId(client_ids[0], IdentityZoneHolder.get().getId());
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException ignored) {
             }
         }
         if (StringUtils.hasText(loginHint)) {

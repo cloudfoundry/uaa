@@ -330,7 +330,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             try {
                 provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
                 fail(String.format("Provider '%s' should not exist.", provider.getKey()));
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException ignored) {
             }
 
         }

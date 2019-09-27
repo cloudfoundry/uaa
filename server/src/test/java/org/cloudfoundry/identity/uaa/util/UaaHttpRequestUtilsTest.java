@@ -137,7 +137,7 @@ public class UaaHttpRequestUtilsTest {
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url, String.class);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         assertEquals(1, routePlanner.routes.size());
         assertEquals(expectedHost, routePlanner.routes.get(0).getProxyHost().getHostName());

@@ -245,7 +245,7 @@ public class IdentityProviderBootstrap
     public IdentityProvider getProviderByOriginIgnoreActiveFlag(String origin, String zoneId) {
         try {
             return provisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
-        }catch (EmptyResultDataAccessException x){
+        }catch (EmptyResultDataAccessException ignored){
         }
         return null;
 

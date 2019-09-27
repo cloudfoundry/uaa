@@ -129,7 +129,7 @@ public class NotificationsServiceTest {
         try {
             notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
             fail();
-        } catch (HttpClientErrorException x) {
+        } catch (HttpClientErrorException ignored) {
         }
 
         mockNotificationsServer.verify();

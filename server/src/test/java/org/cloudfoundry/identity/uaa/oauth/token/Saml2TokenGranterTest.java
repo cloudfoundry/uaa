@@ -104,7 +104,7 @@ public class Saml2TokenGranterTest {
     @Before
     public void setup() {
         try { DefaultBootstrap.bootstrap();
-        } catch (ConfigurationException e) { }
+        } catch (ConfigurationException ignored) { }
         tokenServices = mock(AuthorizationServerTokenServices.class);
         clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -246,7 +246,7 @@ public class Saml2TokenGranterTest {
     EntityDescriptor getMetadata(String xml) {
        try {
            return (EntityDescriptor)unmarshallObject(xml);
-       } catch(Exception e) {
+       } catch(Exception ignored) {
        }
        return null;
     }
@@ -254,7 +254,7 @@ public class Saml2TokenGranterTest {
     Assertion getAssertion(String xml) {
         try {
             return (Assertion)unmarshallObject(xml);
-        } catch(Exception e) {
+        } catch(Exception ignored) {
         }
         return null;
     }
@@ -264,7 +264,7 @@ public class Saml2TokenGranterTest {
             AssertionMarshaller marshaller = new AssertionMarshaller();
             Element plaintextElement = marshaller.marshall(assertion);
             return XMLHelper.nodeToString(plaintextElement);
-        } catch(Exception e) {
+        } catch(Exception ignored) {
         }
         return null;
     }

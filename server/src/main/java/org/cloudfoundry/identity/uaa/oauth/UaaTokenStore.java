@@ -142,7 +142,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     template.update(SQL_DELETE_STATEMENT, code);
                 }
             }
-        }catch (EmptyResultDataAccessException x) {
+        }catch (EmptyResultDataAccessException ignored) {
         }
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }

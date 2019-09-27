@@ -228,7 +228,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
                 Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
                 ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
                 Assert.fail("Database is down, should not generate a code");
-            } catch (DataAccessException x) {
+            } catch (DataAccessException ignored) {
 
             }
         }

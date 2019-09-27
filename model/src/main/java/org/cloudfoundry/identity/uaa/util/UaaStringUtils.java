@@ -224,7 +224,7 @@ public class UaaStringUtils {
         try {
             URL uri = new URL(arg);
             return uri.getHost();
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException ignored) {
         }
         return arg;
     }

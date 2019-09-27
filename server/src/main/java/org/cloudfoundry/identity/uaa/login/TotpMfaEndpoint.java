@@ -235,7 +235,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
             if (user != null) {
                 return user;
             }
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException ignored) {
         }
         return null;
     }

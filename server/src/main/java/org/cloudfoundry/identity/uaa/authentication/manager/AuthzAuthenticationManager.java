@@ -170,7 +170,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             if (user!=null) {
                 return user;
             }
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException ignored) {
         }
         return null;
     }

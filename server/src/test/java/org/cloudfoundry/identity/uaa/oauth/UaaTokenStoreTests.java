@@ -219,7 +219,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         try {
             store.consumeAuthorizationCode(lastCode);
             fail();
-        } catch (InvalidGrantException e) {
+        } catch (InvalidGrantException ignored) {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
 
@@ -237,13 +237,13 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         try {
             store.consumeAuthorizationCode("non-existent");
             fail();
-        } catch (InvalidGrantException e) {}
+        } catch (InvalidGrantException ignored) {}
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
         try {
             store.consumeAuthorizationCode("non-existent");
             fail();
-        } catch (InvalidGrantException e) {}
+        } catch (InvalidGrantException ignored) {}
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 

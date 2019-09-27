@@ -135,7 +135,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             if (result!=null) {
                 return result;
             }
-        } catch (EmptyResultDataAccessException noLdapProviderFound) {
+        } catch (EmptyResultDataAccessException ignored) {
         }
         IdentityProvider provider = new IdentityProvider();
         provider.setOriginKey(origin);

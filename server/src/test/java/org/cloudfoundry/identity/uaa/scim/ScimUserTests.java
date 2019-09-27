@@ -454,7 +454,7 @@ public class ScimUserTests {
             p1.setType(null);
             user.addPhoneNumber(p1.getValue());
             fail();
-        }catch (IllegalArgumentException x) {
+        }catch (IllegalArgumentException ignored) {
 
         }
 
@@ -538,7 +538,7 @@ public class ScimUserTests {
         try {
             user.patch(patch);
             fail("username is a required field, can't nullify it.");
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ignored) {
         }
         assertNotNull(user.getUserName());
 

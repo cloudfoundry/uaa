@@ -178,7 +178,7 @@ public class SamlLoginIT {
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
                 IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
-            } catch(Exception e){}
+            } catch(Exception ignored){}
         }
     }
 
@@ -1353,12 +1353,12 @@ public class SamlLoginIT {
         try {
             webDriver.findElement(By.name("username"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {
+        } catch (NoSuchElementException ignored) {
         }
         try {
             webDriver.findElement(By.name("password"));
             fail("Element username should not be present");
-        } catch (NoSuchElementException x) {
+        } catch (NoSuchElementException ignored) {
         }
         webDriver.get(baseUrl + "/logout.do");
     }

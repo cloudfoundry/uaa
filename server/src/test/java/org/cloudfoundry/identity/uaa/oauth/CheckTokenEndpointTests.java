@@ -346,7 +346,7 @@ public class CheckTokenEndpointTests {
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
 
             fail("Token validation should fail");
-        } catch (InvalidTokenException ex) {
+        } catch (InvalidTokenException ignored) {
         }
     }
 

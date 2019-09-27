@@ -85,7 +85,7 @@ public class LdapIdentityProviderDefinitionTest {
             String tlsConfiguration = "other string";
             ldapIdentityProviderDefinition.setTlsConfiguration(tlsConfiguration);
             fail(tlsConfiguration + " is not a valid TLS configuration option.");
-        } catch (IllegalArgumentException x) {}
+        } catch (IllegalArgumentException ignored) {}
     }
 
     @Test

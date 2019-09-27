@@ -1669,7 +1669,7 @@ class IdentityZoneEndpointsMockMvcTests {
         try {
             externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId());
             fail("no external groups should be found");
-        } catch (ScimResourceNotFoundException e) {
+        } catch (ScimResourceNotFoundException ignored) {
         }
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class), is(0));
