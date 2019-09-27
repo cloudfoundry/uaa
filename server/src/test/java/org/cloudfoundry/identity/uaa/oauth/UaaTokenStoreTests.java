@@ -268,41 +268,42 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         Optional<String> dbProfile = Arrays.stream(environment.getActiveProfiles()).filter(s -> s.contains("sql")).findFirst();
         String db = dbProfile.orElse("hsqldb");
 
-        Connection con = dataSource.getConnection();
-        try {
+        try (Connection con = dataSource.getConnection()) {
             Connection dontClose = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
-                                                                       new Class[]{Connection.class},
-                                                                       new DontCloseConnection(con));
+                    new Class[]{Connection.class},
+                    new DontCloseConnection(con));
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(dontClose);
             JdbcTemplate template = new JdbcTemplate(sameConnectionDataSource);
             switch (db) {
-                case "mysql" :
+                case "mysql":
                     template.update("SET @@session.time_zone='-11:00'");
                     break;
-                case "postgresql" :
+                case "postgresql":
                     template.update("SET TIME ZONE -11");
                     break;
-                case "hsqldb" :
+                case "hsqldb":
                     template.update("SET TIME ZONE INTERVAL '-11:00' HOUR TO MINUTE");
                     break;
                 default:
-                    fail("Unknown DB profile:"+db);
+                    fail("Unknown DB profile:" + db);
             }
 
             store = new UaaTokenStore(sameConnectionDataSource);
             legacyCodeServices = new JdbcAuthorizationCodeServices(sameConnectionDataSource);
             int count = 10;
             String lastCode = null;
-            for (int i=0; i<count; i++) {
+            for (int i = 0; i < count; i++) {
                 lastCode = legacyCodeServices.createAuthorizationCode(clientAuthentication);
             }
 
             assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
-            try { store.consumeAuthorizationCode(lastCode); } catch (Exception ignore) {}
-            assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count-1));
+            try {
+                store.consumeAuthorizationCode(lastCode);
+            } catch (Exception ignore) {
+            }
+            assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count - 1));
         } finally {
-            con.close();
             store = new UaaTokenStore(dataSource);
             legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         }
@@ -310,8 +311,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
     @Test
     public void testCleanUpExpiredTokensDeadlockLoser() throws Exception {
-        Connection con = dataSource.getConnection();
-        try {
+        try (Connection con = dataSource.getConnection()) {
             Connection expirationLoser = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class[]{Connection.class},
                     new ExpirationLoserConnection(con));
@@ -320,12 +320,14 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
             store = new UaaTokenStore(sameConnectionDataSource, 1);
             int count = 10;
-            for (int i=0; i<count; i++) {
+            for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
-                try { store.consumeAuthorizationCode(code); } catch (InvalidGrantException e) {}
+                try {
+                    store.consumeAuthorizationCode(code);
+                } catch (InvalidGrantException ignored) {
+                }
             }
         } finally {
-            con.close();
             store = new UaaTokenStore(dataSource);
         }
     }

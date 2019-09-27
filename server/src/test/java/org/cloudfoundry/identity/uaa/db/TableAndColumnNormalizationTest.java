@@ -50,10 +50,9 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
 
     @Test
     public void checkTables() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet rs = metaData.getTables(null, null, null, new String[] { "TABLE" });
+            ResultSet rs = metaData.getTables(null, null, null, new String[]{"TABLE"});
             int count = 0;
             while (rs.next()) {
                 String name = rs.getString("TABLE_NAME");
@@ -68,18 +67,12 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
             }
             assertEquals("Table count:", DatabaseInformation1_5_3.tableNames.size(), count);
 
-        } finally {
-            try {
-                connection.close();
-            } catch (Exception ignore) {
-            }
         }
     }
 
     @Test
     public void checkColumns() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);
             boolean hadSomeResults = false;
@@ -94,11 +87,6 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                 }
             }
             assertTrue("Getting columns from db metadata should have returned some results", hadSomeResults);
-        } finally {
-            try {
-                connection.close();
-            } catch (Exception ignore) {
-            }
         }
     }
 }

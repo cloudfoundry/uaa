@@ -77,8 +77,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
 
     @Test
     public void validate_table() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             int foundColumn = 0;
@@ -89,7 +88,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
                 int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
                     String actualColumnType = rs.getString("TYPE_NAME");
-                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
+                    assertTrue("Testing column:" + rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
                     foundTable = true;
                     foundColumn++;
                 }
@@ -109,14 +108,12 @@ public class RevocableTokenTableTest extends JdbcTestBase {
                 String indexName = rs.getString("INDEX_NAME");
                 Short indexType = rs.getShort("TYPE");
                 if (shouldCompareIndex(indexName)) {
-                    assertTrue("Testing index: "+ indexName, testColumn(TEST_INDEX, indexName, "", indexType));
+                    assertTrue("Testing index: " + indexName, testColumn(TEST_INDEX, indexName, "", indexType));
                     indexCount++;
 
                 }
             } while (rs.next());
             assertEquals("One or more indices are missing", TEST_INDEX.size(), indexCount);
-        } finally{
-            connection.close();
         }
     }
 
