@@ -127,10 +127,7 @@ public class LoginInfoEndpoint {
     public static final String LINK_CREATE_ACCOUNT_SHOW = "linkCreateAccountShow";
     public static final String FIELD_USERNAME_SHOW = "fieldUsernameShow";
 
-    public static final List<String> UI_ONLY_ATTRIBUTES =
-            Collections.unmodifiableList(
-                    Arrays.asList(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW)
-            );
+    public static final List<String> UI_ONLY_ATTRIBUTES = List.of(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW);
     public static final String PASSCODE = "passcode";
     public static final String SHOW_LOGIN_LINKS = "showLoginLinks";
     public static final String LINKS = "links";

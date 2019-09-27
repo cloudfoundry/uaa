@@ -321,22 +321,22 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         if (authorizationRequest.getResponseTypes() != null) {
             authorizationRequestMap.put(OAuth2Utils.RESPONSE_TYPE,
-                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getResponseTypes())));
+                    Set.copyOf(authorizationRequest.getResponseTypes()));
         }
         if (authorizationRequest.getScope() != null) {
             authorizationRequestMap.put(OAuth2Utils.SCOPE,
-                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getScope())));
+                    Set.copyOf(authorizationRequest.getScope()));
         }
 
         authorizationRequestMap.put("approved", authorizationRequest.isApproved());
 
         if (authorizationRequest.getResourceIds() != null) {
             authorizationRequestMap.put("resourceIds",
-                    Collections.unmodifiableSet(new HashSet<>(authorizationRequest.getResourceIds())));
+                    Set.copyOf(authorizationRequest.getResourceIds()));
         }
         if (authorizationRequest.getAuthorities() != null) {
             authorizationRequestMap.put("authorities",
-                    Collections.unmodifiableSet(new HashSet<GrantedAuthority>(authorizationRequest.getAuthorities())));
+                    Set.<GrantedAuthority>copyOf(authorizationRequest.getAuthorities()));
         }
 
         return authorizationRequestMap;

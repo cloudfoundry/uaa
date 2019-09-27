@@ -47,10 +47,7 @@ public class AuthzAuthenticationRequest implements Authentication {
     public AuthzAuthenticationRequest(String username, String password, UaaAuthenticationDetails details) {
         Assert.hasText(username, "username cannot be empty");
         Assert.hasText(password, "password cannot be empty");
-        HashMap<String, String> info = new HashMap<String, String>();
-        info.put("username", username.trim());
-        info.put("password", password.trim());
-        this.info = Collections.unmodifiableMap(info);
+        this.info = Map.of("username", username.trim(), "password", password.trim());
         this.details = details;
     }
 

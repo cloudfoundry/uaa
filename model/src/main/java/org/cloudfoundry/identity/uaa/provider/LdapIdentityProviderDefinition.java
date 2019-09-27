@@ -68,57 +68,13 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String MAIL = "mail";
 
     public static final List<String> VALID_PROFILE_FILES =
-        Collections.unmodifiableList(
-            Arrays.asList(
-                "ldap/ldap-search-and-bind.xml",
-                "ldap/ldap-search-and-compare.xml",
-                "ldap/ldap-simple-bind.xml"
-            )
-        );
+            List.of("ldap/ldap-search-and-bind.xml", "ldap/ldap-search-and-compare.xml", "ldap/ldap-simple-bind.xml");
 
     public static final List<String> VALID_GROUP_FILES =
-        Collections.unmodifiableList(
-            Arrays.asList(
-                "ldap/ldap-groups-as-scopes.xml",
-                "ldap/ldap-groups-map-to-scopes.xml",
-                "ldap/ldap-groups-null.xml",
-                "ldap/ldap-groups-populator.xml"
-            )
-        );
+            List.of("ldap/ldap-groups-as-scopes.xml", "ldap/ldap-groups-map-to-scopes.xml", "ldap/ldap-groups-null.xml", "ldap/ldap-groups-populator.xml");
 
 
-    public static final List<String> LDAP_PROPERTY_NAMES = Collections.unmodifiableList(
-        Arrays.asList(
-            LDAP_ATTRIBUTE_MAPPINGS,
-            LDAP_BASE_LOCAL_PASSWORD_COMPARE,
-            LDAP_BASE_MAIL_ATTRIBUTE_NAME,
-            LDAP_BASE_MAIL_SUBSTITUTE,
-            LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-            LDAP_BASE_PASSWORD,
-            LDAP_BASE_PASSWORD_ATTRIBUTE_NAME,
-            LDAP_BASE_PASSWORD_ENCODER,
-            LDAP_BASE_REFERRAL,
-            LDAP_BASE_SEARCH_BASE,
-            LDAP_BASE_SEARCH_FILTER,
-            LDAP_BASE_URL,
-            LDAP_BASE_USER_DN,
-            LDAP_BASE_USER_DN_PATTERN,
-            LDAP_BASE_USER_DN_PATTERN_DELIMITER,
-            LDAP_EMAIL_DOMAIN,
-            LDAP_EXTERNAL_GROUPS_WHITELIST,
-            LDAP_GROUPS_AUTO_ADD,
-            LDAP_GROUPS_FILE,
-            LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE,
-            LDAP_GROUPS_GROUP_SEARCH_FILTER,
-            LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION,
-            LDAP_GROUPS_MAX_SEARCH_DEPTH,
-            LDAP_GROUPS_SEARCH_BASE,
-            LDAP_GROUPS_SEARCH_SUBTREE,
-            LDAP_PROFILE_FILE,
-            LDAP_SSL_SKIPVERIFICATION,
-            LDAP_SSL_TLS
-        )
-    );
+    public static final List<String> LDAP_PROPERTY_NAMES = List.of(LDAP_ATTRIBUTE_MAPPINGS, LDAP_BASE_LOCAL_PASSWORD_COMPARE, LDAP_BASE_MAIL_ATTRIBUTE_NAME, LDAP_BASE_MAIL_SUBSTITUTE, LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, LDAP_BASE_PASSWORD, LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, LDAP_BASE_PASSWORD_ENCODER, LDAP_BASE_REFERRAL, LDAP_BASE_SEARCH_BASE, LDAP_BASE_SEARCH_FILTER, LDAP_BASE_URL, LDAP_BASE_USER_DN, LDAP_BASE_USER_DN_PATTERN, LDAP_BASE_USER_DN_PATTERN_DELIMITER, LDAP_EMAIL_DOMAIN, LDAP_EXTERNAL_GROUPS_WHITELIST, LDAP_GROUPS_AUTO_ADD, LDAP_GROUPS_FILE, LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, LDAP_GROUPS_GROUP_SEARCH_FILTER, LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, LDAP_GROUPS_MAX_SEARCH_DEPTH, LDAP_GROUPS_SEARCH_BASE, LDAP_GROUPS_SEARCH_SUBTREE, LDAP_PROFILE_FILE, LDAP_SSL_SKIPVERIFICATION, LDAP_SSL_TLS);
 
     public static final Map<String, Class<?>> LDAP_PROPERTY_TYPES = new HashMap<>();
 

@@ -45,11 +45,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     private final IdentityZoneProvisioning dao;
     public static final String HEADER = "X-Identity-Zone-Id";
     public static final String SUBDOMAIN_HEADER = "X-Identity-Zone-Subdomain";
-    public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
-         Arrays.asList(
-            "admin",
-            "read")
-            );
+    public static final List<String> zoneScopestoNotStripPrefix = List.of("admin", "read");
 
     protected OAuth2Authentication getAuthenticationForZone(String identityZoneId, HttpServletRequest servletRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
