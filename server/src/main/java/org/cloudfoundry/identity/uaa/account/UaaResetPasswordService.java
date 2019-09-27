@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
@@ -30,8 +18,8 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -132,12 +120,13 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                 try {
                     ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                     Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
-                        clientDetails.getRegisteredRedirectUri();
+                            clientDetails.getRegisteredRedirectUri();
                     String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
                     if (matchingRedirectUri != null) {
                         redirectLocation = matchingRedirectUri;
                     }
-                } catch (NoSuchClientException nsce) {}
+                } catch (NoSuchClientException nsce) {
+                }
             }
             return new ResetPasswordResponse(user, redirectLocation, clientId);
         } catch (Exception e) {
@@ -162,7 +151,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         ScimUser scimUser = results.get(0);
 
         PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
-        String intent = FORGOT_PASSWORD_INTENT_PREFIX+scimUser.getId();
+        String intent = FORGOT_PASSWORD_INTENT_PREFIX + scimUser.getId();
         expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent, IdentityZoneHolder.get().getId());
 
@@ -189,10 +178,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private UaaUser getUaaUser(ScimUser scimUser) {
         Date today = new Date();
         return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", scimUser.getPrimaryEmail(), null,
-            scimUser.getGivenName(),
-            scimUser.getFamilyName(), today, today,
-            scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
-            scimUser.getPasswordLastModified());
+                scimUser.getGivenName(),
+                scimUser.getFamilyName(), today, today,
+                scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
+                scimUser.getPasswordLastModified());
     }
 
     @Override
@@ -201,7 +190,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     protected void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }
@@ -210,7 +199,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         return new UaaAuthentication(new UaaPrincipal(uaaUser), emptyList(), null);
     }
 
-    private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword){
+    private void updatePasswordAndPublishEvent(ScimUserProvisioning scimUserProvisioning, UaaUser uaaUser, Authentication authentication, String newPassword) {
         scimUserProvisioning.changePassword(uaaUser.getId(), null, newPassword, IdentityZoneHolder.get().getId());
         scimUserProvisioning.updatePasswordChangeRequired(uaaUser.getId(), false, IdentityZoneHolder.get().getId());
         publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
