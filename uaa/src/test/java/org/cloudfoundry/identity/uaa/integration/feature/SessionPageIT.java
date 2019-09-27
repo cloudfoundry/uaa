@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
@@ -50,7 +49,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() throws UnsupportedEncodingException {
+    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("noUser")).click();
@@ -58,7 +57,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() throws UnsupportedEncodingException {
+    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("sameUser")).click();
@@ -66,7 +65,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException {
+    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("differentUser")).click();
@@ -74,7 +73,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException {
+    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("wrongClient")).click();
