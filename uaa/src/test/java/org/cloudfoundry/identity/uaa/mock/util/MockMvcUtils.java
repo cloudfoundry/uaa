@@ -1375,7 +1375,7 @@ public final class MockMvcUtils {
             boolean replaced = false;
             for (int i = 0; i < cookies.length; i++) {
                 Cookie c = cookies[i];
-                if (cookie.getName() == c.getName()) {
+                if (cookie.getName().equals(c.getName())) {
                     cookies[i] = cookie;
                     replaced = true;
                 }
