@@ -56,7 +56,7 @@ class ExpiringUrlCacheTests {
     @Test
     void correct_method_invoked_on_rest_template() throws URISyntaxException {
         cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
     }
 
     @Test
@@ -76,7 +76,7 @@ class ExpiringUrlCacheTests {
     void calling_twice_uses_cache() throws Exception {
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertSame(c1, c2);
         assertEquals(1, cache.size());
     }
@@ -94,7 +94,7 @@ class ExpiringUrlCacheTests {
                 );
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(2)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertNotSame(c1, c2);
     }
 
@@ -119,7 +119,7 @@ class ExpiringUrlCacheTests {
             cache.getUrlContent(uri, template);
         }
         for (String uri : Arrays.asList(uri1, uri2, uri3)) {
-            verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+            verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         }
         assertEquals(2, cache.size());
     }
