@@ -67,8 +67,8 @@ public class MetricsQueue  {
                    time < metric.getUriGroup().getLimit(),
                    metric.getNrOfDatabaseQueries(),
                    metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(q -> q.isIntolerable()).count(),
-                   metric.getQueries().stream().filter(q -> q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).count(),
+                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
         );
         return true;
     }

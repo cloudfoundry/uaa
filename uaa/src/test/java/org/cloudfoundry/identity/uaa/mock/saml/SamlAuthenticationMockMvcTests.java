@@ -366,7 +366,7 @@ class SamlAuthenticationMockMvcTests {
     }
 
     private String performIdpAuthentication(List<String> authorityNames) throws Exception {
-        List<GrantedAuthority> grantedAuthorityList = authorityNames.stream().map(s -> UaaAuthority.authority(s)).collect(Collectors.toList());
+        List<GrantedAuthority> grantedAuthorityList = authorityNames.stream().map(UaaAuthority::authority).collect(Collectors.toList());
         RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone.getId(), grantedAuthorityList));
         return mockMvc.perform(
                 get("/saml/idp/initiate")

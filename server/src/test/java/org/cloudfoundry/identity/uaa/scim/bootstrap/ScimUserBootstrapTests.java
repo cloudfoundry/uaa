@@ -194,7 +194,7 @@ class ScimUserBootstrapTests {
         UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User", OriginKeys.UAA, null);
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList());
-        assertThrows(InvalidPasswordException.class, () -> bootstrap.afterPropertiesSet());
+        assertThrows(InvalidPasswordException.class, bootstrap::afterPropertiesSet);
     }
 
     @Test
