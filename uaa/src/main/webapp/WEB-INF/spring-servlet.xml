@@ -11,10 +11,6 @@
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-    <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
-        <property name="timeout" value="${servlet.idle-timeout:1800}"/>
-    </bean>
-
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -39,16 +35,6 @@
 
     <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
-    </bean>
-
-    <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
-        <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
-        <property name="domain" value="${servlet.session-cookie.domain:#{null}}"/>
-        <property name="httpOnly" value="${servlet.session-cookie.http-only:true}"/>
-        <property name="maxAge" value="${servlet.session-cookie.max-age:#{T(java.lang.Integer).MIN_VALUE}}"/>
-        <property name="name" value="${servlet.session-cookie.name:#{null}}"/>
-        <property name="path" value="${servlet.session-cookie.path:#{null}}"/>
-        <property name="secure" value="${servlet.session-cookie.secure:${require_https:false}}"/>
     </bean>
 
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
@@ -365,7 +351,7 @@
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
-    <import resource="spring/session.xml" />
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.web.beans"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">
