@@ -203,7 +203,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
     @ResponseBody
     @Override
-    public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
+    public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);

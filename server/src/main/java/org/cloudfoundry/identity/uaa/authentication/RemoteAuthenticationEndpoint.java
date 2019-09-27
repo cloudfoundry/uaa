@@ -62,8 +62,8 @@ public class RemoteAuthenticationEndpoint {
     @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST)
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                    @RequestParam(value = "username", required = true) String username,
-                    @RequestParam(value = "password", required = true) String password) {
+                    @RequestParam(value = "username") String username,
+                    @RequestParam(value = "password") String password) {
         AuthenticationResponse response = new AuthenticationResponse();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
@@ -95,8 +95,8 @@ public class RemoteAuthenticationEndpoint {
     @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST, params = {"source","origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                        @RequestParam(value = "username", required = true) String username,
-                                                        @RequestParam(value = OriginKeys.ORIGIN, required = true) String origin,
+                                                        @RequestParam(value = "username") String username,
+                                                        @RequestParam(value = OriginKeys.ORIGIN) String origin,
                                                         @RequestParam(value = "email", required = false) String email) {
         AuthenticationResponse response = new AuthenticationResponse();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
