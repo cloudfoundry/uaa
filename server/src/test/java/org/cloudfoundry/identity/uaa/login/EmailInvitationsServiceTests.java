@@ -117,7 +117,7 @@ public class EmailInvitationsServiceTests {
         when(expiringCodeStore.retrieveCode(anyString(), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
 
         HttpClientErrorException httpClientErrorException = Assertions.assertThrows(HttpClientErrorException.class,
-                () -> emailInvitationsService.acceptInvitation("code", "password").getRedirectUri());
+                () -> emailInvitationsService.acceptInvitation("code", "password"));
 
         assertThat(httpClientErrorException.getMessage(), CoreMatchers.containsString("400 BAD_REQUEST"));
     }
@@ -135,7 +135,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
-        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+        emailInvitationsService.acceptInvitation("code", "");
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
         verify(scimUserProvisioning, never()).changePassword(anyString(), anyString(), anyString(), eq(zoneId));
     }
@@ -153,7 +153,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "ldapuser");
         when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
-        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+        emailInvitationsService.acceptInvitation("code", "");
 
         verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), anyString());
     }
