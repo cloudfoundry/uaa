@@ -46,28 +46,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PasswordResetEndpointTest {
 
     private MockMvc mockMvc;
-    private ScimUserProvisioning scimUserProvisioning;
-    private ExpiringCodeStore expiringCodeStore;
-    private PasswordValidator passwordValidator;
+    private ScimUserProvisioning mockScimUserProvisioning;
+    private ExpiringCodeStore mockExpiringCodeStore;
+    private PasswordValidator mockPasswordValidator;
     private Date yesterday = Date.from(LocalDateTime.now().minusDays(1).atZone(ZoneId.systemDefault()).toInstant());
 
     @BeforeEach
     void setUp() {
-        scimUserProvisioning = mock(ScimUserProvisioning.class);
-        expiringCodeStore = mock(ExpiringCodeStore.class);
-        passwordValidator = mock(PasswordValidator.class);
-        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
-        ResourcePropertySource resourcePropertySource = mock(ResourcePropertySource.class);
-        ResetPasswordService resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService, resourcePropertySource);
+        mockScimUserProvisioning = mock(ScimUserProvisioning.class);
+        mockExpiringCodeStore = mock(ExpiringCodeStore.class);
+        mockPasswordValidator = mock(PasswordValidator.class);
+        ResetPasswordService resetPasswordService = new UaaResetPasswordService(
+                mockScimUserProvisioning,
+                mockExpiringCodeStore,
+                mockPasswordValidator,
+                mock(MultitenantClientServices.class),
+                mock(ResourcePropertySource.class));
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
-        controller.setCodeStore(expiringCodeStore);
+        controller.setCodeStore(mockExpiringCodeStore);
         controller.setMessageConverters(new HttpMessageConverter[]{new ExceptionReportHttpMessageConverter()});
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, null, null);
 
         when(
-                expiringCodeStore.generateCode(
+                mockExpiringCodeStore.generateCode(
                         eq("id001"),
                         any(Timestamp.class),
                         anyString(),
@@ -76,7 +79,7 @@ class PasswordResetEndpointTest {
         )
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001", null));
 
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString()))
+        when(mockExpiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
     }
 
@@ -88,11 +91,11 @@ class PasswordResetEndpointTest {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString()))
+        when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -105,7 +108,7 @@ class PasswordResetEndpointTest {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString());
+        verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test
@@ -114,11 +117,11 @@ class PasswordResetEndpointTest {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, null, null);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString()))
+        when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -129,7 +132,7 @@ class PasswordResetEndpointTest {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString());
+        verify(mockExpiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test
@@ -138,7 +141,7 @@ class PasswordResetEndpointTest {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.addEmail("user@example.com");
         user.setPasswordLastModified(yesterday);
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -154,7 +157,7 @@ class PasswordResetEndpointTest {
 
     @Test
     void creatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.emptyList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -168,14 +171,14 @@ class PasswordResetEndpointTest {
 
     @Test
     void creatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.emptyList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.addEmail("user@example.com");
         user.setOrigin(OriginKeys.LDAP);
-        when(scimUserProvisioning.query("userName eq \"user@example.com\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user@example.com\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -194,11 +197,11 @@ class PasswordResetEndpointTest {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.setPasswordLastModified(yesterday);
         user.addEmail("user\"'@example.com");
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString()))
+        when(mockExpiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -211,10 +214,10 @@ class PasswordResetEndpointTest {
                 .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
                 .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.emptyList());
         user.setOrigin(OriginKeys.LDAP);
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\"", IdentityZoneHolder.get().getId()))
+        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\"", IdentityZoneHolder.get().getId()))
                 .thenReturn(Collections.singletonList(user));
 
         post = post("/password_resets")
@@ -230,14 +233,14 @@ class PasswordResetEndpointTest {
     void changingAPasswordWithAValidCode() throws Exception {
         ExpiringCode code = new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                 "{\"user_id\":\"eyedee\",\"username\":\"user@example.com\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
-        when(expiringCodeStore.retrieveCode("secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
+        when(mockExpiringCodeStore.retrieveCode("secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
-        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
+        when(mockScimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
         ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
+        when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -251,12 +254,12 @@ class PasswordResetEndpointTest {
                 .andExpect(jsonPath("$.user_id").value("eyedee"))
                 .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(mockScimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
     }
 
     @Test
     void changingPasswordWithInvalidCode() throws Exception {
-        when(expiringCodeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId()))
+        when(mockExpiringCodeStore.retrieveCode("invalid_code", IdentityZoneHolder.get().getId()))
                 .thenReturn(null);
 
         MockHttpServletRequestBuilder post = post("/password_change")
@@ -275,16 +278,16 @@ class PasswordResetEndpointTest {
     void changingAPasswordForUnverifiedUser() throws Exception {
         ExpiringCode code = new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                 "{\"user_id\":\"eyedee\",\"username\":\"user@example.com\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
-        when(expiringCodeStore.retrieveCode("secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
+        when(mockExpiringCodeStore.retrieveCode("secret_code", IdentityZoneHolder.get().getId())).thenReturn(code);
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(false);
-        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
+        when(mockScimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
 
         ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
+        when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()), anyString())).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -298,8 +301,8 @@ class PasswordResetEndpointTest {
                 .andExpect(jsonPath("$.user_id").value("eyedee"))
                 .andExpect(jsonPath("$.username").value("user@example.com"));
 
-        verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
-        verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1, IdentityZoneHolder.get().getId());
+        verify(mockScimUserProvisioning).changePassword("eyedee", null, "new_secret", IdentityZoneHolder.get().getId());
+        verify(mockScimUserProvisioning).verifyUser(scimUser.getId(), -1, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -315,9 +318,9 @@ class PasswordResetEndpointTest {
 
     @Test
     void passwordsMustSatisfyPolicy() throws Exception {
-        doThrow(new InvalidPasswordException("Password flunks policy")).when(passwordValidator).validate("new_secret");
+        doThrow(new InvalidPasswordException("Password flunks policy")).when(mockPasswordValidator).validate("new_secret");
 
-        when(expiringCodeStore.retrieveCode("emailed_code", IdentityZoneHolder.get().getId()))
+        when(mockExpiringCodeStore.retrieveCode("emailed_code", IdentityZoneHolder.get().getId()))
                 .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                         "{\"user_id\":\"eyedee\",\"username\":\"user@example.com\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}",
                         null));
@@ -335,9 +338,9 @@ class PasswordResetEndpointTest {
     @Test
     void changePassword_Returns422UnprocessableEntity_NewPasswordSameAsOld() throws Exception {
 
-        Mockito.reset(passwordValidator);
+        Mockito.reset(mockPasswordValidator);
 
-        when(expiringCodeStore.retrieveCode("emailed_code", IdentityZoneHolder.get().getId()))
+        when(mockExpiringCodeStore.retrieveCode("emailed_code", IdentityZoneHolder.get().getId()))
                 .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                         "{\"user_id\":\"eyedee\",\"username\":\"user@example.com\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}",
                         null));
@@ -347,8 +350,8 @@ class PasswordResetEndpointTest {
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(true);
 
-        when(scimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
-        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret", IdentityZoneHolder.get().getId())).thenReturn(true);
+        when(mockScimUserProvisioning.retrieve("eyedee", IdentityZoneHolder.get().getId())).thenReturn(scimUser);
+        when(mockScimUserProvisioning.checkPasswordMatches("eyedee", "new_secret", IdentityZoneHolder.get().getId())).thenReturn(true);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
