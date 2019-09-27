@@ -288,7 +288,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public static class IdentityProviderSerializer extends JsonSerializer<IdentityProvider> {
         @Override
-        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeStartObject();
             gen.writeStringField(FIELD_TYPE, value.getType());
 
@@ -319,7 +319,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
         @Override
-        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
             IdentityProvider result = new IdentityProvider();
             //determine the type of IdentityProvider
             JsonNode node = JsonUtils.readTree(jp);

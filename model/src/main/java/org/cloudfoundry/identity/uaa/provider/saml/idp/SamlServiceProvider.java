@@ -217,7 +217,7 @@ public class SamlServiceProvider {
     public static class SamlServiceProviderSerializer extends JsonSerializer<SamlServiceProvider> {
         @Override
         public void serialize(SamlServiceProvider value, JsonGenerator gen, SerializerProvider serializers)
-                throws IOException, JsonProcessingException {
+                throws IOException {
             gen.writeStartObject();
             gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
             gen.writeStringField(FIELD_ID, value.getId());
@@ -242,8 +242,7 @@ public class SamlServiceProvider {
 
     public static class SamlServiceProviderDeserializer extends JsonDeserializer<SamlServiceProvider> {
         @Override
-        public SamlServiceProvider deserialize(JsonParser jp, DeserializationContext ctxt)
-                throws IOException, JsonProcessingException {
+        public SamlServiceProvider deserialize(JsonParser jp, DeserializationContext ctxt) {
             SamlServiceProvider result = new SamlServiceProvider();
             // determine the type of IdentityProvider
             JsonNode node = JsonUtils.readTree(jp);
