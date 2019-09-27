@@ -84,7 +84,6 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
 
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
-        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
         externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Collections.singletonList("acme.dev"));
