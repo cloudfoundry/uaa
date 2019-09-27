@@ -216,7 +216,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         String results = response.getHeaders().getLocation().toString();
-        assertTrue("There should be scopes: " + results, results.contains("#access_token"));
+        assertTrue("There should be an access token: " + results, results.contains("access_token"));
     }
 
     @Test
