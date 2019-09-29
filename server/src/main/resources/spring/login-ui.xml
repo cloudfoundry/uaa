@@ -566,14 +566,6 @@
         <constructor-arg ref="codeStore"/>
     </bean>
 
-    <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.account.ResetPasswordController">
-        <constructor-arg ref="resetPasswordService"/>
-        <constructor-arg ref="messageService"/>
-        <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="codeStore"/>
-        <constructor-arg ref="userDatabase"/>
-    </bean>
-
     <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
         <constructor-arg index="0" value="${encryption.active_key_label}"/>
         <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
