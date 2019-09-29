@@ -12,9 +12,11 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,19 +37,21 @@ import static org.springframework.http.HttpStatus.*;
 public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;
+    private final HttpMessageConverter<?>[] messageConverters;
+    private final ExpiringCodeStore codeStore;
     private final IdentityZoneManager identityZoneManager;
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
-    private ExpiringCodeStore codeStore;
 
     public PasswordResetEndpoint(
             final ResetPasswordService resetPasswordService,
+            final ExpiringCodeStore codeStore,
             final IdentityZoneManager identityZoneManager) {
         this.resetPasswordService = resetPasswordService;
+        this.messageConverters = new HttpMessageConverter[] {
+                new ExceptionReportHttpMessageConverter(),
+                new MappingJackson2HttpMessageConverter()
+        };
+        this.codeStore = codeStore;
         this.identityZoneManager = identityZoneManager;
-    }
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
     }
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
@@ -134,9 +138,5 @@ public class PasswordResetEndpoint {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
                 t, false), UNPROCESSABLE_ENTITY),
                 messageConverters);
-    }
-
-    public void setCodeStore(ExpiringCodeStore codeStore) {
-        this.codeStore = codeStore;
     }
 }

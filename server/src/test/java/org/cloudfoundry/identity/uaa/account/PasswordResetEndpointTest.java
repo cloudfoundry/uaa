@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
@@ -73,9 +74,9 @@ class PasswordResetEndpointTest {
                 mock(ResourcePropertySource.class),
                 mockIdentityZoneManager);
 
-        PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService, mockIdentityZoneManager);
-        controller.setCodeStore(mockExpiringCodeStore);
-        controller.setMessageConverters(new HttpMessageConverter[]{new ExceptionReportHttpMessageConverter()});
+        PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService,
+                mockExpiringCodeStore,
+                mockIdentityZoneManager);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, null, null);

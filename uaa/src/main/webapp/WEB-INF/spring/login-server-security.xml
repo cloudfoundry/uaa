@@ -190,17 +190,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint">
-        <constructor-arg ref="resetPasswordService"/>
-        <property name="messageConverters">
-            <list>
-                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
-                <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/>
-            </list>
-        </property>
-        <property name="codeStore" ref="codeStore"/>
-    </bean>
-
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints"/>
 
     <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless"
