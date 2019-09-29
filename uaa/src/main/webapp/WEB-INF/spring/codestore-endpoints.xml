@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
     <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
 
-    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints"/>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.codestore" />
 
     <http name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"
