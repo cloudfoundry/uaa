@@ -386,11 +386,6 @@
     <!--apply the oauth client context -->
     <oauth:client id="oauth2ClientFilter"/>
 
-    <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
-        <constructor-arg index="0" ref="approvalStore"/>
-        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
-    </bean>
-
     <util:map id="notifications" key-type="org.cloudfoundry.identity.uaa.message.MessageType">
         <entry key="CREATE_ACCOUNT_CONFIRMATION">
             <map>
