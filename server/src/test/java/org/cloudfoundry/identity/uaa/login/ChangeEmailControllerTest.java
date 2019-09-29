@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.ChangeEmailController;
 import org.cloudfoundry.identity.uaa.account.ChangeEmailService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -64,7 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @ContextConfiguration(classes = ChangeEmailControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class ChangeEmailControllerTest extends TestClassNullifier {
+class ChangeEmailControllerTest {
 
     private MockMvc mockMvc;
     @Autowired
@@ -75,43 +74,43 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
 
     @Test
-    public void testChangeEmailPage() throws Exception {
+    void testChangeEmailPage() throws Exception {
         setupSecurityContext();
 
         mockMvc.perform(get("/change_email").param("client_id", "client-id").param("redirect_uri", "http://example.com/redirect"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("change_email"))
-            .andExpect(model().attribute("email", "user@example.com"))
-            .andExpect(model().attribute("client_id", "client-id"))
-            .andExpect(model().attribute("redirect_uri", "http://example.com/redirect"))
-            .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
-            .andExpect(xpath("//*[@type='hidden' and @value='http://example.com/redirect']").exists());
+                .andExpect(status().isOk())
+                .andExpect(view().name("change_email"))
+                .andExpect(model().attribute("email", "user@example.com"))
+                .andExpect(model().attribute("client_id", "client-id"))
+                .andExpect(model().attribute("redirect_uri", "http://example.com/redirect"))
+                .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
+                .andExpect(xpath("//*[@type='hidden' and @value='http://example.com/redirect']").exists());
     }
 
     @Test
-    public void testChangeEmail() throws Exception {
+    void testChangeEmail() throws Exception {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("newEmail", "new@example.com")
-            .param("client_id", "app");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("newEmail", "new@example.com")
+                .param("client_id", "app");
 
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("email_sent?code=email_change"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("email_sent?code=email_change"));
 
         verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", null);
     }
 
     @Test
-    public void testChangeEmailWithClientIdAndRedirectUri() throws Exception {
+    void testChangeEmailWithClientIdAndRedirectUri() throws Exception {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
@@ -128,86 +127,86 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testChangeEmailWithUsernameConflict() throws Exception {
+    void testChangeEmailWithUsernameConflict() throws Exception {
         setupSecurityContext();
 
         doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null);
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("newEmail", "new@example.com")
-            .param("client_id", "");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("newEmail", "new@example.com")
+                .param("client_id", "");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("change_email"))
-            .andExpect(model().attribute("error_message_code", "username_exists"))
-            .andExpect(model().attribute("email", "user@example.com"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("change_email"))
+                .andExpect(model().attribute("error_message_code", "username_exists"))
+                .andExpect(model().attribute("email", "user@example.com"));
     }
 
     @Test
-    public void testNonUAAOriginUser() throws Exception {
+    void testNonUAAOriginUser() throws Exception {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null, IdentityZoneHolder.get().getId()),
+                new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null, IdentityZoneHolder.get().getId()),
                 Collections.singletonList(UaaAuthority.UAA_USER),
-            null
+                null
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         MockHttpServletRequestBuilder post = post("/change_email.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("newEmail", "new@example.com")
-            .param("client_id", "app");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("newEmail", "new@example.com")
+                .param("client_id", "app");
 
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("profile?error_message_code=email_change.non-uaa-origin"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?error_message_code=email_change.non-uaa-origin"));
 
         Mockito.verifyZeroInteractions(changeEmailService);
     }
 
     @Test
-    public void testInvalidEmail() throws Exception {
+    void testInvalidEmail() throws Exception {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("newEmail", "invalid")
-            .param("client_id", "app");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("newEmail", "invalid")
+                .param("client_id", "app");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("change_email"))
-            .andExpect(model().attribute("error_message_code", "invalid_email"))
-            .andExpect(model().attribute("email", "user@example.com"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("change_email"))
+                .andExpect(model().attribute("error_message_code", "invalid_email"))
+                .andExpect(model().attribute("email", "user@example.com"));
     }
 
     @Test
-    public void testVerifyEmail() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+    void testVerifyEmail() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
         response.put("email", "new@example.com");
         when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
 
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("login?success=change_email_success"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("login?success=change_email_success"));
     }
 
     @Test
-    public void testVerifyEmailWhenAuthenticated() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+    void testVerifyEmailWhenAuthenticated() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
         response.put("email", "new@example.com");
@@ -216,12 +215,12 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         Assert.assertEquals("user-id-001", principal.getId());
@@ -230,11 +229,11 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testVerifyEmailWithRedirectUrl() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+    void testVerifyEmailWithRedirectUrl() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
         response.put("email", "new@example.com");
@@ -242,20 +241,20 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
 
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("login?success=change_email_success&form_redirect_uri=//example.com/callback"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("login?success=change_email_success&form_redirect_uri=//example.com/callback"));
     }
 
     @Test
-    public void testVerifyEmailWithRedirectWhenAuthenticated() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+    void testVerifyEmailWithRedirectWhenAuthenticated() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
         response.put("email", "new@example.com");
@@ -265,12 +264,12 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("//example.com/callback"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("//example.com/callback"));
 
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         Assert.assertEquals("user-id-001", principal.getId());
@@ -280,36 +279,36 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testVerifyEmailWithInvalidCode() throws Exception {
+    void testVerifyEmailWithInvalidCode() throws Exception {
         Authentication authentication = new AnonymousAuthenticationToken(
-            "anon",
-            "anonymousUser",
-            AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")
+                "anon",
+                "anonymousUser",
+                AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         when(changeEmailService.completeVerification("the_secret_code")).thenThrow(new UaaException("Bad Request", 400));
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("error"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("error"));
 
         setupSecurityContext();
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("profile?error_message_code=email_change.invalid_code"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?error_message_code=email_change.invalid_code"));
     }
 
     @Test
-    public void testVerifyEmailWhenAutheticatedAsOtherUser() throws Exception {
-        UaaUser user = new UaaUser("user-id-002", "new2@example.com", "password", "new2@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-002", null);
+    void testVerifyEmailWhenAutheticatedAsOtherUser() throws Exception {
+        UaaUser user = new UaaUser("user-id-002", "new2@example.com", "password", "new2@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-002", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-002");
         response.put("username", "new2@example.com");
         response.put("email", "new2@example.com");
@@ -318,12 +317,12 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         setupSecurityContext();
 
         MockHttpServletRequestBuilder get = get("/verify_email")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("code", "the_secret_code");
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         Assert.assertEquals("user-id-001", principal.getId());
@@ -332,11 +331,11 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testVerifyEmailDoesNotDeleteAuthenticationMethods() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+    void testVerifyEmailDoesNotDeleteAuthenticationMethods() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
-        Map<String,String> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
         response.put("email", "new@example.com");
@@ -367,9 +366,9 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId()),
+                new UaaPrincipal("user-id-001", "bob", "user@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId()),
                 Collections.singletonList(UaaAuthority.UAA_USER),
-            null
+                null
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
