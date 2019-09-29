@@ -19,9 +19,5 @@
     <oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
                            resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
-    <bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.account.UserInfoEndpoint">
-        <property name="userDatabase" ref="userDatabase"/>
-    </bean>
-
     <bean id="openIdSessionStateCalculator" class="org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator"/>
 </beans>

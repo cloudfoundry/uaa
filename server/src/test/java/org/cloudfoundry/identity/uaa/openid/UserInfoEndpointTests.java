@@ -52,7 +52,7 @@ public class UserInfoEndpointTests {
 
     public static final String MULTI_VALUE = "multi_value";
     public static final String SINGLE_VALUE = "single_value";
-    private UserInfoEndpoint endpoint = new UserInfoEndpoint();
+    private UserInfoEndpoint endpoint;
     public static final String ID = "12345";
 
     private final UaaUser user = new UaaUser(new UaaUserPrototype()
@@ -99,7 +99,7 @@ public class UserInfoEndpointTests {
     private List<String> roles;
 
     public UserInfoEndpointTests() {
-        endpoint.setUserDatabase(userDatabase);
+        endpoint = new UserInfoEndpoint(userDatabase);
     }
 
     @Before
