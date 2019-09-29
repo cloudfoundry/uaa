@@ -1,16 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -41,8 +28,6 @@ import java.util.Map;
 /**
  * A username/password authentication endpoint (only intended) for use by the
  * login server.
- *
- * @author Luke Taylor
  */
 @Controller
 public class RemoteAuthenticationEndpoint {
@@ -59,11 +44,11 @@ public class RemoteAuthenticationEndpoint {
         this.authenticationManager = authenticationManager;
     }
 
-    @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST)
+    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST)
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                    @RequestParam(value = "username") String username,
-                    @RequestParam(value = "password") String password) {
+                                                           @RequestParam(value = "username") String username,
+                                                           @RequestParam(value = "password") String password) {
         AuthenticationResponse response = new AuthenticationResponse();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
@@ -92,12 +77,12 @@ public class RemoteAuthenticationEndpoint {
         return new ResponseEntity<>(response, status);
     }
 
-    @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST, params = {"source","origin", UaaAuthenticationDetails.ADD_NEW})
+    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                        @RequestParam(value = "username") String username,
-                                                        @RequestParam(value = OriginKeys.ORIGIN) String origin,
-                                                        @RequestParam(value = "email", required = false) String email) {
+                                                           @RequestParam(value = "username") String username,
+                                                           @RequestParam(value = OriginKeys.ORIGIN) String origin,
+                                                           @RequestParam(value = "email", required = false) String email) {
         AuthenticationResponse response = new AuthenticationResponse();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
@@ -133,7 +118,7 @@ public class RemoteAuthenticationEndpoint {
     private void processAdditionalInformation(AuthenticationResponse response, Authentication a) {
         if (hasClientOauth2Authentication()) {
             UaaPrincipal principal = getPrincipal(a);
-            if (principal!=null) {
+            if (principal != null) {
                 response.setOrigin(principal.getOrigin());
                 response.setUserId(principal.getId());
             }
@@ -142,7 +127,7 @@ public class RemoteAuthenticationEndpoint {
 
     protected UaaPrincipal getPrincipal(Authentication a) {
         if (a.getPrincipal() instanceof UaaPrincipal) {
-            return (UaaPrincipal)a.getPrincipal();
+            return (UaaPrincipal) a.getPrincipal();
         } else {
             return null;
         }
