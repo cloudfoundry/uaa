@@ -59,7 +59,7 @@ class PasswordChangeEndpointTests {
                 mockIdentityZoneManager,
                 mockPasswordValidator,
                 jdbcScimUserProvisioning,
-                null, mockSecurityContextAccessor);
+                mockSecurityContextAccessor);
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail("jdsa@vmware.com");
