@@ -23,9 +23,5 @@
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean id="openIdConnectEndpoints" class="org.cloudfoundry.identity.uaa.account.OpenIdConnectEndpoints">
-        <property name="issuer" value="${issuer.uri}"/>
-    </bean>
-
     <bean id="openIdSessionStateCalculator" class="org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator"/>
 </beans>
