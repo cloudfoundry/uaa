@@ -2,11 +2,11 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xmlns:sec="http://www.springframework.org/schema/security"
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
     <sec:global-method-security pre-post-annotations="enabled"/>
 
@@ -14,25 +14,7 @@
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
 
-    <bean id="approvalsEndpoints" class="org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints">
-        <property name="uaaUserDatabase" ref="userDatabase"/>
-        <property name="approvalStore" ref="approvalStore"/>
-        <property name="statuses">
-            <util:map id="exceptionToStatusMap" key-type="java.lang.Class"
-                      value-type="org.springframework.http.HttpStatus">
-                <entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST"/>
-                <entry key="org.springframework.http.converter.HttpMessageConversionException" value="BAD_REQUEST"/>
-                <entry key="org.springframework.web.HttpMediaTypeException" value="BAD_REQUEST"/>
-                <entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST"/>
-                <entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST"/>
-                <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
-            </util:map>
-        </property>
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
-        </property>
-        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-    </bean>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.approval" />
 
     <http name="approvalsSecurity" pattern="/approvals/**" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"

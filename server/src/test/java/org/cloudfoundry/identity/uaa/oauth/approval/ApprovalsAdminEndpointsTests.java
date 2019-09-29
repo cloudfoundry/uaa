@@ -78,18 +78,18 @@ class ApprovalsAdminEndpointsTests {
         when(mockSecurityContextAccessor.getUserId()).thenReturn(marissa.getId());
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
 
-        endpoints = new ApprovalsAdminEndpoints(mockSecurityContextAccessor);
-        endpoints.setApprovalStore(dao);
-        endpoints.setUaaUserDatabase(userDao);
-
         MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                 "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Collections.singletonList("true"));
         clientDetailsService.addClientDetails(details);
-        endpoints.setClientDetailsService(clientDetailsService);
-    }
 
+        endpoints = new ApprovalsAdminEndpoints(
+                mockSecurityContextAccessor,
+                dao,
+                userDao,
+                clientDetailsService);
+    }
 
     private void addApproval(String userName, String scope, int expiresIn, ApprovalStatus status) {
         dao.addApproval(new Approval()

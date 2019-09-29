@@ -7,14 +7,18 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -22,48 +26,48 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import java.util.*;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean {
 
-    private ApprovalStore approvalStore = null;
+    private static final Logger logger = LoggerFactory.getLogger(ApprovalsAdminEndpoints.class);
+    private static final Map<Class<? extends Exception>, HttpStatus> statuses;
 
-    private MultitenantClientServices clientDetailsService = null;
-
-    private UaaUserDatabase userDatabase;
-
-    private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
-
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-            new HttpMessageConverter<?>[0]);
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    static {
+        statuses = Map.of(
+                DataIntegrityViolationException.class, BAD_REQUEST,
+                HttpMessageConversionException.class, BAD_REQUEST,
+                HttpMediaTypeException.class, BAD_REQUEST,
+                IllegalArgumentException.class, BAD_REQUEST,
+                UnsupportedOperationException.class, BAD_REQUEST,
+                BadSqlGrammarException.class, BAD_REQUEST);
+    }
 
     private final SecurityContextAccessor securityContextAccessor;
+    private final ApprovalStore approvalStore;
+    private final UaaUserDatabase userDatabase;
+    private final MultitenantClientServices clientDetailsService;
+    private final HttpMessageConverter<?>[] messageConverters;
 
-    public ApprovalsAdminEndpoints(final SecurityContextAccessor securityContextAccessor) {
+    public ApprovalsAdminEndpoints(
+            final SecurityContextAccessor securityContextAccessor,
+            final ApprovalStore approvalStore,
+            final UaaUserDatabase userDatabase,
+            final MultitenantClientServices clientDetailsService) {
         this.securityContextAccessor = securityContextAccessor;
-    }
-
-    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
-        this.statuses = statuses;
-    }
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
         this.approvalStore = approvalStore;
-    }
-
-    public void setUaaUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
+        this.clientDetailsService = clientDetailsService;
+        this.messageConverters = new HttpMessageConverter[]{
+                new ExceptionReportHttpMessageConverter()
+        };
     }
 
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
@@ -208,10 +212,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     public void afterPropertiesSet() {
         Assert.notNull(approvalStore, "Please supply an approvals manager");
         Assert.notNull(userDatabase, "Please supply a user database");
-    }
-
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
-        this.clientDetailsService = clientDetailsService;
     }
 
 }
