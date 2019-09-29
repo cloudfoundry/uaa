@@ -35,8 +35,7 @@ class RemoteAuthenticationEndpointTests {
 
         loginAuthMgr = mock(AuthenticationManager.class);
         am = mock(AuthenticationManager.class);
-        endpoint = new RemoteAuthenticationEndpoint(am);
-        endpoint.setLoginAuthenticationManager(loginAuthMgr);
+        endpoint = new RemoteAuthenticationEndpoint(am, loginAuthMgr);
         loginAuthentication = mock(OAuth2Authentication.class);
     }
 

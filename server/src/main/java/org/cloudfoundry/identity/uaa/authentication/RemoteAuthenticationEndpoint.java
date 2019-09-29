@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,17 +32,16 @@ import java.util.Map;
  */
 @Controller
 public class RemoteAuthenticationEndpoint {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(RemoteAuthenticationEndpoint.class);
 
-    private AuthenticationManager authenticationManager;
-    private AuthenticationManager loginAuthenticationManager;
+    private final AuthenticationManager authenticationManager;
+    private final AuthenticationManager loginAuthenticationManager;
 
-    public void setLoginAuthenticationManager(AuthenticationManager loginAuthenticationManager) {
-        this.loginAuthenticationManager = loginAuthenticationManager;
-    }
-
-    public RemoteAuthenticationEndpoint(AuthenticationManager authenticationManager) {
+    public RemoteAuthenticationEndpoint(
+            final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
+            final @Qualifier("loginAuthenticationMgr") AuthenticationManager loginAuthenticationManager) {
         this.authenticationManager = authenticationManager;
+        this.loginAuthenticationManager = loginAuthenticationManager;
     }
 
     @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST)
