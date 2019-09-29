@@ -1,19 +1,5 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -21,8 +7,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,26 +22,14 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Controller
-public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
+public class ApprovalsAdminEndpoints implements InitializingBean {
 
     private ApprovalStore approvalStore = null;
 
@@ -64,7 +40,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-                    new HttpMessageConverter<?>[0]);
+            new HttpMessageConverter<?>[0]);
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -92,7 +68,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
-    @Override
     public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String ignored,
                                        @RequestParam(required = false, defaultValue = "1") int startIndex,
                                        @RequestParam(required = false, defaultValue = "100") int count) {
@@ -115,7 +90,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             Set<String> autoApproved = client.getAutoApproveScopes();
             Set<String> autoApprovedScopes = new HashSet<String>();
             if (autoApproved != null) {
-                if(autoApproved.contains("true")) {
+                if (autoApproved.contains("true")) {
                     autoApprovedScopes.addAll(client.getScope());
                 } else {
                     autoApprovedScopes.addAll(autoApproved);
@@ -129,7 +104,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         // Remove auto approved scopes
         for (Approval approval : approvals) {
             if (!(clientAutoApprovedScopes.containsKey(approval.getClientId())
-            && clientAutoApprovedScopes.get(approval.getClientId()).contains(approval.getScope()))) {
+                    && clientAutoApprovedScopes.get(approval.getClientId()).contains(approval.getScope()))) {
                 filteredApprovals.add(approval);
             }
         }
@@ -146,17 +121,16 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     @RequestMapping(value = "/approvals", method = RequestMethod.PUT)
     @ResponseBody
-    @Override
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
         approvalStore.revokeApprovalsForUser(currentUserId, IdentityZoneHolder.get().getId());
         List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
-            if (StringUtils.hasText(approval.getUserId()) &&  !isValidUser(approval.getUserId())) {
+            if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn(String.format("Error[2] %s attempting to update approvals for %s", currentUserId, approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
-                                HttpStatus.UNAUTHORIZED.value());
+                        HttpStatus.UNAUTHORIZED.value());
             } else {
                 approval.setUserId(currentUserId);
             }
@@ -169,7 +143,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
     @ResponseBody
-    @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String currentUserId = getCurrentUserId();
@@ -202,7 +175,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
 
     @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
     @ResponseBody
-    @Override
     public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
@@ -220,7 +192,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @ExceptionHandler
     public View handleException(Exception t) {
         UaaException e = t instanceof UaaException ? (UaaException) t : new UaaException("Unexpected error",
-                        "Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
+                "Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
         Class<?> clazz = t.getClass();
         for (Class<?> key : statuses.keySet()) {
             if (key.isAssignableFrom(clazz)) {
@@ -229,7 +201,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             }
         }
         return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, false),
-                        HttpStatus.valueOf(e.getHttpStatus())), messageConverters);
+                HttpStatus.valueOf(e.getHttpStatus())), messageConverters);
     }
 
     @Override
