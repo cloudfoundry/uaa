@@ -579,11 +579,6 @@
         <constructor-arg ref="userDatabase"/>
     </bean>
 
-    <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.account.ChangeEmailController">
-        <constructor-arg ref="changeEmailService"/>
-        <property name="uaaUserDatabase" ref="userDatabase"/>
-    </bean>
-
     <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
         <constructor-arg index="0" value="${encryption.active_key_label}"/>
         <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>

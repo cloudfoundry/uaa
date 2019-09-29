@@ -408,10 +408,12 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         }
 
         @Bean
-        ChangeEmailController changeEmailController(ChangeEmailService changeEmailService) {
-            ChangeEmailController changeEmailController = new ChangeEmailController(changeEmailService);
-            changeEmailController.setUaaUserDatabase(uaaUserDatabase());
-            return changeEmailController;
+        ChangeEmailController changeEmailController(
+                final ChangeEmailService changeEmailService,
+                final UaaUserDatabase uaaUserDatabase) {
+            return new ChangeEmailController(
+                    changeEmailService,
+                    uaaUserDatabase);
         }
     }
 }
