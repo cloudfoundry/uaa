@@ -1,32 +1,12 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -35,6 +15,9 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,28 +25,14 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -73,7 +42,7 @@ import static org.springframework.util.StringUtils.hasText;
 @Controller
 public class ScimGroupEndpoints {
 
-    public static final String E_TAG = "ETag";
+    private static final String E_TAG = "ETag";
 
     private final ScimGroupProvisioning dao;
     private final ScimGroupMembershipManager membershipManager;
@@ -84,7 +53,7 @@ public class ScimGroupEndpoints {
     private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<>();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-        new HttpMessageConverter<?>[0]);
+            new HttpMessageConverter<?>[0]);
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -150,12 +119,12 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listGroups(
-        @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
-        @RequestParam(required = false, defaultValue = "id pr") String filter,
-        @RequestParam(required = false, defaultValue = "created") String sortBy,
-        @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
-        @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count) {
+            @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+            @RequestParam(required = false, defaultValue = "id pr") String filter,
+            @RequestParam(required = false, defaultValue = "created") String sortBy,
+            @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (count > groupMaxCount) {
             count = groupMaxCount;
@@ -172,7 +141,7 @@ public class ScimGroupEndpoints {
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             input = filterForCurrentUser(result, startIndex, count, true);
             return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
-                result.size());
+                    result.size());
         }
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
@@ -182,7 +151,7 @@ public class ScimGroupEndpoints {
 
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                mapper, Arrays.asList(ScimCore.SCHEMAS));
+                    mapper, Arrays.asList(ScimCore.SCHEMAS));
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
@@ -192,20 +161,20 @@ public class ScimGroupEndpoints {
     @ResponseBody
     @Deprecated
     public SearchResults<?> listExternalGroups(
-        @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count,
-        @RequestParam(required = false, defaultValue = "") String filter) {
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count,
+            @RequestParam(required = false, defaultValue = "") String filter) {
         return getExternalGroups(startIndex, count, filter, "", "");
     }
 
     @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> getExternalGroups(
-        @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count,
-        @RequestParam(required = false, defaultValue = "") String filter,
-        @RequestParam(required = false, defaultValue = "") String origin,
-        @RequestParam(required = false, defaultValue = "") String externalGroup) {
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count,
+            @RequestParam(required = false, defaultValue = "") String filter,
+            @RequestParam(required = false, defaultValue = "") String origin,
+            @RequestParam(required = false, defaultValue = "") String externalGroup) {
 
         if (hasText(filter)) {
             if (hasText(origin) || hasText(externalGroup)) {
@@ -232,12 +201,12 @@ public class ScimGroupEndpoints {
         result.removeIf(em -> hasText(filterGroup) && !em.getExternalGroup().equals(filterGroup));
 
         return SearchResultsFactory.cropAndBuildSearchResultFrom(
-            result,
-            startIndex,
-            count,
-            result.size(),
-            new String[]{"groupId", "displayName", "externalGroup", "origin"},
-            Arrays.asList(ScimCore.SCHEMAS));
+                result,
+                startIndex,
+                count,
+                result.size(),
+                new String[]{"groupId", "displayName", "externalGroup", "origin"},
+                Arrays.asList(ScimCore.SCHEMAS));
     }
 
     @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.POST)
@@ -417,7 +386,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PATCH)
     @ResponseBody
     public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
-        String groupId,
+            String groupId,
                                 @RequestHeader(value = "If-Match", required = false) String etag,
                                 HttpServletResponse httpServletResponse) {
         if (etag == null) {
@@ -567,7 +536,7 @@ public class ScimGroupEndpoints {
         // traces
         boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
         return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, trace),
-            e.getStatus()), messageConverters);
+                e.getStatus()), messageConverters);
     }
 
     private int getVersion(String groupId, String etag) {
@@ -585,7 +554,7 @@ public class ScimGroupEndpoints {
             return Integer.valueOf(value);
         } catch (NumberFormatException e) {
             throw new ScimException("Invalid version match header (should be a version number): " + etag,
-                HttpStatus.BAD_REQUEST);
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -596,7 +565,7 @@ public class ScimGroupEndpoints {
     public void setGroupMaxCount(int groupMaxCount) {
         if (groupMaxCount <= 0) {
             throw new IllegalArgumentException(
-                String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
+                    String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
             );
         }
         this.groupMaxCount = groupMaxCount;

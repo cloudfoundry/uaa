@@ -60,8 +60,7 @@ public class UserIdConversionEndpointsTests {
     @Before
     public void init() {
         mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor);
-        endpoints.setScimUserEndpoints(scimUserEndpoints);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints);
         endpoints.setEnabled(true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");

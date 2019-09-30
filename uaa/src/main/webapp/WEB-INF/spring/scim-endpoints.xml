@@ -211,11 +211,7 @@
         <constructor-arg value="${scim.userids_enabled:false}"/>
     </bean>
 
-    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
-        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
-        <property name="scimUserEndpoints" ref="scimUserEndpoints"/>
-        <property name="enabled" ref="userIdsEnabled"/>
-    </bean>
+    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints" />
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"

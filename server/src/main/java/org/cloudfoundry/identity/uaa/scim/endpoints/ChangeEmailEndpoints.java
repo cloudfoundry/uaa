@@ -80,7 +80,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         if ((null != expiringCode) && ((null == expiringCode.getIntent()) || EMAIL.name().equals(expiringCode.getIntent()))) {
-            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
             });
             assert data != null;
             String userId = data.get("userId");

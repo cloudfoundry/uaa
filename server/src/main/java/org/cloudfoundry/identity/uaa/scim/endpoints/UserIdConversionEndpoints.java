@@ -1,16 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.unboundid.scim.sdk.SCIMException;
@@ -26,14 +13,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
@@ -43,32 +27,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * @author Dave Syer
- * @author Luke Taylor
- */
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final IdentityProviderProvisioning provisioning;
     private final SecurityContextAccessor securityContextAccessor;
-
-    private ScimUserEndpoints scimUserEndpoints;
-
-    private IdentityProviderProvisioning provisioning;
+    private final ScimUserEndpoints scimUserEndpoints;
 
     private boolean enabled = true;
 
-    public UserIdConversionEndpoints(final IdentityProviderProvisioning provisioning,
-                                     final SecurityContextAccessor securityContextAccessor) {
+    public UserIdConversionEndpoints(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
+                                     final SecurityContextAccessor securityContextAccessor,
+                                     final ScimUserEndpoints scimUserEndpoints) {
         this.provisioning = provisioning;
         this.securityContextAccessor = securityContextAccessor;
-    }
-
-    /**
-     * @param scimUserEndpoints the scimUserEndpoints to set
-     */
-    public void setScimUserEndpoints(ScimUserEndpoints scimUserEndpoints) {
         this.scimUserEndpoints = scimUserEndpoints;
     }
 
@@ -87,14 +60,14 @@ public class UserIdConversionEndpoints implements InitializingBean {
     @RequestMapping(value = "/ids/Users")
     @ResponseBody
     public SearchResults<?> findUsers(
-                    @RequestParam(defaultValue = "") String filter,
-                    @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
-                    @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count,
-                    @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
+            @RequestParam(defaultValue = "") String filter,
+            @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count,
+            @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
         if (!enabled) {
             logger.warn("Request from user " + securityContextAccessor.getAuthenticationInfo() +
-                            " received at disabled Id translation endpoint with filter:" + filter);
+                    " received at disabled Id translation endpoint with filter:" + filter);
             throw new ScimException("Illegal operation.", HttpStatus.BAD_REQUEST);
         }
 
@@ -104,7 +77,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         List<IdentityProvider> activeIdentityProviders = provisioning.retrieveActive(IdentityZoneHolder.get().getId());
 
         if (!includeInactive) {
-            if(activeIdentityProviders.isEmpty()) {
+            if (activeIdentityProviders.isEmpty()) {
                 return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), new ArrayList<>(), startIndex, count, 0);
             }
             String originFilter = activeIdentityProviders.stream().map(identityProvider -> "".concat("origin eq \"" + identityProvider.getOriginKey() + "\"")).collect(Collectors.joining(" OR "));
@@ -142,9 +115,6 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     /**
      * Returns true if the field 'id' or 'userName' are present in the query.
-     *
-     * @param filter
-     * @return
      */
     private boolean checkFilter(SCIMFilter filter) {
         switch (filter.getFilterType()) {
@@ -154,7 +124,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();
                 if ("id".equalsIgnoreCase(name) ||
-                    "userName".equalsIgnoreCase(name)) {
+                        "userName".equalsIgnoreCase(name)) {
                     return true;
                 } else if (OriginKeys.ORIGIN.equalsIgnoreCase(name)) {
                     return false;
