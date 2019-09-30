@@ -704,7 +704,7 @@ public class ClientAdminEndpointsMockMvcTests {
         ClientDetails[] clients = clientArrayFromString(result.andReturn().getResponse().getContentAsString());
         for (ClientDetails client : clients) {
             assertNotNull(getClient(client.getClientId()));
-            assertEquals(new Integer(120), client.getRefreshTokenValiditySeconds());
+            assertEquals(Integer.valueOf(120), client.getRefreshTokenValiditySeconds());
         }
         //create and then update events
         verify(mockApplicationEventPublisher, times(count * 2)).publishEvent(abstractUaaEventCaptor.capture());
@@ -835,7 +835,7 @@ public class ClientAdminEndpointsMockMvcTests {
         for (int i = 0; i < count; i++) {
             ClientDetails c = getClient(details[i].getClientId());
             assertNotNull(c);
-            assertEquals(new Integer(120), c.getRefreshTokenValiditySeconds());
+            assertEquals(Integer.valueOf(120), c.getRefreshTokenValiditySeconds());
 
         }
         for (int i = count; i < (count * 2); i++) {

@@ -2491,7 +2491,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         Calendar nineYearsAhead = new GregorianCalendar();
         nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
         nineYearsAhead.add(Calendar.YEAR, 9);
-        assertTrue("Expiration Date should be more than 9 years ahead.", new Date(expirationTime * 1000l).after(new Date(nineYearsAhead.getTimeInMillis())));
+        assertTrue("Expiration Date should be more than 9 years ahead.", new Date(expirationTime * 1000L).after(new Date(nineYearsAhead.getTimeInMillis())));
     }
 
     @Test
