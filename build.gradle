@@ -72,6 +72,9 @@ subprojects {
         testRuntime(libraries.junit5JupiterEngine)
         testRuntime(libraries.junitVintageEngine)
         testCompile "com.unboundid:unboundid-ldapsdk:4.0.11"
+
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']

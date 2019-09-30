@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
@@ -69,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -285,7 +285,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }
@@ -335,7 +335,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(zonedClientDetails.getClientId()));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }
@@ -375,7 +375,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is("admin"));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }

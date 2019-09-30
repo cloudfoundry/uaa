@@ -38,6 +38,8 @@ import java.util.Map;
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.EMAIL;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
@@ -472,8 +474,8 @@ class InvitationsEndpointMockMvcTests {
             Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
             });
             assertThat(data, is(not(nullValue())));
-            assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
-            assertThat(data.get(InvitationConstants.EMAIL), is(emails[i]));
+            assertThat(data.get(USER_ID), is(notNullValue()));
+            assertThat(data.get(EMAIL), is(emails[i]));
             assertThat(data.get(ORIGIN), is(OriginKeys.UAA));
             assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
             assertThat(data.get(REDIRECT_URI), is(redirectUrl));

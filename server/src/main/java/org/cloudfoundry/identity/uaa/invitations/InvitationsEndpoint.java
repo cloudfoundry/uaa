@@ -49,6 +49,8 @@ import static org.springframework.util.StringUtils.hasText;
 public class InvitationsEndpoint {
 
     public static final int INVITATION_EXPIRY_DAYS = 7;
+    public static final String USER_ID = "user_id";
+    public static final String EMAIL = "email";
 
     private ScimUserProvisioning users;
     private IdentityProviderProvisioning providers;
@@ -103,8 +105,8 @@ public class InvitationsEndpoint {
                         String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
-                        data.put(InvitationConstants.USER_ID, user.getId());
-                        data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
+                        data.put(USER_ID, user.getId());
+                        data.put(EMAIL, user.getPrimaryEmail());
                         data.put(CLIENT_ID, clientId);
                         data.put(REDIRECT_URI, redirectUri);
                         data.put(ORIGIN, user.getOrigin());

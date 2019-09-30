@@ -297,7 +297,7 @@ public class InvitationsControllerTest {
         invitedUser.setPrimaryEmail("user@example.com");
 
         when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(invitedUser);
-        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
@@ -394,7 +394,7 @@ public class InvitationsControllerTest {
 
         when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(createCode(codeData), null);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(createCode(codeData));
-        when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -527,7 +527,7 @@ public class InvitationsControllerTest {
             .thenReturn(thenewcode)
             .thenReturn(thenewcode2);
 
-        when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new AcceptedInvitation("/home", user));
 
         MvcResult res = mockMvc.perform(post)
             .andExpect(status().isFound())
@@ -560,7 +560,7 @@ public class InvitationsControllerTest {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
-        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("valid.redirect.com", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("valid.redirect.com", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
@@ -586,7 +586,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
 
-        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("/home", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("code","thecode")
@@ -744,7 +744,7 @@ public class InvitationsControllerTest {
             .thenReturn(expiringCode);
 
         when(invitationsService.acceptInvitation(anyString(), anyString()))
-            .thenReturn(new InvitationsService.AcceptedInvitation(codeData.get("redirect_uri"), null));
+            .thenReturn(new AcceptedInvitation(codeData.get("redirect_uri"), null));
 
         MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password")
             .param("does_user_consent", "true"))
