@@ -71,8 +71,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + zoneId));
     }
 
-    public InMemoryExpiringCodeStore setTimeService(TimeService timeService) {
+    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
-        return this;
     }
 }
