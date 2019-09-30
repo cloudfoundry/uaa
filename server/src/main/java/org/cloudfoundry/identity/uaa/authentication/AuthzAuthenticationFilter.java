@@ -118,7 +118,7 @@ public class AuthzAuthenticationFilter implements Filter {
     }
 
     public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
-        Assert.notNull(authenticationManager);
+        Assert.notNull(authenticationManager, "[Assertion failed] - authenticationManager is required; it must not be null");
         this.authenticationManager = authenticationManager;
     }
 

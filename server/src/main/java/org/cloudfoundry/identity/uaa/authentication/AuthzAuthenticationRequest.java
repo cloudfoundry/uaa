@@ -12,16 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.user.ExtendedUaaAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Map;
 
 /**
  * Authentication request object which contains the JSON data submitted to the
@@ -39,7 +39,7 @@ public class AuthzAuthenticationRequest implements Authentication {
 
     public AuthzAuthenticationRequest(Map<String, String> info, UaaAuthenticationDetails details) {
         this.info = Collections.unmodifiableMap(info);
-        Assert.notNull(details);
+        Assert.notNull(details, "[Assertion failed] - details is required; it must not be null");
         this.details = details;
     }
 
