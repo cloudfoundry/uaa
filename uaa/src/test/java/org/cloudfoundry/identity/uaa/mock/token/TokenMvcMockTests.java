@@ -1653,7 +1653,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
         MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
         String errorMessage = URIUtil.encodeQuery("scim.write is invalid. Please use a valid scope name in the request");
-        assertTrue(!queryParams.containsKey("scope"));
+        assertFalse(queryParams.containsKey("scope"));
         assertEquals(errorMessage, queryParams.getFirst("error_description"));
     }
 
@@ -1682,7 +1682,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         UriComponents locationComponents = UriComponentsBuilder.fromUri(URI.create(mvcResult.getResponse().getHeader("Location"))).build();
         MultiValueMap<String, String> queryParams = locationComponents.getQueryParams();
         String errorMessage = URIUtil.encodeQuery("[something.else] is invalid. This user is not allowed any of the requested scopes");
-        assertTrue(!queryParams.containsKey("scope"));
+        assertFalse(queryParams.containsKey("scope"));
         assertEquals(errorMessage, queryParams.getFirst("error_description"));
     }
 
