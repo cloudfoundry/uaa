@@ -1,7 +1,7 @@
 ext {
     tomcatVersion = '9.0.24'
     tomcatContainerId = 'tomcat9x'
-    springBootVersion = '2.1.7.RELEASE'
+    springBootVersion = '2.1.8.RELEASE'
 
     libraries = [:]
 }
