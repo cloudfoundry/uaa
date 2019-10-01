@@ -8,8 +8,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +43,12 @@ public class EmailInvitationsService implements InvitationsService {
     @Autowired
     private MultitenantClientServices clientDetailsService;
 
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
+
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
 
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
@@ -57,21 +60,21 @@ public class EmailInvitationsService implements InvitationsService {
         String clientId = userData.get(CLIENT_ID);
         String redirectUri = userData.get(REDIRECT_URI);
 
-        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+        ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
 
         if (UAA.equals(user.getOrigin())) {
-            user = scimUserProvisioning.verifyUser(userId, user.getVersion(), IdentityZoneHolder.get().getId());
+            user = scimUserProvisioning.verifyUser(userId, user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
 
             if (StringUtils.hasText(password)) {
                 PasswordChangeRequest request = new PasswordChangeRequest();
                 request.setPassword(password);
-                scimUserProvisioning.changePassword(userId, null, password, IdentityZoneHolder.get().getId());
+                scimUserProvisioning.changePassword(userId, null, password, identityZoneManager.getCurrentIdentityZoneId());
             }
         }
 
         String redirectLocation = "/home";
         try {
-            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
             Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
             redirectLocation = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
         } catch (NoSuchClientException x) {
