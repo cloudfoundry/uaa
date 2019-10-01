@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.HttpClientErrorException;
@@ -64,7 +65,8 @@ class EmailInvitationsServiceTests {
 
     @BeforeEach
     void setUp() {
-        zoneId = "zoneId";
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        zoneId = "zoneId-" + generator.generate();
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
     }
 

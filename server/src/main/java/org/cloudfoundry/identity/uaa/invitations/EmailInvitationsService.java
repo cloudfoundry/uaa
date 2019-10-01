@@ -34,17 +34,21 @@ public class EmailInvitationsService implements InvitationsService {
     public static final String EMAIL = "email";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private ScimUserProvisioning scimUserProvisioning;
+    private final ScimUserProvisioning scimUserProvisioning;
+    private final ExpiringCodeStore expiringCodeStore;
+    private final MultitenantClientServices clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
 
-    @Autowired
-    private ExpiringCodeStore expiringCodeStore;
-
-    @Autowired
-    private MultitenantClientServices clientDetailsService;
-
-    @Autowired
-    private IdentityZoneManager identityZoneManager;
+    public EmailInvitationsService(
+            final ScimUserProvisioning scimUserProvisioning,
+            final ExpiringCodeStore expiringCodeStore,
+            final MultitenantClientServices clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
+        this.scimUserProvisioning = scimUserProvisioning;
+        this.expiringCodeStore = expiringCodeStore;
+        this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
+    }
 
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {
