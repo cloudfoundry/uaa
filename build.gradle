@@ -19,7 +19,7 @@ buildscript {
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.6.1'
         classpath 'com.moowork.gradle:gradle-node-plugin:1.1.0'
         classpath 'io.spring.gradle:dependency-management-plugin:1.0.8.RELEASE'
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+        classpath libraries.springBootGradlePlugin
     }
 }
 

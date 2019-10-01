@@ -1,7 +1,6 @@
 ext {
     tomcatVersion = '9.0.24'
     tomcatContainerId = 'tomcat9x'
-    springBootVersion = '2.1.8.RELEASE'
 
     libraries = [:]
 }
@@ -17,7 +16,7 @@ versions.hamcrestVersion = '2.1'
 versions.jacksonVersion = '2.9.10'
 versions.jsonPathVersion = '2.4.0'
 versions.mockito = '3.0.0'
-versions.springBootVersion = "${springBootVersion}"
+versions.springBootVersion = '2.1.8.RELEASE'
 versions.springSecurityJwtVersion = '1.0.10.RELEASE'
 versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
 versions.springSecuritySamlVersion = '1.0.9.RELEASE'
@@ -48,6 +47,7 @@ libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
 libraries.springBeans = "org.springframework:spring-beans"
 libraries.springBom = "org.springframework:spring-framework-bom:${versions.springVersion}"
 libraries.springBootBom = "org.springframework.boot:spring-boot-dependencies:${versions.springBootVersion}"
+libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springBootStarter = "org.springframework.boot:spring-boot-starter"
 libraries.springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2"
 libraries.springBootStarterTest = "org.springframework.boot:spring-boot-starter-test"
