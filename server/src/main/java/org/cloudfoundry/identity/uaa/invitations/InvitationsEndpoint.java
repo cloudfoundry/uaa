@@ -10,8 +10,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -48,23 +48,23 @@ import static org.springframework.util.StringUtils.hasText;
 @Controller
 public class InvitationsEndpoint {
 
-    public static final int INVITATION_EXPIRY_DAYS = 7;
+    private static final int INVITATION_EXPIRY_DAYS = 7;
     public static final String USER_ID = "user_id";
     public static final String EMAIL = "email";
+    private static final Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
-    private ScimUserProvisioning users;
-    private IdentityProviderProvisioning providers;
-    private MultitenantClientServices clients;
-    private ExpiringCodeStore expiringCodeStore;
-    private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
+    private final ScimUserProvisioning scimUserProvisioning;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final MultitenantClientServices multitenantClientServices;
+    private final ExpiringCodeStore expiringCodeStore;
 
-    public InvitationsEndpoint(ScimUserProvisioning users,
-                               IdentityProviderProvisioning providers,
-                               MultitenantClientServices clients,
-                               ExpiringCodeStore expiringCodeStore) {
-        this.users = users;
-        this.providers = providers;
-        this.clients = clients;
+    public InvitationsEndpoint(final ScimUserProvisioning scimUserProvisioning,
+                               final IdentityProviderProvisioning identityProviderProvisioning,
+                               final MultitenantClientServices multitenantClientServices,
+                               final ExpiringCodeStore expiringCodeStore) {
+        this.scimUserProvisioning = scimUserProvisioning;
+        this.identityProviderProvisioning = identityProviderProvisioning;
+        this.multitenantClientServices = multitenantClientServices;
         this.expiringCodeStore = expiringCodeStore;
     }
 
@@ -84,7 +84,7 @@ public class InvitationsEndpoint {
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
 
-        List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
+        List<IdentityProvider> activeProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId());
 
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String subdomainHeader = request.getHeader(SUBDOMAIN_HEADER);
@@ -93,12 +93,12 @@ public class InvitationsEndpoint {
         ClientDetails client = null;
 
         if (!hasText(subdomainHeader) && !hasText(zoneIdHeader)) {
-            client = clients.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            client = multitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         }
 
         for (String email : invitations.getEmails()) {
             try {
-                if (email!=null && emailPattern.matcher(email).matches()) {
+                if (email != null && emailPattern.matcher(email).matches()) {
                     List<IdentityProvider> providers = filter(activeProviders, client, email);
                     if (providers.size() == 1) {
                         ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
@@ -125,7 +125,7 @@ public class InvitationsEndpoint {
                     } else {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
                     }
-                } else{
+                } else {
                     invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid",
                             email + " is invalid email."));
                 }
@@ -138,16 +138,16 @@ public class InvitationsEndpoint {
         return new ResponseEntity<>(invitationsResponse, HttpStatus.OK);
     }
 
-    protected ScimUser findOrCreateUser(String email, String origin) {
+    private ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
-        List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
+        List<ScimUser> results = scimUserProvisioning.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
         if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
-            return users.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
+            return scimUserProvisioning.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
         } else if (results.size() == 1) {
             return results.get(0);
         } else {

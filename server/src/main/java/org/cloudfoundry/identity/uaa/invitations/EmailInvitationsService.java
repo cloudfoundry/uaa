@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -10,8 +8,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -34,7 +34,6 @@ public class EmailInvitationsService implements InvitationsService {
     public static final String EMAIL = "email";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-
     @Autowired
     private ScimUserProvisioning scimUserProvisioning;
 
@@ -52,7 +51,8 @@ public class EmailInvitationsService implements InvitationsService {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
         }
 
-        Map<String,String> userData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        Map<String, String> userData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
+        });
         String userId = userData.get(USER_ID);
         String clientId = userData.get(CLIENT_ID);
         String redirectUri = userData.get(REDIRECT_URI);
@@ -75,9 +75,9 @@ public class EmailInvitationsService implements InvitationsService {
             Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
             redirectLocation = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
         } catch (NoSuchClientException x) {
-            logger.debug("Unable to find client_id for invitation:"+clientId);
+            logger.debug("Unable to find client_id for invitation:" + clientId);
         } catch (Exception x) {
-            logger.error("Unable to resolve redirect for clientID:"+clientId, x);
+            logger.error("Unable to resolve redirect for clientID:" + clientId, x);
         }
         return new AcceptedInvitation(redirectLocation, user);
     }
