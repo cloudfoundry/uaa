@@ -160,7 +160,6 @@
     <dependency>
       <groupId>com.jayway.jsonpath</groupId>
       <artifactId>json-path</artifactId>
-      <version>2.4.0</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -776,7 +775,6 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjrt</artifactId>
-      <version>1.9.4</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -812,7 +810,6 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjweaver</artifactId>
-      <version>1.9.4</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -848,7 +845,6 @@
     <dependency>
       <groupId>org.thymeleaf</groupId>
       <artifactId>thymeleaf-spring5</artifactId>
-      <version>3.0.11.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -884,7 +880,6 @@
     <dependency>
       <groupId>nz.net.ultraq.thymeleaf</groupId>
       <artifactId>thymeleaf-layout-dialect</artifactId>
-      <version>2.4.1</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -920,7 +915,6 @@
     <dependency>
       <groupId>org.thymeleaf.extras</groupId>
       <artifactId>thymeleaf-extras-springsecurity5</artifactId>
-      <version>3.0.4.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -956,7 +950,6 @@
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy</artifactId>
-      <version>2.5.8</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -1080,7 +1073,6 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-      <version>5.2.4</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -1151,7 +1143,6 @@
     <dependency>
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
-      <version>2.5.0</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -1187,7 +1178,6 @@
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
-      <version>1.25</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -1690,7 +1680,6 @@
     <dependency>
       <groupId>javax.activation</groupId>
       <artifactId>activation</artifactId>
-      <version>1.1.1</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
@@ -1903,7 +1892,6 @@
     <dependency>
       <groupId>com.unboundid</groupId>
       <artifactId>unboundid-ldapsdk</artifactId>
-      <version>4.0.11</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -1974,7 +1962,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -2010,7 +1997,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.0.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -2046,7 +2032,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>3.0.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -2082,7 +2067,6 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.8</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -2190,7 +2174,6 @@
     <dependency>
       <groupId>com.jayway.jsonpath</groupId>
       <artifactId>json-path-assert</artifactId>
-      <version>2.4.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>

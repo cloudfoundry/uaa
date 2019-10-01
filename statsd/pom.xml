@@ -141,7 +141,6 @@
     <dependency>
       <groupId>com.timgroup</groupId>
       <artifactId>java-statsd-client</artifactId>
-      <version>3.1.0</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -205,7 +204,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.9.10</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -237,7 +235,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.9.10</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -457,7 +454,6 @@
     <dependency>
       <groupId>com.unboundid</groupId>
       <artifactId>unboundid-ldapsdk</artifactId>
-      <version>4.0.11</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -489,7 +485,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.0.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
