@@ -14,18 +14,20 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.flywaydb.core.internal.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.PreparedStatement;
@@ -33,7 +35,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
-public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
+public class StoreSubDomainAsLowerCase_V2_7_3 extends BaseJavaMigration {
 
     static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
     static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
@@ -41,7 +43,8 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
     Logger logger = LoggerFactory.getLogger(StoreSubDomainAsLowerCase_V2_7_3.class);
 
     @Override
-    public synchronized void migrate(JdbcTemplate jdbcTemplate) {
+    public synchronized void migrate(Context context) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(context.getConnection(), true));
         RandomValueStringGenerator generator = new RandomValueStringGenerator(3);
         Map<String, List<IdentityZone>> zones = new HashMap<>();
         Set<String> duplicates = new HashSet<>();

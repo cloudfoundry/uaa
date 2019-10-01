@@ -14,15 +14,15 @@
  */
 package org.cloudfoundry.identity.uaa.db;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
-import java.sql.Connection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,7 +36,7 @@ import java.util.Set;
  * several migrations where made in 3.10.0
  * This restores these migrations
  */
-public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
+public class FixFailedBackportMigrations_4_0_4 extends BaseJavaMigration {
 
     private static final Logger logger = LoggerFactory.getLogger(FixFailedBackportMigrations_4_0_4.class);
 
@@ -57,14 +57,14 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
     }
 
     @Override
-    public void migrate(Connection connection) {
+    public void migrate(Context context) {
         if ("hsqldb".equals(type)) {
             //we don't have this problem with hsqldb
             logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");
             return;
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-        SingleConnectionDataSource dataSource = new SingleConnectionDataSource(connection, true);
+        SingleConnectionDataSource dataSource = new SingleConnectionDataSource(context.getConnection(), true);
         JdbcTemplate template = new JdbcTemplate(dataSource);
         boolean run = false;
         for (Map.Entry<String, String> script : getScripts()) {
@@ -80,7 +80,7 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
             logger.info("Running missing migrations.");
             populator.setContinueOnError(false);
             populator.setIgnoreFailedDrops(true);
-            populator.populate(connection);
+            populator.populate(context.getConnection());
             logger.info("Completed missing migrations.");
         } else {
             logger.info("Skipping 4.0.4 migrations, no migrations missing.");

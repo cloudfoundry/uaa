@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
+import org.springframework.jdbc.core.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import org.springframework.jdbc.core.RowMapper;
 
 /**
  * Created by fhanik on 3/5/14.
@@ -37,7 +37,7 @@ public class DatabaseInformation1_5_3 {
 
                     ));
 
-    protected boolean processColumn(ColumnInfo column) {
+    public static boolean processColumn(ColumnInfo column) {
         return (!column.columnName.equals(column.columnName.toLowerCase())) &&
                         tableNames.contains(column.tableName.toLowerCase());
     }
