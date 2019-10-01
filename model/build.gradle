@@ -4,7 +4,7 @@ dependencies {
 
     compile project(':cloudfoundry-identity-metrics-data')
 
-    compile group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+    compile group: 'javax.validation', name: 'validation-api'
 
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
@@ -17,11 +17,11 @@ dependencies {
         exclude(module: 'spring-security-web')
     }
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
+    compile group: 'org.slf4j', name: 'slf4j-api'
 
     testCompile(libraries.junit)
 
-    testCompile 'org.skyscreamer:jsonassert:1.5.0'
+    testCompile 'org.skyscreamer:jsonassert'
 }
 
 apply from: file('build_properties.gradle')

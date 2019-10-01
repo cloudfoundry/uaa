@@ -40,7 +40,7 @@ dependencies {
     compile libraries.thymeleafSpring5
     compile libraries.thymeleafDialect
     compile libraries.thymeleafExtrasSpringSecurity5
-    compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.8'
+    compile group: 'org.codehaus.groovy', name: 'groovy'
 
     compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.22') {
         exclude(module: 'servlet-api')
@@ -52,9 +52,9 @@ dependencies {
     compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.17.Final"
     compile libraries.flywayCore
     compile libraries.mariaJdbcDriver
-    compile group: 'org.hsqldb', name: 'hsqldb', version: "2.5.0"
+    compile group: 'org.hsqldb', name: 'hsqldb'
 
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.25'
+    compile group: 'org.yaml', name: 'snakeyaml'
 
     compile libraries.springSecurityLdap
     compile libraries.springLdapCore

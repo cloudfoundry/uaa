@@ -61,16 +61,16 @@ dependencies {
         exclude(module: 'slf4j-log4j12')
     }
     testCompile libraries.junit
-    testCompile "org.seleniumhq.selenium:selenium-java:3.9.1"
+    testCompile "org.seleniumhq.selenium:selenium-java"
     testCompile group: 'dumbster', name: 'dumbster', version: '1.6'
     testCompile libraries.zxing
     testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-    testCompile group: 'org.skyscreamer', name: 'jsonassert', version: '0.9.0'
+    testCompile group: 'org.skyscreamer', name: 'jsonassert'
     testCompile libraries.springTest
     testCompile libraries.springSecurityTest
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
-    testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:2.0.3.RELEASE'
+    testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc'
 }
 
 node {
