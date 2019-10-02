@@ -465,23 +465,9 @@
     <context:annotation-config/>
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
-    <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
-        <constructor-arg name="invitationsService" ref="invitationsService"/>
-        <property name="spEntityID" ref="samlEntityID"/>
-        <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="userDatabase" ref="userDatabase"/>
-        <property name="passwordValidator" ref="uaaPasswordValidator"/>
-        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
-        <property name="zoneAwareAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
-        <property name="userProvisioning" ref="scimUserProvisioning"/>
-    </bean>
-
-    <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">
-        <constructor-arg name="users" ref="scimUserProvisioning"/>
-        <constructor-arg name="providers" ref="identityProviderProvisioning"/>
-        <constructor-arg name="clients" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="expiringCodeStore" ref="codeStore"/>
-    </bean>
+    <bean id="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController" />
+    <bean id="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint" />
+    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService" />
 
     <mvc:resources mapping="/resources/**" location="/resources/"/>
     <mvc:default-servlet-handler/>
@@ -532,8 +518,6 @@
         <constructor-arg ref="globalPasswordPolicy"/>
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
-
-    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService"/>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>

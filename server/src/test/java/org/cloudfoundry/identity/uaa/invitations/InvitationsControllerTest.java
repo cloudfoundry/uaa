@@ -55,6 +55,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.net.URL;
@@ -758,7 +759,7 @@ public class InvitationsControllerTest {
     @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
-    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+    static class ContextConfiguration implements WebMvcConfigurer {
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
@@ -802,22 +803,22 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        InvitationsController invitationsController(InvitationsService invitationsService,
-                                                    ExpiringCodeStore codeStore,
-                                                    PasswordValidator passwordPolicyValidator,
-                                                    IdentityProviderProvisioning providerProvisioning,
-                                                    UaaUserDatabase userDatabase,
-                                                    ScimUserProvisioning provisioning,
-                                                    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
-            InvitationsController result = new InvitationsController(invitationsService);
-            result.setExpiringCodeStore(codeStore);
-            result.setPasswordValidator(passwordPolicyValidator);
-            result.setProviderProvisioning(providerProvisioning);
-            result.setUserDatabase(userDatabase);
-            result.setSpEntityID("sp-entity-id");
-            result.setZoneAwareAuthenticationManager(zoneAwareAuthenticationManager);
-            result.setUserProvisioning(provisioning);
-            return result;
+        InvitationsController invitationsController(final InvitationsService invitationsService,
+                                                    final ExpiringCodeStore codeStore,
+                                                    final PasswordValidator passwordPolicyValidator,
+                                                    final IdentityProviderProvisioning providerProvisioning,
+                                                    final UaaUserDatabase userDatabase,
+                                                    final ScimUserProvisioning provisioning,
+                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+            return new InvitationsController(
+                    invitationsService,
+                    codeStore,
+                    passwordPolicyValidator,
+                    providerProvisioning,
+                    zoneAwareAuthenticationManager,
+                    userDatabase,
+                    "sp-entity-id",
+                    provisioning);
         }
 
         @Bean

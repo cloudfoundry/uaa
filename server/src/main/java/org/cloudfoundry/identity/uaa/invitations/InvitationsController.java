@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.ldap.AuthenticationException;
@@ -68,46 +69,31 @@ public class InvitationsController {
     private static Logger logger = LoggerFactory.getLogger(InvitationsController.class);
 
     private final InvitationsService invitationsService;
+    private final ExpiringCodeStore expiringCodeStore;
+    private final PasswordValidator passwordValidator;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+    private final UaaUserDatabase userDatabase;
+    private final String spEntityID;
+    private final ScimUserProvisioning userProvisioning;
 
-    private PasswordValidator passwordValidator;
-    private ExpiringCodeStore expiringCodeStore;
-    private IdentityProviderProvisioning providerProvisioning;
-    private UaaUserDatabase userDatabase;
-    private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
-    private ScimUserProvisioning userProvisioning;
-
-    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
-        this.expiringCodeStore = expiringCodeStore;
-    }
-
-    public void setPasswordValidator(PasswordValidator passwordValidator) {
-        this.passwordValidator = passwordValidator;
-    }
-
-    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
-    }
-
-    public void setZoneAwareAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
-        this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
-    }
-
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
-    }
-
-    private String spEntityID;
-
-    public InvitationsController(InvitationsService invitationsService) {
+    public InvitationsController(
+            final InvitationsService invitationsService,
+            final ExpiringCodeStore expiringCodeStore,
+            final PasswordValidator passwordValidator,
+            final IdentityProviderProvisioning identityProviderProvisioning,
+            final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
+            final UaaUserDatabase userDatabase,
+            final @Qualifier("samlEntityID") String spEntityID,
+            final ScimUserProvisioning userProvisioning) {
         this.invitationsService = invitationsService;
-    }
-
-    public String getSpEntityID() {
-        return spEntityID;
-    }
-
-    public void setSpEntityID(String spEntityID) {
+        this.expiringCodeStore = expiringCodeStore;
+        this.passwordValidator = passwordValidator;
+        this.identityProviderProvisioning = identityProviderProvisioning;
+        this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
+        this.userDatabase = userDatabase;
         this.spEntityID = spEntityID;
+        this.userProvisioning = userProvisioning;
     }
 
     @RequestMapping(value = {"/sent", "/new", "/new.do"})
@@ -129,7 +115,7 @@ public class InvitationsController {
         });
         String origin = codeData.get(ORIGIN);
         try {
-            IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
+            IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
@@ -147,7 +133,7 @@ public class InvitationsController {
 
                 SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
 
-                String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID(), IdentityZoneHolder.get());
+                String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, spEntityID, IdentityZoneHolder.get());
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (OIDC10.equals(provider.getType()) || OAUTH20.equals(provider.getType())) {
@@ -332,7 +318,7 @@ public class InvitationsController {
         AuthenticationManager authenticationManager = null;
         IdentityProvider ldapProvider = null;
         try {
-            ldapProvider = providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+            ldapProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
             zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapAuthenticationManager();
             authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapManagerActual();
         } catch (EmptyResultDataAccessException e) {
@@ -381,9 +367,5 @@ public class InvitationsController {
         model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return view;
-    }
-
-    public void setUserProvisioning(ScimUserProvisioning userProvisioning) {
-        this.userProvisioning = userProvisioning;
     }
 }
