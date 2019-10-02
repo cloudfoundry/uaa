@@ -38,8 +38,8 @@ import java.util.Map;
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.EMAIL;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
@@ -47,6 +47,8 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUB
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
