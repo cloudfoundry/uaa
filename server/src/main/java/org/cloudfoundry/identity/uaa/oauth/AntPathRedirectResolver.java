@@ -39,6 +39,15 @@ import static java.util.Optional.ofNullable;
 public class AntPathRedirectResolver extends DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(AntPathRedirectResolver.class);
 
+    public AntPathRedirectResolver() {
+        super.setMatchSubdomains(false);
+    }
+
+    @Override
+    public void setMatchSubdomains(boolean matchSubdomains) {
+        throw new UnsupportedOperationException("to prevent partial open redirect, subdomains must not be matched");
+    }
+
     @Override
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
         try {

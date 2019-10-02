@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import lombok.SneakyThrows;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.httpclient.util.URIUtil;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.opensaml.xml.ConfigurationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -1693,10 +1693,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNull(query.get("token"));
     }
 
-    @Test
-    void test_subdomain_redirect_url() throws Exception {
-        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
-        String subDomainUri = redirectUri.replace("example.com", "test.example.com");
+    private static final String URI_FORMAT = "https://%s/dashboard/?appGuid=app-guid&ace_config=test";
+
+    @SneakyThrows
+    private MockHttpServletResponse getAuthCode(String registeredDomain, String requestedDomain, ResultMatcher expectedHttpStatus) {
+        String redirectUri = String.format(URI_FORMAT, registeredDomain);
+        String subDomainUri = String.format(URI_FORMAT, requestedDomain);
         String clientId = "authclient-" + generator.generate();
         String scopes = "openid";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
@@ -1715,10 +1717,25 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, subDomainUri);
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
-        String location = result.getResponse().getHeader("Location");
+        return mockMvc.perform(authRequest).andExpect(expectedHttpStatus).andReturn().getResponse();
+    }
+
+    @Test
+    void getAuthCode_wildcardRegisteredRedirect_redirectToSubdomainAllowed() {
+        MockHttpServletResponse response = getAuthCode("*.example.com", "test.example.com", status().is3xxRedirection());
+
+        assertTrue(response.containsHeader("Location"));
+        String location = response.getHeader("Location"); 
         location = location.substring(0, location.indexOf("&code="));
+        String subDomainUri = String.format(URI_FORMAT, "test.example.com");
         assertEquals(subDomainUri, location);
+    }
+
+    @Test
+    void getAuthCode_registeredRedirectLacksWildcard_redirectToSubdomainForbidden() {
+        MockHttpServletResponse response = getAuthCode("example.com", "test.example.com", status().is4xxClientError());
+
+        assertFalse(response.containsHeader("Location"));
     }
 
     @Test
