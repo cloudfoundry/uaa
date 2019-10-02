@@ -267,16 +267,7 @@
         </constructor-arg>
     </bean>
 
-    <bean id="passwordChangeUiRequiredFilter"
-          class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
-        <constructor-arg name="redirectUri" value="/force_password_change"/>
-        <constructor-arg name="cache" ref="clientRedirectStateCache"/>
-        <constructor-arg name="ignoreUris">
-            <array>
-                <value>/login/mfa/**</value>
-            </array>
-        </constructor-arg>
-    </bean>
+    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter" />
 
     <bean id="reAuthenticationRequiredFilter"
           class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">

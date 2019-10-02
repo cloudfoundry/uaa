@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
@@ -37,7 +38,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PasswordChangeUiRequiredFilterTest {
 
-    private PasswordChangeUiRequiredFilter passwordChangeUiRequiredFilter;
     private MockHttpServletRequest mockHttpServletRequest;
 
     @Mock
@@ -52,14 +52,11 @@ class PasswordChangeUiRequiredFilterTest {
     @Mock
     private FilterChain mockFilterChain;
 
+    @InjectMocks
+    private PasswordChangeUiRequiredFilter passwordChangeUiRequiredFilter;
+
     @BeforeEach
     void setUp() {
-        passwordChangeUiRequiredFilter = new PasswordChangeUiRequiredFilter(
-                "/force_password_change",
-                mockRequestCache,
-                "/login/mfa/**"
-        );
-
         mockHttpServletRequest = new MockHttpServletRequest();
         mockHttpServletRequest.setContextPath("");
     }
@@ -73,7 +70,7 @@ class PasswordChangeUiRequiredFilterTest {
     void isIgnored() {
         for (String s : Arrays.asList("/login/mfa", "/login/mfa/register", "/login/mfa/verify.do")) {
             mockHttpServletRequest.setPathInfo(s);
-            assertThat("Is ignored:" + s, passwordChangeUiRequiredFilter.isIgnored(mockHttpServletRequest, mockHttpServletResponse), is(true));
+            assertThat("Is ignored:" + s, passwordChangeUiRequiredFilter.isIgnored(mockHttpServletRequest), is(true));
         }
     }
 

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.RequestCache;
@@ -12,33 +13,31 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 
 public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
 
-    private final String redirectUri;
-    private final AntPathRequestMatcher matcher;
-    private final List<AntPathRequestMatcher> ignorePaths;
-    private final AntPathRequestMatcher completed = new AntPathRequestMatcher("/force_password_change_completed");
+    private final static String MATCH_PATH = "/force_password_change";
+    private final static String IGNORE_PATH = "/login/mfa/**";
+    private final static String COMPLETED_PATH = "/force_password_change_completed";
+
+    private final AntPathRequestMatcher matchPath;
+    private final AntPathRequestMatcher ignorePath;
+    private final AntPathRequestMatcher completedPath;
     private final RequestCache cache;
 
-    public PasswordChangeUiRequiredFilter(String redirectUri, RequestCache cache, String... ignoreUris) {
-        this.redirectUri = redirectUri;
-        matcher = new AntPathRequestMatcher(redirectUri);
+    public PasswordChangeUiRequiredFilter(final RequestCache cache) {
         this.cache = cache;
-        ignorePaths = new LinkedList<>();
-        if (ignoreUris!=null) {
-            for (String s : ignoreUris) {
-                ignorePaths.add(new AntPathRequestMatcher(s));
-            }
-        }
+        this.matchPath = new AntPathRequestMatcher(MATCH_PATH);
+        this.ignorePath = new AntPathRequestMatcher(IGNORE_PATH);
+        this.completedPath = new AntPathRequestMatcher(COMPLETED_PATH);
     }
 
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if (isIgnored(request, response)) {
+    protected void doFilterInternal(
+            final @NonNull HttpServletRequest request,
+            final @NonNull HttpServletResponse response,
+            final @NonNull FilterChain filterChain) throws ServletException, IOException {
+        if (isIgnored(request)) {
             //pass through even though 'change' is required request
             filterChain.doFilter(request, response);
         } else if (isCompleted(request)) {
@@ -49,11 +48,11 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
             } else {
                 sendRedirect("/", request, response);
             }
-        } else if (needsPasswordReset() && !matcher.matches(request)) {
+        } else if (needsPasswordReset() && !matchPath.matches(request)) {
             logger.debug("Password change is required for user.");
             cache.saveRequest(request, response);
-            sendRedirect(redirectUri, request, response);
-        } else if (matcher.matches(request) && isAuthenticated() && !needsPasswordReset()) {
+            sendRedirect(MATCH_PATH, request, response);
+        } else if (matchPath.matches(request) && isAuthenticated() && !needsPasswordReset()) {
             sendRedirect("/", request, response);
         } else {
             //pass through
@@ -61,13 +60,8 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
         }
     }
 
-    protected boolean isIgnored(HttpServletRequest request, HttpServletResponse response) {
-        for (AntPathRequestMatcher matcher : ignorePaths) {
-            if (matcher.matches(request)) {
-                return true;
-            }
-        }
-        return false;
+    protected boolean isIgnored(HttpServletRequest request) {
+        return ignorePath.matches(request);
     }
 
     private boolean isAuthenticated() {
@@ -75,30 +69,25 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
         return authentication != null && authentication.isAuthenticated();
     }
 
-    protected boolean isCompleted(HttpServletRequest request) {
+    private boolean isCompleted(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication instanceof UaaAuthentication) {
-            UaaAuthentication uaa = (UaaAuthentication)authentication;
-            return uaa.isAuthenticated() && !uaa.isRequiresPasswordChange() && completed.matches(request);
+        if (authentication instanceof UaaAuthentication) {
+            UaaAuthentication uaa = (UaaAuthentication) authentication;
+            return uaa.isAuthenticated() && !uaa.isRequiresPasswordChange() && completedPath.matches(request);
         }
         return false;
     }
 
     protected void sendRedirect(String redirectUrl, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        StringBuilder url = new StringBuilder(
-            redirectUrl.startsWith("/") ? request.getContextPath() : ""
-        );
-        url.append(redirectUrl);
-        String location = url.toString();
+        String location = (redirectUrl.startsWith("/") ? request.getContextPath() : "") + redirectUrl;
         logger.debug("Redirecting request to " + location);
         response.sendRedirect(location);
     }
 
-    protected boolean needsPasswordReset() {
+    private boolean needsPasswordReset() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null &&
-            authentication instanceof UaaAuthentication &&
-            ((UaaAuthentication)authentication).isRequiresPasswordChange() &&
-            authentication.isAuthenticated();
+        return authentication instanceof UaaAuthentication &&
+                ((UaaAuthentication) authentication).isRequiresPasswordChange() &&
+                authentication.isAuthenticated();
     }
 }
