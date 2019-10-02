@@ -1,12 +1,17 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
@@ -21,44 +26,49 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 class AuthzAuthenticationFilterTests {
+
+    @Mock
+    private AuthenticationManager mockAuthenticationManager;
+    private UaaAuthentication mockUaaAuthentication;
+    @InjectMocks
+    private AuthzAuthenticationFilter authzAuthenticationFilter;
+    private MockHttpServletRequest request;
+    private MockHttpServletResponse response;
+
+    @BeforeEach
+    void setUp() {
+        mockUaaAuthentication = mock(UaaAuthentication.class);
+
+        request = new MockHttpServletRequest("POST", "/oauth/authorize");
+        response = new MockHttpServletResponse();
+    }
 
     @Test
     void authenticatesValidUser() throws Exception {
         String msg = "{ \"username\":\"marissa\", \"password\":\"koala\"}";
-
-        AuthenticationManager am = mock(AuthenticationManager.class);
-        Authentication result = mock(Authentication.class);
-        when(am.authenticate(any(AuthzAuthenticationRequest.class))).thenReturn(result);
-        AuthzAuthenticationFilter filter = new AuthzAuthenticationFilter(am);
-
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/authorize");
         request.setParameter("credentials", msg);
-        MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request, response, new MockFilterChain());
+        authzAuthenticationFilter.doFilter(request, response, new MockFilterChain());
     }
 
     @Test
     void password_expired_fails_authentication() throws Exception {
-        AuthenticationManager am = mock(AuthenticationManager.class);
-        UaaAuthentication result = mock(UaaAuthentication.class);
-        when(am.authenticate(any(AuthzAuthenticationRequest.class))).thenReturn(result);
+        when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
+        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
 
-        when(result.isAuthenticated()).thenReturn(true);
-        when(result.isRequiresPasswordChange()).thenReturn(true);
-
-        AuthzAuthenticationFilter filter = new AuthzAuthenticationFilter(am);
         AuthenticationEntryPoint entryPoint = mock(AuthenticationEntryPoint.class);
-        filter.setAuthenticationEntryPoint(entryPoint);
-        filter.setParameterNames(Arrays.asList("username", "password"));
+        authzAuthenticationFilter.setAuthenticationEntryPoint(entryPoint);
+        authzAuthenticationFilter.setParameterNames(Arrays.asList("username", "password"));
 
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/authorize");
         request.setParameter("username", "marissa");
         request.setParameter("password", "anything");
-        MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request, response, new MockFilterChain());
+        when(mockAuthenticationManager.authenticate(any(AuthzAuthenticationRequest.class))).thenReturn(mockUaaAuthentication);
+
+        authzAuthenticationFilter.doFilter(request, response, new MockFilterChain());
 
         ArgumentCaptor<AuthenticationException> captor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), captor.capture());
@@ -66,6 +76,6 @@ class AuthzAuthenticationFilterTests {
         assertEquals(1, captor.getAllValues().size());
         assertEquals(PasswordChangeRequiredException.class, captor.getValue().getClass());
         assertEquals("password change required", captor.getValue().getMessage());
-        assertSame(result, ((PasswordChangeRequiredException) captor.getValue()).getAuthentication());
+        assertSame(mockUaaAuthentication, ((PasswordChangeRequiredException) captor.getValue()).getAuthentication());
     }
 }
