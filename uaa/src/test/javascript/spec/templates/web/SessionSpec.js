@@ -70,7 +70,7 @@ describe("Session", function() {
 
     describe("_get_op_browser_state", function () {
         it("gets the Current-User cookie value", function () {
-            // We cannot use SESSION cookie for the op browser state because the session cookie is httponly
+            // We cannot use JSESSIONID cookie for the op browser state because the session cookie is httponly
             // and cannot be read from javascripts, even javascripts from the same origin.
             document = { cookie: 'COOKIE1=foo; COOKIE2=bar; Current-User=%7B%22userId%22%3A%229ab2f713-7baf-4411-8067-774d126327e9%22%7D;'};
             sm = SessionManagement(document);

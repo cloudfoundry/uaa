@@ -1165,13 +1165,13 @@ public class IntegrationTestUtils {
                                                                    String username,
                                                                    String password,
                                                                    String tokenResponseType,
-                                                                   String sessionId,
+                                                                   String jSessionId,
                                                                    String redirectUri,
                                                                    String loginHint,
                                                                    boolean callCheckToken) {
         BasicCookieStore cookies = new BasicCookieStore();
-        if (hasText(sessionId)) {
-            cookies.addCookie(new BasicClientCookie("SESSION", sessionId));
+        if (hasText(jSessionId)) {
+            cookies.addCookie(new BasicClientCookie("JSESSIONID", jSessionId));
         }
 
         String mystateid = "mystateid";
@@ -1215,7 +1215,7 @@ public class IntegrationTestUtils {
         }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        if (!hasText(sessionId)) {
+        if (!hasText(jSessionId)) {
             // should be directed to the login screen...
             assertTrue(response.getBody().contains("/login.do"));
             assertTrue(response.getBody().contains("username"));

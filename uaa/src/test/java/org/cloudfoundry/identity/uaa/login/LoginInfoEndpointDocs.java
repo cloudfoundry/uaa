@@ -144,13 +144,13 @@ class LoginInfoEndpointDocs extends EndpointDocs {
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/passcode")
                 .accept(APPLICATION_JSON_VALUE)
                 .session(session)
-                .header("Cookie", "SESSION=" + session.getId());
+                .header("Cookie", "JSESSIONID=" + session.getId());
 
         mockMvc.perform(get)
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessResponse(prettyPrint()),
-                                requestHeaders(headerWithName("Cookie").required().description("SESSION cookie to match the server side session of the authenticated user."))
+                                requestHeaders(headerWithName("Cookie").required().description("JSESSIONID cookie to match the server side session of the authenticated user."))
                         )
                 )
 

@@ -194,7 +194,7 @@
                 <bean class="org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler">
                     <constructor-arg index="0">
                         <util:list>
-                            <value>SESSION</value>
+                            <value>JSESSIONID</value>
                         </util:list>
                     </constructor-arg>
                 </bean>
