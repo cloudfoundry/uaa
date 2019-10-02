@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSucce
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.joda.time.DateTime;
-import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnStatement;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.schema.*;
@@ -227,26 +226,37 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return result;
     }
 
-    public Collection<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, SAMLCredential credential)  {
-        Collection<SamlUserAuthority> authorities = new ArrayList<>();
-        if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME)!=null) {
-            List<String> attributeNames = new LinkedList<>();
-            if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof String) {
-                attributeNames.add((String) definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME));
-            } else if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof Collection) {
-                attributeNames.addAll((Collection) definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME));
-            }
-            for (Attribute attribute : credential.getAttributes()) {
-                if ((attributeNames.contains(attribute.getName())) || (attributeNames.contains(attribute.getFriendlyName()))) {
-                    if (attribute.getAttributeValues() != null && attribute.getAttributeValues().size() > 0) {
+    private Collection<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, SAMLCredential credential)  {
+        if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) != null) {
+            List<String> groupAttributeNames = getGroupAttributeNames(definition);
+
+            Collection<SamlUserAuthority> authorities = new ArrayList<>();
+            credential.getAttributes().stream()
+                    .filter(attribute -> groupAttributeNames.contains(attribute.getName()) || groupAttributeNames.contains(attribute.getFriendlyName()))
+                    .filter(attribute -> attribute.getAttributeValues() != null)
+                    .filter(attribute -> attribute.getAttributeValues().size() > 0)
+                    .forEach(attribute -> {
                         for (XMLObject group : attribute.getAttributeValues()) {
-                            authorities.add(new SamlUserAuthority(getStringValue(attribute.getName(),definition,group)));
+                            authorities.add(new SamlUserAuthority(getStringValue(attribute.getName(),
+                                    definition,
+                                    group)));
                         }
-                    }
-                }
-            }
+                    });
+
+            return authorities;
         }
-        return authorities == null ? Collections.EMPTY_LIST : authorities;
+        return new ArrayList<>();
+    }
+
+    private List<String> getGroupAttributeNames(SamlIdentityProviderDefinition definition) {
+        List<String> attributeNames = new LinkedList<>();
+
+        if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof String) {
+            attributeNames.add((String) definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME));
+        } else if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof Collection) {
+            attributeNames.addAll((Collection) definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME));
+        }
+        return attributeNames;
     }
 
     public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
