@@ -1559,7 +1559,6 @@ public class LoginMockMvcTests {
                 .session(redirectSession)
                 .param("login_hint", hint)
                 .servletPath("/login")
-                .cookie(result.getResponse().getCookies())
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
                 .andExpect(xpath("//input[@name='username']").exists())
