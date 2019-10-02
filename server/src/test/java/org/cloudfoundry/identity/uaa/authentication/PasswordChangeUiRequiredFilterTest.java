@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +27,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,28 +34,33 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 class PasswordChangeUiRequiredFilterTest {
 
     private PasswordChangeUiRequiredFilter passwordChangeUiRequiredFilter;
-    private RequestCache mockRequestCache;
-    private UaaAuthentication mockUaaAuthentication;
     private MockHttpServletRequest mockHttpServletRequest;
+
+    @Mock
+    private RequestCache mockRequestCache;
+
+    @Mock
+    private UaaAuthentication mockUaaAuthentication;
+
+    @Mock
     private HttpServletResponse mockHttpServletResponse;
+
+    @Mock
     private FilterChain mockFilterChain;
 
     @BeforeEach
     void setUp() {
-        mockRequestCache = mock(RequestCache.class);
         passwordChangeUiRequiredFilter = new PasswordChangeUiRequiredFilter(
                 "/force_password_change",
                 mockRequestCache,
                 "/login/mfa/**"
         );
 
-        mockUaaAuthentication = mock(UaaAuthentication.class);
         mockHttpServletRequest = new MockHttpServletRequest();
-        mockHttpServletResponse = mock(HttpServletResponse.class);
-        mockFilterChain = mock(FilterChain.class);
         mockHttpServletRequest.setContextPath("");
     }
 
@@ -74,8 +80,6 @@ class PasswordChangeUiRequiredFilterTest {
     @Test
     void requestToMfa() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
-        when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
         mockHttpServletRequest.setPathInfo("/login/mfa/register");
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
