@@ -934,7 +934,7 @@ public class SamlLoginWithLocalIdpIT {
             webDriver.get(idpZoneUrl+ "/logout.do");
             webDriver.get(spZoneUrl + "/");
             assertEquals(spZone.getName(), webDriver.getTitle());
-            Cookie beforeLogin = webDriver.manage().getCookieNamed("SESSION");
+            Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
             assertNotNull(beforeLogin);
             assertNotNull(beforeLogin.getValue());
 
@@ -954,7 +954,7 @@ public class SamlLoginWithLocalIdpIT {
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-            Cookie afterLogin = webDriver.manage().getCookieNamed("SESSION");
+            Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
             assertNotNull(afterLogin);
             assertNotNull(afterLogin.getValue());
             assertNotEquals(beforeLogin.getValue(), afterLogin.getValue());
