@@ -51,7 +51,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -249,11 +249,10 @@ public class InvitationsServiceMockMvcTests {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = mockMvc.perform(
                 post("/invitations/accept.do")
-                        .session(session)
                         .param("password", "s3cret")
                         .param("password_confirmation", "s3cret")
                         .param("code", invalidCode)
-                        .with(cookieCsrf())
+                        .with(csrf(session))
         )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(model().attribute("error_message_code", "code_expired"))
@@ -295,11 +294,10 @@ public class InvitationsServiceMockMvcTests {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = mockMvc.perform(
                 post("/invitations/accept.do")
-                        .session(session)
                         .param("password", "s3cret")
                         .param("password_confirmation", "s3cret")
                         .param("code", code)
-                        .with(cookieCsrf())
+                        .with(csrf(session))
         )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))

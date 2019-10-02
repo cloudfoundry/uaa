@@ -162,12 +162,12 @@ public class UaaMetricsEmitterIT {
                 headers.add("Cookie", cookie);
             }
         }
-        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
+        String csrf = IntegrationTestUtils.extractCsrfToken(loginResponse.getBody());
 
         LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
         body.add("username", username);
         body.add("password", TEST_PASSWORD);
-        body.add("X-Uaa-Csrf", csrf);
+        body.add(CSRF_PARAMETER_NAME, csrf);
         loginResponse = template.exchange(UAA_BASE_URL + "/login.do",
                                           HttpMethod.POST,
                                           new HttpEntity<>(body, headers),

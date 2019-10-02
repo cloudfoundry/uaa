@@ -113,10 +113,6 @@ public class SessionLossDuringOauthFlowIT {
         // Sign in to login server
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-
-
-        //Session Expires (we simulate through deleting the cookie)
-        webDriver.manage().deleteCookieNamed("JSESSIONID");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         // Authorize the app for some scopes

@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -60,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.CSRF_PARAMETER_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -67,7 +67,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -131,8 +130,8 @@ public class LoginIT {
                 headers.add("Cookie", cookie);
             }
         }
-        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
-        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        String csrf = IntegrationTestUtils.extracCsrfToken(loginResponse.getBody());
+        requestBody.add(CSRF_PARAMETER_NAME, csrf);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = template.exchange(baseUrl + "/login.do",
@@ -141,7 +140,6 @@ public class LoginIT {
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         MatcherAssert.assertThat(cookies, hasItem(startsWith("JSESSIONID")));
-        MatcherAssert.assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("Current-User")));
         headers.clear();
         boolean jsessionIdValidated = false;
@@ -315,15 +313,6 @@ public class LoginIT {
     }
 
     @Test
-    public void testCsrfIsResetDuringLoginPageReload() {
-        webDriver.get(baseUrl + "/login");
-        String csrf1 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
-        webDriver.get(baseUrl + "/login");
-        String csrf2 = webDriver.manage().getCookieNamed(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME).getValue();
-        assertNotEquals(csrf1, csrf2);
-    }
-
-    @Test
     public void testRedirectAfterUnsuccessfulLogin() throws Exception {
         RestTemplate template = new RestTemplate();
 
@@ -339,11 +328,11 @@ public class LoginIT {
                 headers.add("Cookie", cookie);
             }
         }
-        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
+        String csrf = IntegrationTestUtils.extracCsrfToken(loginResponse.getBody());
         LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
         body.add("username", testAccounts.getUserName());
         body.add("password", "invalidpassword");
-        body.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        body.add(CSRF_PARAMETER_NAME, csrf);
         loginResponse = template.exchange(baseUrl + "/login.do",
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
@@ -470,7 +459,7 @@ public class LoginIT {
 
         String redirectUri = "http://expected.com";
         webDriver.get(baseUrl + "/oauth/authorize?client_id=test&redirect_uri="+redirectUri);
-        ((JavascriptExecutor)webDriver).executeScript("document.getElementsByName('X-Uaa-Csrf')[0].value=''");
+        ((JavascriptExecutor)webDriver).executeScript("document.getElementsByName('" + CSRF_PARAMETER_NAME + "')[0].value=''");
         webDriver.manage().deleteCookieNamed("JSESSIONID");
 
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +29,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -161,7 +162,10 @@ class PasswordResetEndpointMockMvcTests {
         String code = getExpiringCode(mockMvc, "app", "http://localhost:8080/app/", loginToken, scimUser);
         String email = scimUser.getUserName();
 
+        MockHttpSession session = new MockHttpSession();
+
         MockHttpServletRequestBuilder get = get("/reset_password")
+            .session(session)
             .param("code", code)
             .param("email", email);
 
@@ -177,7 +181,7 @@ class PasswordResetEndpointMockMvcTests {
             .param("email", email)
             .param("password", "newpass")
             .param("password_confirmation", "newpass")
-            .with(cookieCsrf());
+            .with(csrf(session));
 
         mockMvc.perform(post)
             .andExpect(status().is3xxRedirection())
@@ -187,7 +191,7 @@ class PasswordResetEndpointMockMvcTests {
             .param("username", scimUser.getUserName())
             .param("password", "newpass")
             .param("form_redirect_uri", "http://localhost:8080/app/")
-            .with(cookieCsrf());
+            .with(csrf(session));
 
         mockMvc.perform(post)
             .andExpect(status().is3xxRedirection())

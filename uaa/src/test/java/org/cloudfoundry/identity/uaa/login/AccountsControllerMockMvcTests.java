@@ -42,7 +42,7 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 import java.util.Collections;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -189,8 +189,10 @@ class AccountsControllerMockMvcTests {
 
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone);
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
                 .param("password", "secr3T")
@@ -221,8 +223,10 @@ class AccountsControllerMockMvcTests {
     void testCreatingAnAccount() throws Exception {
         setPredictableGenerator();
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
@@ -255,8 +259,10 @@ class AccountsControllerMockMvcTests {
     void testCreatingAnAccountWithAnEmptyClientId() throws Exception {
         setPredictableGenerator();
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T")
@@ -296,8 +302,10 @@ class AccountsControllerMockMvcTests {
     void testCreatingAnAccountWithNoClientRedirect() throws Exception {
         setPredictableGenerator();
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
@@ -343,8 +351,10 @@ class AccountsControllerMockMvcTests {
                 .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
@@ -392,9 +402,11 @@ class AccountsControllerMockMvcTests {
 
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getBaseClientDetails());
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T")
@@ -442,9 +454,10 @@ class AccountsControllerMockMvcTests {
 
         setPredictableGenerator();
 
+        MockMvcUtils.getCreateAccountForm(mockMvc, session);
+
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .session(session)
+                .with(csrf(session))
                 .param("email", "testuser@test.org")
                 .param("password", "test-password")
                 .param("password_confirmation", "test-password"))
@@ -533,9 +546,11 @@ class AccountsControllerMockMvcTests {
         zone.getConfig().getBranding().getConsent().setText(consentText);
         MockMvcUtils.updateZone(mockMvc, zone);
 
+        MockHttpSession session = getCreateAccountForm();
+
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
                 .param("password_confirmation", USER_PASSWORD)
@@ -562,9 +577,10 @@ class AccountsControllerMockMvcTests {
 
         BaseClientDetails clientDetails = createTestClient();
 
+        MockHttpSession session = getCreateAccountForm();
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
+                .with(csrf(session))
                 .param("email", userEmail)
                 .param("password", USER_PASSWORD)
                 .param("password_confirmation", USER_PASSWORD)
@@ -602,10 +618,12 @@ class AccountsControllerMockMvcTests {
 
     private ResultActions loginWithAccount(String subdomain) throws Exception {
 
+        MockHttpSession session = getCreateAccountForm();
+
         MockHttpServletRequestBuilder req = post("/login.do")
                 .param("username", userEmail)
                 .param("password", USER_PASSWORD)
-                .with(cookieCsrf());
+                .with(csrf(session));
 
         if (hasText(subdomain)) {
             req.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
@@ -614,4 +632,11 @@ class AccountsControllerMockMvcTests {
         return mockMvc.perform(req)
                 .andExpect(status().isFound());
     }
+
+    private MockHttpSession getCreateAccountForm() {
+        MockHttpSession session = new MockHttpSession();
+        MockMvcUtils.getCreateAccountForm(mockMvc, session);
+        return session;
+    }
+
 }

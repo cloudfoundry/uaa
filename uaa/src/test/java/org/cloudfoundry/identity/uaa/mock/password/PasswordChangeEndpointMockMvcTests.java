@@ -16,7 +16,9 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getChangePasswordForm;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLoginForm;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
@@ -134,10 +136,9 @@ class PasswordChangeEndpointMockMvcTests {
         ScimUser user = createUser();
 
         MockHttpSession session = new MockHttpSession();
-        session.invalidate();
+        getLoginForm(mockMvc, session);
         MockHttpSession afterLoginSession = (MockHttpSession) mockMvc.perform(post("/login.do")
-                .with(cookieCsrf())
-                .session(session)
+                .with(csrf(session))
                 .accept(TEXT_HTML_VALUE)
                 .param("username", user.getUserName())
                 .param("password", password))
@@ -148,9 +149,9 @@ class PasswordChangeEndpointMockMvcTests {
         assertNotNull(afterLoginSession);
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
+        getChangePasswordForm(mockMvc, afterLoginSession);
         MockHttpSession afterPasswordChange = (MockHttpSession) mockMvc.perform(post("/change_password.do")
-                .session(afterLoginSession)
-                .with(cookieCsrf())
+                .with(csrf(afterLoginSession))
                 .accept(TEXT_HTML_VALUE)
                 .param("current_password", password)
                 .param("new_password", "secr3T1")
@@ -171,9 +172,9 @@ class PasswordChangeEndpointMockMvcTests {
         ScimUser user = createUser();
 
         MockHttpSession session = new MockHttpSession();
+        getLoginForm(mockMvc, session);
         MockHttpSession afterLoginSessionA = (MockHttpSession) mockMvc.perform(post("/login.do")
-                .with(cookieCsrf())
-                .session(session)
+                .with(csrf(session))
                 .accept(TEXT_HTML_VALUE)
                 .param("username", user.getUserName())
                 .param("password", password))
@@ -182,9 +183,9 @@ class PasswordChangeEndpointMockMvcTests {
                 .andReturn().getRequest().getSession(false);
 
         session = new MockHttpSession();
+        getLoginForm(mockMvc, session);
         MockHttpSession afterLoginSessionB = (MockHttpSession) mockMvc.perform(post("/login.do")
-                .with(cookieCsrf())
-                .session(session)
+                .with(csrf(session))
                 .accept(TEXT_HTML_VALUE)
                 .param("username", user.getUserName())
                 .param("password", password))
@@ -201,9 +202,9 @@ class PasswordChangeEndpointMockMvcTests {
 
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 1);
 
+        getChangePasswordForm(mockMvc, afterLoginSessionA);
         MockHttpSession afterPasswordChange = (MockHttpSession) mockMvc.perform(post("/change_password.do")
-                .session(afterLoginSessionA)
-                .with(cookieCsrf())
+                .with(csrf(afterLoginSessionA))
                 .accept(TEXT_HTML_VALUE)
                 .param("current_password", password)
                 .param("new_password", "secr3T1")
