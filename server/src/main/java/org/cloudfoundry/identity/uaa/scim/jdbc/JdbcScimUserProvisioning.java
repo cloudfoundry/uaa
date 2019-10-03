@@ -93,6 +93,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=? and identity_zone_id=?";
+    public static final String USER_BY_EMAIL_QUERY = "select " + USER_FIELDS + " from users " + "where email=? and origin=? and identity_zone_id=?";
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
@@ -137,6 +138,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
+        }
+    }
+
+    @Override
+    public List<ScimUser> retrieveByEmailAndZone(String email, String origin, String zoneId) {
+        try {
+            return jdbcTemplate.query(USER_BY_EMAIL_QUERY, mapper, email, origin, zoneId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ScimResourceNotFoundException("User with email " + email + " does not exist");
         }
     }
 

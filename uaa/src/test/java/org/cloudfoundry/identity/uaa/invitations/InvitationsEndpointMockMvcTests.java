@@ -378,10 +378,10 @@ class InvitationsEndpointMockMvcTests {
 
         assertEquals("email.invalid", response.getFailedInvites().get(0).getErrorCode());
         assertEquals("email.invalid", response.getFailedInvites().get(1).getErrorCode());
-        assertEquals("email.invalid", response.getFailedInvites().get(2).getErrorCode());
+        assertEquals("provider.non-existent", response.getFailedInvites().get(2).getErrorCode());
         assertEquals(invalidEmail1 + " is invalid email.", response.getFailedInvites().get(0).getErrorMessage());
         assertEquals(invalidEmail2 + " is invalid email.", response.getFailedInvites().get(1).getErrorMessage());
-        assertEquals(invalidEmail3 + " is invalid email.", response.getFailedInvites().get(2).getErrorMessage());
+        assertEquals("No authentication provider found.", response.getFailedInvites().get(2).getErrorMessage());
     }
 
     @Test

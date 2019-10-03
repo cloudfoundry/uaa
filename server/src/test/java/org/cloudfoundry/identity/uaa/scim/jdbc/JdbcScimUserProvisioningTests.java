@@ -74,11 +74,13 @@ class JdbcScimUserProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    private String joeEmail;
 
     @BeforeEach
     void setUp(@Autowired LimitSqlAdapter limitSqlAdapter) {
         generator = new RandomValueStringGenerator();
         joeId = "joeId-" + UUID.randomUUID().toString().substring("joeId-".length());
+        joeEmail = "joe@joe.com";
         String mabelId = "mabelId-" + UUID.randomUUID().toString().substring("mabelId-".length());
         pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
 
@@ -94,13 +96,40 @@ class JdbcScimUserProvisioningTests {
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
-        addUser(jdbcTemplate, joeId, "joe", passwordEncoder.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
+        addUser(jdbcTemplate, joeId, "joe", passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
         addUser(jdbcTemplate, mabelId, "mabel", passwordEncoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", currentIdentityZoneId);
     }
 
     @AfterEach
     void tearDown() {
         jdbcTemplate.execute("delete from users");
+    }
+
+
+    @WithDatabaseContext
+    @Nested
+    class WhenFindingByEmailAndZone {
+        @Test
+        void canRetrieveExistingUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByEmailAndZone(joeEmail, UAA, currentIdentityZoneId);
+            assertEquals(1, found.size());
+
+            ScimUser joe = found.get(0);
+            assertNotNull(joe);
+            assertEquals(joeId, joe.getId());
+            assertEquals("Joe", joe.getGivenName());
+            assertEquals("User", joe.getFamilyName());
+            assertEquals("joe@joe.com", joe.getPrimaryEmail());
+            assertEquals("joe", joe.getUserName());
+            assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
+            assertNull(joe.getGroups());
+        }
+
+        @Test
+        void cannotRetrieveNonexistentUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByEmailAndZone("unknown@example.com", UAA, currentIdentityZoneId);
+            assertEquals(0, found.size());
+        }
     }
 
     @Test

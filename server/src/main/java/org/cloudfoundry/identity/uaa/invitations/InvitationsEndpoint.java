@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -34,7 +36,6 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
@@ -51,7 +52,6 @@ public class InvitationsEndpoint {
     private static final int INVITATION_EXPIRY_DAYS = 7;
     public static final String USER_ID = "user_id";
     public static final String EMAIL = "email";
-    private static final Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final IdentityProviderProvisioning identityProviderProvisioning;
@@ -98,7 +98,7 @@ public class InvitationsEndpoint {
 
         for (String email : invitations.getEmails()) {
             try {
-                if (email != null && emailPattern.matcher(email).matches()) {
+                if (email != null && validateEmail(email)) {
                     List<IdentityProvider> providers = filter(activeProviders, client, email);
                     if (providers.size() == 1) {
                         ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
@@ -140,7 +140,7 @@ public class InvitationsEndpoint {
 
     private ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
-        List<ScimUser> results = scimUserProvisioning.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin), IdentityZoneHolder.get().getId());
+        List<ScimUser> results = scimUserProvisioning.retrieveByEmailAndZone(email, origin, IdentityZoneHolder.get().getId());
         if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
@@ -155,4 +155,14 @@ public class InvitationsEndpoint {
         }
     }
 
+    private boolean validateEmail(String email) {
+        boolean valid = true;
+        try {
+            InternetAddress emailAddr = new InternetAddress(email);
+            emailAddr.validate();
+        } catch (AddressException e) {
+            valid = false;
+        }
+        return valid;
+    }
 }
