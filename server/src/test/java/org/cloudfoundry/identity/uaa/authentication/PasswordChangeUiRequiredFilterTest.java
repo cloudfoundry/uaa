@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
 import javax.servlet.FilterChain;
@@ -41,7 +41,7 @@ class PasswordChangeUiRequiredFilterTest {
     private MockHttpServletRequest mockHttpServletRequest;
 
     @Mock
-    private RequestCache mockRequestCache;
+    private UaaSavedRequestCache mockRequestCache;
 
     @Mock
     private UaaAuthentication mockUaaAuthentication;
