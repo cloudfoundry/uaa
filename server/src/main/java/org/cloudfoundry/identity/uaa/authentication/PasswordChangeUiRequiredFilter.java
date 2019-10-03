@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -23,9 +23,9 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
     private final AntPathRequestMatcher matchPath;
     private final AntPathRequestMatcher ignorePath;
     private final AntPathRequestMatcher completedPath;
-    private final RequestCache cache;
+    private final UaaSavedRequestCache cache;
 
-    public PasswordChangeUiRequiredFilter(final RequestCache cache) {
+    public PasswordChangeUiRequiredFilter(final UaaSavedRequestCache cache) {
         this.cache = cache;
         this.matchPath = new AntPathRequestMatcher(MATCH_PATH);
         this.ignorePath = new AntPathRequestMatcher(IGNORE_PATH);
