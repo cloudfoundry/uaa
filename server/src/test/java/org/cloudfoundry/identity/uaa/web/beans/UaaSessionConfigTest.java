@@ -53,10 +53,10 @@ class UaaSessionConfigTest {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
                 () -> new UaaMemorySessionConfig.MemoryConfigured().matches(mockConditionContext, null),
-                equalTo("foobar is not a valid argument for spring.session-storage. Please choose memory or database."));
+                equalTo("foobar is not a valid argument for servlet.session-store. Please choose memory or database."));
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
                 () -> new UaaJdbcSessionConfig.DatabaseConfigured().matches(mockConditionContext, null),
-                equalTo("foobar is not a valid argument for spring.session-storage. Please choose memory or database."));
+                equalTo("foobar is not a valid argument for servlet.session-store. Please choose memory or database."));
     }
 }

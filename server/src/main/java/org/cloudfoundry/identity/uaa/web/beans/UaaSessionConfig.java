@@ -7,11 +7,12 @@ import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 public class UaaSessionConfig {
+    private static final String SERVLET_SESSION_STORE = "servlet.session-store";
     static final String DATABASE_SESSION_STORE_TYPE = "database";
     static final String MEMORY_SESSION_STORE_TYPE = "memory";
 
     static String getSessionStore(final Environment environment) {
-        return environment.getProperty("servlet.session-store", MEMORY_SESSION_STORE_TYPE);
+        return environment.getProperty(SERVLET_SESSION_STORE, MEMORY_SESSION_STORE_TYPE);
     }
 
     static void validateSessionStore(String sessionStore) {
@@ -19,8 +20,9 @@ public class UaaSessionConfig {
             return;
         }
         throw new IllegalArgumentException(String.format(
-                "%s is not a valid argument for spring.session-storage. Please choose %s or %s.",
+                "%s is not a valid argument for %s. Please choose %s or %s.",
                 sessionStore,
+                SERVLET_SESSION_STORE,
                 MEMORY_SESSION_STORE_TYPE,
                 DATABASE_SESSION_STORE_TYPE));
     }
