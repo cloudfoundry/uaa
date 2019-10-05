@@ -24,7 +24,7 @@ public class MigrationTestRunner {
         BaseCallback callback = new BaseCallback() {
             @Override
             public boolean supports(Event event, Context context) {
-                return event == Event.AFTER_EACH_MIGRATE;
+                return event == Event.AFTER_EACH_MIGRATE || event == Event.BEFORE_EACH_MIGRATE;
             }
 
             @Override
@@ -43,11 +43,17 @@ public class MigrationTestRunner {
                 for (MigrationTest test : tests) {
                     if (test.getTargetMigration().equals(context.getMigrationInfo().getVersion().getVersion())) {
                         try {
-                            test.runAssertions();
+                            if (event == Event.BEFORE_EACH_MIGRATE) {
+                                test.beforeMigration();
+                            } else {
+                                test.runAssertions();
+                            }
                         } catch (Exception e) {
                             Assert.fail(e.getMessage());
                         }
-                        assertionsRan[0]++;
+                        if (event == Event.AFTER_EACH_MIGRATE) {
+                            assertionsRan[0]++;
+                        }
                     }
                 }
             }

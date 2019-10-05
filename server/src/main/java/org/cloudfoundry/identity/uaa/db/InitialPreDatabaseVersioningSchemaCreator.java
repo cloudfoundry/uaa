@@ -14,8 +14,6 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 
 
@@ -42,11 +40,5 @@ public class InitialPreDatabaseVersioningSchemaCreator extends BaseJavaMigration
 
     @Override
     public void migrate(Context context) throws Exception {
-        ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-        populator.addScript(new ClassPathResource("org/cloudfoundry/identity/uaa/db/" + type
-                        + "/V1_5_2__initial_db.sql"));
-        populator.setContinueOnError(true);
-        populator.setIgnoreFailedDrops(true);
-        populator.populate(context.getConnection());
     }
 }

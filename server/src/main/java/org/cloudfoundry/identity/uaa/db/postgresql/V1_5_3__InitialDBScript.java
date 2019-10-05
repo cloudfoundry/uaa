@@ -12,26 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db.postgresql;
 
-import org.cloudfoundry.identity.uaa.db.DataSourceAccessor;
 import org.cloudfoundry.identity.uaa.db.InitialPreDatabaseVersioningSchemaCreator;
-import org.flywaydb.core.api.migration.Context;
-
-import java.sql.Connection;
 
 public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaCreator {
     public V1_5_3__InitialDBScript() {
         super("postgresql");
     }
-
-    @Override
-    public void migrate(Context context) throws Exception {
-        Connection con = DataSourceAccessor.getDataSource().getConnection();
-        try {
-            super.migrate(context);
-        } finally {
-            try { con.close(); } catch (Exception ignore) {}
-        }
-    }
-    
-    
 }
