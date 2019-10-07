@@ -13,6 +13,8 @@ processResources {
 
 apply plugin: 'eclipse-wtp'
 apply plugin: 'org.springframework.boot'
+bootWar { enabled = false }
+war { enabled = true }
 
 eclipse {
     wtp {
@@ -34,7 +36,6 @@ dependencies {
     compile group: 'cglib', name: 'cglib', version: '3.2.5'
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
-    compile libraries.springBootStarterTomcat
     runtime libraries.springSecurityConfig
     runtime libraries.springRetry
     runtime libraries.aspectJWeaver
