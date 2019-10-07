@@ -177,9 +177,9 @@
         <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
-    <bean id="currentUserCookieFactory"
-          class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
+    <bean id="currentUserCookieFactory" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
         <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
+        <constructor-arg name="secure" value="${require_https:false}"/>
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">

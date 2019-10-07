@@ -32,7 +32,7 @@ class CurrentUserCookieFactoryTest {
         username = "marissa";
         email = "marissa@test.org";
         uaaPrincipal = new UaaPrincipal("user-guid", username, email, "uaa", "", "uaa");
-        factory = new CurrentUserCookieFactory(sessionTimeout);
+        factory = new CurrentUserCookieFactory(sessionTimeout, false);
     }
 
     @Test
