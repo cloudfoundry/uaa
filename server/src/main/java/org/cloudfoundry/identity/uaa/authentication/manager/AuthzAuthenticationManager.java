@@ -99,7 +99,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             } else {
                 logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
 
-                if (!(allowUnverifiedUsers && user.isLegacyVerificationBehavior()) && !user.isVerified()) {
+                boolean userMustBeVerified = !allowUnverifiedUsers || !user.isLegacyVerificationBehavior();
+                if (userMustBeVerified && !user.isVerified()) {
                     publish(new UnverifiedUserAuthenticationEvent(user, req, IdentityZoneHolder.getCurrentZoneId()));
                     logger.debug("Account not verified: " + user.getId());
                     throw new AccountNotVerifiedException("Account not verified");
