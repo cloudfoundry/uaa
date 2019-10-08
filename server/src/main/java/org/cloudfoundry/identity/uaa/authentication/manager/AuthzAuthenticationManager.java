@@ -131,13 +131,13 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     private boolean userMustUpdatePassword(UaaUser user) {
         return user.isPasswordChangeRequired() ||
-                isAfterPasswordExpirationDate(user.getPasswordLastModified()) ||
-                passwordPolicyRequirementMandatesChange(user);
+                afterPasswordExpirationDate(user.getPasswordLastModified()) ||
+                afterSystemWidePasswordExpirationDate(user.getPasswordLastModified());
     }
 
-    private boolean passwordPolicyRequirementMandatesChange(UaaUser user) {
+    private boolean afterSystemWidePasswordExpirationDate(Date userPasswordLastModified) {
         Date idpPasswordPolicyNewerThan = getIdpPasswordPolicyNewerThan();
-        return idpPasswordPolicyNewerThan != null && (user.getPasswordLastModified() == null || idpPasswordPolicyNewerThan.getTime() > user.getPasswordLastModified().getTime());
+        return idpPasswordPolicyNewerThan != null && (userPasswordLastModified == null || idpPasswordPolicyNewerThan.getTime() > userPasswordLastModified.getTime());
     }
 
     protected int getPasswordExpiresInMonths() {
@@ -208,7 +208,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.allowUnverifiedUsers = allowUnverifiedUsers;
     }
 
-    private boolean isAfterPasswordExpirationDate(Date passwordLastModified) {
+    private boolean afterPasswordExpirationDate(Date passwordLastModified) {
         int expiringPassword = getPasswordExpiresInMonths();
         if (expiringPassword>0) {
             Calendar cal = Calendar.getInstance();
