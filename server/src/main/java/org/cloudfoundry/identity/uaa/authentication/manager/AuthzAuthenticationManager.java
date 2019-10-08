@@ -110,21 +110,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                         user.getAuthorities(),
                         (UaaAuthenticationDetails) req.getDetails());
 
-                if (checkPasswordExpired(user.getPasswordLastModified())) {
-                    user.setPasswordChangeRequired(true);
-                }
-
                 success.setAuthenticationMethods(Collections.singleton("pwd"));
-                Date passwordNewerThan = getPasswordNewerThan();
-                if(passwordNewerThan != null) {
-                    if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
-                        logger.info("Password change required for user: "+user.getEmail());
-                        success.setRequiresPasswordChange(true);
-                    }
-                }
 
-                if(user.isPasswordChangeRequired()){
-                    logger.info("Password change required for user: "+user.getEmail());
+                if (userMustUpdatePassword(user)) {
+                    logger.info("Password change required for user: " + user.getEmail());
+                    user.setPasswordChangeRequired(true);
                     success.setRequiresPasswordChange(true);
                 }
 
@@ -136,6 +126,17 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         BadCredentialsException e = new BadCredentialsException("Bad credentials");
         publish(new AuthenticationFailureBadCredentialsEvent(req, e));
         throw e;
+    }
+
+    private boolean userMustUpdatePassword(UaaUser user) {
+        return user.isPasswordChangeRequired() ||
+                isAfterPasswordExpirationDate(user.getPasswordLastModified()) ||
+                passwordPolicyRequirementMandatesChange(user);
+    }
+
+    private boolean passwordPolicyRequirementMandatesChange(UaaUser user) {
+        Date idpPasswordPolicyNewerThan = getIdpPasswordPolicyNewerThan();
+        return idpPasswordPolicyNewerThan != null && (user.getPasswordLastModified() == null || idpPasswordPolicyNewerThan.getTime() > user.getPasswordLastModified().getTime());
     }
 
     protected int getPasswordExpiresInMonths() {
@@ -152,7 +153,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         return result;
     }
 
-    protected Date getPasswordNewerThan() {
+    protected Date getIdpPasswordPolicyNewerThan() {
         Date result = null;
         IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if(provider != null) {
@@ -206,7 +207,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.allowUnverifiedUsers = allowUnverifiedUsers;
     }
 
-    private boolean checkPasswordExpired(Date passwordLastModified) {
+    private boolean isAfterPasswordExpirationDate(Date passwordLastModified) {
         int expiringPassword = getPasswordExpiresInMonths();
         if (expiringPassword>0) {
             Calendar cal = Calendar.getInstance();
