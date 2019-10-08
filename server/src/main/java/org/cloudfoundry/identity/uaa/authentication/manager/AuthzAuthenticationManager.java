@@ -105,21 +105,21 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     throw new AccountNotVerifiedException("Account not verified");
                 }
 
-                UaaAuthentication success = new UaaAuthentication(
+                UaaAuthentication uaaAuthentication = new UaaAuthentication(
                         new UaaPrincipal(user),
                         user.getAuthorities(),
                         (UaaAuthenticationDetails) req.getDetails());
 
-                success.setAuthenticationMethods(Collections.singleton("pwd"));
+                uaaAuthentication.setAuthenticationMethods(Collections.singleton("pwd"));
 
                 if (userMustUpdatePassword(user)) {
                     logger.info("Password change required for user: " + user.getEmail());
                     user.setPasswordChangeRequired(true);
-                    success.setRequiresPasswordChange(true);
+                    uaaAuthentication.setRequiresPasswordChange(true);
                 }
 
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()));
-                return success;
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, uaaAuthentication, OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()));
+                return uaaAuthentication;
             }
         }
 
