@@ -42,8 +42,8 @@ public class UaaAuthentication implements Authentication, Serializable {
     private UaaPrincipal principal;
     private UaaAuthenticationDetails details;
     private boolean authenticated;
-    private long authenticatedTime = -1l;
-    private long expiresAt = -1l;
+    private long authenticatedTime = -1L;
+    private long expiresAt = -1L;
     private Set<String> externalGroups;
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
