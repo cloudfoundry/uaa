@@ -51,4 +51,27 @@ class UaaAuthenticationDetailsTest {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
         assertNull(details.getLoginHint());
     }
+
+    @Test
+    void testSavesRequestParameters() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addParameter("key", "value");
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        assertEquals("value", details.getParameterMap().get("key")[0]);
+    }
+
+    @Test
+    void testDoesNotSaveUsernamePasswordRequestParameters() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String[] filteredKeys = {"Username", "username", "Password", "password", "Passcode", "passcode"};
+        for(String key : filteredKeys) {
+            request.addParameter(key, "value");
+        }
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        for(String key : filteredKeys) {
+            assertNull(details.getParameterMap().get(key));
+        }
+    }
 }
