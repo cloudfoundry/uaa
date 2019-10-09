@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -59,7 +61,7 @@ public class ForcePasswordChangeController {
     public String handleForcePasswordChange(Model model,
                                             @RequestParam("password")  String password,
                                             @RequestParam("password_confirmation") String passwordConfirmation,
-                                            HttpServletResponse response) {
+                                            HttpServletResponse response, HttpSession httpSession) {
         UaaAuthentication authentication = ((UaaAuthentication)SecurityContextHolder.getContext().getAuthentication());
         UaaPrincipal principal = authentication.getPrincipal();
         String email = principal.getEmail();
@@ -76,7 +78,7 @@ public class ForcePasswordChangeController {
             return handleUnprocessableEntity(model, response, email, exception.getMessagesAsOneString());
         }
         logger.debug(String.format("Successful password change for username:%s in zone:%s ",principal.getName(), IdentityZoneHolder.get().getId()));
-        authentication.setRequiresPasswordChange(false);
+        SessionUtils.setPasswordChangeRequired(httpSession, false);
         authentication.setAuthenticatedTime(System.currentTimeMillis());
         return "redirect:/force_password_change_completed";
     }

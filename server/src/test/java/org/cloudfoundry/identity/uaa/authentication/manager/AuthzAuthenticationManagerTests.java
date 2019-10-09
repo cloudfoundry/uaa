@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.Authentication;
@@ -64,6 +66,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class AuthzAuthenticationManagerTests {
+    private MockHttpSession mockHttpSession;
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
     private ApplicationEventPublisher publisher;
@@ -87,7 +90,8 @@ class AuthzAuthenticationManagerTests {
         AccountLoginPolicy mockAccountLoginPolicy = mock(AccountLoginPolicy.class);
         when(mockAccountLoginPolicy.isAllowed(any(), any())).thenReturn(true);
 
-        mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
+        mockHttpSession = new MockHttpSession();
+        mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning, mockHttpSession);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
         mgr.setAccountLoginPolicy(mockAccountLoginPolicy);
@@ -159,8 +163,8 @@ class AuthzAuthenticationManagerTests {
                 oneYearAgo);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
-        assertTrue(((UaaAuthentication) authentication).isRequiresPasswordChange());
         assertTrue(authentication.isAuthenticated());
+        assertTrue(SessionUtils.isPasswordChangeRequired(mockHttpSession));
     }
 
     @Test
@@ -259,8 +263,8 @@ class AuthzAuthenticationManagerTests {
         user.setPasswordChangeRequired(true);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
-        assertTrue(((UaaAuthentication) authentication).isRequiresPasswordChange());
         assertTrue(authentication.isAuthenticated());
+        assertTrue(SessionUtils.isPasswordChangeRequired(mockHttpSession));
     }
 
     @Test
@@ -283,8 +287,8 @@ class AuthzAuthenticationManagerTests {
         when(idpDefinition.getPasswordPolicy()).thenReturn(policy);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
-        assertTrue(((UaaAuthentication) authentication).isRequiresPasswordChange());
         assertTrue(authentication.isAuthenticated());
+        assertTrue(SessionUtils.isPasswordChangeRequired(mockHttpSession));
     }
 
     @Test

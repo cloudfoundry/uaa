@@ -18,6 +18,7 @@ import javax.servlet.FilterChain;
 import java.util.HashSet;
 
 import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.junit.After;
@@ -25,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
@@ -37,8 +39,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class PasswordChangeRequiredFilterTests {
-    private UaaAuthentication authentication;
     private PasswordChangeRequiredFilter filter;
+    private MockHttpSession session;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private AuthenticationEntryPoint entryPoint;
@@ -46,10 +48,10 @@ public class PasswordChangeRequiredFilterTests {
 
     @Before
     public void setup() {
-        authentication = new UaaAuthentication(
-            new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
-            emptyList(),
-            null
+        UaaAuthentication authentication = new UaaAuthentication(
+                new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
+                emptyList(),
+                null
         );
         authentication.setAuthenticationMethods(new HashSet<>());
         entryPoint = mock(AuthenticationEntryPoint.class);
@@ -57,7 +59,10 @@ public class PasswordChangeRequiredFilterTests {
         filter = new PasswordChangeRequiredFilter(
             entryPoint
         );
+        session = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(session, false);
         request = new MockHttpServletRequest();
+        request.setSession(session);
         response = new MockHttpServletResponse();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -70,7 +75,7 @@ public class PasswordChangeRequiredFilterTests {
 
     @Test
     public void password_change_required() throws Exception {
-        authentication.setRequiresPasswordChange(true);
+        SessionUtils.setPasswordChangeRequired(session, true);
         filter.doFilterInternal(request, response, chain);
         verifyZeroInteractions(chain);
         verify(entryPoint, times(1)).commence(same(request), same(response), any(InteractionRequiredException.class));

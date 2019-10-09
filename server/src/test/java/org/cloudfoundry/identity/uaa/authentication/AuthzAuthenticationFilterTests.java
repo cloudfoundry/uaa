@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -57,7 +59,9 @@ class AuthzAuthenticationFilterTests {
     @Test
     void password_expired_fails_authentication() throws Exception {
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        MockHttpSession httpSession = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(httpSession, true);
+        request.setSession(httpSession);
 
         AuthenticationEntryPoint entryPoint = mock(AuthenticationEntryPoint.class);
         authzAuthenticationFilter.setAuthenticationEntryPoint(entryPoint);

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
@@ -48,11 +49,11 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
             } else {
                 sendRedirect("/", request, response);
             }
-        } else if (needsPasswordReset() && !matchPath.matches(request)) {
+        } else if (needsPasswordReset(request) && !matchPath.matches(request)) {
             logger.debug("Password change is required for user.");
             cache.saveRequest(request, response);
             sendRedirect(MATCH_PATH, request, response);
-        } else if (matchPath.matches(request) && isAuthenticated() && !needsPasswordReset()) {
+        } else if (matchPath.matches(request) && isAuthenticated() && !needsPasswordReset(request)) {
             sendRedirect("/", request, response);
         } else {
             //pass through
@@ -73,7 +74,7 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof UaaAuthentication) {
             UaaAuthentication uaa = (UaaAuthentication) authentication;
-            return uaa.isAuthenticated() && !uaa.isRequiresPasswordChange() && completedPath.matches(request);
+            return uaa.isAuthenticated() && !SessionUtils.isPasswordChangeRequired(request.getSession()) && completedPath.matches(request);
         }
         return false;
     }
@@ -84,10 +85,10 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
         response.sendRedirect(location);
     }
 
-    private boolean needsPasswordReset() {
+    private boolean needsPasswordReset(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication instanceof UaaAuthentication &&
-                ((UaaAuthentication) authentication).isRequiresPasswordChange() &&
+                SessionUtils.isPasswordChangeRequired(request.getSession()) &&
                 authentication.isAuthenticated();
     }
 }

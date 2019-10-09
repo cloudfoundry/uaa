@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.AuthenticationException;
@@ -104,7 +106,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     public void password_expired() throws Exception {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         when(uaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(uaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        MockHttpSession httpSession = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(httpSession, true);
+        request.setSession(httpSession);
         when(passwordAuthManager.authenticate(any())).thenReturn(uaaAuthentication);
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");

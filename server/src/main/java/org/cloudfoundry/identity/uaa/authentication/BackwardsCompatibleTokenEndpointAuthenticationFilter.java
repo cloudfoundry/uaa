@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
@@ -203,7 +204,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
             if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication) {
                 UaaAuthentication uaaAuthentication = (UaaAuthentication) authResult;
-                if (uaaAuthentication.isRequiresPasswordChange()) {
+                if (SessionUtils.isPasswordChangeRequired(request.getSession())) {
                     throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
                 }
             }

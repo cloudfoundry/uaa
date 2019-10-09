@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -133,13 +134,10 @@ public class AuthzAuthenticationFilter implements Filter {
 
                 if (result.isAuthenticated()) {
                     SecurityContextHolder.getContext().setAuthentication(result);
-                    ofNullable(successHandler).ifPresent(
-                            s -> s.setSavedAccountOptionCookie(req, res, result)
-                    );
-
+                    ofNullable(successHandler).ifPresent(s -> s.setSavedAccountOptionCookie(req, res, result));
 
                     UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
-                    if (uaaAuthentication.isRequiresPasswordChange()) {
+                    if (SessionUtils.isPasswordChangeRequired(req.getSession())) {
                         throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
                     }
                 }

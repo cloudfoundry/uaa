@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
@@ -94,7 +96,7 @@ class PasswordChangeUiRequiredFilterTest {
     void authenticated() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(false);
+        setRequiresPasswordChange(mockHttpServletRequest, false);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
     }
@@ -104,7 +106,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setPathInfo("/oauth/authorize");
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, true);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, never()).doFilter(any(), any());
         verify(mockHttpServletResponse, times(1)).sendRedirect("/force_password_change");
@@ -117,7 +119,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setMethod(HttpMethod.GET.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, true);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
         verify(mockHttpServletResponse, never()).sendRedirect(anyString());
@@ -129,7 +131,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, true);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
         verify(mockHttpServletResponse, never()).sendRedirect(anyString());
@@ -141,7 +143,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(false);
+        setRequiresPasswordChange(mockHttpServletRequest, false);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, never()).doFilter(any(), any());
         verify(mockHttpServletResponse, times(1)).sendRedirect("/");
@@ -156,7 +158,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(false);
+        setRequiresPasswordChange(mockHttpServletRequest, false);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, never()).doFilter(any(), any());
         verify(mockHttpServletResponse, times(1)).sendRedirect(location);
@@ -167,7 +169,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setPathInfo("/force_password_change");
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(false);
+        setRequiresPasswordChange(mockHttpServletRequest, false);
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, never()).doFilter(any(), any());
         verify(mockHttpServletResponse, times(1)).sendRedirect("/");
@@ -186,7 +188,7 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(mockUaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, true);
 
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
 
@@ -238,5 +240,9 @@ class PasswordChangeUiRequiredFilterTest {
         };
     }
 
-
+    private void setRequiresPasswordChange(MockHttpServletRequest request, boolean requiresPasswordChange) {
+        MockHttpSession httpSession = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(httpSession, requiresPasswordChange);
+        request.setSession(httpSession);
+    }
 }
