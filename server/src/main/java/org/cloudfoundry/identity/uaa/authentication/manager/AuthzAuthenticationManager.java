@@ -140,7 +140,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         return idpPasswordPolicyNewerThan != null && (userPasswordLastModified == null || idpPasswordPolicyNewerThan.getTime() > userPasswordLastModified.getTime());
     }
 
-    protected int getPasswordExpiresInMonths() {
+    private int getPasswordExpiresInMonths() {
         int result = 0;
         IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (provider!=null) {
@@ -154,8 +154,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         return result;
     }
 
-    protected Date getIdpPasswordPolicyNewerThan() {
-        Date result = null;
+    private Date getIdpPasswordPolicyNewerThan() {
         IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if(provider != null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
@@ -163,7 +162,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 return idpDefinition.getPasswordPolicy().getPasswordNewerThan();
             }
         }
-        return result;
+        return null;
     }
 
     private UaaUser getUaaUser(Authentication req) {
