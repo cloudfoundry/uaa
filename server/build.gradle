@@ -64,7 +64,7 @@ dependencies {
         exclude(module: "slf4j-api")
     }
 
-    compile group: "org.passay", name: "passay", version: "1.2.0"
+    compile group: "org.passay", name: "passay", version: "1.5.0"
 
     compile group: "com.warrenstrange", name: "googleauth", version: "1.2.0"
 
