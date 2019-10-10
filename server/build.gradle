@@ -1,12 +1,12 @@
-description = 'CloudFoundry Identity Server JAR'
+description = "CloudFoundry Identity Server JAR"
 
 dependencies {
 
-    compile project(':cloudfoundry-identity-model')
+    compile project(":cloudfoundry-identity-model")
 
     compile libraries.tomcatJdbc
     provided libraries.tomcatEmbed
-    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
+    compile group: "javax.mail", name: "mail", version: "1.4.7"
 
     compile libraries.commonsLogging
     compile libraries.jsonPath
@@ -25,15 +25,15 @@ dependencies {
     compile libraries.springSessionJdbc
 
     compile(libraries.springSecurityOauth) {
-        exclude(module: 'commons-codec')
-        exclude(module: 'jackson-mapper-asl')
-        exclude(module: 'spring-security-web')
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
     }
 
     compile libraries.bouncyCastleProv
     compile libraries.bouncyCastlePkix
 
-    compile group: 'com.google.guava', name: 'guava', version: '28.1-jre'
+    compile group: "com.google.guava", name: "guava", version: "28.1-jre"
 
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
@@ -41,46 +41,46 @@ dependencies {
     compile libraries.thymeleafSpring5
     compile libraries.thymeleafDialect
     compile libraries.thymeleafExtrasSpringSecurity5
-    compile group: 'org.codehaus.groovy', name: 'groovy'
+    compile group: "org.codehaus.groovy", name: "groovy"
 
-    compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.22') {
-        exclude(module: 'servlet-api')
-        exclude(module: 'commons-logging')
-        exclude(module: 'httpclient')
-        exclude(module: 'wink-client-apache-httpclient')
+    compile(group: "com.unboundid.product.scim", name: "scim-sdk", version: "1.8.22") {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.17.Final"
+    compile group: "org.hibernate", name: "hibernate-validator", version: "6.0.17.Final"
     compile libraries.flywayCore
     compile libraries.mariaJdbcDriver
-    compile group: 'org.hsqldb', name: 'hsqldb'
+    compile group: "org.hsqldb", name: "hsqldb"
 
-    compile group: 'org.yaml', name: 'snakeyaml'
+    compile group: "org.yaml", name: "snakeyaml"
 
     compile libraries.springSecurityLdap
     compile libraries.springLdapCore
     compile libraries.springLdapCoreTiger
     compile(libraries.apacheLdapApi) {
-        exclude(module: 'slf4j-api')
+        exclude(module: "slf4j-api")
     }
 
-    compile group: 'org.passay', name: 'passay', version: '1.2.0'
+    compile group: "org.passay", name: "passay", version: "1.2.0"
 
-    compile group: 'com.warrenstrange', name: 'googleauth', version: '1.2.0'
+    compile group: "com.warrenstrange", name: "googleauth", version: "1.2.0"
 
     compile libraries.slf4jImpl
     compile libraries.log4jCore
 
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: "commons-io", name: "commons-io", version: "2.6"
 
-    compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.4'
+    compile group: "org.apache.santuario", name: "xmlsec", version: "2.1.4"
 
     implementation libraries.javaxXmlBindApi
     implementation libraries.javaxXmlBindCore
     implementation libraries.javaxXmlBindImpl
     implementation libraries.javaxActivation
 
-    testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
+    testCompile project(":cloudfoundry-identity-model").sourceSets.test.output
 
     testCompile libraries.springTest
 
@@ -99,7 +99,7 @@ dependencies {
 }
 
 configurations.all {
-    exclude group: 'org.beanshell', module: 'bsh-core'
+    exclude group: "org.beanshell", module: "bsh-core"
 }
 
 jar {
@@ -117,7 +117,7 @@ integrationTest {}.onlyIf { //disable since we don't have any
 }
 
 task tomcatListenerJar(type: Jar) {
-    archiveBaseName = 'tomcat-listener'
+    archiveBaseName = "tomcat-listener"
     from(sourceSets.main.output)
     include "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
 }

@@ -1,33 +1,33 @@
-description = 'CloudFoundry Identity Model JAR'
+description = "CloudFoundry Identity Model JAR"
 
 dependencies {
 
-    compile project(':cloudfoundry-identity-metrics-data')
+    compile project(":cloudfoundry-identity-metrics-data")
 
-    compile group: 'javax.validation', name: 'validation-api'
+    compile group: "javax.validation", name: "validation-api"
 
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: "commons-io", name: "commons-io", version: "2.6"
 
     compile libraries.springWeb
     compile libraries.springWebMvc
     compile libraries.springSecurityConfig
 
     compile(libraries.springSecurityOauth) {
-        exclude(module: 'jackson-mapper-asl')
-        exclude(module: 'spring-security-web')
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
     }
 
-    compile group: 'org.slf4j', name: 'slf4j-api'
+    compile group: "org.slf4j", name: "slf4j-api"
 
     testCompile(libraries.junit)
 
-    testCompile 'org.skyscreamer:jsonassert'
+    testCompile "org.skyscreamer:jsonassert"
 }
 
-apply from: file('build_properties.gradle')
+apply from: file("build_properties.gradle")
 
 configurations.all {
-    exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    exclude group: "org.slf4j", module: "slf4j-log4j12"
 }
 
 processResources {

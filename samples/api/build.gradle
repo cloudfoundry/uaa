@@ -1,24 +1,24 @@
-apply plugin: 'war'
-apply plugin: 'eclipse-wtp'
+apply plugin: "war"
+apply plugin: "eclipse-wtp"
 eclipse {
 	wtp {
 	    component {
-	      contextPath = 'api'
+	      contextPath = "api"
 	    }
 	}
 }
 
-description = 'Sample resource server for Cloudfoundry Identity Services'
+description = "Sample resource server for Cloudfoundry Identity Services"
 dependencies {
   Project identityParent = parent.parent
-  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+  Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
   compile identityServer
 
   providedCompile libraries.tomcatEmbed
   compile(libraries.springSecurityTaglibs) {
-    exclude(module: 'spring-jdbc')
-    exclude(module: 'spring-tx')
+    exclude(module: "spring-jdbc")
+    exclude(module: "spring-tx")
   }
   compile libraries.springSecurityConfig
 
@@ -27,7 +27,7 @@ dependencies {
 }
 
 test {
-  exclude 'org/cloudfoundry/identity/api/web/*IntegrationTests.class'
+  exclude "org/cloudfoundry/identity/api/web/*IntegrationTests.class"
 }
 
 integrationTest {

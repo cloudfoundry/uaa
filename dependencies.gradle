@@ -1,33 +1,33 @@
 ext {
-    tomcatVersion = '9.0.26'
+    tomcatVersion = "9.0.26"
     libraries = [:]
 }
 
-ext['mariadb.version'] = '2.2.0'
+ext["mariadb.version"] = "2.2.0"
 
 def versions = [:]
 
 // Versions shared between multiple dependencies
-versions.aspectJVersion = '1.9.4'
-versions.bouncyCastleVersion = '1.63'
-versions.hamcrestVersion = '2.1'
-versions.springBootVersion = '2.1.9.RELEASE'
-versions.springSecurityJwtVersion = '1.0.10.RELEASE'
-versions.springSecurityOAuthVersion = '2.3.6.RELEASE'
-versions.springSecuritySamlVersion = '1.0.9.RELEASE'
-versions.springVersion = '5.2.0.RELEASE'
+versions.aspectJVersion = "1.9.4"
+versions.bouncyCastleVersion = "1.63"
+versions.hamcrestVersion = "2.1"
+versions.springBootVersion = "2.1.9.RELEASE"
+versions.springSecurityJwtVersion = "1.0.10.RELEASE"
+versions.springSecurityOAuthVersion = "2.3.6.RELEASE"
+versions.springSecuritySamlVersion = "1.0.9.RELEASE"
+versions.springVersion = "5.2.0.RELEASE"
 versions.tomcatVersion = "${tomcatVersion}"
-versions.xmlBind = '2.3.0'
+versions.xmlBind = "2.3.0"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
-libraries.apacheHttpClient = 'org.apache.httpcomponents:httpclient:4.5.3'
-libraries.apacheLdapApi = 'org.apache.directory.api:api-ldap-model:1.0.3'
+libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.3"
+libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:1.0.3"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
 libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk15on:${versions.bouncyCastleVersion}"
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk15on:${versions.bouncyCastleVersion}"
-libraries.commonsLogging = 'commons-logging:commons-logging:1.2'
-libraries.flywayCore = 'org.flywaydb:flyway-core'
+libraries.commonsLogging = "commons-logging:commons-logging:1.2"
+libraries.flywayCore = "org.flywaydb:flyway-core"
 libraries.hamcrest = "org.hamcrest:hamcrest:${versions.hamcrestVersion}"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations"
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind"
@@ -38,7 +38,7 @@ libraries.javaxXmlBindCore = "com.sun.xml.bind:jaxb-core:${versions.xmlBind}"
 libraries.javaxXmlBindImpl = "com.sun.xml.bind:jaxb-impl:${versions.xmlBind}"
 libraries.jsonPath = "com.jayway.jsonpath:json-path"
 libraries.jsonPathAssert = "com.jayway.jsonpath:json-path-assert"
-libraries.junit = 'junit:junit'
+libraries.junit = "junit:junit"
 libraries.junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api"
 libraries.junit5JupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
 libraries.junit5JupiterParams = "org.junit.jupiter:junit-jupiter-params"
@@ -48,7 +48,7 @@ libraries.lombok = "org.projectlombok:lombok"
 libraries.mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
 libraries.mockito = "org.mockito:mockito-core"
 libraries.mockitoJunit5 = "org.mockito:mockito-junit-jupiter"
-libraries.postgresql = 'org.postgresql:postgresql'
+libraries.postgresql = "org.postgresql:postgresql"
 libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
 libraries.springBeans = "org.springframework:spring-beans"
 libraries.springBom = "org.springframework:spring-framework-bom:${versions.springVersion}"
@@ -79,12 +79,12 @@ libraries.springTest = "org.springframework:spring-test"
 libraries.springTx = "org.springframework:spring-tx"
 libraries.springWeb = "org.springframework:spring-web"
 libraries.springWebMvc = "org.springframework:spring-webmvc"
-libraries.thymeleafDialect = 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
-libraries.thymeleafExtrasSpringSecurity5 = 'org.thymeleaf.extras:thymeleaf-extras-springsecurity5'
-libraries.thymeleafSpring5 = 'org.thymeleaf:thymeleaf-spring5'
+libraries.thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"
+libraries.thymeleafExtrasSpringSecurity5 = "org.thymeleaf.extras:thymeleaf-extras-springsecurity5"
+libraries.thymeleafSpring5 = "org.thymeleaf:thymeleaf-spring5"
 libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersion}"
 libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
 libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
 libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatVersion}"
 libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
-libraries.zxing = 'com.google.zxing:javase:3.4.0'
+libraries.zxing = "com.google.zxing:javase:3.4.0"

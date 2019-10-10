@@ -1,4 +1,4 @@
-description = 'CloudFoundry Identity Metrics Data Jar'
+description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
   compile libraries.jacksonDatabind

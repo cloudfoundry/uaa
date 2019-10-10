@@ -1,24 +1,24 @@
-apply plugin: 'war'
-apply plugin: 'eclipse-wtp'
+apply plugin: "war"
+apply plugin: "eclipse-wtp"
 eclipse {
     wtp {
         component {
-            contextPath = 'app'
+            contextPath = "app"
         }
     }
 }
 
-description = 'Sample user webapp for Cloudfoundry Identity Services'
+description = "Sample user webapp for Cloudfoundry Identity Services"
 dependencies {
     Project identityParent = parent.parent
-    Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+    Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
     compile identityServer
 
     providedCompile libraries.tomcatEmbed
-    runtime group: 'javax.servlet', name: 'jstl', version: '1.2'
+    runtime group: "javax.servlet", name: "jstl", version: "1.2"
     runtime(libraries.springSecurityConfig) {
-        exclude(module: 'spring-aop')
+        exclude(module: "spring-aop")
     }
 
     testCompile identityServer.configurations.testCompile.dependencies
