@@ -77,6 +77,14 @@
             <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
         </bean>
 
+        <bean id="globalSamlSignatureAlgorithm" class="org.cloudfoundry.identity.uaa.zone.SamlConfig$SignatureAlgorithm" factory-method="valueOf">
+            <constructor-arg value="${login.saml.global.signatureAlgorithm:SHA256}"/>
+        </bean>
+
+        <bean id="defaultUaaSamlSignatureAlgorithm" class="org.cloudfoundry.identity.uaa.zone.SamlConfig$SignatureAlgorithm" factory-method="valueOf">
+            <constructor-arg value="${login.saml.signatureAlgorithm:#{globalSamlSignatureAlgorithm.name()}}"/>
+        </bean>
+
         <bean id="extendedMetaData" class="org.springframework.security.saml.metadata.ExtendedMetadata">
             <property name="idpDiscoveryEnabled" value="true" />
             <property name="alias" value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlSPAlias)}" />
@@ -85,11 +93,12 @@
 
         <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator">
             <property name="extendedMetadata" ref="extendedMetaData"/>
-            <property name="requestSigned" value="${login.saml.signRequest:true}" />
+            <property name="requestSigned" value="${login.saml.signRequest:true}"/>
             <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:true}" />
             <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
             <property name="entityId" ref="samlEntityID" />
             <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
+            <property name="securityConfiguration" ref="zoneAwareSamlSecurityConfiguration"/>
         </bean>
 
         <!-- Filter automatically generates default SP metadata -->
@@ -99,6 +108,9 @@
             <property name="displayFilter" ref="metadataDisplayFilter" />
         </bean>
 
+        <bean id="zoneAwareSamlSecurityConfiguration" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareSamlSecurityConfiguration">
+            <property name="defaultSignatureAlgorithm" ref="globalSamlSignatureAlgorithm"/>
+        </bean>
         <!-- The filter is waiting for connections on URL suffixed with filterSuffix
             and presents SP metadata there -->
 
@@ -251,7 +263,12 @@
         <!-- Bindings, encoders and decoders used for creating and parsing messages -->
         <bean id="postBinding" class="org.springframework.security.saml.processor.HTTPPostBinding">
             <constructor-arg ref="parserPool" />
-            <constructor-arg ref="velocityEngine" />
+            <constructor-arg>
+                <bean id="httpPostDecoder" class="org.opensaml.saml2.binding.decoding.HTTPPostDecoder">
+                    <constructor-arg ref="parserPool"/>
+                </bean>
+            </constructor-arg>
+            <constructor-arg ref="httpPostEncoder"/>
         </bean>
 
         <bean id="assertionBinding" class="org.cloudfoundry.identity.uaa.authentication.SamlAssertionBinding">
@@ -259,7 +276,21 @@
         </bean>
 
         <bean id="redirectBinding" class="org.springframework.security.saml.processor.HTTPRedirectDeflateBinding">
-            <constructor-arg ref="parserPool" />
+            <constructor-arg>
+                <bean id="httpRedirectDeflateDecoder" class="org.opensaml.saml2.binding.decoding.HTTPRedirectDeflateDecoder">
+                    <constructor-arg ref="parserPool"/>
+                </bean>
+            </constructor-arg>
+            <constructor-arg ref="httpRedirectDeflateEncoder"/>
+        </bean>
+
+        <bean id ="httpRedirectDeflateEncoder" class="org.cloudfoundry.identity.uaa.provider.saml.UaaHTTPRedirectDeflateEncoder">
+            <property name="zoneAwareSamlSecurityConfiguration" ref="zoneAwareSamlSecurityConfiguration"/>
+        </bean>
+
+        <bean id ="httpPostEncoder" class="org.cloudfoundry.identity.uaa.provider.saml.UaaHTTPPostEncoder">
+            <constructor-arg ref="velocityEngine"/>
+            <constructor-arg ref="zoneAwareSamlSecurityConfiguration"/>
         </bean>
 
         <!-- SAML 2.0 Bearer Grant Type -->

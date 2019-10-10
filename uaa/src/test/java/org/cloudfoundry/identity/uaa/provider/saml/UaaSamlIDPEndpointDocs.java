@@ -26,6 +26,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUserInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.updateIdentityZone;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.SHA256;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -171,6 +172,7 @@ class UaaSamlIDPEndpointDocs extends EndpointDocs {
     @Test
     void document_idp_initiated_flow() throws Exception {
         IdentityZone zone = createZone();
+        zone.getConfig().getSamlConfig().setSignatureAlgorithm(SHA256);
         updateIdentityZone(zone, webApplicationContext);
         ScimUser marissa = new ScimUser(null, "marissa", "", "");
         marissa.setPassword("secret");

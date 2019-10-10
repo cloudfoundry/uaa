@@ -2,9 +2,11 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager;
+import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareSamlSecurityConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,17 +15,22 @@ import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
+import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.util.SAMLUtil;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import java.security.Security;
 import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.*;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.evaluateXPathExpression;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getMetadataDoc;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -38,6 +45,7 @@ class ZoneAwareIdpMetadataGeneratorTest {
     private IdentityZoneConfiguration notUaaZoneConfiguration;
     private KeyManager keyManager;
     private ExtendedMetadata extendedMetadata;
+    private ZoneAwareSamlSecurityConfiguration securityConfiguration;
 
     @BeforeAll
     static void bootstrap() throws Exception {
@@ -71,6 +79,12 @@ class ZoneAwareIdpMetadataGeneratorTest {
         zoneAwareIdpMetadataGenerator.setEntityBaseURL("http://localhost:8080/uaa");
         keyManager = new ZoneAwareKeyManager();
         zoneAwareIdpMetadataGenerator.setKeyManager(keyManager);
+
+        securityConfiguration = new ZoneAwareSamlSecurityConfiguration();
+        securityConfiguration.setDefaultSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA256);
+
+        zoneAwareIdpMetadataGenerator.setSecurityConfiguration(securityConfiguration);
+
     }
 
     @AfterEach
@@ -86,6 +100,56 @@ class ZoneAwareIdpMetadataGeneratorTest {
                 keyManager,
                 zoneAwareIdpMetadataGenerator.generateMetadata(),
                 extendedMetadata));
+
+    @Test
+    public void test_metadata_signed_zonified_defaults_to_sha256() throws Exception {
+        extendedMetadata.setLocal(true);
+        IdentityZoneHolder.set(notUaaZone);
+        String s = SAMLUtil.getMetadataAsString(
+                mock(MetadataManager.class),
+                keyManager,
+                zoneAwareIdpMetadataGenerator.generateMetadata(),
+                zoneAwareIdpMetadataGenerator.generateExtendedMetadata());
+        Document metadataDoc = getMetadataDoc(s);
+
+        NodeList signatureNodes = evaluateXPathExpression(metadataDoc,
+                "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256+ "']");
+
+        assertEquals(1, signatureNodes.getLength());
+    }
+
+    @Test
+    public void test_metadata_signed_zonified() throws Exception {
+        extendedMetadata.setLocal(true);
+        notUaaZoneConfiguration.getSamlConfig().setSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA512);
+        IdentityZoneHolder.set(notUaaZone);
+        String s = SAMLUtil.getMetadataAsString(
+                mock(MetadataManager.class),
+                keyManager,
+                zoneAwareIdpMetadataGenerator.generateMetadata(),
+                zoneAwareIdpMetadataGenerator.generateExtendedMetadata());
+        Document metadataDoc = getMetadataDoc(s);
+
+        NodeList signatureNodes = evaluateXPathExpression(metadataDoc,
+                "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512+ "']");
+
+        assertEquals(1, signatureNodes.getLength());
+    }
+
+    @Test
+    public void test_extended_metadata_alg_default() {
+        ExtendedMetadata metadata = zoneAwareIdpMetadataGenerator.generateExtendedMetadata();
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256, metadata.getSigningAlgorithm());
+    }
+
+    @Test
+    public void test_extended_metadata_zonified() {
+        notUaaZoneConfiguration.getSamlConfig().setSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA512);
+
+        IdentityZoneHolder.set(notUaaZone);
+
+        ExtendedMetadata metadata = zoneAwareIdpMetadataGenerator.generateExtendedMetadata();
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512, metadata.getSigningAlgorithm());
     }
 
     @Test

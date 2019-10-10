@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.SHA256;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -72,6 +73,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
     private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
+    private static final String SAML_SIGNATURE_ALGORITHM_DESC = "Exposed SAML metadata property. The signature algorithm that will be used to sign the authentication request and SAML assertion. Defaults to `SHA256`.";
     private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
     private static final String WANT_AUTHN_REQUEST_SIGNED_DESC = "If `true`, the authentication request from the partner service provider must be signed.";
@@ -201,6 +203,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
         samlConfig.setEntityID(SERVICE_PROVIDER_ID);
+        samlConfig.setSignatureAlgorithm(SHA256);
         identityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
         identityZone.getConfig().setSamlConfig(samlConfig);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
@@ -240,6 +243,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.samlConfig.signatureAlgorithm").description(SAML_SIGNATURE_ALGORITHM_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
@@ -400,6 +404,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
+                fieldWithPath("[].config.samlConfig.signatureAlgorithm").description(SAML_SIGNATURE_ALGORITHM_DESC),
                 fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
                 fieldWithPath("[].config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
                 fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
@@ -516,6 +521,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
         samlConfig.setCertificate(SERVICE_PROVIDER_CERTIFICATE);
+        samlConfig.setSignatureAlgorithm(SHA256);
         samlConfig.setEntityID(SERVICE_PROVIDER_ID);
         updatedIdentityZone.getConfig().setIssuer(DEFAULT_ISSUER_URI);
         updatedIdentityZone.getConfig().setSamlConfig(samlConfig);
@@ -550,6 +556,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.samlConfig.signatureAlgorithm").description(SAML_SIGNATURE_ALGORITHM_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.samlConfig.entityID").description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
@@ -739,6 +746,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
                 fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
+                fieldWithPath("config.samlConfig.signatureAlgorithm").description(SAML_SIGNATURE_ALGORITHM_DESC),
                 fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
 
                 fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),

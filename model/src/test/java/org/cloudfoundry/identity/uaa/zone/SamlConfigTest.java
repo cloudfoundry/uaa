@@ -26,6 +26,8 @@ import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.cloudfoundry.identity.uaa.zone.SamlConfig.LEGACY_KEY_ID;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.SHA256;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.UNKNOWN;
 import static org.junit.Assert.*;
 
 public class SamlConfigTest {
@@ -204,6 +206,19 @@ public class SamlConfigTest {
         assertNull(config.getActiveKeyId());
     }
 
+    @Test
+    public void testSignatureAlgorithmEnum() {
+        config.parseSignatureAlgorithm("SHA256");
+
+        assertEquals(SHA256, config.getSignatureAlgorithm());
+    }
+
+    @Test
+    public void testSignatureAlgorithmEnumInvalid() {
+        config.parseSignatureAlgorithm("SHA_INVALID");
+
+        assertEquals(UNKNOWN, config.getSignatureAlgorithm());
+    }
 
 
 

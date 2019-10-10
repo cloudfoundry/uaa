@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,16 +17,21 @@ import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.keyinfo.NamedKeyInfoGeneratorManager;
+import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.util.SAMLUtil;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import java.security.Security;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.*;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.evaluateXPathExpression;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getMetadataDoc;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
@@ -40,6 +46,8 @@ public class ZoneAwareMetadataGeneratorTests {
     private IdentityZoneConfiguration otherZoneDefinition;
     private KeyManager keyManager;
     private ExtendedMetadata extendedMetadata;
+    private ZoneAwareSamlSecurityConfiguration securityConfiguration;
+
 
     public static final SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
     public static final SamlKey samlKey2 = new SamlKey(key2, passphrase2, certificate2);
@@ -79,8 +87,12 @@ public class ZoneAwareMetadataGeneratorTests {
         extendedMetadata.setSignMetadata(true);
         generator.setExtendedMetadata(extendedMetadata);
 
+        securityConfiguration = new ZoneAwareSamlSecurityConfiguration();
+        securityConfiguration.setDefaultSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA256);
+
         keyManager = new ZoneAwareKeyManager();
         generator.setKeyManager(keyManager);
+        generator.setSecurityConfiguration(securityConfiguration);
     }
 
     @AfterEach
@@ -110,6 +122,48 @@ public class ZoneAwareMetadataGeneratorTests {
     void testMetadataContainsSamlBearerGrantEndpoint() throws Exception {
         String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
         assertThat(metadata, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"1\"/>"));
+    }
+
+    @Test
+    void testMetadataSignedZonifiedDefaultsToSha256() throws Exception {
+        extendedMetadata.setLocal(true);
+        String s = getMetadata(otherZone, keyManager, generator, generator.generateExtendedMetadata());
+        Document metadataDoc = getMetadataDoc(s);
+
+        NodeList signatureNodes = evaluateXPathExpression(metadataDoc,
+                "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256+ "']");
+
+        assertEquals(1, signatureNodes.getLength());
+    }
+
+    @Test
+    void testMetadataSignedZonified() throws Exception {
+        extendedMetadata.setLocal(true);
+        otherZoneDefinition.getSamlConfig().setSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA512);
+        IdentityZoneHolder.set(otherZone);
+        String s = getMetadata(otherZone, keyManager, generator, generator.generateExtendedMetadata());
+        Document metadataDoc = getMetadataDoc(s);
+
+        NodeList signatureNodes = evaluateXPathExpression(metadataDoc,
+                "//*[local-name()='SignatureMethod' and @*[local-name() = 'Algorithm']='" + SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512+ "']");
+
+        assertEquals(1, signatureNodes.getLength());
+    }
+
+    @Test
+    void testExtendedMetadataAlgDefault() {
+        ExtendedMetadata metadata = generator.generateExtendedMetadata();
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256, metadata.getSigningAlgorithm());
+    }
+
+    @Test
+    void testExtendedMetadataZonified() {
+        otherZoneDefinition.getSamlConfig().setSignatureAlgorithm(SamlConfig.SignatureAlgorithm.SHA512);
+
+        IdentityZoneHolder.set(otherZone);
+
+        ExtendedMetadata metadata = generator.generateExtendedMetadata();
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512, metadata.getSigningAlgorithm());
     }
 
     @Test
@@ -218,5 +272,4 @@ public class ZoneAwareMetadataGeneratorTests {
                 generator.generateMetadata(),
                 extendedMetadata);
     }
-
 }
