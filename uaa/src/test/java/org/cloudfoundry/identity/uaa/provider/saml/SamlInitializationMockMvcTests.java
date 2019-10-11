@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.metadata.MetadataMemoryProvider;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -46,6 +47,7 @@ class SamlInitializationMockMvcTests {
     private IdentityZoneProvisioning zoneProvisioning;
     private IdentityProviderProvisioning providerProvisioning;
 
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -56,7 +58,6 @@ class SamlInitializationMockMvcTests {
         spManager = webApplicationContext.getBean(NonSnarlMetadataManager.class);
         entityID = webApplicationContext.getBean("samlEntityID", String.class);
         entityAlias = webApplicationContext.getBean("samlSPAlias", String.class);
-        this.mockMvc = mockMvc;
     }
 
     @Test

@@ -51,12 +51,8 @@ public class ZoneAwareIdpMetadataGenerator extends IdpMetadataGenerator {
     @Override
     public IdpExtendedMetadata generateExtendedMetadata() {
         IdpExtendedMetadata metadata = super.generateExtendedMetadata();
-<<<<<<< HEAD
         metadata.setAlias(UaaUrlUtils.getSubdomain(IdentityZoneHolder.get().getSubdomain()) + metadata.getAlias());
-=======
-        metadata.setAlias(UaaUrlUtils.getSubdomain() + metadata.getAlias());
         metadata.setSigningAlgorithm(securityConfiguration.getSignatureAlgorithmURI("RSA"));
->>>>>>> feature/zonify_saml_sig_4.10.0
         return metadata;
     }
 

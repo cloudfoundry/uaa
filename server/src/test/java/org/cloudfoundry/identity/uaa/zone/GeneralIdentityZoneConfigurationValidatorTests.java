@@ -342,7 +342,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
             expection.expect(InvalidIdentityZoneConfigurationException.class);
             expection.expectMessage("Invalid SAML signatureAlgorithm. Must be " + globalDefault + " or higher");
         }
-        validator.validate(new IdentityZone().setConfig(zoneConfiguration), mode);
+        validator.validate(zone, mode);
     }
 
     @Test

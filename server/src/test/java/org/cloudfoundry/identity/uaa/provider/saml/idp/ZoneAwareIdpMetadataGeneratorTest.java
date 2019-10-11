@@ -100,6 +100,7 @@ class ZoneAwareIdpMetadataGeneratorTest {
                 keyManager,
                 zoneAwareIdpMetadataGenerator.generateMetadata(),
                 extendedMetadata));
+    }
 
     @Test
     public void test_metadata_signed_zonified_defaults_to_sha256() throws Exception {
