@@ -157,14 +157,30 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
+    public List<ScimUser> query(String filter, String sortBy, boolean ascending, String zoneId) {
+        //validate syntax
+        getQueryConverter().convert(filter, sortBy, ascending);
+
+        if (hasText(filter)) {
+            filter = "("+ filter+ ") and";
+        }
+        filter += " identity_zone_id eq \""+ zoneId +"\"";
+        return super.query(filter, sortBy, ascending, zoneId);
+    }
+
+    @Override
     public ScimUser create(final ScimUser user, String zoneId) {
+        return create(user, false, zoneId);
+    }
+
+    @Override
+    public ScimUser create(final ScimUser user, boolean isBatchCall, String zoneId) {
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
         logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();
-        final String identityZoneId = zoneId;
         final String origin = user.getOrigin();
 
         try {
@@ -192,7 +208,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setBoolean(11, user.isVerified());
                     ps.setString(12, origin);
                     ps.setString(13, hasText(user.getExternalId())?user.getExternalId():null);
-                    ps.setString(14, identityZoneId);
+                    ps.setString(14, zoneId);
                     ps.setString(15, user.getSalt());
 
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
@@ -203,16 +219,19 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", zoneId).get(0);
-            Map<String,Object> userDetails = new HashMap<>();
-            userDetails.put("active", existingUser.isActive());
-            userDetails.put("verified", existingUser.isVerified());
-            userDetails.put("user_id", existingUser.getId());
-            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            if (!isBatchCall) {
+                ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", zoneId).get(0);
+                Map<String,Object> userDetails = new HashMap<>();
+                userDetails.put("active", existingUser.isActive());
+                userDetails.put("verified", existingUser.isVerified());
+                userDetails.put("user_id", existingUser.getId());
+                throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+            }
+            throw new ScimResourceAlreadyExistsException("Username already in use: " + user.getUserName());
         } catch(DataIntegrityViolationException e) {
             logger.debug("DataIntegrityViolationException thrown: ", e);
-                throw new InvalidScimResourceException("ScimUser:" + user.getUserName() + " is invalid and cannot be created. " +
-                        "Please validate the property values for size and type.");
+            throw new InvalidScimResourceException("ScimUser:" + user.getUserName() + " is invalid and cannot be created. " +
+                "Please validate the property values for size and type.");
         }
 
         return retrieve(id, zoneId);
@@ -229,6 +248,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     InvalidScimResourceException {
         user.setPassword(passwordEncoder.encode(password));
         return create(user, zoneId);
+    }
+    
+    @Override
+    public ScimUser createUser(ScimUser user, final String password, boolean isBatchCall, String zoneId) throws InvalidPasswordException,
+                    InvalidScimResourceException {
+        user.setPassword(passwordEncoder.encode(password));
+        return create(user, isBatchCall, zoneId);
     }
 
     public String extractPhoneNumber(final ScimUser user) {
