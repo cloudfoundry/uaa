@@ -148,11 +148,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public List<ScimUser> retrieveByEmailAndZone(String email, String origin, String zoneId) {
-        try {
-            return jdbcTemplate.query(USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY, mapper, email, origin, zoneId);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ScimResourceNotFoundException("User with email " + email + " does not exist");
-        }
+        return jdbcTemplate.query(USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY, mapper, email, origin, zoneId);
     }
 
     @Override
