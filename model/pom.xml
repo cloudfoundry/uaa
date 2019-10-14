@@ -20,10 +20,6 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -54,10 +50,6 @@
       <artifactId>validation-api</artifactId>
       <scope>compile</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -91,10 +83,6 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -125,10 +113,6 @@
       <artifactId>spring-web</artifactId>
       <scope>compile</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -161,10 +145,6 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -195,10 +175,6 @@
       <artifactId>spring-security-config</artifactId>
       <scope>compile</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -231,10 +207,6 @@
       <version>2.3.6.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -275,10 +247,6 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -309,10 +277,6 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -346,10 +310,6 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -380,10 +340,6 @@
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -416,10 +372,6 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -450,10 +402,6 @@
       <artifactId>unboundid-ldapsdk</artifactId>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -486,10 +434,6 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -520,10 +464,6 @@
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -556,10 +496,6 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -590,10 +526,6 @@
       <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
