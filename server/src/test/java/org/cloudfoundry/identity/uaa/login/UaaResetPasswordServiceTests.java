@@ -32,17 +32,25 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 class UaaResetPasswordServiceTests {
@@ -89,7 +97,7 @@ class UaaResetPasswordServiceTests {
         user.setPrimaryEmail("user@example.com");
 
         String zoneID = currentZoneId;
-        when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Collections.singletonList(user));
+        when(scimUserProvisioning.retrieveByUsernameAndOriginAndZone(anyString(), anyString(), eq(zoneID))).thenReturn(Collections.singletonList(user));
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
@@ -115,7 +123,7 @@ class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "firstName", "lastName");
 
         String zoneID = currentZoneId;
-        when(scimUserProvisioning.query(contains("origin"), eq(zoneID))).thenReturn(Collections.singletonList(user));
+        when(scimUserProvisioning.retrieveByUsernameAndOriginAndZone(anyString(), anyString(), eq(zoneID))).thenReturn(Collections.singletonList(user));
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
 
@@ -136,7 +144,7 @@ class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001", "exampleUser", "firstName", "lastName");
         user.setPrimaryEmail("user@example.com");
         String zoneId = currentZoneId;
-        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Collections.singletonList(user));
+        when(scimUserProvisioning.retrieveByUsernameAndOriginAndZone(anyString(), anyString(), eq(zoneId))).thenReturn(Collections.singletonList(user));
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
         when(codeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString())).thenReturn(new ExpiringCode("code", expiresAt, "user-id-001", null));
 
@@ -155,8 +163,8 @@ class UaaResetPasswordServiceTests {
         ScimUser user = new ScimUser("user-id-001","exampleUser","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
         String zoneId = currentZoneId;
-        when(scimUserProvisioning.query(contains("origin"), eq(zoneId))).thenReturn(Collections.emptyList());
-        when(scimUserProvisioning.query(eq("userName eq \"exampleUser\""), eq(zoneId))).thenReturn(Collections.singletonList(user));
+        when(scimUserProvisioning.retrieveByUsernameAndOriginAndZone(anyString(), anyString(), eq(zoneId))).thenReturn(Collections.emptyList());
+        when(scimUserProvisioning.retrieveByUsernameAndZone(eq("exampleUser"), eq(zoneId))).thenReturn(Collections.singletonList(user));
         when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
         when(codeStore.retrieveCode(anyString(), anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001", null));
 

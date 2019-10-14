@@ -186,7 +186,11 @@ class EmailAccountCreationServiceTests {
     void beginActivationWithExistingUser() {
         setUpForSuccess(null);
         user.setVerified(true);
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
 
         assertThrows(UaaException.class,
@@ -199,7 +203,11 @@ class EmailAccountCreationServiceTests {
         user.setId("existing-user-id");
         user.setVerified(false);
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

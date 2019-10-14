@@ -137,7 +137,11 @@ class EmailChangeEmailServiceTest {
         ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
         when(mockScimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
-        when(mockScimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(Collections.singletonList(new ScimUser()));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                anyString(),
+                anyString(),
+                eq(zoneId))
+        ).thenReturn(Collections.singletonList(new ScimUser()));
 
         Assertions.assertThrows(UaaException.class,
                 () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));

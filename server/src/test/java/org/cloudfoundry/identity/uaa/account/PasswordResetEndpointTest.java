@@ -13,18 +13,14 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.core.io.support.ResourcePropertySource;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,11 +35,18 @@ import java.util.Date;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.AUTOLOGIN;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class PasswordResetEndpointTest {
@@ -103,8 +106,11 @@ class PasswordResetEndpointTest {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(mockScimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq(email),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.singletonList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
         when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), anyString(), anyString()))
@@ -129,8 +135,12 @@ class PasswordResetEndpointTest {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(mockScimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq(email),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.singletonList(user));
+
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, null, null);
         when(mockExpiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null), anyString()))
@@ -153,8 +163,11 @@ class PasswordResetEndpointTest {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.addEmail("user@example.com");
         user.setPasswordLastModified(yesterday);
-        when(mockScimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.singletonList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -183,14 +196,17 @@ class PasswordResetEndpointTest {
 
     @Test
     void creatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
-        when(mockScimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.emptyList());
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.emptyList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.addEmail("user@example.com");
         user.setOrigin(OriginKeys.LDAP);
-        when(mockScimUserProvisioning.query("userName eq \"user@example.com\"", currentZoneId))
+        when(mockScimUserProvisioning.retrieveByUsernameAndZone(eq("user@example.com"), eq(currentZoneId)))
                 .thenReturn(Collections.singletonList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -209,8 +225,11 @@ class PasswordResetEndpointTest {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.setPasswordLastModified(yesterday);
         user.addEmail("user\"'@example.com");
-        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user\"'@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.singletonList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
         when(mockExpiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString(), anyString()))
@@ -226,11 +245,16 @@ class PasswordResetEndpointTest {
                 .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
                 .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
-        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", currentZoneId))
-                .thenReturn(Collections.emptyList());
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user\"'@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentZoneId))
+        ).thenReturn(Collections.emptyList());
         user.setOrigin(OriginKeys.LDAP);
-        when(mockScimUserProvisioning.query("userName eq \"user\\\"'@example.com\"", currentZoneId))
-                .thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndZone(
+                eq("user\"'@example.com"),
+                eq(currentZoneId))
+        ).thenReturn(Collections.singletonList(user));
 
         post = post("/password_resets")
                 .contentType(APPLICATION_JSON)

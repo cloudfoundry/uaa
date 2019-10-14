@@ -75,6 +75,7 @@ class JdbcScimUserProvisioningTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
     private String joeEmail;
+    private final String JOE_NAME = "joe";
 
     @BeforeEach
     void setUp(@Autowired LimitSqlAdapter limitSqlAdapter) {
@@ -96,7 +97,8 @@ class JdbcScimUserProvisioningTests {
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
-        addUser(jdbcTemplate, joeId, "joe", passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
+        addUser(jdbcTemplate, joeId,
+                JOE_NAME, passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
         addUser(jdbcTemplate, mabelId, "mabel", passwordEncoder.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", currentIdentityZoneId);
     }
 
@@ -128,6 +130,58 @@ class JdbcScimUserProvisioningTests {
         @Test
         void cannotRetrieveNonexistentUser() {
             List<ScimUser> found = jdbcScimUserProvisioning.retrieveByEmailAndZone("unknown@example.com", UAA, currentIdentityZoneId);
+            assertEquals(0, found.size());
+        }
+    }
+
+    @WithDatabaseContext
+    @Nested
+    class WhenFindingByUsernameAndOriginAndZone {
+        @Test
+        void canRetrieveExistingUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndOriginAndZone(JOE_NAME, UAA, currentIdentityZoneId);
+            assertEquals(1, found.size());
+
+            ScimUser joe = found.get(0);
+            assertNotNull(joe);
+            assertEquals(joeId, joe.getId());
+            assertEquals("Joe", joe.getGivenName());
+            assertEquals("User", joe.getFamilyName());
+            assertEquals("joe@joe.com", joe.getPrimaryEmail());
+            assertEquals("joe", joe.getUserName());
+            assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
+            assertNull(joe.getGroups());
+        }
+
+        @Test
+        void cannotRetrieveNonexistentUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndOriginAndZone("not-joe", UAA, currentIdentityZoneId);
+            assertEquals(0, found.size());
+        }
+    }
+
+    @WithDatabaseContext
+    @Nested
+    class WhenFindingByUsernameAndZone {
+        @Test
+        void canRetrieveExistingUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndZone(JOE_NAME, currentIdentityZoneId);
+            assertEquals(1, found.size());
+
+            ScimUser joe = found.get(0);
+            assertNotNull(joe);
+            assertEquals(joeId, joe.getId());
+            assertEquals("Joe", joe.getGivenName());
+            assertEquals("User", joe.getFamilyName());
+            assertEquals("joe@joe.com", joe.getPrimaryEmail());
+            assertEquals("joe", joe.getUserName());
+            assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
+            assertNull(joe.getGroups());
+        }
+
+        @Test
+        void cannotRetrieveNonexistentUser() {
+            List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndZone("super-not-joe", currentIdentityZoneId);
             assertEquals(0, found.size());
         }
     }

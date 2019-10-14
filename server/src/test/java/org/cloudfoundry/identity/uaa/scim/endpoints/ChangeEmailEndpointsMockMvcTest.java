@@ -101,8 +101,11 @@ class ChangeEmailEndpointsMockMvcTest {
         when(mockScimUserProvisioning.retrieve("user-id-001", currentIdentityZoneId)).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
-        when(mockScimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\"", currentIdentityZoneId))
-                .thenReturn(Collections.singletonList(existingUser));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("new@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(existingUser));
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
                 .contentType(APPLICATION_JSON)

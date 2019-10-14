@@ -93,7 +93,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=? and identity_zone_id=?";
-    public static final String USER_BY_EMAIL_QUERY = "select " + USER_FIELDS + " from users " + "where email=? and origin=? and identity_zone_id=?";
+
+    public static final String USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where email=? and origin=? and identity_zone_id=?";
+
+    public static final String USER_BY_USERNAME_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where username=? and identity_zone_id=?";
+
+    public static final String USER_BY_USERNAME_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where username=? and origin=? and identity_zone_id=?";
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
@@ -144,10 +149,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public List<ScimUser> retrieveByEmailAndZone(String email, String origin, String zoneId) {
         try {
-            return jdbcTemplate.query(USER_BY_EMAIL_QUERY, mapper, email, origin, zoneId);
+            return jdbcTemplate.query(USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY, mapper, email, origin, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("User with email " + email + " does not exist");
         }
+    }
+
+    @Override
+    public List<ScimUser> retrieveByUsernameAndZone(String username, String zoneId) {
+        return jdbcTemplate.query(USER_BY_USERNAME_AND_ZONE_QUERY , mapper, username, zoneId);
+    }
+
+    @Override
+    public List<ScimUser> retrieveByUsernameAndOriginAndZone(String username, String origin, String zoneId) {
+        return jdbcTemplate.query(USER_BY_USERNAME_AND_ORIGIN_AND_ZONE_QUERY , mapper, username, origin, zoneId);
     }
 
     @Override
@@ -208,7 +223,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setString(19, user.getPassword());
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"", zoneId).get(0);
+            String userOrigin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+            ScimUser existingUser = retrieveByUsernameAndOriginAndZone(user.getUserName(), userOrigin, zoneId).get(0);
             Map<String,Object> userDetails = new HashMap<>();
             userDetails.put("active", existingUser.isActive());
             userDetails.put("verified", existingUser.isVerified());

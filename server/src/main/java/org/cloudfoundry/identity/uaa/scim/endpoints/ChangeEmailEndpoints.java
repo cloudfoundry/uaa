@@ -62,7 +62,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         final ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
         if (user.getUserName().equals(user.getPrimaryEmail())) {
-            final List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", identityZoneManager.getCurrentIdentityZoneId());
+            final List<ScimUser> results = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!results.isEmpty()) {
                 return new ResponseEntity<>(CONFLICT);
             }

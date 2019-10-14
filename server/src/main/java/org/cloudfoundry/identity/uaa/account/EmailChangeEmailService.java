@@ -55,7 +55,9 @@ public class EmailChangeEmailService implements ChangeEmailService {
     @Override
     public void beginEmailChange(String userId, String email, String newEmail, String clientId, String redirectUri) {
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
-        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + newEmail + "\" and origin eq \"" + OriginKeys.UAA + "\"", identityZoneManager.getCurrentIdentityZoneId());
+        List<ScimUser> results = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(newEmail,
+                OriginKeys.UAA,
+                identityZoneManager.getCurrentIdentityZoneId());
 
         if (user.getUserName().equals(user.getPrimaryEmail())) {
             if (!results.isEmpty()) {
