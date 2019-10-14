@@ -12,17 +12,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -30,6 +32,7 @@ class ClientBasicAuthenticationFilterTests {
     private ClientBasicAuthenticationFilter filter;
     private AuthenticationManager clientAuthenticationManager;
     private AuthenticationDetailsSource<HttpServletRequest, ?> uaaAuthenticationDetailsSource;
+    private AuthenticationEntryPoint mockEntryPoint;
 
     @BeforeEach
     void setUp() {
@@ -39,9 +42,7 @@ class ClientBasicAuthenticationFilterTests {
 
         clientAuthenticationManager = mock(AuthenticationManager.class);
         uaaAuthenticationDetailsSource = mock(UaaAuthenticationDetailsSource.class);
-
-        filter = new ClientBasicAuthenticationFilter(clientAuthenticationManager, mock(AuthenticationEntryPoint.class));
-        filter.setAuthenticationDetailsSource(uaaAuthenticationDetailsSource);
+        mockEntryPoint = mock(AuthenticationEntryPoint.class);
     }
 
     @AfterAll
@@ -52,14 +53,10 @@ class ClientBasicAuthenticationFilterTests {
 
     @Nested
     class ByDefault {
-        private void addBasicAuthHeader(MockHttpServletRequest request, String clientId, String clientSecret) {
-            String encodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
-            String encodedClientSecret = URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
-            String encodedCredentials = new String(
-                Base64.getEncoder().encode((encodedClientId + ":" + encodedClientSecret).getBytes())
-            );
-
-            request.addHeader("Authorization", "Basic " + encodedCredentials);
+        @BeforeEach
+        void setUp() {
+            filter = new ClientBasicAuthenticationFilter(clientAuthenticationManager, mockEntryPoint, false);
+            filter.setAuthenticationDetailsSource(uaaAuthenticationDetailsSource);
         }
 
         @Test
@@ -69,13 +66,90 @@ class ClientBasicAuthenticationFilterTests {
             MockFilterChain chain = mock(MockFilterChain.class);
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();
-            addBasicAuthHeader(request, clientId, clientSecret);
+            addBasicAuthHeaderWithEncoding(request, clientId, clientSecret);
 
             filter.doFilter(request, response, chain);
 
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
             token.setDetails(uaaAuthenticationDetailsSource.buildDetails(request));
             verify(clientAuthenticationManager).authenticate(token);
+            assertEquals(clientId, request.getAttribute("clientId"));
         }
+
+        @Test
+        void urlFailsGracefullyWhenEncodedBadly() throws IOException, ServletException {
+            String clientId = "app|whatever";
+            String clientSecret = "sec%ret";
+            MockFilterChain chain = mock(MockFilterChain.class);
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            addBasicAuthHeaderWithoutEncoding(request, clientId, clientSecret);
+
+            filter.doFilter(request, response, chain);
+
+            verify(mockEntryPoint).commence(any(), any(), any(AuthenticationException.class));
+        }
+    }
+
+    @Nested
+    class WithUriEncodingCompatibilityMode {
+        @BeforeEach
+        void setUp() {
+            filter = new ClientBasicAuthenticationFilter(clientAuthenticationManager, mockEntryPoint, true);
+            filter.setAuthenticationDetailsSource(uaaAuthenticationDetailsSource);
+        }
+
+        @Test
+        void doesNotDecodeClientIdAndClientSecretByDefault() throws IOException, ServletException {
+            String clientId = "app%whatever";
+            String clientSecret = "sec%ret";
+            MockFilterChain chain = mock(MockFilterChain.class);
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            addBasicAuthHeaderWithoutEncoding(request, clientId, clientSecret);
+
+            filter.doFilter(request, response, chain);
+
+            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
+            token.setDetails(uaaAuthenticationDetailsSource.buildDetails(request));
+            verify(clientAuthenticationManager).authenticate(token);
+            assertEquals(clientId, request.getAttribute("clientId"));
+        }
+
+        @Test
+        void decodeClientIdAndClientSecretWhenHeaderProvided() throws IOException, ServletException {
+            String clientId = "app%whatever";
+            String clientSecret = "sec%ret";
+            MockFilterChain chain = mock(MockFilterChain.class);
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            addBasicAuthHeaderWithEncoding(request, clientId, clientSecret);
+            request.addHeader("X-CF-ENCODED-CREDENTIALS", "true");
+
+            filter.doFilter(request, response, chain);
+
+            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
+            token.setDetails(uaaAuthenticationDetailsSource.buildDetails(request));
+            verify(clientAuthenticationManager).authenticate(token);
+            assertEquals(clientId, request.getAttribute("clientId"));
+        }
+    }
+
+    private void addBasicAuthHeaderWithEncoding(MockHttpServletRequest request, String clientId, String clientSecret) {
+        String encodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
+        String encodedClientSecret = URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
+        String encodedCredentials = new String(
+                Base64.getEncoder().encode((encodedClientId + ":" + encodedClientSecret).getBytes())
+        );
+
+        request.addHeader("Authorization", "Basic " + encodedCredentials);
+    }
+
+    private void addBasicAuthHeaderWithoutEncoding(MockHttpServletRequest request, String clientId, String clientSecret) {
+        String credentials = new String(
+                Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes())
+        );
+
+        request.addHeader("Authorization", "Basic " + credentials);
     }
 }

@@ -246,6 +246,9 @@
           class="org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter">
         <constructor-arg ref="clientAuthenticationManager"/>
         <constructor-arg ref="basicAuthenticationEntryPoint"/>
+        <constructor-arg name="enableUriEncodingCompatibilityMode"
+                         value="${authentication.enableUriEncodingCompatibilityMode:false}"
+        />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
     </bean>
 

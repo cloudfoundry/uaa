@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.ArrayUtils;
-import org.bouncycastle.util.encoders.Base64;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
@@ -71,14 +69,7 @@ public class UaaAuthenticationDetails implements Serializable {
         if (clientId == null) {
             this.clientId = request.getParameter("client_id");
             if(!StringUtils.hasText(this.clientId)) {
-                String authHeader = request.getHeader("Authorization");
-                if(StringUtils.hasText(authHeader) && authHeader.startsWith("Basic ")) {
-                    String decodedCredentials = new String(Base64.decode(authHeader.substring("Basic ".length())));
-                    String[] split = decodedCredentials.split(":");
-                    if (split == null || split.length == 0)
-                        throw new BadCredentialsException("Invalid basic authentication token");
-                    this.clientId = split[0];
-                }
+                this.clientId = (String) request.getAttribute("clientId");
             }
         } else {
             this.clientId = clientId;
