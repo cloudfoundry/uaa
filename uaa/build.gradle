@@ -33,7 +33,7 @@ dependencies {
     compile(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
-    compile "cglib:cglib:3.2.5"
+    compile libraries.cglib
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     runtime libraries.springSecurityConfig
@@ -51,27 +51,27 @@ dependencies {
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
 
-    testCompile("org.apache.directory.server:apacheds-core:1.5.5") {
+    testCompile(libraries.apacheDsCore) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
-    testCompile("org.apache.directory.server:apacheds-protocol-ldap:1.5.5") {
+    testCompile(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
     testCompile libraries.junit
-    testCompile "org.seleniumhq.selenium:selenium-java"
-    testCompile "dumbster:dumbster:1.6"
+    testCompile libraries.selenium
+    testCompile libraries.dumbster
     testCompile libraries.zxing
-    testCompile "org.reflections:reflections:0.9.10"
-    testCompile "org.skyscreamer:jsonassert"
+    testCompile libraries.reflections
+    testCompile libraries.jsonAssert
     testCompile libraries.springTest
     testCompile libraries.springSecurityTest
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
-    testCompile "org.springframework.restdocs:spring-restdocs-mockmvc"
+    testCompile libraries.springRestdocs
 }
 
 node {

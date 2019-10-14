@@ -6,7 +6,7 @@ dependencies {
 
     compile libraries.tomcatJdbc
     provided libraries.tomcatEmbed
-    compile "javax.mail:mail:1.4.7"
+    compile libraries.javaxMail
 
     compile libraries.commonsLogging
     compile libraries.jsonPath
@@ -33,7 +33,7 @@ dependencies {
     compile libraries.bouncyCastleProv
     compile libraries.bouncyCastlePkix
 
-    compile "com.google.guava:guava:28.1-jre"
+    compile libraries.guava
 
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
@@ -41,21 +41,20 @@ dependencies {
     compile libraries.thymeleafSpring5
     compile libraries.thymeleafDialect
     compile libraries.thymeleafExtrasSpringSecurity5
-    compile "org.codehaus.groovy:groovy"
 
-    compile("com.unboundid.product.scim:scim-sdk:1.8.22") {
+    compile(libraries.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile "org.hibernate:hibernate-validator:6.0.17.Final"
+    compile libraries.hibernateValidator
     compile libraries.flywayCore
     compile libraries.mariaJdbcDriver
-    compile "org.hsqldb:hsqldb"
+    compile libraries.hsqldb
 
-    compile "org.yaml:snakeyaml"
+    compile libraries.snakeyaml
 
     compile libraries.springSecurityLdap
     compile libraries.springLdapCore
@@ -64,16 +63,16 @@ dependencies {
         exclude(module: "slf4j-api")
     }
 
-    compile "org.passay:passay:1.2.0"
+    compile libraries.passay
 
-    compile "com.warrenstrange:googleauth:1.2.0"
+    compile libraries.googleAuth
 
     compile libraries.slf4jImpl
     compile libraries.log4jCore
 
-    compile "commons-io:commons-io:2.6"
+    compile libraries.commonsIo
 
-    compile "org.apache.santuario:xmlsec:2.1.4"
+    compile libraries.xmlsec
 
     implementation libraries.javaxXmlBindApi
     implementation libraries.javaxXmlBindCore

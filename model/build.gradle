@@ -4,9 +4,9 @@ dependencies {
 
     compile project(":cloudfoundry-identity-metrics-data")
 
-    compile "javax.validation:validation-api"
+    compile libraries.javaxValidationApi
 
-    compile "commons-io:commons-io:2.6"
+    compile libraries.commonsIo
 
     compile libraries.springWeb
     compile libraries.springWebMvc
@@ -17,18 +17,14 @@ dependencies {
         exclude(module: "spring-security-web")
     }
 
-    compile "org.slf4j:slf4j-api"
+    compile libraries.slf4jApi
 
     testCompile(libraries.junit)
 
-    testCompile "org.skyscreamer:jsonassert"
+    testCompile libraries.jsonAssert
 }
 
 apply from: file("build_properties.gradle")
-
-configurations.all {
-    exclude group: "org.slf4j", module: "slf4j-log4j12"
-}
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file
