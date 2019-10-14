@@ -23,7 +23,7 @@ versions.xmlBind = "2.3.0"
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsCore = "org.apache.directory.server:apacheds-core:${versions.apacheDsVersion}"
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
-libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.3"
+libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.10"
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:1.0.3"
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
