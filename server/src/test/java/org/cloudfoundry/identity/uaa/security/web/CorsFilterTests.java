@@ -145,7 +145,6 @@ public class CorsFilterTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
-        assertEquals("true", response.getHeaderValue("Access-Control-Allow-Credentials"));
     }
 
     @Test

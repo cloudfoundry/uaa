@@ -37,7 +37,6 @@ import java.util.regex.PatternSyntaxException;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.containsIgnoreCase;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
-import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN;
@@ -196,7 +195,6 @@ public class CorsFilter extends OncePerRequestFilter {
         if (configuration.isAllowedCredentials()) {
             //if we allow credentials, send back the actual origin
             response.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, originURI.toString());
-            response.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
         } else {
             //send back a wildcard, this will prevent credentials
             response.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, WILDCARD);
