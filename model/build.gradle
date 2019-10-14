@@ -4,9 +4,9 @@ dependencies {
 
     compile project(":cloudfoundry-identity-metrics-data")
 
-    compile group: "javax.validation", name: "validation-api"
+    compile "javax.validation:validation-api"
 
-    compile group: "commons-io", name: "commons-io", version: "2.6"
+    compile "commons-io:commons-io:2.6"
 
     compile libraries.springWeb
     compile libraries.springWebMvc
@@ -17,7 +17,7 @@ dependencies {
         exclude(module: "spring-security-web")
     }
 
-    compile group: "org.slf4j", name: "slf4j-api"
+    compile "org.slf4j:slf4j-api"
 
     testCompile(libraries.junit)
 

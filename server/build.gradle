@@ -6,7 +6,7 @@ dependencies {
 
     compile libraries.tomcatJdbc
     provided libraries.tomcatEmbed
-    compile group: "javax.mail", name: "mail", version: "1.4.7"
+    compile "javax.mail:mail:1.4.7"
 
     compile libraries.commonsLogging
     compile libraries.jsonPath
@@ -33,7 +33,7 @@ dependencies {
     compile libraries.bouncyCastleProv
     compile libraries.bouncyCastlePkix
 
-    compile group: "com.google.guava", name: "guava", version: "28.1-jre"
+    compile "com.google.guava:guava:28.1-jre"
 
     compile libraries.aspectJRt
     compile libraries.aspectJWeaver
@@ -41,21 +41,21 @@ dependencies {
     compile libraries.thymeleafSpring5
     compile libraries.thymeleafDialect
     compile libraries.thymeleafExtrasSpringSecurity5
-    compile group: "org.codehaus.groovy", name: "groovy"
+    compile "org.codehaus.groovy:groovy"
 
-    compile(group: "com.unboundid.product.scim", name: "scim-sdk", version: "1.8.22") {
+    compile("com.unboundid.product.scim:scim-sdk:1.8.22") {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile group: "org.hibernate", name: "hibernate-validator", version: "6.0.17.Final"
+    compile "org.hibernate:hibernate-validator:6.0.17.Final"
     compile libraries.flywayCore
     compile libraries.mariaJdbcDriver
-    compile group: "org.hsqldb", name: "hsqldb"
+    compile "org.hsqldb:hsqldb"
 
-    compile group: "org.yaml", name: "snakeyaml"
+    compile "org.yaml:snakeyaml"
 
     compile libraries.springSecurityLdap
     compile libraries.springLdapCore
@@ -64,16 +64,16 @@ dependencies {
         exclude(module: "slf4j-api")
     }
 
-    compile group: "org.passay", name: "passay", version: "1.2.0"
+    compile "org.passay:passay:1.2.0"
 
-    compile group: "com.warrenstrange", name: "googleauth", version: "1.2.0"
+    compile "com.warrenstrange:googleauth:1.2.0"
 
     compile libraries.slf4jImpl
     compile libraries.log4jCore
 
-    compile group: "commons-io", name: "commons-io", version: "2.6"
+    compile "commons-io:commons-io:2.6"
 
-    compile group: "org.apache.santuario", name: "xmlsec", version: "2.1.4"
+    compile "org.apache.santuario:xmlsec:2.1.4"
 
     implementation libraries.javaxXmlBindApi
     implementation libraries.javaxXmlBindCore

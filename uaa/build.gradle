@@ -33,7 +33,7 @@ dependencies {
     compile(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
-    compile group: "cglib", name: "cglib", version: "3.2.5"
+    compile "cglib:cglib:3.2.5"
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     runtime libraries.springSecurityConfig
@@ -51,22 +51,22 @@ dependencies {
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
 
-    testCompile(group: "org.apache.directory.server", name: "apacheds-core", version: "1.5.5") {
+    testCompile("org.apache.directory.server:apacheds-core:1.5.5") {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
-    testCompile(group: "org.apache.directory.server", name: "apacheds-protocol-ldap", version: "1.5.5") {
+    testCompile("org.apache.directory.server:apacheds-protocol-ldap:1.5.5") {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
     testCompile libraries.junit
     testCompile "org.seleniumhq.selenium:selenium-java"
-    testCompile group: "dumbster", name: "dumbster", version: "1.6"
+    testCompile "dumbster:dumbster:1.6"
     testCompile libraries.zxing
-    testCompile group: "org.reflections", name: "reflections", version: "0.9.10"
-    testCompile group: "org.skyscreamer", name: "jsonassert"
+    testCompile "org.reflections:reflections:0.9.10"
+    testCompile "org.skyscreamer:jsonassert"
     testCompile libraries.springTest
     testCompile libraries.springSecurityTest
     testCompile libraries.mockito
