@@ -94,11 +94,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=? and identity_zone_id=?";
 
-    public static final String USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where email=? and origin=? and identity_zone_id=?";
+    public static final String USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where LOWER(email)=LOWER(?) and LOWER(origin)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)";
 
-    public static final String USER_BY_USERNAME_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where username=? and identity_zone_id=?";
+    public static final String USER_BY_USERNAME_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where LOWER(username)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)";
 
-    public static final String USER_BY_USERNAME_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where username=? and origin=? and identity_zone_id=?";
+    public static final String USER_BY_USERNAME_AND_ORIGIN_AND_ZONE_QUERY = "select " + USER_FIELDS + " from users " + "where LOWER(username)=LOWER(?) and LOWER(origin)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)";
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
