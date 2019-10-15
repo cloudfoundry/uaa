@@ -62,7 +62,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     );
 
     private static final String GET_GROUP_BY_NAME_SQL = String.format(
-            "select %s from %s where displayName=? and identity_zone_id=?",
+            "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)",
             GROUP_FIELDS,
             GROUP_TABLE
     );
