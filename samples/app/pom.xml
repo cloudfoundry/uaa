@@ -48,7 +48,7 @@
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
       <artifactId>tomcat-embed-core</artifactId>
-      <version>9.0.26</version>
+      <version>9.0.27</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -80,7 +80,6 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>jstl</artifactId>
-      <version>1.2</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
@@ -458,7 +457,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-el-api</artifactId>
-      <version>9.0.26</version>
+      <version>9.0.27</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -490,7 +489,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jasper-el</artifactId>
-      <version>9.0.26</version>
+      <version>9.0.27</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -522,7 +521,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jdbc</artifactId>
-      <version>9.0.26</version>
+      <version>9.0.27</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
