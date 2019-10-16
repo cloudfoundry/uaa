@@ -33,7 +33,6 @@ dependencies {
     compile(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
-    compile libraries.cglib
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     runtime libraries.springSecurityConfig
@@ -44,18 +43,12 @@ dependencies {
     implementation libraries.javaxXmlBindApi
     implementation libraries.javaxXmlBindCore
     implementation libraries.javaxXmlBindImpl
-    implementation libraries.javaxActivation
 
     providedCompile libraries.tomcatEmbed
 
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
 
-    testCompile(libraries.apacheDsCore) {
-        exclude(module: "bcprov-jdk15")
-        exclude(module: "slf4j-api")
-        exclude(module: "slf4j-log4j12")
-    }
     testCompile(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
@@ -65,7 +58,6 @@ dependencies {
     testCompile libraries.selenium
     testCompile libraries.dumbster
     testCompile libraries.zxing
-    testCompile libraries.reflections
     testCompile libraries.jsonAssert
     testCompile libraries.springTest
     testCompile libraries.springSecurityTest

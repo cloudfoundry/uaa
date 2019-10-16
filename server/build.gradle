@@ -8,7 +8,6 @@ dependencies {
     provided libraries.tomcatEmbed
     compile libraries.javaxMail
 
-    compile libraries.commonsLogging
     compile libraries.jsonPath
     compile libraries.zxing
     compile libraries.springBeans
@@ -19,7 +18,6 @@ dependencies {
     compile libraries.springWeb
     compile libraries.springSecurityCore
     compile libraries.springSecurityJwt
-    compile libraries.apacheHttpClient
     compile libraries.springSecurityWeb
     compile libraries.springSecuritySaml
     compile libraries.springSessionJdbc
@@ -70,14 +68,9 @@ dependencies {
     compile libraries.slf4jImpl
     compile libraries.log4jCore
 
-    compile libraries.commonsIo
-
-    compile libraries.xmlsec
-
     implementation libraries.javaxXmlBindApi
     implementation libraries.javaxXmlBindCore
     implementation libraries.javaxXmlBindImpl
-    implementation libraries.javaxActivation
 
     testCompile project(":cloudfoundry-identity-model").sourceSets.test.output
 

@@ -19,7 +19,6 @@ dependencies {
     compile libraries.springBootStarterWeb
     compile libraries.springBootStarterLog4j2
     compile libraries.statsdClient
-    compile libraries.apacheHttpClient
     providedCompile libraries.tomcatEmbed
     providedRuntime libraries.springBootStarterTomcat
     testCompile libraries.mockito
