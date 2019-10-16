@@ -1,12 +1,10 @@
-name: Java CI
+name: unit-test
 
 on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v1
     - run: curl -O "https://download.java.net/java/ga/jdk11/openjdk-11_linux-x64_bin.tar.gz"
