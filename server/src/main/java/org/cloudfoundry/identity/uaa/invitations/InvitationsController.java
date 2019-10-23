@@ -116,7 +116,7 @@ public class InvitationsController {
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = expiringCodeStore.peekCode(code, IdentityZoneHolder.get().getId());
         if ((null == expiringCode) || (null != expiringCode.getIntent() && !INVITATION.name().equals(expiringCode.getIntent()))) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -128,7 +128,6 @@ public class InvitationsController {
         String origin = codeData.get(ORIGIN);
         try {
             IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
             boolean isUaaUserAndVerified =
@@ -136,12 +135,12 @@ public class InvitationsController {
             boolean isExternalUserAndAcceptedInvite =
                     !UAA.equals(provider.getType()) && UaaHttpRequestUtils.isAcceptedInvitationAuthentication();
             if (isUaaUserAndVerified || isExternalUserAndAcceptedInvite) {
-                AcceptedInvitation accepted = invitationsService.acceptInvitation(newCode, "");
+                AcceptedInvitation accepted = invitationsService.acceptInvitation(code, "");
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (SAML.equals(provider.getType())) {
-                setRequestAttributes(request, newCode, user);
+                setRequestAttributes(request, code, user);
 
                 SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
 
@@ -149,7 +148,7 @@ public class InvitationsController {
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (OIDC10.equals(provider.getType()) || OAUTH20.equals(provider.getType())) {
-                setRequestAttributes(request, newCode, user);
+                setRequestAttributes(request, code, user);
 
                 AbstractExternalOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractExternalOAuthIdentityProviderDefinition.class);
 
@@ -162,7 +161,7 @@ public class InvitationsController {
                         Collections.singletonList(UaaAuthority.UAA_INVITED));
                 SecurityContextHolder.getContext().setAuthentication(token);
                 model.addAttribute("provider", provider.getType());
-                model.addAttribute("code", newCode);
+                model.addAttribute("code", code);
                 model.addAttribute("email", codeData.get("email"));
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
