@@ -3,6 +3,14 @@ Project identityServer = parent.subprojects.find { it.name.equals("cloudfoundry-
 apply plugin: "war"
 apply plugin: "org.asciidoctor.convert"
 apply plugin: "com.moowork.node"
+apply plugin: "com.google.cloud.tools.jib"
+
+jib {
+  // Tomcat is preferred over Jetty since other tomcat plugins are used in uaa's
+  // build configuration. This prevents conflicting beans on initialization.
+  from.image = "tomcat:${tomcatVersion}-jdk${targetCompatibility.majorVersion}-openjdk-slim"
+  container.appRoot = "/usr/local/tomcat/webapps/ROOT"
+}
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file

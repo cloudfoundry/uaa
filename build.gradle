@@ -11,6 +11,9 @@ buildscript {
         maven {
             url "https://repo.spring.io/plugins-release"
         }
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
 
     dependencies {
@@ -20,6 +23,8 @@ buildscript {
         classpath libraries.gradleNodePlugin
         classpath libraries.springDependencyMgmtPlugin
         classpath libraries.springBootGradlePlugin
+        classpath libraries.guava
+        classpath libraries.jib
     }
 }
 
