@@ -97,17 +97,6 @@ subprojects {
         }
     }
 
-    // we may not need this
-    // for including the source
-   /* task packageSources(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }*/
-
-   /* artifacts {
-        archives packageSources
-    }*/
-
     task generateDocs() {
     }
 
@@ -242,4 +231,3 @@ test.dependsOn subprojects.test
 test.mustRunAfter integrationTest
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-bootRun.dependsOn subprojects.find {it.name.contains('uaa')}.getTasksByName("bootRun", true)

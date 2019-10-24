@@ -12,13 +12,6 @@ processResources {
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
 }
 
-
 jar {
   enabled = true
 }
-
-bootRun {
-  enabled = false
-}
-
-

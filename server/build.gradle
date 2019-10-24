@@ -120,7 +120,3 @@ integrationTest {}.onlyIf { //disable since we don't have any
 jar {
     enabled = true
 }
-
-bootRun {
-    enabled = false
-}
