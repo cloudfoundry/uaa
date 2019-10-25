@@ -3,8 +3,10 @@ ext {
     libraries = [:]
 }
 
+// Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.2.0"
 ext["jackson.version"] = "2.10.0" //Can be removed when we bump to spring boot 2.2.0
+ext["flyway.version"] = "5.2.4"
 
 def versions = [:]
 
@@ -100,7 +102,7 @@ libraries.springTest = "org.springframework:spring-test"
 libraries.springTx = "org.springframework:spring-tx"
 libraries.springWeb = "org.springframework:spring-web"
 libraries.springWebMvc = "org.springframework:spring-webmvc"
-libraries.statsdClient = "com.timgroup:java-statsd-client"
+libraries.statsdClient = "com.timgroup:java-statsd-client:3.1.0"
 libraries.thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"
 libraries.thymeleafExtrasSpringSecurity5 = "org.thymeleaf.extras:thymeleaf-extras-springsecurity5"
 libraries.thymeleafSpring5 = "org.thymeleaf:thymeleaf-spring5"
