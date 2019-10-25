@@ -87,7 +87,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
         String zoneID = IdentityZoneHolder.get().getId();
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
-        when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
+        when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(null));
         when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionstate.salt");
 
         uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(redirectResolver);
