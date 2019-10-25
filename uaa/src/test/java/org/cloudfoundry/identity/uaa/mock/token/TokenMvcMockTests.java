@@ -59,7 +59,6 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
@@ -141,7 +140,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         webApplicationContext.getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
         try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'GET' not supported", "ISO-8859-1")));
+                .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
 
     }
 
@@ -149,7 +148,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     void token_endpoint_put() throws Exception {
         try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'PUT' not supported", "ISO-8859-1")));
+                .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
 
     }
 
@@ -157,7 +156,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     void token_endpoint_delete() throws Exception {
         try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
+                .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
 
     }
 
@@ -217,7 +216,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetailsService.updateClientDetails(clientDetails);
 
         result = doRefreshGrant(refreshToken, clientId, SECRET, status().isUnauthorized());
-        assertThat(result.getResponse().getContentAsString(), containsString(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1")));
+        assertThat(result.getResponse().getContentAsString(), containsString("User does not meet the client's required group criteria."));
     }
 
     @Test
@@ -299,7 +298,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 }
         );
 
-        assertThat((String) errorResponse.get("error_description"), containsString(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1")));
+        assertThat((String) errorResponse.get("error_description"), containsString("User does not meet the client's required group criteria."));
     }
 
     @Test
@@ -320,7 +319,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 }
         );
 
-        assertThat((String) errorResponse.get("error_description"), containsString(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1")));
+        assertThat((String) errorResponse.get("error_description"), containsString("User does not meet the client's required group criteria."));
     }
 
     @Test
@@ -2517,7 +2516,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_scope"))
-                .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1")))
+                .andExpect(jsonPath("$.error_description").value("User does not meet the client's required group criteria."))
                 .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
     }
 
