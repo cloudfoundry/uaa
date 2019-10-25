@@ -92,6 +92,7 @@ import static org.junit.Assert.*;
 import static org.springframework.http.HttpHeaders.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
@@ -186,7 +187,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isNotAcceptable())
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
+                .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
@@ -2517,7 +2518,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_scope"))
                 .andExpect(jsonPath("$.error_description").value("User does not meet the client's required group criteria."))
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+                .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE));
     }
 
     @Test
@@ -4246,7 +4247,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andDo(print())
                 .andExpect(status)
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+                .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE));
     }
 
     private void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) {

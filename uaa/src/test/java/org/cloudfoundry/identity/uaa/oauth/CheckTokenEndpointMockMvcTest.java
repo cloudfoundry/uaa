@@ -130,7 +130,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE))
             .andExpect(status().isNotAcceptable())
-            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
+            .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
             .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
@@ -154,7 +154,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                 .param("token", token))
             .andExpect(matcher)
-            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+            .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE));
     }
 
     ResultActions get_check_token(ResultMatcher matcher) throws Exception {
@@ -164,6 +164,6 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE))
             .andExpect(matcher)
-            .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+            .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE));
     }
 }
