@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.Objects;
 
@@ -89,6 +88,6 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
+                .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
     }
 }
