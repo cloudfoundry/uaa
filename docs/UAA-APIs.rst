@@ -665,7 +665,7 @@ Notes:
 * Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/rfc6749#section-5.2>`_ and this addition::
 
             HTTP/1.1 400 Bad Request
-            Content-Type: application/json;charset=UTF-8
+            Content-Type: application/json
             Cache-Control: no-store
             Pragma: no-cache
 
@@ -1932,7 +1932,7 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "status":"ok",
@@ -1982,7 +1982,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "code":"1yw7VS",
@@ -2025,7 +2025,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",
@@ -2075,7 +2075,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         6FfI4o       // verification code
 
@@ -2112,7 +2112,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",

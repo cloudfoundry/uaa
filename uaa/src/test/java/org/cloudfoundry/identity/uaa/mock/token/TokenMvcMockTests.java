@@ -90,9 +90,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.*;
 import static org.springframework.http.HttpHeaders.*;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.*;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
@@ -133,13 +131,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_get_by_default() throws Exception {
-        try_token_with_non_post(get("/oauth/token"), status().isOk());
+        try_token_with_non_post(get("/oauth/token"), status().isOk(), APPLICATION_JSON_UTF8_VALUE);
     }
 
     @Test
     void token_endpoint_get() throws Exception {
         webApplicationContext.getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
-        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed())
+        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed(), APPLICATION_JSON_VALUE)
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
 
@@ -147,7 +145,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_put() throws Exception {
-        try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed())
+        try_token_with_non_post(put("/oauth/token"), status().isMethodNotAllowed(), APPLICATION_JSON_VALUE)
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
 
@@ -155,7 +153,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_delete() throws Exception {
-        try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed())
+        try_token_with_non_post(delete("/oauth/token"), status().isMethodNotAllowed(), APPLICATION_JSON_VALUE)
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
 
@@ -163,7 +161,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_post() throws Exception {
-        try_token_with_non_post(post("/oauth/token"), status().isOk());
+        try_token_with_non_post(post("/oauth/token"), status().isOk(), APPLICATION_JSON_UTF8_VALUE);
     }
 
     @Test
@@ -4233,7 +4231,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         IdentityZoneHolder.clear();
     }
 
-    private ResultActions try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status) throws Exception {
+    private ResultActions try_token_with_non_post(MockHttpServletRequestBuilder builder, ResultMatcher status, String expectedContentType) throws Exception {
         String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
 
         return mockMvc.perform(
@@ -4247,7 +4245,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andDo(print())
                 .andExpect(status)
-                .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE));
+                .andExpect(header().string(CONTENT_TYPE, expectedContentType));
     }
 
     private void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) {
