@@ -37,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -617,8 +618,8 @@ public abstract class AbstractLdapMockMvcTest {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(4);
+        assertThat(allValues.get(5), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(5);
         assertEquals("marissa", event.getUsername());
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
@@ -640,8 +641,8 @@ public abstract class AbstractLdapMockMvcTest {
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         allValues = captor.getAllValues();
-        assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
-        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(12);
+        assertThat(allValues.get(13), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(13);
         assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
     }
 
@@ -929,8 +930,8 @@ public abstract class AbstractLdapMockMvcTest {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(3), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(3);
+        assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(4);
         assertEquals("marissa3", event.getUsername());
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
     }

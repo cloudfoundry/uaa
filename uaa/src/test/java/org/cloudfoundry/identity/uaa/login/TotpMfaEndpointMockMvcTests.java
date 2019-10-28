@@ -149,8 +149,8 @@ class TotpMfaEndpointMockMvcTests {
 
         ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(8, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+        assertEquals(9, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(7), instanceOf(MfaAuthenticationSuccessEvent.class));
 
         mockMvc.perform(get(location)
                 .session(mockHttpSession))
@@ -163,8 +163,8 @@ class TotpMfaEndpointMockMvcTests {
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(14, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationSuccessEvent.class));
+        assertEquals(15, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(13), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
     @Test
@@ -271,8 +271,8 @@ class TotpMfaEndpointMockMvcTests {
 
         ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(8, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+        assertEquals(9, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(7), instanceOf(MfaAuthenticationSuccessEvent.class));
 
         mockMvc.perform(get("/")
                 .session(mockHttpSession))
@@ -294,8 +294,8 @@ class TotpMfaEndpointMockMvcTests {
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(14, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationFailureEvent.class));
+        assertEquals(15, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(13), instanceOf(MfaAuthenticationFailureEvent.class));
 
         mockMvc.perform(post("/login/mfa/verify.do")
                 .param("code", "ABCDEF")
@@ -307,8 +307,8 @@ class TotpMfaEndpointMockMvcTests {
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(16, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(14), instanceOf(MfaAuthenticationFailureEvent.class));
+        assertEquals(17, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(15), instanceOf(MfaAuthenticationFailureEvent.class));
     }
 
     @Test
@@ -419,8 +419,8 @@ class TotpMfaEndpointMockMvcTests {
 
         ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(8, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
+        assertEquals(9, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(7), instanceOf(MfaAuthenticationSuccessEvent.class));
 
         mockMvc.perform(get("/")
                 .session(mockHttpSession))
@@ -435,8 +435,8 @@ class TotpMfaEndpointMockMvcTests {
 
         eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(15, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(13), instanceOf(MfaAuthenticationSuccessEvent.class));
+        assertEquals(16, eventCaptor.getAllValues().size());
+        assertThat(eventCaptor.getAllValues().get(14), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
     @Test
