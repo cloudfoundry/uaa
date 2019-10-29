@@ -184,7 +184,10 @@ public class LoginInfoEndpoint {
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
-        int red, green, blue;
+        /**
+         * These must be public. It's accessed in templates.
+         */
+        public int red, green, blue;
 
         void assignColors(Color color) {
             red = color.getRed();
