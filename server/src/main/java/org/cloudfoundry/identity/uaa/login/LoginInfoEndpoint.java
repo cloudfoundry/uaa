@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.zone.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -97,11 +98,11 @@ public class LoginInfoEndpoint {
     private final Properties gitProperties;
     private final Properties buildProperties;
 
-    private String baseUrl;
+    private final String baseUrl;
 
-    private String externalLoginUrl;
+    private final String externalLoginUrl;
 
-    private String uaaHost;
+    private final String uaaHost;
 
     private SamlIdentityProviderConfigurator idpDefinitions;
 
@@ -150,9 +151,14 @@ public class LoginInfoEndpoint {
 
     public LoginInfoEndpoint(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
-            final @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore) {
+            final @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore,
+            final @Value("${login.url:''}") String externalLoginUrl,
+            final @Qualifier("uaaUrl") String baseUrl) {
         this.authenticationManager = authenticationManager;
         this.expiringCodeStore = expiringCodeStore;
+        this.externalLoginUrl = externalLoginUrl;
+        this.baseUrl = baseUrl;
+        this.uaaHost = extractUaaHost(this.baseUrl);
         gitProperties = tryLoadAllProperties("git.properties");
         buildProperties = tryLoadAllProperties("build.properties");
     }
@@ -687,7 +693,7 @@ public class LoginInfoEndpoint {
             Prompt p = new Prompt(
                     MFA_CODE,
                     "password",
-                    "MFA Code ( Register at " + addSubdomainToUrl(getBaseUrl() + " )", IdentityZoneHolder.get().getSubdomain())
+                    "MFA Code ( Register at " + addSubdomainToUrl(baseUrl + " )", IdentityZoneHolder.get().getSubdomain())
             );
             map.putIfAbsent(p.getName(), p.getDetails());
         }
@@ -886,13 +892,13 @@ public class LoginInfoEndpoint {
     private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
-        if (getBaseUrl().contains("localhost:")) {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl(), IdentityZoneHolder.get().getSubdomain()));
-        } else if (hasText(getExternalLoginUrl())) {
-            model.put("login", getExternalLoginUrl());
+        model.put(OriginKeys.UAA, addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+        if (baseUrl.contains("localhost:")) {
+            model.put("login", addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()));
+        } else if (hasText(externalLoginUrl)) {
+            model.put("login", externalLoginUrl);
         } else {
-            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
+            model.put("login", addSubdomainToUrl(baseUrl.replaceAll(OriginKeys.UAA, "login"), IdentityZoneHolder.get().getSubdomain()));
         }
         model.putAll(getSelfServiceLinks());
         return model;
@@ -934,46 +940,21 @@ public class LoginInfoEndpoint {
         return selfServiceLinks;
     }
 
-    public void setUaaBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
+    public String extractUaaHost(String baseUrl) {
+
+        URI uri;
         try {
-            URI uri = new URI(baseUrl);
-            setUaaHost(uri.getHost());
-            if (uri.getPort() != 443 && uri.getPort() != 80 && uri.getPort() > 0) {
-                //append non standard ports to the hostname
-                setUaaHost(getUaaHost() + ":" + uri.getPort());
-            }
+            uri = new URI(baseUrl);
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
         }
-    }
 
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-    protected String getUaaBaseUrl() {
-        return baseUrl;
-    }
-
-    private String getUaaHost() {
+        String uaaHost = uri.getHost();
+        if (uri.getPort() != 443 && uri.getPort() != 80 && uri.getPort() > 0) {
+            //append non standard ports to the hostname
+            uaaHost = uaaHost + ":" + uri.getPort();
+        }
         return uaaHost;
-    }
-
-    private void setUaaHost(String uaaHost) {
-        this.uaaHost = uaaHost;
-    }
-
-    public void setExternalLoginUrl(String baseUrl) {
-        this.externalLoginUrl = baseUrl;
-    }
-
-    public String getExternalLoginUrl() {
-        return externalLoginUrl;
     }
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {

@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
@@ -28,7 +27,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -417,22 +415,21 @@ class LoginInfoEndpointTests {
 
     private String check_links_urls(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
-        LoginInfoEndpoint endpoint = getEndpoint(zone);
         String baseUrl = "http://uaa.domain.com";
-        endpoint.setBaseUrl(baseUrl);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        LoginInfoEndpoint endpoint = getEndpoint(zone, null, baseUrl);
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", baseUrl));
         assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) extendedModelMap.asMap().get("links")).get("uaa"));
         assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login"), IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) extendedModelMap.asMap().get("links")).get("login"));
 
         String loginBaseUrl = "http://external-login.domain.com";
-        endpoint.setExternalLoginUrl(loginBaseUrl);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint = getEndpoint(zone, loginBaseUrl, baseUrl);
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", baseUrl));
         assertEquals(addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()), ((Map<String, String>) extendedModelMap.asMap().get("links")).get("uaa"));
         assertEquals(loginBaseUrl, ((Map<String, String>) extendedModelMap.asMap().get("links")).get("login"));
 
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", baseUrl));
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
         assertEquals("Temporary Authentication Code ( Get one at " + addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA, IdentityZoneHolder.get().getSubdomain()) + "/passcode )", ((String[]) mapPrompts.get("passcode"))[1]);
@@ -446,7 +443,7 @@ class LoginInfoEndpointTests {
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint(zone);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("register"));
@@ -456,7 +453,7 @@ class LoginInfoEndpointTests {
     @Test
     void no_ui_links_for_json() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("linkCreateAccountShow"));
@@ -475,7 +472,7 @@ class LoginInfoEndpointTests {
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(any(), any())).thenReturn(idps);
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertEquals("http://someurl", links.get("login"));
         assertTrue(extendedModelMap.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Map);
@@ -492,7 +489,7 @@ class LoginInfoEndpointTests {
     void saml_links_for_html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
-        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
+        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), null);
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertNotNull(links);
         assertEquals("http://someurl", links.get("login"));
@@ -505,7 +502,7 @@ class LoginInfoEndpointTests {
         UaaIdentityProviderDefinition uaaIdentityProviderDefinition = new UaaIdentityProviderDefinition();
         uaaIdentityProviderDefinition.setDisableInternalUserManagement(true);
         uaaIdentityProvider.setConfig(uaaIdentityProviderDefinition);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("register"));
@@ -531,7 +528,7 @@ class LoginInfoEndpointTests {
 
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
 
-        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), null);
+        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), null);
         assertFalse((Boolean) extendedModelMap.get("fieldUsernameShow"));
     }
 
@@ -561,7 +558,7 @@ class LoginInfoEndpointTests {
     void promptLogic() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
-        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()), singletonList(MediaType.TEXT_HTML));
+        endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), singletonList(MediaType.TEXT_HTML));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for Html content", extendedModelMap.get("prompts") instanceof Map);
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -572,7 +569,7 @@ class LoginInfoEndpointTests {
         assertNull(mapPrompts.get("mfaCode"));
 
         extendedModelMap.clear();
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", extendedModelMap.get("prompts") instanceof Map);
         mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -586,7 +583,7 @@ class LoginInfoEndpointTests {
         extendedModelMap.clear();
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockSamlIdentityProviderConfigurator);
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", extendedModelMap.get("prompts") instanceof Map);
         mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -607,7 +604,7 @@ class LoginInfoEndpointTests {
         when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
 
         extendedModelMap.clear();
-        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         mapPrompts = (Map) extendedModelMap.get("prompts");
         assertNull(mapPrompts.get("username"));
@@ -825,7 +822,7 @@ class LoginInfoEndpointTests {
         identityProvider.setConfig(definition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
-        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", endpoint.getBaseUrl()));
+        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
@@ -1472,11 +1469,15 @@ class LoginInfoEndpointTests {
         return request;
     }
 
-    private LoginInfoEndpoint getEndpoint(IdentityZone identityZone) {
+    private LoginInfoEndpoint getEndpoint(
+            final IdentityZone identityZone,
+            final String externalLoginUrl,
+            final String baseUrl) {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint(
                 null,
-                new InMemoryExpiringCodeStore());
-        endpoint.setBaseUrl("http://someurl");
+                new InMemoryExpiringCodeStore(),
+                externalLoginUrl,
+                baseUrl);
         SamlIdentityProviderConfigurator emptyConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(emptyConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.emptyList());
         when(emptyConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(Collections.emptyList());
@@ -1486,6 +1487,10 @@ class LoginInfoEndpointTests {
         endpoint.setXoAuthProviderConfigurator(configurator);
         endpoint.setMfaChecker(spiedMfaChecker);
         return endpoint;
+    }
+
+    private LoginInfoEndpoint getEndpoint(final IdentityZone identityZone) {
+        return getEndpoint(identityZone, null, "http://someurl");
     }
 
     private static List<SamlIdentityProviderDefinition> getIdps() {
