@@ -539,17 +539,14 @@ class LoginInfoEndpointTests {
     void generatePasscodeForKnownUaaPrincipal() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         Map<String, Object> model = new HashMap<>();
-        ExpiringCodeStore store = new InMemoryExpiringCodeStore();
-        endpoint.setExpiringCodeStore(store);
         assertEquals("passcode", endpoint.generatePasscode(model, marissa));
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
         assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
         ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
         UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
         assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
         //token with a UaaPrincipal should always work
         assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
-
     }
 
     @Test
@@ -1476,7 +1473,9 @@ class LoginInfoEndpointTests {
     }
 
     private LoginInfoEndpoint getEndpoint(IdentityZone identityZone) {
-        LoginInfoEndpoint endpoint = new LoginInfoEndpoint();
+        LoginInfoEndpoint endpoint = new LoginInfoEndpoint(
+                null,
+                new InMemoryExpiringCodeStore());
         endpoint.setBaseUrl("http://someurl");
         SamlIdentityProviderConfigurator emptyConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(emptyConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.emptyList());

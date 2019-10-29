@@ -440,12 +440,10 @@
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
-        <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl"/>
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="expiringCodeStore" ref="codeStore"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
         <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>

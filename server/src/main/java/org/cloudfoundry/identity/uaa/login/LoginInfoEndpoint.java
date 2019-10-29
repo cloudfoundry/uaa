@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSucce
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -59,7 +60,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Base64.*;
+import static java.util.Base64.getDecoder;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
@@ -93,9 +94,8 @@ public class LoginInfoEndpoint {
     static final String IDP_DEFINITIONS = "idpDefinitions";
     static final String OAUTH_LINKS = "oauthLinks";
 
-    private Properties gitProperties = new Properties();
-
-    private Properties buildProperties = new Properties();
+    private final Properties gitProperties;
+    private final Properties buildProperties;
 
     private String baseUrl;
 
@@ -107,9 +107,9 @@ public class LoginInfoEndpoint {
 
     private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
 
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    private ExpiringCodeStore expiringCodeStore;
+    private final ExpiringCodeStore expiringCodeStore;
     private MultitenantClientServices clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
@@ -134,20 +134,8 @@ public class LoginInfoEndpoint {
         return this;
     }
 
-    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
-        this.expiringCodeStore = expiringCodeStore;
-    }
-
     public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
-    }
-
-    public AuthenticationManager getAuthenticationManager() {
-        return authenticationManager;
-    }
-
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
     }
 
     private String entityID = "";
@@ -160,16 +148,20 @@ public class LoginInfoEndpoint {
         this.mfaChecker = mfaChecker;
     }
 
-    public LoginInfoEndpoint() {
+    public LoginInfoEndpoint(
+            final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
+            final @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore) {
+        this.authenticationManager = authenticationManager;
+        this.expiringCodeStore = expiringCodeStore;
+        gitProperties = tryLoadAllProperties("git.properties");
+        buildProperties = tryLoadAllProperties("build.properties");
+    }
+
+    private static Properties tryLoadAllProperties(final String fileName) {
         try {
-            gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
-        } catch (IOException e) {
-            // Ignore
-        }
-        try {
-            buildProperties = PropertiesLoaderUtils.loadAllProperties("build.properties");
-        } catch (IOException e) {
-            // Ignore
+            return PropertiesLoaderUtils.loadAllProperties(fileName);
+        } catch (IOException ignored) {
+            return new Properties();
         }
     }
 
