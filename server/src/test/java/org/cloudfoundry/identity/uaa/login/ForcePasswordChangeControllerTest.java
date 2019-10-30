@@ -4,15 +4,15 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -22,65 +22,50 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 @ContextConfiguration(classes = {ThymeleafAdditional.class, ThymeleafConfig.class})
-public class ForcePasswordChangeControllerTest extends TestClassNullifier {
+class ForcePasswordChangeControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
-    private ResetPasswordService resetPasswordService;
-    private ResourcePropertySource resourcePropertySource;
-    private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
-    private UaaAuthentication authentication;
+    private ResourcePropertySource mockResourcePropertySource;
+    private UaaAuthentication mockUaaAuthentication;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         ForcePasswordChangeController controller = new ForcePasswordChangeController();
-        resetPasswordService = mock(ResetPasswordService.class);
-        controller.setResetPasswordService(resetPasswordService);
-        resourcePropertySource = mock(ResourcePropertySource.class);
-        controller.setResourcePropertySource(resourcePropertySource);
-        successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
+        controller.setResetPasswordService(mock(ResetPasswordService.class));
+        mockResourcePropertySource = mock(ResourcePropertySource.class);
+        controller.setResourcePropertySource(mockResourcePropertySource);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
                 .build();
-    }
 
-    @After
-    public void clear() {
-        SecurityContextHolder.clearContext();
-        IdentityZoneHolder.clear();
+        mockUaaAuthentication = mock(UaaAuthentication.class);
+        UaaPrincipal mockUaaPrincipal = mock(UaaPrincipal.class);
+        when(mockUaaAuthentication.getPrincipal()).thenReturn(mockUaaPrincipal);
+        when(mockUaaPrincipal.getEmail()).thenReturn("mail");
+        SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
     }
 
     @Test
-    public void testForcePasswordChange() throws Exception {
-        setAuthentication();
+    void forcePasswordChange() throws Exception {
         mockMvc.perform(get("/force_password_change"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("force_password_change"))
                 .andExpect(model().attribute("email", "mail"));
     }
 
-    private void setAuthentication() {
-        authentication = mock(UaaAuthentication.class);
-        UaaPrincipal principal = mock(UaaPrincipal.class);
-        when(authentication.getPrincipal()).thenReturn(principal);
-        when(principal.getEmail()).thenReturn("mail");
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
     @Test
-    public void testRedirectToLogInIfPasswordIsNotExpired() throws Exception {
-        setAuthentication();
+    void redirectToLogInIfPasswordIsNotExpired() throws Exception {
         mockMvc.perform(get("/force_password_change"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("force_password_change"));
     }
 
-
     @Test
-    public void testHandleForcePasswordChange() throws Exception {
-        setAuthentication();
+    void handleForcePasswordChange() throws Exception {
         mockMvc.perform(
                 post("/uaa/force_password_change")
                         .param("password", "pwd")
@@ -88,12 +73,11 @@ public class ForcePasswordChangeControllerTest extends TestClassNullifier {
                         .contextPath("/uaa"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/uaa/force_password_change_completed"));
-        verify(authentication, times(1)).setAuthenticatedTime(anyLong());
+        verify(mockUaaAuthentication, times(1)).setAuthenticatedTime(anyLong());
     }
 
     @Test
-    public void testHandleForcePasswordChangeWithRedirect() throws Exception {
-        setAuthentication();
+    void handleForcePasswordChangeWithRedirect() throws Exception {
         mockMvc.perform(
                 post("/force_password_change")
                         .param("password", "pwd")
@@ -103,9 +87,8 @@ public class ForcePasswordChangeControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testPasswordAndConfirmAreDifferent() throws Exception {
-        setAuthentication();
-        when(resourcePropertySource.getProperty("force_password_change.form_error")).thenReturn("Passwords must match and not be empty.");
+    void passwordAndConfirmAreDifferent() throws Exception {
+        when(mockResourcePropertySource.getProperty("force_password_change.form_error")).thenReturn("Passwords must match and not be empty.");
         mockMvc.perform(
                 post("/force_password_change")
                         .param("password", "pwd")
