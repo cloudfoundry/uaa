@@ -33,10 +33,11 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
 
     @BeforeEach
     void setUp() {
-        ForcePasswordChangeController controller = new ForcePasswordChangeController();
-        controller.setResetPasswordService(mock(ResetPasswordService.class));
         mockResourcePropertySource = mock(ResourcePropertySource.class);
-        controller.setResourcePropertySource(mockResourcePropertySource);
+        ForcePasswordChangeController controller = new ForcePasswordChangeController(
+                mockResourcePropertySource,
+                mock(ResetPasswordService.class)
+        );
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())

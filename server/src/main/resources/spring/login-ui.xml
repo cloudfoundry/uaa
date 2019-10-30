@@ -204,9 +204,7 @@
     </bean>
 
     <bean name="forcePasswordChangeController"
-          class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
-        <property name="resourcePropertySource" ref="messagePropertiesSource"/>
-    </bean>
+          class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController" />
 
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>

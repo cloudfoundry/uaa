@@ -30,11 +30,16 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 public class ForcePasswordChangeController {
     private static final Logger logger = LoggerFactory.getLogger(ForcePasswordChangeController.class);
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
-    private ResourcePropertySource resourcePropertySource;
 
-    @Autowired
-    @Qualifier("resetPasswordService")
-    private ResetPasswordService resetPasswordService;
+    private final ResourcePropertySource resourcePropertySource;
+    private final ResetPasswordService resetPasswordService;
+
+    public ForcePasswordChangeController(
+            final ResourcePropertySource resourcePropertySource,
+            final @Qualifier("resetPasswordService") ResetPasswordService resetPasswordService) {
+        this.resourcePropertySource = resourcePropertySource;
+        this.resetPasswordService = resetPasswordService;
+    }
 
     @RequestMapping(value = "/force_password_change", method = GET)
     public String forcePasswordChangePage(Model model) {
@@ -70,10 +75,6 @@ public class ForcePasswordChangeController {
         return "redirect:/force_password_change_completed";
     }
 
-    public void setResetPasswordService(ResetPasswordService resetPasswordService) {
-        this.resetPasswordService = resetPasswordService;
-    }
-
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String email, String message) {
         model.addAttribute("message", message);
         model.addAttribute("email", email);
@@ -81,7 +82,4 @@ public class ForcePasswordChangeController {
         return "force_password_change";
     }
 
-    public void setResourcePropertySource(ResourcePropertySource resourcePropertySource) {
-        this.resourcePropertySource = resourcePropertySource;
-    }
 }
