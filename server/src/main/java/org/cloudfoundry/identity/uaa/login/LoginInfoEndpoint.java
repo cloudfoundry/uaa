@@ -78,8 +78,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 @Controller
 public class LoginInfoEndpoint {
 
-    private static final String MFA_CODE = "mfaCode";
     private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
+
+    private static final String MFA_CODE = "mfaCode";
 
     private static final String CREATE_ACCOUNT_LINK = "createAccountLink";
     private static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
@@ -88,45 +89,33 @@ public class LoginInfoEndpoint {
 
     private static final List<String> UI_ONLY_ATTRIBUTES = List.of(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW);
     private static final String PASSCODE = "passcode";
-    static final String SHOW_LOGIN_LINKS = "showLoginLinks";
+    private static final String SHOW_LOGIN_LINKS = "showLoginLinks";
     private static final String LINKS = "links";
     private static final String ZONE_NAME = "zone_name";
     private static final String ENTITY_ID = "entityID";
-    static final String IDP_DEFINITIONS = "idpDefinitions";
-    static final String OAUTH_LINKS = "oauthLinks";
+    private static final String IDP_DEFINITIONS = "idpDefinitions";
+    private static final String OAUTH_LINKS = "oauthLinks";
 
     private final Properties gitProperties;
     private final Properties buildProperties;
-
     private final String baseUrl;
-
     private final String externalLoginUrl;
-
-    private final String uaaHost;
-
     private final SamlIdentityProviderConfigurator idpDefinitions;
-
-    private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
-
     private final AuthenticationManager authenticationManager;
-
     private final ExpiringCodeStore expiringCodeStore;
     private final MultitenantClientServices clientDetailsService;
-
     private final IdentityProviderProvisioning providerProvisioning;
-    private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
+    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private final Links globalLinks;
+    private final MfaChecker mfaChecker;
+    private final String entityID;
+
+    private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
+    private static final MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
                     IdentityProvider::getOriginKey,
                     idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
             );
-
-    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
-
-    private final Links globalLinks;// = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
-
-    private final MfaChecker mfaChecker;
-
-    private final String entityID;
 
     public LoginInfoEndpoint(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
@@ -151,7 +140,6 @@ public class LoginInfoEndpoint {
         this.globalLinks = globalLinks;
         this.clientDetailsService = clientDetailsService;
         this.idpDefinitions = idpDefinitions;
-        this.uaaHost = extractUaaHost(this.baseUrl);
         gitProperties = tryLoadAllProperties("git.properties");
         buildProperties = tryLoadAllProperties("build.properties");
     }
@@ -930,23 +918,6 @@ public class LoginInfoEndpoint {
             }
         }
         return selfServiceLinks;
-    }
-
-    public String extractUaaHost(String baseUrl) {
-
-        URI uri;
-        try {
-            uri = new URI(baseUrl);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
-        }
-
-        String uaaHost = uri.getHost();
-        if (uri.getPort() != 443 && uri.getPort() != 80 && uri.getPort() > 0) {
-            //append non standard ports to the hostname
-            uaaHost = uaaHost + ":" + uri.getPort();
-        }
-        return uaaHost;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

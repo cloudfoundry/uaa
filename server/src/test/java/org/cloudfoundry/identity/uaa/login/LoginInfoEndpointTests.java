@@ -46,8 +46,6 @@ import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.*;
-import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.OAUTH_LINKS;
-import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -476,8 +474,8 @@ class LoginInfoEndpointTests {
         endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertEquals("http://someurl", links.get("login"));
-        assertTrue(extendedModelMap.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Map);
-        Map<String, String> idpDefinitions = (Map<String, String>) extendedModelMap.get(LoginInfoEndpoint.IDP_DEFINITIONS);
+        assertTrue(extendedModelMap.get("idpDefinitions") instanceof Map);
+        Map<String, String> idpDefinitions = (Map<String, String>) extendedModelMap.get("idpDefinitions");
         for (SamlIdentityProviderDefinition def : idps) {
             assertEquals(
                     "http://someurl/saml/discovery?returnIDParam=idp&entityID=" + endpoint.getZonifiedEntityId() + "&idp=" + def.getIdpEntityAlias() + "&isPassive=true",
@@ -493,7 +491,7 @@ class LoginInfoEndpointTests {
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
         assertNotNull(links);
         assertEquals("http://someurl", links.get("login"));
-        assertTrue(extendedModelMap.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Collection);
+        assertTrue(extendedModelMap.get("idpDefinitions") instanceof Collection);
     }
 
     @Test
@@ -776,7 +774,7 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
 
-        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get(OAUTH_LINKS);
+        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
     }
 
@@ -795,7 +793,7 @@ class LoginInfoEndpointTests {
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_HTML));
 
-        assertThat(extendedModelMap.get(SHOW_LOGIN_LINKS), equalTo(true));
+        assertThat(extendedModelMap.get("showLoginLinks"), equalTo(true));
     }
 
     @Test
@@ -1419,7 +1417,7 @@ class LoginInfoEndpointTests {
         assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
         assertEquals("login", redirect);
 
-        Map<String, String> oauthLinks = (Map<String, String>) extendedModelMap.get(OAUTH_LINKS);
+        Map<String, String> oauthLinks = (Map<String, String>) extendedModelMap.get("oauthLinks");
         assertEquals(1, oauthLinks.size());
     }
 
