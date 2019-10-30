@@ -440,13 +440,8 @@
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
-        <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
-        <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
-        <property name="globalLinks" ref="globalLinks"/>
-        <property name="mfaChecker" ref="mfaChecker"/>
     </bean>
 
     <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />

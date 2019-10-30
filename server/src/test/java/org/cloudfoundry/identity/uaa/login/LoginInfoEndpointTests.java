@@ -62,6 +62,7 @@ import static org.mockito.Mockito.*;
 class LoginInfoEndpointTests {
 
     private static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
+    private static final Links DEFAULT_GLOBAL_LINKS = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
     private ExtendedModelMap extendedModelMap;
@@ -281,15 +282,15 @@ class LoginInfoEndpointTests {
 
     @Test
     void customSelfserviceLinks_ApplyToAllZone_Html() throws Exception {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
         zone.setId("some_id");
         zone.setSubdomain(zone.getName());
         IdentityZoneConfiguration config = zone.getConfig();
         IdentityZoneHolder.set(zone);
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
+        zone.getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
+        zone.getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
+        LoginInfoEndpoint endpoint = getEndpoint(zone, DEFAULT_GLOBAL_LINKS);
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), Collections.singletonList(MediaType.TEXT_HTML));
         validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", extendedModelMap);
         validateSelfServiceLinks("http://custom_signup_link", "http://custom_passwd_link", endpoint.getSelfServiceLinks());
@@ -299,7 +300,7 @@ class LoginInfoEndpointTests {
         validateSelfServiceLinks("/create_account", "/forgot_password", endpoint.getSelfServiceLinks());
 
         //null config with globals
-        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
+        endpoint = getEndpoint(zone, new Links().setSelfService(new Links.SelfService().setSignup("/signup").setPasswd("/passwd")));
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals
@@ -308,7 +309,7 @@ class LoginInfoEndpointTests {
         validateSelfServiceLinks("/signup", "/passwd", endpoint.getSelfServiceLinks());
 
         //null links with globals using variables
-        endpoint.setGlobalLinks(new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
+        endpoint = getEndpoint(zone, new Links().setSelfService(new Links.SelfService().setSignup("/signup?domain={zone.subdomain}").setPasswd("/passwd?id={zone.id}")));
         validateSelfServiceLinks("/signup?domain=" + zone.getSubdomain(), "/passwd?id=" + zone.getId(), endpoint.getSelfServiceLinks());
 
         //zone config overrides global
@@ -1472,25 +1473,42 @@ class LoginInfoEndpointTests {
     private LoginInfoEndpoint getEndpoint(
             final IdentityZone identityZone,
             final String externalLoginUrl,
-            final String baseUrl) {
+            final String baseUrl,
+            final Links globalLinks) {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint(
                 null,
                 new InMemoryExpiringCodeStore(),
                 externalLoginUrl,
-                baseUrl);
+                baseUrl,
+                spiedMfaChecker,
+                configurator, mockIdentityProviderProvisioning,
+                "",
+                globalLinks);
         SamlIdentityProviderConfigurator emptyConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(emptyConfigurator.getIdentityProviderDefinitions()).thenReturn(Collections.emptyList());
         when(emptyConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(Collections.emptyList());
         endpoint.setIdpDefinitions(emptyConfigurator);
-        identityZone.getConfig().setPrompts(prompts);
-        endpoint.setProviderProvisioning(mockIdentityProviderProvisioning);
-        endpoint.setXoAuthProviderConfigurator(configurator);
-        endpoint.setMfaChecker(spiedMfaChecker);
+        if(identityZone.getConfig() != null) {
+            identityZone.getConfig().setPrompts(prompts);
+        }
         return endpoint;
     }
 
+    private LoginInfoEndpoint getEndpoint(
+            final IdentityZone identityZone,
+            final String externalLoginUrl,
+            final String baseUrl) {
+        return getEndpoint(identityZone, externalLoginUrl, baseUrl, DEFAULT_GLOBAL_LINKS);
+    }
+
+    private LoginInfoEndpoint getEndpoint(
+            final IdentityZone identityZone,
+            final Links globalLinks) {
+        return getEndpoint(identityZone, null, "http://someurl", globalLinks);
+    }
+
     private LoginInfoEndpoint getEndpoint(final IdentityZone identityZone) {
-        return getEndpoint(identityZone, null, "http://someurl");
+        return getEndpoint(identityZone, null, "http://someurl", DEFAULT_GLOBAL_LINKS);
     }
 
     private static List<SamlIdentityProviderDefinition> getIdps() {

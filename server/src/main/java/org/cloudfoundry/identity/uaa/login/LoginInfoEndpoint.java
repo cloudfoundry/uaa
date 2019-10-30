@@ -113,51 +113,44 @@ public class LoginInfoEndpoint {
     private final ExpiringCodeStore expiringCodeStore;
     private MultitenantClientServices clientDetailsService;
 
-    private IdentityProviderProvisioning providerProvisioning;
+    private final IdentityProviderProvisioning providerProvisioning;
     private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
                     IdentityProvider::getOriginKey,
                     idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
             );
 
-    private XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
-    private Links globalLinks = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
+    private final Links globalLinks;// = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
 
-    private MfaChecker mfaChecker;
-
-    public void setGlobalLinks(Links globalLinks) {
-        this.globalLinks = globalLinks;
-    }
-
-    public LoginInfoEndpoint setXoAuthProviderConfigurator(XOAuthProviderConfigurator xoAuthProviderConfigurator) {
-        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
-        return this;
-    }
+    private final MfaChecker mfaChecker;
 
     public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
     }
 
-    private String entityID = "";
-
-    public void setEntityID(String entityID) {
-        this.entityID = entityID;
-    }
-
-    public void setMfaChecker(MfaChecker mfaChecker) {
-        this.mfaChecker = mfaChecker;
-    }
+    private final String entityID;
 
     public LoginInfoEndpoint(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
             final @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore,
             final @Value("${login.url:''}") String externalLoginUrl,
-            final @Qualifier("uaaUrl") String baseUrl) {
+            final @Qualifier("uaaUrl") String baseUrl,
+            final @Qualifier("mfaChecker") MfaChecker mfaChecker,
+            final @Qualifier("xoauthProviderConfigurator") XOAuthProviderConfigurator xoAuthProviderConfigurator,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+            final @Qualifier("samlEntityID") String entityID,
+            final @Qualifier("globalLinks") Links globalLinks) {
         this.authenticationManager = authenticationManager;
         this.expiringCodeStore = expiringCodeStore;
         this.externalLoginUrl = externalLoginUrl;
         this.baseUrl = baseUrl;
+        this.mfaChecker = mfaChecker;
+        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
+        this.providerProvisioning = providerProvisioning;
+        this.entityID = entityID;
+        this.globalLinks = globalLinks;
         this.uaaHost = extractUaaHost(this.baseUrl);
         gitProperties = tryLoadAllProperties("git.properties");
         buildProperties = tryLoadAllProperties("build.properties");
@@ -959,14 +952,6 @@ public class LoginInfoEndpoint {
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public IdentityProviderProvisioning getProviderProvisioning() {
-        return providerProvisioning;
-    }
-
-    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

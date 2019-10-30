@@ -47,6 +47,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -98,7 +99,6 @@ public class LoginMockMvcTests {
     private RandomValueStringGenerator generator;
 
     private IdentityZoneConfiguration identityZoneConfiguration;
-    private Links globalLinks;
     private IdentityZone identityZone;
     private MockMvc mockMvc;
     private File originalLimitedModeStatusFile;
@@ -109,13 +109,11 @@ public class LoginMockMvcTests {
             @Autowired WebApplicationContext webApplicationContext,
             @Autowired MockMvc mockMvc,
             @Autowired IdentityZoneProvisioning identityZoneProvisioning,
-            @Autowired @Qualifier("globalLinks") Links globalLinks,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) throws Exception {
         generator = new RandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
-        this.globalLinks = globalLinks;
         this.limitedModeUaaFilter = limitedModeUaaFilter;
         SecurityContextHolder.clearContext();
 
@@ -150,8 +148,6 @@ public class LoginMockMvcTests {
             @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) {
         jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
-        loginInfoEndpoint.setGlobalLinks(globalLinks);
-        globalLinks.setHomeRedirect(null);
     }
 
     @AfterEach
@@ -247,13 +243,11 @@ public class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
                 .andExpect(content().string(containsString("/create_account")));
 
-        loginInfoEndpoint.setGlobalLinks(
-                new Links().setSelfService(
-                        new Links.SelfService()
-                                .setPasswd("/passwd?id={zone.id}")
-                                .setSignup("/signup?subdomain={zone.subdomain}")
-                )
-        );
+        ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
+                new Links.SelfService()
+                        .setPasswd("/passwd?id={zone.id}")
+                        .setSignup("/signup?subdomain={zone.subdomain}")
+        ));
 
         mockMvc.perform(
                 get("/login")
@@ -287,7 +281,7 @@ public class LoginMockMvcTests {
 
     @Test
     void global_zone_variable_home_redirect(
-            @Autowired HomeController homeController,
+            @Autowired @Qualifier("globalLinks") Links globalLinks,
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
 
@@ -321,7 +315,6 @@ public class LoginMockMvcTests {
         )
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://configured." + zone.getSubdomain() + ".redirect.to/z/" + zone.getId()));
-
     }
 
     @Test
