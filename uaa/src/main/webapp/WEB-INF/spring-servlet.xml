@@ -439,10 +439,7 @@
     </bean>
 
     <!--Basic application beans. -->
-    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
-        <property name="idpDefinitions" ref="metaDataProviders"/>
-        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-    </bean>
+    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint" />
 
     <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />
     <context:annotation-config/>

@@ -104,14 +104,14 @@ public class LoginInfoEndpoint {
 
     private final String uaaHost;
 
-    private SamlIdentityProviderConfigurator idpDefinitions;
+    private final SamlIdentityProviderConfigurator idpDefinitions;
 
     private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
 
     private final AuthenticationManager authenticationManager;
 
     private final ExpiringCodeStore expiringCodeStore;
-    private MultitenantClientServices clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
 
     private final IdentityProviderProvisioning providerProvisioning;
     private MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
@@ -126,10 +126,6 @@ public class LoginInfoEndpoint {
 
     private final MfaChecker mfaChecker;
 
-    public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
-        this.idpDefinitions = idpDefinitions;
-    }
-
     private final String entityID;
 
     public LoginInfoEndpoint(
@@ -141,7 +137,9 @@ public class LoginInfoEndpoint {
             final @Qualifier("xoauthProviderConfigurator") XOAuthProviderConfigurator xoAuthProviderConfigurator,
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
             final @Qualifier("samlEntityID") String entityID,
-            final @Qualifier("globalLinks") Links globalLinks) {
+            final @Qualifier("globalLinks") Links globalLinks,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator idpDefinitions) {
         this.authenticationManager = authenticationManager;
         this.expiringCodeStore = expiringCodeStore;
         this.externalLoginUrl = externalLoginUrl;
@@ -151,6 +149,8 @@ public class LoginInfoEndpoint {
         this.providerProvisioning = providerProvisioning;
         this.entityID = entityID;
         this.globalLinks = globalLinks;
+        this.clientDetailsService = clientDetailsService;
+        this.idpDefinitions = idpDefinitions;
         this.uaaHost = extractUaaHost(this.baseUrl);
         gitProperties = tryLoadAllProperties("git.properties");
         buildProperties = tryLoadAllProperties("build.properties");
@@ -612,7 +612,6 @@ public class LoginInfoEndpoint {
         model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
     }
 
-
     private void populatePrompts(
             Model model,
             List<String> exclude,
@@ -948,10 +947,6 @@ public class LoginInfoEndpoint {
             uaaHost = uaaHost + ":" + uri.getPort();
         }
         return uaaHost;
-    }
-
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
-        this.clientDetailsService = clientDetailsService;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
