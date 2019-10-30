@@ -176,7 +176,7 @@ public class LoginInfoEndpoint {
 
     static class SavedAccountOptionModel extends SavedAccountOption {
         /**
-         * These must be public. It's accessed in templates.
+         * These must be public. They are accessed in templates.
          */
         public int red, green, blue;
 
