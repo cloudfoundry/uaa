@@ -68,7 +68,7 @@ import static org.mockito.Mockito.when;
 
 public class TotpMfaEndpointTest {
     private String userId;
-    private TotpMfaEndpoint endpoint = new TotpMfaEndpoint();
+    private TotpMfaEndpoint endpoint;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private UaaAuthentication uaaAuthentication;
@@ -103,10 +103,6 @@ public class TotpMfaEndpointTest {
         otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
         otherMfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
 
-
-        endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
-        endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
-
         mockSuccessHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
 
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
@@ -119,10 +115,13 @@ public class TotpMfaEndpointTest {
         mockMfaPolicy = mock(CommonLoginPolicy.class);
         when(mockMfaPolicy.isAllowed(anyString())).thenReturn(new LoginPolicy.Result(true, 0));
 
-
+        endpoint = new TotpMfaEndpoint(
+                userGoogleMfaCredentialsProvisioning,
+                mfaProviderProvisioning,
+                "/login/mfa/completed",
+                userDb,
+                mockMfaPolicy);
         endpoint.setApplicationEventPublisher(publisher);
-        endpoint.setUserDatabase(userDb);
-        endpoint.setMfaPolicy(mockMfaPolicy);
     }
 
     @After
