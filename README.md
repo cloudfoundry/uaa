@@ -159,18 +159,3 @@ In CloudFoundry terms
   service on behalf of users.
 
 
-# Contributing to the UAA
-
-Here are some ways for you to get involved in the community:
-
-* Create [github](https://github.com/cloudfoundry/uaa/issues) tickets for bugs and new features and comment and
-  vote on the ones that you are interested in.
-* Github is for social coding: if you want to write code, we encourage
-  contributions through pull requests from
-  [forks of this repository](https://github.com/cloudfoundry/uaa). If you
-  want to contribute code this way, please reference an existing issue
-  if there is one as well covering the specific issue you are
-  addressing.  Always submit pull requests to the "develop" branch.
-  We strictly adhere to test driven development. We kindly ask that 
-  pull requests are accompanied with test cases that would be failing
-  if ran separately from the pull request.
