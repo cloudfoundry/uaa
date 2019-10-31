@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.annotations.WithSpring;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -49,11 +49,10 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@WithSpring
+@DefaultTestContext
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-// TODO: Stop using @WithSpring. It's messing up UaaTokenServicesTests.
 class ScimGroupEndpointsTests {
 
     @Autowired
@@ -129,10 +128,6 @@ class ScimGroupEndpointsTests {
         externalGroups.put("other-ldap", externalToInternalMap);
         externalGroupBootstrap.setExternalGroupMaps(externalGroups);
         externalGroupBootstrap.afterPropertiesSet();
-    }
-
-    private void setUpAfterSeeding() {
-
     }
 
     private String addGroup(String name, List<ScimGroupMember> m) {
@@ -235,7 +230,6 @@ class ScimGroupEndpointsTests {
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,zoneId", "id pr", "created", "ascending", 1, 100), 11);
     }
 
-
     @Test
     void listExternalGroups() {
         validateSearchResults(scimGroupEndpoints.getExternalGroups(1, 100, "", "", ""), 10);
@@ -258,7 +252,6 @@ class ScimGroupEndpointsTests {
     void listExternalGroupsInvalidFilter(final String filter) {
         assertThrows(ScimException.class, () -> scimGroupEndpoints.getExternalGroups(1, 100, filter, null, null));
     }
-
 
     @Test
     void mapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() {
