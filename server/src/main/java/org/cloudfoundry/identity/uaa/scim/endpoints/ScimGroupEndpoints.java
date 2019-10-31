@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,7 +58,7 @@ public class ScimGroupEndpoints {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private int groupMaxCount;
+    private final int groupMaxCount;
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
@@ -78,10 +79,19 @@ public class ScimGroupEndpoints {
     public ScimGroupEndpoints(
             final ScimGroupProvisioning scimGroupProvisioning,
             final ScimGroupMembershipManager membershipManager,
-            final IdentityZoneManager identityZoneManager) {
+            final IdentityZoneManager identityZoneManager,
+            final @Value("${groupMaxCount:500}") int groupMaxCount) {
+
+        if (groupMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
+            );
+        }
+
         this.dao = scimGroupProvisioning;
         this.membershipManager = membershipManager;
         this.identityZoneManager = identityZoneManager;
+        this.groupMaxCount = groupMaxCount;
     }
 
     private boolean isMember(ScimGroup group, String userId) {
@@ -563,12 +573,4 @@ public class ScimGroupEndpoints {
         httpServletResponse.setHeader(E_TAG, "\"" + scimGroup.getVersion() + "\"");
     }
 
-    public void setGroupMaxCount(int groupMaxCount) {
-        if (groupMaxCount <= 0) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
-            );
-        }
-        this.groupMaxCount = groupMaxCount;
-    }
 }

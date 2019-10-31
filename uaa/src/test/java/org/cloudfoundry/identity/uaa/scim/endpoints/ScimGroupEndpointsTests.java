@@ -37,6 +37,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
@@ -53,6 +54,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@TestPropertySource(properties = {
+        "groupMaxCount=20"
+})
 class ScimGroupEndpointsTests {
 
     @Autowired
@@ -95,8 +99,6 @@ class ScimGroupEndpointsTests {
         TestUtils.deleteFrom(jdbcTemplate, "users", "groups", "group_membership");
         this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
-
-        scimGroupEndpoints.setGroupMaxCount(20);
 
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setIdentityProviderProvisioning(mock(JdbcIdentityProviderProvisioning.class));
@@ -191,9 +193,8 @@ class ScimGroupEndpointsTests {
     @Test
     void listGroupsWithAttributesWithoutMembersDoesNotQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager, 20);
         scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
-        scimGroupEndpoints.setGroupMaxCount(20);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, times(0)).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -202,9 +203,8 @@ class ScimGroupEndpointsTests {
     void listGroupsWithAttributesWithMembersDoesQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
         when(memberManager.getMembers(anyString(), eq(false), eq("uaa"))).thenReturn(Collections.emptyList());
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager, 20);
         scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
-        scimGroupEndpoints.setGroupMaxCount(20);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,members", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, atLeastOnce()).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -212,14 +212,14 @@ class ScimGroupEndpointsTests {
     @Test
     void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> scimGroupEndpoints.setGroupMaxCount(0),
+                () -> new ScimGroupEndpoints(null, null, null, 0),
                 containsString("Invalid \"groupMaxCount\" value (got 0). Should be positive number."));
     }
 
     @Test
     void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> scimGroupEndpoints.setGroupMaxCount(-1),
+                () -> new ScimGroupEndpoints(null, null, null, -1),
                 containsString("Invalid \"groupMaxCount\" value (got -1). Should be positive number."));
     }
 
