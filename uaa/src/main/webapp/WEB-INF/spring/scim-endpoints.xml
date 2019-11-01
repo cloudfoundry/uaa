@@ -155,15 +155,7 @@
         <property name="userMaxCount" value="${userMaxCount:500}"/>
     </bean>
 
-    <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
-        <constructor-arg name="membershipManager" ref="groupMembershipManager"/>
-        <property name="statuses" ref="exceptionToStatusMap"/>
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
-        </property>
-        <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
-    </bean>
+    <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints" />
 
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"

@@ -623,12 +623,6 @@ public class ScimGroupEndpointsMockMvcTests {
     }
 
     @Test
-    void testExternalGroupMembershipManagerNotNull() {
-        ScimGroupEndpoints sge = webApplicationContext.getBean(ScimGroupEndpoints.class);
-        assertNotNull(sge.getExternalMembershipManager());
-    }
-
-    @Test
     void testGetExternalGroups() throws Exception {
         checkGetExternalGroups();
     }

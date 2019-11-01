@@ -6,7 +6,12 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -15,9 +20,11 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -26,14 +33,26 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -49,39 +68,20 @@ public class ScimGroupEndpoints {
     private final ScimGroupMembershipManager membershipManager;
     private final IdentityZoneManager identityZoneManager;
 
-    private JdbcScimGroupExternalMembershipManager externalMembershipManager;
+    private final JdbcScimGroupExternalMembershipManager externalMembershipManager;
 
-    private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<>();
-
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-            new HttpMessageConverter<?>[0]);
-
+    private final Map<Class<? extends Exception>, HttpStatus> statuses;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private final int groupMaxCount;
-
-    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
-        this.statuses = statuses;
-    }
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
-    }
-
-    public JdbcScimGroupExternalMembershipManager getExternalMembershipManager() {
-        return externalMembershipManager;
-    }
-
-    public void setExternalMembershipManager(JdbcScimGroupExternalMembershipManager externalMembershipManager) {
-        this.externalMembershipManager = externalMembershipManager;
-    }
+    private final HttpMessageConverter<?>[] messageConverters;
 
     public ScimGroupEndpoints(
             final ScimGroupProvisioning scimGroupProvisioning,
             final ScimGroupMembershipManager membershipManager,
             final IdentityZoneManager identityZoneManager,
-            final @Value("${groupMaxCount:500}") int groupMaxCount) {
-
+            final @Value("${groupMaxCount:500}") int groupMaxCount,
+            final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,
+            final @Qualifier("externalGroupMembershipManager") JdbcScimGroupExternalMembershipManager externalMembershipManager) {
         if (groupMaxCount <= 0) {
             throw new IllegalArgumentException(
                     String.format("Invalid \"groupMaxCount\" value (got %d). Should be positive number.", groupMaxCount)
@@ -92,6 +92,11 @@ public class ScimGroupEndpoints {
         this.membershipManager = membershipManager;
         this.identityZoneManager = identityZoneManager;
         this.groupMaxCount = groupMaxCount;
+        this.statuses = statuses;
+        this.externalMembershipManager = externalMembershipManager;
+        this.messageConverters = new HttpMessageConverter<?>[]{
+                new ExceptionReportHttpMessageConverter()
+        };
     }
 
     private boolean isMember(ScimGroup group, String userId) {
@@ -113,7 +118,9 @@ public class ScimGroupEndpoints {
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
                 if (includeMembers) {
-                    group.setMembers(membershipManager.getMembers(group.getId(), false, identityZoneManager.getCurrentIdentityZoneId()));
+                    group.setMembers(membershipManager.getMembers(group.getId(),
+                            false,
+                            identityZoneManager.getCurrentIdentityZoneId()));
                 }
                 response.add(group);
                 needMore = response.size() < expectedResponseSize;
@@ -142,9 +149,13 @@ public class ScimGroupEndpoints {
 
         List<ScimGroup> result;
         try {
-            result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), identityZoneManager.getCurrentIdentityZoneId());
+            result = dao.query(filter,
+                    sortBy,
+                    "ascending".equalsIgnoreCase(sortOrder),
+                    identityZoneManager.getCurrentIdentityZoneId());
         } catch (IllegalArgumentException e) {
-            throw new ScimException("Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]",
+                    HttpStatus.BAD_REQUEST);
         }
 
         List<ScimGroup> input;
@@ -188,15 +199,20 @@ public class ScimGroupEndpoints {
 
         if (hasText(filter)) {
             if (hasText(origin) || hasText(externalGroup)) {
-                throw new ScimException("Deprecated filter parameter may not be used in conjunction with origin or externalGroup parameters", HttpStatus.BAD_REQUEST);
+                throw new ScimException(
+                        "Deprecated filter parameter may not be used in conjunction with origin or externalGroup parameters",
+                        HttpStatus.BAD_REQUEST);
             }
             SimpleSearchQueryConverter converter = new SimpleSearchQueryConverter();
             try {
-                MultiValueMap<String, Object> filterData = converter.getFilterValues(filter, Arrays.asList("origin", "externalgroup"));
+                MultiValueMap<String, Object> filterData = converter.getFilterValues(filter,
+                        Arrays.asList("origin", "externalgroup"));
                 origin = (ofNullable(filterData.getFirst("origin")).orElse(origin)).toString();
                 externalGroup = (ofNullable(filterData.getFirst("externalGroup")).orElse(externalGroup)).toString();
             } catch (IllegalArgumentException e) {
-                throw new ScimException("Filter not supported, please use origin and externalGroup parameters", e, HttpStatus.BAD_REQUEST);
+                throw new ScimException("Filter not supported, please use origin and externalGroup parameters",
+                        e,
+                        HttpStatus.BAD_REQUEST);
             }
         }
 
@@ -228,7 +244,10 @@ public class ScimGroupEndpoints {
             String groupId = hasText(sgm.getGroupId()) ? sgm.getGroupId() : getGroupId(displayName);
             String externalGroup = hasText(sgm.getExternalGroup()) ? sgm.getExternalGroup().trim() : sgm.getExternalGroup();
             String origin = hasText(sgm.getOrigin()) ? sgm.getOrigin() : LDAP;
-            return externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, identityZoneManager.getCurrentIdentityZoneId());
+            return externalMembershipManager.mapExternalGroup(groupId,
+                    externalGroup,
+                    origin,
+                    identityZoneManager.getCurrentIdentityZoneId());
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -256,7 +275,10 @@ public class ScimGroupEndpoints {
             if (!hasText(origin)) {
                 origin = LDAP;
             }
-            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim(), origin, identityZoneManager.getCurrentIdentityZoneId());
+            return externalMembershipManager.unmapExternalGroup(groupId,
+                    externalGroup.trim(),
+                    origin,
+                    identityZoneManager.getCurrentIdentityZoneId());
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -293,7 +315,10 @@ public class ScimGroupEndpoints {
                 origin = LDAP;
             }
 
-            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim(), origin, identityZoneManager.getCurrentIdentityZoneId());
+            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName),
+                    externalGroup.trim(),
+                    origin,
+                    identityZoneManager.getCurrentIdentityZoneId());
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -343,15 +368,20 @@ public class ScimGroupEndpoints {
         if (group.getMembers() != null) {
             for (ScimGroupMember member : group.getMembers()) {
                 try {
-                    membershipManager.addMember(created.getId(), member, identityZoneManager.getCurrentIdentityZoneId());
+                    membershipManager.addMember(created.getId(),
+                            member,
+                            identityZoneManager.getCurrentIdentityZoneId());
                 } catch (ScimException ex) {
-                    logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(), ex);
+                    logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(),
+                            ex);
                     dao.delete(created.getId(), created.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
                     throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
                 }
             }
         }
-        created.setMembers(membershipManager.getMembers(created.getId(), false, identityZoneManager.getCurrentIdentityZoneId()));
+        created.setMembers(membershipManager.getMembers(created.getId(),
+                false,
+                identityZoneManager.getCurrentIdentityZoneId()));
         addETagHeader(httpServletResponse, created);
         return created;
     }
@@ -372,11 +402,16 @@ public class ScimGroupEndpoints {
             group.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
             ScimGroup updated = dao.update(groupId, group, identityZoneManager.getCurrentIdentityZoneId());
             if (group.getMembers() != null && group.getMembers().size() > 0) {
-                membershipManager.updateOrAddMembers(updated.getId(), group.getMembers(), identityZoneManager.getCurrentIdentityZoneId());
+                membershipManager.updateOrAddMembers(updated.getId(),
+                        group.getMembers(),
+                        identityZoneManager.getCurrentIdentityZoneId());
             } else {
-                membershipManager.removeMembersByGroupId(updated.getId(), identityZoneManager.getCurrentIdentityZoneId());
+                membershipManager.removeMembersByGroupId(updated.getId(),
+                        identityZoneManager.getCurrentIdentityZoneId());
             }
-            updated.setMembers(membershipManager.getMembers(updated.getId(), false, identityZoneManager.getCurrentIdentityZoneId()));
+            updated.setMembers(membershipManager.getMembers(updated.getId(),
+                    false,
+                    identityZoneManager.getCurrentIdentityZoneId()));
             addETagHeader(httpServletResponse, updated);
             return updated;
         } catch (IncorrectResultSizeDataAccessException ex) {
@@ -438,7 +473,8 @@ public class ScimGroupEndpoints {
             throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
         }
         if (group.getMembers() == null || group.getMembers().size() == 0) {
-            throw new ScimException("Invalid group members, you have to add at least one member.", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid group members, you have to add at least one member.",
+                    HttpStatus.BAD_REQUEST);
         }
         try {
             ScimGroup existing = getGroup(getGroupId(group.getDisplayName()), httpServletResponse);
@@ -501,7 +537,9 @@ public class ScimGroupEndpoints {
 
     @RequestMapping("/Groups/{groupId}/members/{memberId}")
     public ResponseEntity<ScimGroupMember> getGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
-        ScimGroupMember membership = membershipManager.getMemberById(groupId, memberId, identityZoneManager.getCurrentIdentityZoneId());
+        ScimGroupMember membership = membershipManager.getMemberById(groupId,
+                memberId,
+                identityZoneManager.getCurrentIdentityZoneId());
         return new ResponseEntity<>(membership, HttpStatus.OK);
     }
 
@@ -510,7 +548,9 @@ public class ScimGroupEndpoints {
                                                                       @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
                                                                       @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
         dao.retrieve(groupId, identityZoneManager.getCurrentIdentityZoneId());
-        List<ScimGroupMember> members = membershipManager.getMembers(groupId, returnEntities, identityZoneManager.getCurrentIdentityZoneId());
+        List<ScimGroupMember> members = membershipManager.getMembers(groupId,
+                returnEntities,
+                identityZoneManager.getCurrentIdentityZoneId());
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 

@@ -4,7 +4,11 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -18,7 +22,6 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -28,10 +31,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -41,14 +44,34 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @DefaultTestContext
 @ExtendWith(PollutionPreventionExtension.class)
@@ -87,6 +110,10 @@ class ScimGroupEndpointsTests {
 
     @Autowired
     private IdentityZoneManager identityZoneManager;
+
+    @Autowired
+    @Qualifier("exceptionToStatusMap")
+    private Map<Class<? extends Exception>, HttpStatus> exceptionToStatusMap;
 
     @BeforeEach
     void setUp(final ZoneSeeder zoneSeeder) {
@@ -193,8 +220,13 @@ class ScimGroupEndpointsTests {
     @Test
     void listGroupsWithAttributesWithoutMembersDoesNotQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager, 20);
-        scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(
+                jdbcScimGroupProvisioning,
+                memberManager,
+                identityZoneManager,
+                20,
+                exceptionToStatusMap,
+                jdbcScimGroupExternalMembershipManager);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, times(0)).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -203,8 +235,13 @@ class ScimGroupEndpointsTests {
     void listGroupsWithAttributesWithMembersDoesQueryMembers() {
         ScimGroupMembershipManager memberManager = mock(ScimGroupMembershipManager.class);
         when(memberManager.getMembers(anyString(), eq(false), eq("uaa"))).thenReturn(Collections.emptyList());
-        scimGroupEndpoints = new ScimGroupEndpoints(jdbcScimGroupProvisioning, memberManager, identityZoneManager, 20);
-        scimGroupEndpoints.setExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
+        scimGroupEndpoints = new ScimGroupEndpoints(
+                jdbcScimGroupProvisioning,
+                memberManager,
+                identityZoneManager,
+                20,
+                exceptionToStatusMap,
+                jdbcScimGroupExternalMembershipManager);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,members", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, atLeastOnce()).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -212,14 +249,14 @@ class ScimGroupEndpointsTests {
     @Test
     void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ScimGroupEndpoints(null, null, null, 0),
+                () -> new ScimGroupEndpoints(null, null, null, 0, null, null),
                 containsString("Invalid \"groupMaxCount\" value (got 0). Should be positive number."));
     }
 
     @Test
     void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ScimGroupEndpoints(null, null, null, -1),
+                () -> new ScimGroupEndpoints(null, null, null, -1, null, null),
                 containsString("Invalid \"groupMaxCount\" value (got -1). Should be positive number."));
     }
 
@@ -710,8 +747,15 @@ class ScimGroupEndpointsTests {
         map.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
         map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
         map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
-        scimGroupEndpoints.setStatuses(map);
-        scimGroupEndpoints.setMessageConverters(new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
+
+        scimGroupEndpoints = new ScimGroupEndpoints(
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                identityZoneManager,
+                20,
+                map,
+                jdbcScimGroupExternalMembershipManager);
+
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         validateView(scimGroupEndpoints.handleException(new ScimResourceNotFoundException(""), request), HttpStatus.NOT_FOUND);
