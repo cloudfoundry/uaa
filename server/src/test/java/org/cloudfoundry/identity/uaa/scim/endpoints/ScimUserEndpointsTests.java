@@ -81,16 +81,16 @@ import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -360,12 +360,12 @@ class ScimUserEndpointsTests {
         user.setOrigin(OriginKeys.UAA);
         user.setPassword("some bad password");
 
-        try {
-            scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        } catch (InvalidPasswordException e) {
-            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
-            assertEquals(e.getMessage(), "whaddup");
-        }
+        InvalidPasswordException invalidPasswordException = assertThrowsWithMessageThat(
+                InvalidPasswordException.class,
+                () -> scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse()),
+                containsString("whaddup"));
+
+        assertEquals(invalidPasswordException.getStatus(), HttpStatus.BAD_REQUEST);
 
         verify(mockPasswordValidator).validate("some bad password");
     }
@@ -374,14 +374,10 @@ class ScimUserEndpointsTests {
     void userWithNoEmailNotAllowed() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.setPassword("password");
-        try {
-            scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-            fail("Expected InvalidScimResourceException");
-        } catch (InvalidScimResourceException e) {
-            // expected
-            String message = e.getMessage();
-            assertTrue("Wrong message: " + message, message.contains("email"));
-        }
+        assertThrowsWithMessageThat(
+                InvalidScimResourceException.class,
+                () -> scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse()),
+                containsString("email"));
         int count = jdbcTemplate.queryForObject("select count(*) from users where userName=?", new Object[]{"dave"}, Integer.class);
         assertEquals(0, count);
     }
@@ -424,8 +420,7 @@ class ScimUserEndpointsTests {
         converted.render(Collections.emptyMap(), request, response);
         String body = response.getContentAsString();
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
-        // System.err.println(body);
-        assertTrue("Wrong body: " + body, body.contains("message\":\"foo"));
+        assertTrue(body.contains("message\":\"foo"), "Wrong body: " + body);
     }
 
     @Test
@@ -439,7 +434,7 @@ class ScimUserEndpointsTests {
         String body = response.getContentAsString();
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
         // System.err.println(body);
-        assertTrue("Wrong body: " + body, body.contains("message\":\"foo"));
+        assertTrue(body.contains("message\":\"foo"), "Wrong body: " + body);
     }
 
     @Test
@@ -448,7 +443,7 @@ class ScimUserEndpointsTests {
         user.addEmail("dsyer@vmware.com");
         ReflectionTestUtils.setField(user, "password", "foo");
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        assertNull("A newly created user revealed its password", created.getPassword());
+        assertNull(created.getPassword(), "A newly created user revealed its password");
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
                 created.getId());
         assertTrue(passwordEncoder.matches("foo", password));
@@ -776,24 +771,24 @@ class ScimUserEndpointsTests {
     void findIdsByUserNameContains() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName co \"d\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
     void findIdsByUserNameStartWith() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
     void findIdsByEmailContains() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "emails.value sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
@@ -806,8 +801,8 @@ class ScimUserEndpointsTests {
     void findIdsWithBooleanExpression() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName co \"d\" and id pr", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
@@ -815,8 +810,8 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id",
                 "userName co \"d\" and emails.value co \"vmware\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
@@ -883,24 +878,24 @@ class ScimUserEndpointsTests {
     void legacyTestFindIdsByUserNameContains() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName co 'd'", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
     void legacyTestFindIdsByUserNameStartWith() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName sw 'j'", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
     void legacyTestFindIdsByEmailContains() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "emails.value sw 'j'", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
@@ -913,8 +908,8 @@ class ScimUserEndpointsTests {
     void legacyTestFindIdsWithBooleanExpression() {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName co 'd' and id pr", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
@@ -922,8 +917,8 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id",
                 "userName co 'd' and emails.value co 'vmware'", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                .contains(joel.getId()));
+        assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
+                "Couldn't find id: " + results.getResources());
     }
 
     @Test
