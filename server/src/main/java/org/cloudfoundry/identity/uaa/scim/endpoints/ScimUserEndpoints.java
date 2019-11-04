@@ -13,8 +13,19 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.resources.*;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
+import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
+import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
@@ -32,6 +43,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -50,14 +62,29 @@ import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionU
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -87,7 +114,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    private ResourceMonitor<ScimUser> scimUserResourceMonitor;
+    private final ResourceMonitor<ScimUser> scimUserResourceMonitor;
 
     private ScimGroupMembershipManager membershipManager;
 
@@ -101,7 +128,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private AtomicInteger scimDeletes = new AtomicInteger();
 
-    private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<>();
+    private final Map<Class<? extends Exception>, HttpStatus> statuses;
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
             new HttpMessageConverter<?>[0]);
@@ -118,15 +145,22 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final IdentityZoneManager identityZoneManager;
 
+    /**
+     * @param statuses Map from exception type to Http status
+     */
     public ScimUserEndpoints(
             final IdentityZoneManager identityZoneManager,
             final IsSelfCheck isSelfCheck,
             final ScimUserProvisioning scimUserProvisioning,
-            final IdentityProviderProvisioning identityProviderProvisioning) {
+            final IdentityProviderProvisioning identityProviderProvisioning,
+            final @Qualifier("scimUserProvisioning") ResourceMonitor<ScimUser> scimUserResourceMonitor,
+            final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.identityZoneManager = identityZoneManager;
         this.isSelfCheck = isSelfCheck;
         this.scimUserProvisioning = scimUserProvisioning;
         this.identityProviderProvisioning = identityProviderProvisioning;
+        this.scimUserResourceMonitor = scimUserResourceMonitor;
+        this.statuses = statuses;
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
@@ -542,10 +576,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
     }
 
-    public void setScimUserResourceMonitor(ResourceMonitor<ScimUser> scimUserResourceMonitor) {
-        this.scimUserResourceMonitor = scimUserResourceMonitor;
-    }
-
     public void setPasswordValidator(PasswordValidator passwordValidator) {
         this.passwordValidator = passwordValidator;
     }
@@ -591,15 +621,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
      */
     public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
         this.messageConverters = messageConverters;
-    }
-
-    /**
-     * Map from exception type to Http status.
-     *
-     * @param statuses the statuses to set
-     */
-    public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
-        this.statuses = statuses;
     }
 
     private void throwWhenInvalidSelfEdit(ScimUser user, String userId, HttpServletRequest request, Authentication authentication) {

@@ -139,10 +139,8 @@
     </util:map>
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
-        <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
         <property name="scimGroupMembershipManager" ref="groupMembershipManager"/>
         <property name="approvalStore" ref="approvalStore"/>
-        <property name="statuses" ref="exceptionToStatusMap"/>
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
         </property>

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -19,7 +18,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -74,7 +72,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @DefaultTestContext
-@ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
@@ -128,7 +125,6 @@ class ScimGroupEndpointsTests {
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
 
         scimUserEndpoints.setUserMaxCount(5);
-        scimUserEndpoints.setIdentityProviderProvisioning(mock(JdbcIdentityProviderProvisioning.class));
         scimUserEndpoints.setPasswordValidator(mock(PasswordValidator.class));
 
         groupIds = new ArrayList<>();

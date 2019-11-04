@@ -56,7 +56,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -65,7 +64,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
@@ -152,7 +150,6 @@ class ScimUserEndpointsTests {
 
     private final RandomValueStringGenerator generator;
     private final SimpleSearchQueryConverter filterConverter;
-    private Map<Class<? extends Exception>, HttpStatus> exceptionToStatusMap;
 
     {
         generator = new RandomValueStringGenerator();
@@ -168,14 +165,6 @@ class ScimUserEndpointsTests {
         joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
-
-        exceptionToStatusMap = new HashMap<>();
-        exceptionToStatusMap.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
-        exceptionToStatusMap.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
-        exceptionToStatusMap.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
-        exceptionToStatusMap.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
-        exceptionToStatusMap.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
-        exceptionToStatusMap.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
     }
 
     private IdentityZone identityZone;
@@ -212,7 +201,6 @@ class ScimUserEndpointsTests {
         ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
         scimUserEndpoints.setApplicationEventPublisher(null);
         scimUserEndpoints.setPasswordValidator(mockPasswordValidator);
-        scimUserEndpoints.setStatuses(exceptionToStatusMap);
         scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 

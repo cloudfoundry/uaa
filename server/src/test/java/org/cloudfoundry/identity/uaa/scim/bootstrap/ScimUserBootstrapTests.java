@@ -96,6 +96,8 @@ class ScimUserBootstrapTests {
                 new IdentityZoneManagerImpl(),
                 new IsSelfCheck(null),
                 jdbcScimUserProvisioning,
+                null,
+                null,
                 null);
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
