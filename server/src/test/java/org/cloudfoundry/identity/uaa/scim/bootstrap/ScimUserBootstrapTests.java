@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -91,10 +92,13 @@ class ScimUserBootstrapTests {
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
-        scimUserEndpoints = new ScimUserEndpoints(new IdentityZoneManagerImpl());
+        scimUserEndpoints = new ScimUserEndpoints(
+                new IdentityZoneManagerImpl(),
+                new IsSelfCheck(null),
+                jdbcScimUserProvisioning,
+                null);
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
-        scimUserEndpoints.setScimUserProvisioning(jdbcScimUserProvisioning);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 

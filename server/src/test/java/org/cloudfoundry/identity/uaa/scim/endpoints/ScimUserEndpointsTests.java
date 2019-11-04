@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
@@ -84,7 +83,6 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -211,13 +209,11 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
         scimUserEndpoints.setMfaCredentialsProvisioning(mockJdbcUserGoogleMfaCredentialsProvisioning);
-        scimUserEndpoints.setScimUserProvisioning(jdbcScimUserProvisioning);
-        scimUserEndpoints.setIdentityProviderProvisioning(mockJdbcIdentityProviderProvisioning);
+        ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
         scimUserEndpoints.setApplicationEventPublisher(null);
         scimUserEndpoints.setPasswordValidator(mockPasswordValidator);
         scimUserEndpoints.setStatuses(exceptionToStatusMap);
         scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
-        scimUserEndpoints.setIsSelfCheck(new IsSelfCheck(null));
     }
 
     @Test
@@ -350,7 +346,7 @@ class ScimUserEndpointsTests {
     void createUser_whenPasswordIsInvalid_throwsException() {
         doThrow(new InvalidPasswordException("whaddup")).when(mockPasswordValidator).validate(anyString());
         ScimUserProvisioning mockScimUserProvisioning = mock(ScimUserProvisioning.class);
-        scimUserEndpoints.setScimUserProvisioning(mockScimUserProvisioning);
+        ReflectionTestUtils.setField(scimUserEndpoints, "scimUserProvisioning", mockScimUserProvisioning);
         String zoneId = identityZone.getId();
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(zoneId))).thenReturn(new ScimUser());
 
@@ -368,6 +364,7 @@ class ScimUserEndpointsTests {
         assertEquals(invalidPasswordException.getStatus(), HttpStatus.BAD_REQUEST);
 
         verify(mockPasswordValidator).validate("some bad password");
+        ReflectionTestUtils.setField(scimUserEndpoints, "scimUserProvisioning", jdbcScimUserProvisioning);
     }
 
     @Test

@@ -83,9 +83,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private static final String E_TAG = "ETag";
 
-    private ScimUserProvisioning scimUserProvisioning;
+    private final ScimUserProvisioning scimUserProvisioning;
 
-    private IdentityProviderProvisioning identityProviderProvisioning;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
 
     private ResourceMonitor<ScimUser> scimUserResourceMonitor;
 
@@ -114,12 +114,19 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private int userMaxCount;
 
-    private IsSelfCheck isSelfCheck;
+    private final IsSelfCheck isSelfCheck;
 
     private final IdentityZoneManager identityZoneManager;
 
-    public ScimUserEndpoints(final IdentityZoneManager identityZoneManager) {
+    public ScimUserEndpoints(
+            final IdentityZoneManager identityZoneManager,
+            final IsSelfCheck isSelfCheck,
+            final ScimUserProvisioning scimUserProvisioning,
+            final IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityZoneManager = identityZoneManager;
+        this.isSelfCheck = isSelfCheck;
+        this.scimUserProvisioning = scimUserProvisioning;
+        this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
@@ -516,14 +523,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    public void setScimUserProvisioning(ScimUserProvisioning dao) {
-        this.scimUserProvisioning = dao;
-    }
-
-    public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
-        this.identityProviderProvisioning = identityProviderProvisioning;
-    }
-
     public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
         this.membershipManager = membershipManager;
     }
@@ -618,14 +617,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (!selfUpdateAllowed) {
             throw new InvalidSelfEditException();
         }
-    }
-
-    public IsSelfCheck getIsSelfCheck() {
-        return isSelfCheck;
-    }
-
-    public void setIsSelfCheck(IsSelfCheck isSelfCheck) {
-        this.isSelfCheck = isSelfCheck;
     }
 
     private static class InvalidSelfEditException extends UaaException {
