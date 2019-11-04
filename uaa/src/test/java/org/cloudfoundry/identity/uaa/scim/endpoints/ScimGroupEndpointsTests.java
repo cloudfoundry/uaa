@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -75,7 +74,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
-        "groupMaxCount=20"
+        "groupMaxCount=20",
+        "userMaxCount=5"
 })
 class ScimGroupEndpointsTests {
 
@@ -123,9 +123,6 @@ class ScimGroupEndpointsTests {
         TestUtils.deleteFrom(jdbcTemplate, "users", "groups", "group_membership");
         this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
-
-        scimUserEndpoints.setUserMaxCount(5);
-        scimUserEndpoints.setPasswordValidator(mock(PasswordValidator.class));
 
         groupIds = new ArrayList<>();
         userIds = new ArrayList<>();

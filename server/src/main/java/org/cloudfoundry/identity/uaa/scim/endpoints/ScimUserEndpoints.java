@@ -39,11 +39,13 @@ import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -71,7 +73,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
@@ -130,16 +131,15 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final Map<Class<? extends Exception>, HttpStatus> statuses;
 
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-            new HttpMessageConverter<?>[0]);
+    private final HttpMessageConverter<?>[] messageConverters;
 
-    private PasswordValidator passwordValidator;
+    private final PasswordValidator passwordValidator;
 
     private ExpiringCodeStore codeStore;
 
     private ApplicationEventPublisher publisher;
 
-    private int userMaxCount;
+    private final int userMaxCount;
 
     private final IsSelfCheck isSelfCheck;
 
@@ -154,13 +154,27 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
             final @Qualifier("scimUserProvisioning") ResourceMonitor<ScimUser> scimUserResourceMonitor,
-            final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses) {
+            final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,
+            final PasswordValidator passwordValidator,
+            final @Value("${userMaxCount:500}") int userMaxCount) {
+
+        if (userMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+            );
+        }
+
         this.identityZoneManager = identityZoneManager;
         this.isSelfCheck = isSelfCheck;
         this.scimUserProvisioning = scimUserProvisioning;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimUserResourceMonitor = scimUserResourceMonitor;
         this.statuses = statuses;
+        this.passwordValidator = passwordValidator;
+        this.userMaxCount = userMaxCount;
+        this.messageConverters = new HttpMessageConverter[] {
+                new ExceptionReportHttpMessageConverter()
+        };
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
@@ -576,10 +590,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
     }
 
-    public void setPasswordValidator(PasswordValidator passwordValidator) {
-        this.passwordValidator = passwordValidator;
-    }
-
     public void setMfaCredentialsProvisioning(UserMfaCredentialsProvisioning mfaCredentialsProvisioning) {
         this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
     }
@@ -593,15 +603,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.publisher = applicationEventPublisher;
     }
 
-    public void setUserMaxCount(int userMaxCount) {
-        if (userMaxCount <= 0) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
-            );
-        }
-
-        this.userMaxCount = userMaxCount;
-    }
 
     private void throwWhenUserManagementIsDisallowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
@@ -611,16 +612,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
             }
         }
-    }
-
-    /**
-     * Set the message body converters to use.
-     * <p>
-     * These converters are used to convert from and to HTTP requests and
-     * responses.
-     */
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
     }
 
     private void throwWhenInvalidSelfEdit(ScimUser user, String userId, HttpServletRequest request, Authentication authentication) {

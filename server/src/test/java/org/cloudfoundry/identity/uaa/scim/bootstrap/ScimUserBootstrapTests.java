@@ -98,8 +98,9 @@ class ScimUserBootstrapTests {
                 jdbcScimUserProvisioning,
                 null,
                 null,
-                null);
-        scimUserEndpoints.setUserMaxCount(5);
+                null,
+                null,
+                5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }

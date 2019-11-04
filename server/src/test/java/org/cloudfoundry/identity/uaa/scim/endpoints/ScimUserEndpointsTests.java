@@ -38,7 +38,6 @@ import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -55,7 +54,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -106,7 +104,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(ZoneSeederExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
-        "groupMaxCount=5"
+        "groupMaxCount=5",
+        "userMaxCount=5"
 })
 // TODO: Stop using @WithSpring. It's messing up UaaTokenServicesTests.
 class ScimUserEndpointsTests {
@@ -195,12 +194,11 @@ class ScimUserEndpointsTests {
         joel = jdbcScimUserProvisioning.createUser(joel, "password", identityZone.getId());
         dale = jdbcScimUserProvisioning.createUser(dale, "password", identityZone.getId());
 
-        scimUserEndpoints.setUserMaxCount(5);
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
         scimUserEndpoints.setMfaCredentialsProvisioning(mockJdbcUserGoogleMfaCredentialsProvisioning);
         ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
         scimUserEndpoints.setApplicationEventPublisher(null);
-        scimUserEndpoints.setPasswordValidator(mockPasswordValidator);
+        ReflectionTestUtils.setField(scimUserEndpoints, "passwordValidator", mockPasswordValidator);
         scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 
@@ -399,7 +397,6 @@ class ScimUserEndpointsTests {
     void handleExceptionWithConstraintViolation() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        scimUserEndpoints.setMessageConverters(new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
         View view = scimUserEndpoints.handleException(new DataIntegrityViolationException("foo"), request);
         ConvertingExceptionView converted = (ConvertingExceptionView) view;
         converted.render(Collections.emptyMap(), request, response);
@@ -412,7 +409,6 @@ class ScimUserEndpointsTests {
     void handleExceptionWithBadFieldName() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        scimUserEndpoints.setMessageConverters(new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
         View view = scimUserEndpoints.handleException(new HttpMessageConversionException("foo"), request);
         ConvertingExceptionView converted = (ConvertingExceptionView) view;
         converted.render(Collections.emptyMap(), request, response);
@@ -689,12 +685,18 @@ class ScimUserEndpointsTests {
 
     @Test
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> scimUserEndpoints.setUserMaxCount(0), containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
+        assertThrowsWithMessageThat(
+                IllegalArgumentException.class,
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, 0),
+                containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
     @Test
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> scimUserEndpoints.setUserMaxCount(-1), containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
+        assertThrowsWithMessageThat(
+                IllegalArgumentException.class,
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, -1),
+                containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
     @Test

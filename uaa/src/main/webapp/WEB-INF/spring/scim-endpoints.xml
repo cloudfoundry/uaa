@@ -141,13 +141,8 @@
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
         <property name="scimGroupMembershipManager" ref="groupMembershipManager"/>
         <property name="approvalStore" ref="approvalStore"/>
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
-        </property>
-        <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="codeStore" ref="codeStore"/>
         <property name="mfaCredentialsProvisioning" ref="jdbcUserGoogleMfaCredentialsProvisioning"/>
-        <property name="userMaxCount" value="${userMaxCount:500}"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints" />
