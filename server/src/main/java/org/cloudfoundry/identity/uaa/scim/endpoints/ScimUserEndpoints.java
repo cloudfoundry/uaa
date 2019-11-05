@@ -119,7 +119,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private ScimGroupMembershipManager membershipManager;
 
-    private UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
+    private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
 
     private ApprovalStore approvalStore;
 
@@ -135,7 +135,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final PasswordValidator passwordValidator;
 
-    private ExpiringCodeStore codeStore;
+    private final ExpiringCodeStore codeStore;
 
     private ApplicationEventPublisher publisher;
 
@@ -156,8 +156,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final @Qualifier("scimUserProvisioning") ResourceMonitor<ScimUser> scimUserResourceMonitor,
             final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,
             final PasswordValidator passwordValidator,
+            final ExpiringCodeStore codeStore,
+            final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final @Value("${userMaxCount:500}") int userMaxCount) {
-
         if (userMaxCount <= 0) {
             throw new IllegalArgumentException(
                     String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
@@ -171,6 +172,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.scimUserResourceMonitor = scimUserResourceMonitor;
         this.statuses = statuses;
         this.passwordValidator = passwordValidator;
+        this.codeStore = codeStore;
+        this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
         this.userMaxCount = userMaxCount;
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
@@ -590,19 +593,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
     }
 
-    public void setMfaCredentialsProvisioning(UserMfaCredentialsProvisioning mfaCredentialsProvisioning) {
-        this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
-    }
-
-    public void setCodeStore(ExpiringCodeStore codeStore) {
-        this.codeStore = codeStore;
-    }
-
     @Override
     public void setApplicationEventPublisher(@NonNull ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
     }
-
 
     private void throwWhenUserManagementIsDisallowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);

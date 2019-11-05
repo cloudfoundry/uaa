@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -116,6 +117,8 @@ class ScimUserEndpointsMockMvcTests {
     private ExpiringCodeStore codeStore;
     private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
+
+    @Value("${userMaxCount}")
     private int usersMaxCount;
 
     @Autowired
@@ -150,8 +153,6 @@ class ScimUserEndpointsMockMvcTests {
         mfaCredentialsProvisioning = webApplicationContext.getBean(JdbcUserGoogleMfaCredentialsProvisioning.class);
         mfaProviderProvisioning = webApplicationContext.getBean(JdbcMfaProviderProvisioning.class);
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
-
-        usersMaxCount = Integer.parseInt(webApplicationContext.getEnvironment().getProperty("userMaxCount"));
     }
 
     @AfterEach

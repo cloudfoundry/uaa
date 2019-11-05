@@ -195,11 +195,10 @@ class ScimUserEndpointsTests {
         dale = jdbcScimUserProvisioning.createUser(dale, "password", identityZone.getId());
 
         scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
-        scimUserEndpoints.setMfaCredentialsProvisioning(mockJdbcUserGoogleMfaCredentialsProvisioning);
+        ReflectionTestUtils.setField(scimUserEndpoints, "mfaCredentialsProvisioning", mockJdbcUserGoogleMfaCredentialsProvisioning);
         ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
         scimUserEndpoints.setApplicationEventPublisher(null);
         ReflectionTestUtils.setField(scimUserEndpoints, "passwordValidator", mockPasswordValidator);
-        scimUserEndpoints.setApprovalStore(jdbcApprovalStore);
     }
 
     @Test
@@ -687,7 +686,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -695,7 +694,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, -1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, -1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
