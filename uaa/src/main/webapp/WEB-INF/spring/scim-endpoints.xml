@@ -140,7 +140,6 @@
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
         <property name="scimGroupMembershipManager" ref="groupMembershipManager"/>
-        <property name="approvalStore" ref="approvalStore"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints" />

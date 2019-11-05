@@ -121,7 +121,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
 
-    private ApprovalStore approvalStore;
+    private final ApprovalStore approvalStore;
 
     private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
 
@@ -158,6 +158,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final PasswordValidator passwordValidator,
             final ExpiringCodeStore codeStore,
             final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
+            final ApprovalStore approvalStore,
             final @Value("${userMaxCount:500}") int userMaxCount) {
         if (userMaxCount <= 0) {
             throw new IllegalArgumentException(
@@ -174,6 +175,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.passwordValidator = passwordValidator;
         this.codeStore = codeStore;
         this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
+        this.approvalStore = approvalStore;
         this.userMaxCount = userMaxCount;
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
@@ -576,10 +578,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
         this.membershipManager = membershipManager;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
-        this.approvalStore = approvalStore;
     }
 
     @Override

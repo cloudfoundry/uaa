@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.annotations.WithSpring;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -65,8 +64,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -128,9 +129,6 @@ class ScimUserEndpointsTests {
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
     @Autowired
-    private JdbcApprovalStore jdbcApprovalStore;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -146,6 +144,7 @@ class ScimUserEndpointsTests {
     private PasswordValidator mockPasswordValidator;
     private JdbcUserGoogleMfaCredentialsProvisioning mockJdbcUserGoogleMfaCredentialsProvisioning;
     private JdbcIdentityProviderProvisioning mockJdbcIdentityProviderProvisioning;
+    private ApprovalStore mockApprovalStore;
 
     private final RandomValueStringGenerator generator;
     private final SimpleSearchQueryConverter filterConverter;
@@ -177,6 +176,7 @@ class ScimUserEndpointsTests {
         this.identityZone = identityZone;
         identityZoneManager.setCurrentIdentityZone(this.identityZone);
         this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
+        this.mockApprovalStore = mock(ApprovalStore.class);
 
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
@@ -199,6 +199,7 @@ class ScimUserEndpointsTests {
         ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
         scimUserEndpoints.setApplicationEventPublisher(null);
         ReflectionTestUtils.setField(scimUserEndpoints, "passwordValidator", mockPasswordValidator);
+        ReflectionTestUtils.setField(scimUserEndpoints, "approvalStore", mockApprovalStore);
     }
 
     @Test
@@ -260,15 +261,16 @@ class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setPassword("password");
-        user.setApprovals(Collections.singleton(new Approval()
-                .setUserId("vidya")
-                .setClientId("c1")
-                .setScope("s1")
-                .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.APPROVED)));
+        Approval mockApproval = mock(Approval.class);
+        when(mockApproval.isActiveAsOf(any(Date.class))).thenReturn(true);
+
+        when(mockApprovalStore.getApprovalsForUser(anyString(), eq(identityZone.getId()))).thenReturn(Collections.singletonList(mockApproval));
+        user.setApprovals(Collections.singleton(mockApproval));
+
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         assertNotNull(created.getApprovals());
+        verify(mockApprovalStore).addApproval(mockApproval, identityZone.getId());
         assertEquals(1, created.getApprovals().size());
     }
 
@@ -284,18 +286,23 @@ class ScimUserEndpointsTests {
                 .setExpiresAt(Approval.timeFromNow(6000))
                 .setStatus(Approval.ApprovalStatus.APPROVED)));
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        jdbcApprovalStore.addApproval(new Approval()
+
+        final Approval approval1 = new Approval()
                 .setUserId(created.getId())
                 .setClientId("c1")
                 .setScope("s1")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.APPROVED), identityZone.getId());
-        jdbcApprovalStore.addApproval(new Approval()
+                .setStatus(Approval.ApprovalStatus.APPROVED);
+
+        final Approval approval2 = new Approval()
                 .setUserId(created.getId())
                 .setClientId("c1")
                 .setScope("s2")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.DENIED), identityZone.getId());
+                .setStatus(Approval.ApprovalStatus.DENIED);
+
+        when(mockApprovalStore.getApprovalsForUser(anyString(), anyString()))
+                .thenReturn(Arrays.asList(approval1, approval2));
 
         created.setApprovals(Collections.singleton(new Approval()
                 .setUserId("vidya")
@@ -311,18 +318,22 @@ class ScimUserEndpointsTests {
     void approvalsIsSyncedCorrectlyOnGet() {
         assertEquals(0, scimUserEndpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 
-        jdbcApprovalStore.addApproval(new Approval()
+        final Approval approval1 = new Approval()
                 .setUserId(joel.getId())
                 .setClientId("c1")
                 .setScope("s1")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.APPROVED), identityZone.getId());
-        jdbcApprovalStore.addApproval(new Approval()
+                .setStatus(Approval.ApprovalStatus.APPROVED);
+
+        final Approval approval2 = new Approval()
                 .setUserId(joel.getId())
                 .setClientId("c1")
                 .setScope("s2")
                 .setExpiresAt(Approval.timeFromNow(6000))
-                .setStatus(Approval.ApprovalStatus.DENIED), identityZone.getId());
+                .setStatus(Approval.ApprovalStatus.DENIED);
+
+        when(mockApprovalStore.getApprovalsForUser(anyString(), anyString()))
+                .thenReturn(Arrays.asList(approval1, approval2));
 
         assertEquals(2, scimUserEndpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }
@@ -524,9 +535,6 @@ class ScimUserEndpointsTests {
         ScimGroupMembershipManager mockScimGroupMembershipManager = mock(ScimGroupMembershipManager.class);
         scimUserEndpoints.setScimGroupMembershipManager(mockScimGroupMembershipManager);
 
-        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
-        scimUserEndpoints.setApprovalStore(mockApprovalStore);
-
         String isJoelOrDaleFilter = SCIMFilter.createOrFilter(asList(
                 SCIMFilter.createEqualityFilter(AttributePath.parse("id"), joel.getId()),
                 SCIMFilter.createEqualityFilter(AttributePath.parse("id"), dale.getId()))).toString();
@@ -657,27 +665,18 @@ class ScimUserEndpointsTests {
 
     @Test
     void findUsersApprovalsSyncedByDefault() {
-        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
-        scimUserEndpoints.setApprovalStore(mockApprovalStore);
-
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
         verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(identityZone.getId()));
     }
 
     @Test
     void findUsersApprovalsSyncedIfIncluded() {
-        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
-        scimUserEndpoints.setApprovalStore(mockApprovalStore);
-
         scimUserEndpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
         verify(mockApprovalStore, atLeastOnce()).getApprovalsForUser(anyString(), eq(identityZone.getId()));
     }
 
     @Test
     void findUsersApprovalsNotSyncedIfNotIncluded() {
-        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
-        scimUserEndpoints.setApprovalStore(mockApprovalStore);
-
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         verifyZeroInteractions(mockApprovalStore);
     }
@@ -686,7 +685,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -694,7 +693,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, -1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, -1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
