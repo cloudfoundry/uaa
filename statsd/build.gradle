@@ -10,8 +10,6 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 dependencies {
     compile project(":cloudfoundry-identity-metrics-data")
