@@ -19,7 +19,13 @@ import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
-import org.cloudfoundry.identity.uaa.resources.*;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -29,6 +35,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -54,12 +61,24 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -83,7 +102,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
 
-    private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
+    private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
     private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
                     Collections.<String, String> emptyMap());
@@ -98,18 +117,26 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private AtomicInteger clientSecretChanges = new AtomicInteger();
 
-    private ClientDetailsValidator clientDetailsValidator;
+    private final ClientDetailsValidator clientDetailsValidator;
 
     private ClientDetailsValidator restrictedScopesValidator;
 
-    private ApprovalStore approvalStore;
+    private final ApprovalStore approvalStore;
 
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
     private int clientMaxCount;
 
-    public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor) {
+    public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
+                                final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+                                final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
+                                final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
+                                final @Qualifier("approvalStore") ApprovalStore approvalStore) {
         this.securityContextAccessor = securityContextAccessor;
+        this.clientDetailsValidator = clientDetailsValidator;
+        this.authenticationManager = authenticationManager;
+        this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
+        this.approvalStore = approvalStore;
     }
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
@@ -118,22 +145,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     public void setRestrictedScopesValidator(ClientDetailsValidator restrictedScopesValidator) {
         this.restrictedScopesValidator = restrictedScopesValidator;
-    }
-
-    public ApprovalStore getApprovalStore() {
-        return approvalStore;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
-        this.approvalStore = approvalStore;
-    }
-
-    public AuthenticationManager getAuthenticationManager() {
-        return authenticationManager;
-    }
-
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
     }
 
     public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
@@ -433,13 +444,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     protected void deleteApprovals(String clientId) {
-        if (approvalStore!=null) {
-            approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
-        } else {
-            throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
-        }
+        approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
     }
-
 
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
     @ResponseBody
@@ -681,18 +687,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         details.setAdditionalInformation(additionalInformation);
 
         return details;
-    }
-
-    public void setClientDetailsValidator(ClientAdminEndpointsValidator clientDetailsValidator) {
-        this.clientDetailsValidator = clientDetailsValidator;
-    }
-
-    public ClientDetailsValidator getClientDetailsValidator() {
-        return clientDetailsValidator;
-    }
-
-    public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
-        this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
     }
 
     public void publish(ApplicationEvent event) {

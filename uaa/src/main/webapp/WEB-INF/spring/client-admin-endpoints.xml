@@ -68,9 +68,6 @@
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
         <property name="clientRegistrationService" ref="jdbcClientDetailsService"/>
         <property name="clientDetailsService" ref="clientDetailsService"/>
-        <property name="clientDetailsResourceMonitor" ref="jdbcClientDetailsService"/>
-        <property name="approvalStore" ref="approvalStore"/>
-        <property name="authenticationManager" ref="clientAuthenticationManager"/>
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
@@ -87,7 +84,6 @@
                 </constructor-arg>
             </bean>
         </property>
-        <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
         <property name="restrictedScopesValidator">
             <bean class="org.cloudfoundry.identity.uaa.client.RestrictUaaScopesClientValidator"
                   id="restrictUaaScopesClientValidator">
