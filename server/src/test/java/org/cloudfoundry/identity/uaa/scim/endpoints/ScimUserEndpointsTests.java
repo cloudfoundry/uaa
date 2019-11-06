@@ -29,10 +29,10 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -113,8 +115,11 @@ class ScimUserEndpointsTests {
 
     private static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
 
-    @Autowired
     private ScimUserEndpoints scimUserEndpoints;
+
+    @Autowired
+    @Qualifier("exceptionToStatusMap")
+    private Map<Class<? extends Exception>, HttpStatus> statuses;
 
     @Autowired
     private ScimGroupEndpoints scimGroupEndpoints;
@@ -126,7 +131,9 @@ class ScimUserEndpointsTests {
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
 
     @Autowired
-    private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    private ScimGroupMembershipManager scimGroupMembershipManager;
+
+    private ScimGroupMembershipManager spiedScimGroupMembershipManager;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -183,6 +190,7 @@ class ScimUserEndpointsTests {
         mockJdbcIdentityProviderProvisioning = mock(JdbcIdentityProviderProvisioning.class);
         mockJdbcUserGoogleMfaCredentialsProvisioning = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
         mockPasswordValidator = mock(PasswordValidator.class);
+        ApplicationEventPublisher mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
 
         doThrow(new InvalidPasswordException("Password must be at least 1 characters in length."))
                 .when(mockPasswordValidator).validate(null);
@@ -194,19 +202,28 @@ class ScimUserEndpointsTests {
         joel = jdbcScimUserProvisioning.createUser(joel, "password", identityZone.getId());
         dale = jdbcScimUserProvisioning.createUser(dale, "password", identityZone.getId());
 
-        scimUserEndpoints.setScimGroupMembershipManager(jdbcScimGroupMembershipManager);
-        ReflectionTestUtils.setField(scimUserEndpoints, "mfaCredentialsProvisioning", mockJdbcUserGoogleMfaCredentialsProvisioning);
-        ReflectionTestUtils.setField(scimUserEndpoints, "identityProviderProvisioning", mockJdbcIdentityProviderProvisioning);
-        scimUserEndpoints.setApplicationEventPublisher(null);
-        ReflectionTestUtils.setField(scimUserEndpoints, "passwordValidator", mockPasswordValidator);
-        ReflectionTestUtils.setField(scimUserEndpoints, "approvalStore", mockApprovalStore);
+        spiedScimGroupMembershipManager = spy(scimGroupMembershipManager);
+
+        scimUserEndpoints = new ScimUserEndpoints(
+                new IdentityZoneManagerImpl(),
+                new IsSelfCheck(null),
+                jdbcScimUserProvisioning,
+                mockJdbcIdentityProviderProvisioning,
+                null,
+                statuses,
+                mockPasswordValidator,
+                null,
+                mockJdbcUserGoogleMfaCredentialsProvisioning,
+                mockApprovalStore,
+                spiedScimGroupMembershipManager,
+                5);
     }
 
     @Test
     void validate_password_for_uaa_only() {
         validatePasswordForUaaOriginOnly(times(1), OriginKeys.UAA, "password");
     }
-
+    
     @Test
     void validate_password_not_called_for_non_uaa() {
         validatePasswordForUaaOriginOnly(never(), OriginKeys.LOGIN_SERVER, "");
@@ -246,7 +263,6 @@ class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("dsyer@vmware.com");
         ScimUser created = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-
         validateUserGroups(created, "uaa.user");
 
         ScimGroup g = new ScimGroup(null, "test1", identityZone.getId());
@@ -493,6 +509,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteUserUpdatesGroupMembership() {
+
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
@@ -532,19 +549,16 @@ class ScimUserEndpointsTests {
 
     @Test
     void findGroupsAndApprovals() {
-        ScimGroupMembershipManager mockScimGroupMembershipManager = mock(ScimGroupMembershipManager.class);
-        scimUserEndpoints.setScimGroupMembershipManager(mockScimGroupMembershipManager);
-
         String isJoelOrDaleFilter = SCIMFilter.createOrFilter(asList(
                 SCIMFilter.createEqualityFilter(AttributePath.parse("id"), joel.getId()),
                 SCIMFilter.createEqualityFilter(AttributePath.parse("id"), dale.getId()))).toString();
 
         SearchResults<?> results = scimUserEndpoints.findUsers("id,groups,approvals", isJoelOrDaleFilter, null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), false, identityZone.getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(joel.getId(), true, identityZone.getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), false, identityZone.getId());
-        verify(mockScimGroupMembershipManager).getGroupsWithMember(dale.getId(), true, identityZone.getId());
+        verify(spiedScimGroupMembershipManager).getGroupsWithMember(joel.getId(), false, identityZone.getId());
+        verify(spiedScimGroupMembershipManager).getGroupsWithMember(joel.getId(), true, identityZone.getId());
+        verify(spiedScimGroupMembershipManager).getGroupsWithMember(dale.getId(), false, identityZone.getId());
+        verify(spiedScimGroupMembershipManager).getGroupsWithMember(dale.getId(), true, identityZone.getId());
 
         verify(mockApprovalStore).getApprovalsForUser(joel.getId(), identityZone.getId());
         verify(mockApprovalStore).getApprovalsForUser(dale.getId(), identityZone.getId());
@@ -638,29 +652,20 @@ class ScimUserEndpointsTests {
 
     @Test
     void findUsersGroupsSyncedByDefault() {
-        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
-        scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
-
         scimUserEndpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
+        verify(spiedScimGroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
     }
 
     @Test
     void findUsersGroupsSyncedIfIncluded() {
-        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
-        scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
-
         scimUserEndpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
+        verify(spiedScimGroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean(), eq(identityZone.getId()));
     }
 
     @Test
     void findUsersGroupsNotSyncedIfNotIncluded() {
-        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
-        scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
-
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
-        verifyZeroInteractions(mockgroupMembershipManager);
+        verifyZeroInteractions(spiedScimGroupMembershipManager);
     }
 
     @Test
@@ -685,7 +690,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -693,7 +698,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, -1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, -1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 

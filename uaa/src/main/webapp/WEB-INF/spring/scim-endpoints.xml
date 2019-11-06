@@ -138,9 +138,7 @@
         <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
     </util:map>
 
-    <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
-        <property name="scimGroupMembershipManager" ref="groupMembershipManager"/>
-    </bean>
+    <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints" />
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints" />
 

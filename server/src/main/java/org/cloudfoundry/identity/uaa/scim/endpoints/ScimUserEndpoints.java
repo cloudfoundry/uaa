@@ -117,7 +117,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private final ResourceMonitor<ScimUser> scimUserResourceMonitor;
 
-    private ScimGroupMembershipManager membershipManager;
+    private final ScimGroupMembershipManager membershipManager;
 
     private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
 
@@ -159,6 +159,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ExpiringCodeStore codeStore,
             final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final ApprovalStore approvalStore,
+            final ScimGroupMembershipManager membershipManager,
             final @Value("${userMaxCount:500}") int userMaxCount) {
         if (userMaxCount <= 0) {
             throw new IllegalArgumentException(
@@ -177,6 +178,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
         this.approvalStore = approvalStore;
         this.userMaxCount = userMaxCount;
+        this.membershipManager = membershipManager;
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
         };
@@ -574,10 +576,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (publisher != null) {
             publisher.publishEvent(event);
         }
-    }
-
-    public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
-        this.membershipManager = membershipManager;
     }
 
     @Override
