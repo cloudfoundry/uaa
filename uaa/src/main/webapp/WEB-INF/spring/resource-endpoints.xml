@@ -64,8 +64,6 @@
 
     <context:component-scan base-package="org.cloudfoundry.identity.uaa.oauth.advice" />
 
-    <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint">
-        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-    </bean>
+    <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint" />
 
 </beans>

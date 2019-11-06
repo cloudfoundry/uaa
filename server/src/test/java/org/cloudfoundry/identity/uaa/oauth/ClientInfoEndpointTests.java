@@ -34,16 +34,15 @@ import static org.junit.Assert.assertTrue;
  */
 public class ClientInfoEndpointTests {
 
-    private ClientInfoEndpoint endpoint = new ClientInfoEndpoint();
-
     private MultitenantClientServices clientDetailsService = Mockito.mock(MultitenantClientServices.class);
+    private ClientInfoEndpoint endpoint = new ClientInfoEndpoint(clientDetailsService);
+
 
     private BaseClientDetails foo = new BaseClientDetails("foo", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
 
     {
         foo.setClientSecret("bar");
         foo.setAdditionalInformation(Collections.singletonMap("key", "value"));
-        endpoint.setClientDetailsService(clientDetailsService);
     }
 
     @Test
