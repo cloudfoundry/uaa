@@ -1,22 +1,10 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,10 +26,9 @@ import java.util.List;
 @Controller
 public class ClientMetadataAdminEndpoints {
 
+    private static Logger logger = LoggerFactory.getLogger(ClientMetadataAdminEndpoints.class);
     private ClientMetadataProvisioning clientMetadataProvisioning;
     private HttpMessageConverter<?>[] messageConverters;
-
-    private static Logger logger = LoggerFactory.getLogger(ClientMetadataAdminEndpoints.class);
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
@@ -69,7 +56,8 @@ public class ClientMetadataAdminEndpoints {
 
         if (StringUtils.hasText(clientMetadata.getClientId())) {
             if (!clientId.equals(clientMetadata.getClientId())) {
-                throw new ClientMetadataException("Client ID in body {" + clientMetadata.getClientId() + "} does not match URL path {" + clientId + "}", HttpStatus.BAD_REQUEST);
+                throw new ClientMetadataException("Client ID in body {" + clientMetadata.getClientId() + "} does not match URL path {" + clientId + "}",
+                        HttpStatus.BAD_REQUEST);
             }
         } else {
             clientMetadata.setClientId(clientId);
@@ -77,7 +65,8 @@ public class ClientMetadataAdminEndpoints {
         try {
             return clientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
-            throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(), HttpStatus.NOT_FOUND);
+            throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(),
+                    HttpStatus.NOT_FOUND);
         }
     }
 
@@ -87,7 +76,7 @@ public class ClientMetadataAdminEndpoints {
 
         boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(cme, trace, cme.getExtraInfo()),
-            cme.getStatus()), messageConverters);
+                cme.getStatus()), messageConverters);
     }
 
     public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
