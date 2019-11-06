@@ -107,43 +107,28 @@ import static org.springframework.util.StringUtils.isEmpty;
         description = "UAA User API Metrics"
 )
 public class ScimUserEndpoints implements InitializingBean, ApplicationEventPublisherAware {
-    private static Logger logger = LoggerFactory.getLogger(ScimUserEndpoints.class);
 
+    private static final Logger logger = LoggerFactory.getLogger(ScimUserEndpoints.class);
     private static final String E_TAG = "ETag";
 
+    private final IdentityZoneManager identityZoneManager;
+    private final IsSelfCheck isSelfCheck;
     private final ScimUserProvisioning scimUserProvisioning;
-
     private final IdentityProviderProvisioning identityProviderProvisioning;
-
     private final ResourceMonitor<ScimUser> scimUserResourceMonitor;
-
-    private final ScimGroupMembershipManager membershipManager;
-
-    private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
-
-    private final ApprovalStore approvalStore;
-
-    private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
-
-    private AtomicInteger scimUpdates = new AtomicInteger();
-
-    private AtomicInteger scimDeletes = new AtomicInteger();
-
     private final Map<Class<? extends Exception>, HttpStatus> statuses;
-
-    private final HttpMessageConverter<?>[] messageConverters;
-
     private final PasswordValidator passwordValidator;
-
     private final ExpiringCodeStore codeStore;
+    private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
+    private final ApprovalStore approvalStore;
+    private final ScimGroupMembershipManager membershipManager;
+    private final int userMaxCount;
+    private final HttpMessageConverter<?>[] messageConverters;
+    private final AtomicInteger scimUpdates;
+    private final AtomicInteger scimDeletes;
+    private final Map<String, AtomicInteger> errorCounts;
 
     private ApplicationEventPublisher publisher;
-
-    private final int userMaxCount;
-
-    private final IsSelfCheck isSelfCheck;
-
-    private final IdentityZoneManager identityZoneManager;
 
     /**
      * @param statuses Map from exception type to Http status
@@ -182,6 +167,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
         };
+        scimUpdates = new AtomicInteger();
+        scimDeletes = new AtomicInteger();
+        errorCounts = new ConcurrentHashMap<>();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
