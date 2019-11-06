@@ -95,37 +95,26 @@ import static java.lang.String.format;
 )
 public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClientAdminEndpoints.class);
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
-    private final MultitenantClientServices clientRegistrationService;
-
-    private final QueryableResourceManager<ClientDetails> clientDetailsService;
-
+    private final SecurityContextAccessor securityContextAccessor;
+    private final ClientDetailsValidator clientDetailsValidator;
+    private final AuthenticationManager authenticationManager;
     private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
+    private final ApprovalStore approvalStore;
+    private final MultitenantClientServices clientRegistrationService;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final int clientMaxCount;
 
     private final AttributeNameMapper attributeNameMapper;
-
-    private final SecurityContextAccessor securityContextAccessor;
-
-    private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
-
-    private AtomicInteger clientUpdates = new AtomicInteger();
-
-    private AtomicInteger clientDeletes = new AtomicInteger();
-
-    private AtomicInteger clientSecretChanges = new AtomicInteger();
-
-    private final ClientDetailsValidator clientDetailsValidator;
-
     private final RestrictUaaScopesClientValidator restrictedScopesValidator;
+    private final Map<String, AtomicInteger> errorCounts;
+    private final AtomicInteger clientUpdates;
+    private final AtomicInteger clientDeletes;
+    private final AtomicInteger clientSecretChanges;
 
-    private final ApprovalStore approvalStore;
-
-    private final AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
-    private final int clientMaxCount;
 
     public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
                                 final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
@@ -160,6 +149,10 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                 "autoapprove", "autoApproveScopes",
                 "additionalinformation", "additionalInformation"));
         this.restrictedScopesValidator = new RestrictUaaScopesClientValidator(new UaaScopes());
+        this.errorCounts = new ConcurrentHashMap<>();
+        this.clientUpdates = new AtomicInteger();
+        this.clientDeletes = new AtomicInteger();
+        this.clientSecretChanges = new AtomicInteger();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
