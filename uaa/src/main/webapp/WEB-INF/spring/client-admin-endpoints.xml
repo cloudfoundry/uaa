@@ -65,32 +65,7 @@
     <oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
                            resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
-    <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="client_id" value="clientId"/>
-                        <entry key="resource_ids" value="resourceIds"/>
-                        <entry key="authorized_grant_types" value="authorizedGrantTypes"/>
-                        <entry key="redirect_uri" value="registeredRedirectUri"/>
-                        <entry key="access_token_validity" value="accessTokenValiditySeconds"/>
-                        <entry key="refresh_token_validity" value="refreshTokenValiditySeconds"/>
-                        <entry key="autoapprove" value="autoApproveScopes"/>
-                        <entry key="additionalinformation" value="additionalInformation"/>
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="restrictedScopesValidator">
-            <bean class="org.cloudfoundry.identity.uaa.client.RestrictUaaScopesClientValidator"
-                  id="restrictUaaScopesClientValidator">
-                <constructor-arg>
-                    <bean class="org.cloudfoundry.identity.uaa.client.UaaScopes" id="uaaScopes"/>
-                </constructor-arg>
-            </bean>
-        </property>
-    </bean>
+    <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints" />
 
     <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
         <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning"/>

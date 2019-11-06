@@ -10,10 +10,14 @@ import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +38,15 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
@@ -44,9 +56,23 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ClientAdminEndpointsTests {
@@ -113,19 +139,8 @@ class ClientAdminEndpointsTests {
                 mock(ResourceMonitor.class),
                 approvalStore,
                 clientRegistrationService,
-                clientDetailsService, 5));
-        endpoints.setRestrictedScopesValidator(new RestrictUaaScopesClientValidator(new UaaScopes()));
-
-        Map<String, String> attributeNameMap = new HashMap<>();
-        attributeNameMap.put("client_id", "clientId");
-        attributeNameMap.put("resource_ids", "resourceIds");
-        attributeNameMap.put("authorized_grant_types", "authorizedGrantTypes");
-        attributeNameMap.put("redirect_uri", "registeredRedirectUri");
-        attributeNameMap.put("access_token_validity", "accessTokenValiditySeconds");
-        attributeNameMap.put("refresh_token_validity", "refreshTokenValiditySeconds");
-        attributeNameMap.put("autoapprove", "autoApproveScopes");
-        attributeNameMap.put("additionalinformation", "additionalInformation");
-        endpoints.setAttributeNameMapper(new SimpleAttributeNameMapper(attributeNameMap));
+                clientDetailsService,
+                5));
 
         input = new BaseClientDetails();
         input.setClientId("foo");
@@ -274,8 +289,6 @@ class ClientAdminEndpointsTests {
     @Test
     void test_Get_Restricted_Scopes_List() {
         assertEquals(new UaaScopes().getUaaScopes(), endpoints.getRestrictedClientScopes());
-        endpoints.setRestrictedScopesValidator(null);
-        assertNull(endpoints.getRestrictedClientScopes());
     }
 
     @Test

@@ -105,8 +105,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
-    private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
-                    Collections.<String, String> emptyMap());
+    private final AttributeNameMapper attributeNameMapper;
 
     private final SecurityContextAccessor securityContextAccessor;
 
@@ -120,7 +119,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private final ClientDetailsValidator clientDetailsValidator;
 
-    private ClientDetailsValidator restrictedScopesValidator;
+    private final RestrictUaaScopesClientValidator restrictedScopesValidator;
 
     private final ApprovalStore approvalStore;
 
@@ -151,18 +150,16 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         this.clientRegistrationService = clientRegistrationService;
         this.clientDetailsService = clientDetailsService;
         this.clientMaxCount = clientMaxCount;
-    }
-
-    public ClientDetailsValidator getRestrictedScopesValidator() {
-        return restrictedScopesValidator;
-    }
-
-    public void setRestrictedScopesValidator(ClientDetailsValidator restrictedScopesValidator) {
-        this.restrictedScopesValidator = restrictedScopesValidator;
-    }
-
-    public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
-        this.attributeNameMapper = attributeNameMapper;
+        this.attributeNameMapper = new SimpleAttributeNameMapper(Map.of(
+                "client_id", "clientId",
+                "resource_ids", "resourceIds",
+                "authorized_grant_types", "authorizedGrantTypes",
+                "redirect_uri", "registeredRedirectUri",
+                "access_token_validity", "accessTokenValiditySeconds",
+                "refresh_token_validity", "refreshTokenValiditySeconds",
+                "autoapprove", "autoApproveScopes",
+                "additionalinformation", "additionalInformation"));
+        this.restrictedScopesValidator = new RestrictUaaScopesClientValidator(new UaaScopes());
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
@@ -224,11 +221,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public List<String> getRestrictedClientScopes() {
-        if (restrictedScopesValidator instanceof RestrictUaaScopesClientValidator) {
-            return ((RestrictUaaScopesClientValidator)restrictedScopesValidator).getUaaScopes().getUaaScopes();
-        } else {
-            return null;
-        }
+        return restrictedScopesValidator.getUaaScopes().getUaaScopes();
     }
 
 
@@ -236,7 +229,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) {
-        getRestrictedScopesValidator().validate(client, Mode.CREATE);
+        restrictedScopesValidator.validate(client, Mode.CREATE);
         return createClientDetails(client);
     }
 
@@ -301,7 +294,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseBody
     public ClientDetails updateRestrictedClientDetails(@RequestBody BaseClientDetails client,
                                                        @PathVariable("client") String clientId) throws Exception {
-        getRestrictedScopesValidator().validate(client, Mode.MODIFY);
+        restrictedScopesValidator.validate(client, Mode.MODIFY);
         return updateClientDetails(client, clientId);
     }
 
