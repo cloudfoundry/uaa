@@ -111,10 +111,9 @@ class ClientAdminEndpointsTests {
                 clientDetailsValidator,
                 mockAuthenticationManager,
                 mock(ResourceMonitor.class),
-                approvalStore));
-        endpoints.setClientMaxCount(5);
-        endpoints.setClientDetailsService(clientDetailsService);
-        endpoints.setClientRegistrationService(clientRegistrationService);
+                approvalStore,
+                clientRegistrationService,
+                clientDetailsService, 5));
         endpoints.setRestrictedScopesValidator(new RestrictUaaScopesClientValidator(new UaaScopes()));
 
         Map<String, String> attributeNameMap = new HashMap<>();
@@ -772,7 +771,8 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testClientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> endpoints.setClientMaxCount(0),
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, 0),
                 is("Invalid \"clientMaxCount\" value (got 0). Should be positive number.")
         );
     }

@@ -66,8 +66,6 @@
                            resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
-        <property name="clientRegistrationService" ref="jdbcClientDetailsService"/>
-        <property name="clientDetailsService" ref="clientDetailsService"/>
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
@@ -92,7 +90,6 @@
                 </constructor-arg>
             </bean>
         </property>
-        <property name="clientMaxCount" value="${clientMaxCount:500}"/>
     </bean>
 
     <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">

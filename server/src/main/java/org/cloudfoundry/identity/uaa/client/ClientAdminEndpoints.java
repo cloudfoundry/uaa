@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -98,9 +99,9 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private MultitenantClientServices clientRegistrationService;
+    private final MultitenantClientServices clientRegistrationService;
 
-    private QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
 
     private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
@@ -125,18 +126,31 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     private final AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
-    private int clientMaxCount;
+    private final int clientMaxCount;
 
     public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
                                 final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
                                 final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
                                 final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
-                                final @Qualifier("approvalStore") ApprovalStore approvalStore) {
+                                final @Qualifier("approvalStore") ApprovalStore approvalStore,
+                                final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientRegistrationService,
+                                final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
+                                final @Value("${clientMaxCount:500}") int clientMaxCount) {
+
+        if (clientMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                    format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
+            );
+        }
+
         this.securityContextAccessor = securityContextAccessor;
         this.clientDetailsValidator = clientDetailsValidator;
         this.authenticationManager = authenticationManager;
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
         this.approvalStore = approvalStore;
+        this.clientRegistrationService = clientRegistrationService;
+        this.clientDetailsService = clientDetailsService;
+        this.clientMaxCount = clientMaxCount;
     }
 
     public ClientDetailsValidator getRestrictedScopesValidator() {
@@ -149,20 +163,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
     public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
         this.attributeNameMapper = attributeNameMapper;
-    }
-
-    /**
-     * @param clientRegistrationService the clientRegistrationService to set
-     */
-    public void setClientRegistrationService(MultitenantClientServices clientRegistrationService) {
-        this.clientRegistrationService = clientRegistrationService;
-    }
-
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
-        this.clientDetailsService = clientDetailsService;
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
@@ -699,14 +699,4 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         publisher = applicationEventPublisher;
     }
-
-    public void setClientMaxCount(int clientMaxCount) {
-        if (clientMaxCount <= 0) {
-            throw new IllegalArgumentException(
-                format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
-            );
-        }
-        this.clientMaxCount = clientMaxCount;
-    }
-
 }
