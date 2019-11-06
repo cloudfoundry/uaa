@@ -188,7 +188,6 @@ class ClientAdminEndpointsTests {
                     }
                 }
         );
-        endpoints.afterPropertiesSet();
     }
 
     @AfterEach

@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
@@ -93,7 +92,7 @@ import static java.lang.String.format;
     objectName="cloudfoundry.identity:name=ClientEndpoint",
     description = "UAA Oauth Clients API Metrics"
 )
-public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
+public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     private static final Logger logger = LoggerFactory.getLogger(ClientAdminEndpoints.class);
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
@@ -178,13 +177,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ManagedMetric(displayName = "Errors Since Startup")
     public Map<String, AtomicInteger> getErrorCounts() {
         return errorCounts;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
-        Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
-        Assert.state(clientDetailsValidator != null, "A ClientDetailsValidator must be provided");
     }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
