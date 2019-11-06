@@ -40,8 +40,6 @@ class UserIdConversionEndpointDocs extends EndpointDocs {
 
     @BeforeEach
     void setUp() throws Exception {
-        webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(true);
-
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
                 "admin",
                 "adminsecret",

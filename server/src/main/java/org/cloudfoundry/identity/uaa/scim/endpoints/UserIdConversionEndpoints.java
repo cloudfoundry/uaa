@@ -14,10 +14,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
@@ -35,25 +40,15 @@ public class UserIdConversionEndpoints implements InitializingBean {
     private final SecurityContextAccessor securityContextAccessor;
     private final ScimUserEndpoints scimUserEndpoints;
 
-    private boolean enabled = true;
+    private boolean enabled;
 
     public UserIdConversionEndpoints(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
                                      final SecurityContextAccessor securityContextAccessor,
-                                     final ScimUserEndpoints scimUserEndpoints) {
+                                     final ScimUserEndpoints scimUserEndpoints,
+                                     final @Value("${scim.userids_enabled:true}") boolean enabled) {
         this.provisioning = provisioning;
         this.securityContextAccessor = securityContextAccessor;
         this.scimUserEndpoints = scimUserEndpoints;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    /**
-     * Determines whether this endpoint is active or not.
-     * If not enabled, it will return a 404.
-     */
-    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 

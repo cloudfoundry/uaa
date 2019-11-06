@@ -185,13 +185,7 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="userIdsEnabled" class="java.lang.Boolean">
-        <constructor-arg value="${scim.userids_enabled:false}"/>
-    </bean>
-
-    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
-        <property name="enabled" ref="userIdsEnabled"/>
-    </bean>
+    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints" />
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"

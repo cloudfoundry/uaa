@@ -60,8 +60,7 @@ public class UserIdConversionEndpointsTests {
     @Before
     public void init() {
         mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints);
-        endpoints.setEnabled(true);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints, true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
         when(provisioning.retrieveActive(anyString())).thenReturn(Collections.singletonList(MultitenancyFixture.identityProvider("test-origin", "uaa")));
@@ -160,7 +159,7 @@ public class UserIdConversionEndpointsTests {
 
     @Test
     public void testDisabled() {
-        endpoints.setEnabled(false);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints, false);
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Illegal operation."));
         endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);

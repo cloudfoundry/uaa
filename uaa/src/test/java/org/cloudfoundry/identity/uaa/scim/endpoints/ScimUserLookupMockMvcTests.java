@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +45,6 @@ class ScimUserLookupMockMvcTests {
 
     private static String[][] testUsers;
 
-    private boolean originalIsUserIdConversionEndpointsEnabled;
-
     private ScimUser user;
 
     private WebApplicationContext webApplicationContext;
@@ -70,19 +67,12 @@ class ScimUserLookupMockMvcTests {
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(this.mockMvc, adminToken, user);
 
-        originalIsUserIdConversionEndpointsEnabled = this.webApplicationContext.getBean(UserIdConversionEndpoints.class).isEnabled();
-        this.webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(true);
         List<String> scopes = Arrays.asList("scim.userids", "cloud_controller.read");
         MockMvcUtils.createClient(this.mockMvc, adminToken, clientId, clientSecret, Collections.singleton("scim"), scopes, Arrays.asList("client_credentials", "password"), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers == null) {
             testUsers = createUsers(adminToken);
         }
-    }
-
-    @AfterEach
-    void restoreEnabled() {
-        webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(originalIsUserIdConversionEndpointsEnabled);
     }
 
     @Test
