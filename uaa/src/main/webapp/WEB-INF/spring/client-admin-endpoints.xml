@@ -67,12 +67,7 @@
 
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints" />
 
-    <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
-        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning"/>
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
-        </property>
-    </bean>
+    <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints" />
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService"/>

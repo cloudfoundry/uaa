@@ -2,9 +2,11 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +27,16 @@ import java.util.List;
 
 @Controller
 public class ClientMetadataAdminEndpoints {
-
     private static Logger logger = LoggerFactory.getLogger(ClientMetadataAdminEndpoints.class);
-    private ClientMetadataProvisioning clientMetadataProvisioning;
-    private HttpMessageConverter<?>[] messageConverters;
+    private final ClientMetadataProvisioning clientMetadataProvisioning;
+    private final HttpMessageConverter<?>[] messageConverters;
+
+    public ClientMetadataAdminEndpoints(final @Qualifier("jdbcClientMetadataProvisioning") ClientMetadataProvisioning clientMetadataProvisioning) {
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
+        this.messageConverters = new HttpMessageConverter[] {
+                new ExceptionReportHttpMessageConverter()
+        };
+    }
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
@@ -77,13 +85,5 @@ public class ClientMetadataAdminEndpoints {
         boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(cme, trace, cme.getExtraInfo()),
                 cme.getStatus()), messageConverters);
-    }
-
-    public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
-        this.clientMetadataProvisioning = clientMetadataProvisioning;
-    }
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
     }
 }
