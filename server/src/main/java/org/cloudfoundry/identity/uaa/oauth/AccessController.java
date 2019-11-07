@@ -1,27 +1,15 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -50,7 +38,6 @@ import java.util.Set;
  * Controller for retrieving the model for and displaying the confirmation page
  * for access to a protected resource.
  *
- * @author Dave Syer
  */
 @Controller
 @SessionAttributes("authorizationRequest")
@@ -75,7 +62,7 @@ public class AccessController {
      * balancer).
      *
      * @param useSsl the flag to set (null to use the incoming request to
-     *            determine the URL scheme)
+     *               determine the URL scheme)
      */
     public void setUseSsl(Boolean useSsl) {
         this.useSsl = useSsl;
@@ -100,20 +87,19 @@ public class AccessController {
 
     @RequestMapping("/oauth/confirm_access")
     public String confirm(Map<String, Object> model, final HttpServletRequest request, Principal principal,
-                    SessionStatus sessionStatus) {
+                          SessionStatus sessionStatus) {
 
         if (!(principal instanceof Authentication)) {
             sessionStatus.setComplete();
             throw new InsufficientAuthenticationException(
-                            "User must be authenticated with before authorizing access.");
+                    "User must be authenticated with before authorizing access.");
         }
 
         AuthorizationRequest clientAuthRequest = (AuthorizationRequest) model.remove("authorizationRequest");
         if (clientAuthRequest == null) {
             model.put("error",
-                            "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
-        }
-        else {
+                    "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
+        } else {
             String clientId = clientAuthRequest.getClientId();
             BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
             BaseClientDetails modifiableClient = new BaseClientDetails(client);
@@ -123,13 +109,13 @@ public class AccessController {
 
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
             String clientDisplayName = (String) additionalInfo.get(ClientConstants.CLIENT_NAME);
-            model.put("client_display_name", (clientDisplayName != null)? clientDisplayName : clientId);
+            model.put("client_display_name", (clientDisplayName != null) ? clientDisplayName : clientId);
 
             // Find the auto approved scopes for this clients
             Set<String> autoApproved = client.getAutoApproveScopes();
             Set<String> autoApprovedScopes = new HashSet<>();
             if (autoApproved != null) {
-                if(autoApproved.contains("true")) {
+                if (autoApproved.contains("true")) {
                     autoApprovedScopes.addAll(client.getScope());
                 } else {
                     autoApprovedScopes.addAll(autoApproved);
@@ -138,7 +124,7 @@ public class AccessController {
 
             List<Approval> filteredApprovals = new ArrayList<Approval>();
             // Remove auto approved scopes
-            List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication)principal), clientId, IdentityZoneHolder.get().getId());
+            List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication) principal), clientId, IdentityZoneHolder.get().getId());
             for (Approval approval : approvals) {
                 if (!(autoApprovedScopes.contains(approval.getScope()))) {
                     filteredApprovals.add(approval);
@@ -167,7 +153,7 @@ public class AccessController {
             // Filter the scopes approved/denied from the ones requested
             for (String scope : clientAuthRequest.getScope()) {
                 if (!approvedScopes.contains(scope) && !deniedScopes.contains(scope)
-                                && !autoApprovedScopes.contains(scope)) {
+                        && !autoApprovedScopes.contains(scope)) {
                     undecidedScopes.add(scope);
                 }
             }
@@ -187,7 +173,7 @@ public class AccessController {
             model.put("scopes", allScopes);
 
             model.put("message",
-                            "To confirm or deny access POST to the following locations with the parameters requested.");
+                    "To confirm or deny access POST to the following locations with the parameters requested.");
             Map<String, Object> options = new HashMap<String, Object>() {
                 {
                     put("confirm", new HashMap<String, String>() {
