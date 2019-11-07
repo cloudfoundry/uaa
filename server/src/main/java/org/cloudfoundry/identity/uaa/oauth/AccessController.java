@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -37,7 +39,6 @@ import java.util.Set;
 /**
  * Controller for retrieving the model for and displaying the confirmation page
  * for access to a protected resource.
- *
  */
 @Controller
 @SessionAttributes("authorizationRequest")
@@ -47,42 +48,27 @@ public class AccessController {
 
     private static final String SCOPE_PREFIX = "scope.";
 
-    private MultitenantClientServices clientDetailsService;
-
-    private Boolean useSsl;
-
-    private ApprovalStore approvalStore = null;
-
-    private ScimGroupProvisioning groupProvisioning;
+    private final MultitenantClientServices clientDetailsService;
+    private final Boolean useSsl;
+    private final ApprovalStore approvalStore;
+    private final ScimGroupProvisioning groupProvisioning;
 
     /**
-     * Explicitly requests caller to point back to an authorization endpoint on
-     * "https", even if the incoming request is
-     * "http" (e.g. when downstream of the SSL termination behind a load
-     * balancer).
-     *
-     * @param useSsl the flag to set (null to use the incoming request to
-     *               determine the URL scheme)
+     * @param useSsl Explicitly requests caller to point back to an authorization endpoint on
+     *               "https", even if the incoming request is "http"
+     *               (e.g. when downstream of the SSL termination behind a load balancer).
+     *               Always use HTTPS if deployed on cloudfoundry
+     *               null to use the incoming request to determine the URL scheme
      */
-    public void setUseSsl(Boolean useSsl) {
-        this.useSsl = useSsl;
-    }
-
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
+    public AccessController(
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final @Value("#{@applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}") Boolean useSsl,
+            final @Qualifier("approvalStore") ApprovalStore approvalStore,
+            final @Qualifier("scimGroupProvisioning") ScimGroupProvisioning groupProvisioning) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
+        this.useSsl = useSsl;
         this.approvalStore = approvalStore;
-    }
-
-    public ScimGroupProvisioning getGroupProvisioning() {
-        return groupProvisioning;
-    }
-
-    public AccessController setGroupProvisioning(ScimGroupProvisioning groupProvisioning) {
         this.groupProvisioning = groupProvisioning;
-        return this;
     }
 
     @RequestMapping("/oauth/confirm_access")

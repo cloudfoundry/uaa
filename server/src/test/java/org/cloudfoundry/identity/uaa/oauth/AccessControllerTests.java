@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.hamcrest.Matchers;
@@ -36,6 +35,7 @@ class AccessControllerTests {
 
     private AccessController controller;
     private BaseClientDetails client;
+    private ScimGroupProvisioning mockScimGroupProvisioning;
 
     @BeforeEach
     void setUp() {
@@ -43,9 +43,8 @@ class AccessControllerTests {
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
 
-        controller = new AccessController();
-        controller.setClientDetailsService(clientDetailsService);
-        controller.setApprovalStore(mock(ApprovalStore.class));
+        mockScimGroupProvisioning = mock(ScimGroupProvisioning.class);
+        controller = new AccessController(clientDetailsService, null, mock(ApprovalStore.class), mockScimGroupProvisioning);
     }
 
     @Test
@@ -101,14 +100,11 @@ class AccessControllerTests {
         client.setAutoApproveScopes(autoApprovedScopes);
         client.setScope(Arrays.asList("resource.scope1", "resource.scope2"));
 
-        ScimGroupProvisioning provisioning = mock(JdbcScimGroupProvisioning.class);
         ScimGroup scimGroup1 = new ScimGroup("resource.scope1");
         ScimGroup scimGroup2 = new ScimGroup("resource.scope2");
-        when(provisioning.query(any(), any()))
+        when(mockScimGroupProvisioning.query(any(), any()))
                 .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup1)))
                 .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup2)));
-        controller.setGroupProvisioning(provisioning);
-
 
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 
