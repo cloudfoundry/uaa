@@ -1,25 +1,13 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.error.ParameterParsingException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,6 +58,7 @@ public class CheckTokenEndpoint implements InitializingBean {
     public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
+
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
     }
@@ -125,7 +114,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         List<String> claimScopes = response.getScope().stream().map(String::toLowerCase).collect(Collectors.toList());
 
         List<String> missingScopes = new ArrayList<>();
-        for(String expectedScope : scopes) {
+        for (String expectedScope : scopes) {
             if (!claimScopes.contains(expectedScope.toLowerCase())) {
                 missingScopes.add(expectedScope);
             }
@@ -150,11 +139,11 @@ public class CheckTokenEndpoint implements InitializingBean {
             String token = request.getParameter("token");
             String scope = request.getParameter("scope");
             return
-                checkToken(
-                    token,
-                    hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
-                    request
-                );
+                    checkToken(
+                            token,
+                            hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
+                            request
+                    );
         } else {
             throw new HttpRequestMethodNotSupportedException(request.getMethod());
         }
@@ -200,7 +189,6 @@ public class CheckTokenEndpoint implements InitializingBean {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         return exceptionTranslator.translate(e);
     }
-
 
     @ExceptionHandler(UaaException.class)
     public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) {
