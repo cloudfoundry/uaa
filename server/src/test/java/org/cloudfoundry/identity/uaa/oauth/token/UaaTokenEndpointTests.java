@@ -39,7 +39,7 @@ class UaaTokenEndpointTests {
     @BeforeEach
     void setup() {
         allowedRequestMethods = new HashSet<>(Arrays.asList(POST, GET));
-        endpoint = spy(new UaaTokenEndpoint());
+        endpoint = spy(new UaaTokenEndpoint(null, null, null, null));
         endpoint.setAllowedRequestMethods(allowedRequestMethods);
         response = mock(ResponseEntity.class);
     }
@@ -79,7 +79,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsSuperMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint();
+        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null);
         endpoint.setAllowedRequestMethods(allowedRequestMethods);
         endpoint.setAllowQueryString(false);
 
@@ -92,7 +92,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsOverrideMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint();
+        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null);
         endpoint.setAllowedRequestMethods(allowedRequestMethods);
         endpoint.setAllowQueryString(false);
 

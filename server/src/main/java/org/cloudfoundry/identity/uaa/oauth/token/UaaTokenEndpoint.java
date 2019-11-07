@@ -1,10 +1,15 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
+import org.springframework.security.oauth2.provider.TokenGranter;
 import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -30,7 +35,16 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     private Boolean allowQueryString = null;
 
-    public UaaTokenEndpoint() {
+    public UaaTokenEndpoint(
+            final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            final @Qualifier("jdbcClientDetailsService") ClientDetailsService clientDetailsService,
+            final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oAuth2RequestValidator,
+            final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter
+    ) {
+        this.setOAuth2RequestFactory(oAuth2RequestFactory);
+        this.setClientDetailsService(clientDetailsService);
+        this.setOAuth2RequestValidator(oAuth2RequestValidator);
+        this.setTokenGranter(tokenGranter);
         setAllowedRequestMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST)));
     }
 
