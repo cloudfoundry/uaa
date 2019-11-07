@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -49,17 +51,16 @@ public class CheckTokenEndpoint implements InitializingBean {
     //Copy of the value from org.apache.Globals.PARAMETER_PARSE_FAILED_ATTR
     private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
 
-    private ResourceServerTokenServices resourceServerTokenServices;
-    private TimeService timeService;
+    private final ResourceServerTokenServices resourceServerTokenServices;
+    private final TimeService timeService;
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
 
-    public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
+    public CheckTokenEndpoint(
+            final @Qualifier("tokenServices") ResourceServerTokenServices resourceServerTokenServices,
+            final @Qualifier("timeService") TimeService timeService) {
         this.resourceServerTokenServices = resourceServerTokenServices;
-    }
-
-    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
     }
 
@@ -69,6 +70,8 @@ public class CheckTokenEndpoint implements InitializingBean {
         return (allowQueryString == null) ? true : allowQueryString;
     }
 
+    @Autowired
+    @Qualifier("allowQueryStringForTokens")
     public void setAllowQueryString(boolean allowQueryString) {
         this.allowQueryString = allowQueryString;
     }

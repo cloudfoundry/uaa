@@ -89,7 +89,7 @@ import static org.mockito.Mockito.when;
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
     private IdentityZone defaultZone;
-    private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
+    private CheckTokenEndpoint endpoint;
     private OAuth2Authentication authentication;
     private UaaTokenServices tokenServices;
     private InMemoryMultitenantClientServices clientDetailsService;
@@ -284,7 +284,6 @@ public class CheckTokenEndpointTests {
                 .setExpiresAt(thirtySecondsAhead)
                 .setStatus(ApprovalStatus.APPROVED)
                 .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
-        endpoint.setTimeService(timeService);
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =
@@ -317,7 +316,8 @@ public class CheckTokenEndpointTests {
                 approvalService);
 
         resetAndMockUserDatabase(userId, user);
-        endpoint.setTokenServices(tokenServices);
+
+        endpoint = new CheckTokenEndpoint(tokenServices, timeService);
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
