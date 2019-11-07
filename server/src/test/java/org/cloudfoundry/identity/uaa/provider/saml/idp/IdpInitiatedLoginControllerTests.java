@@ -72,18 +72,16 @@ public class IdpInitiatedLoginControllerTests {
 
     @Before
     public void setUp() {
-        controller = spy(new IdpInitiatedLoginController());
         configurator = mock(SamlServiceProviderConfigurator.class);
-        controller.setConfigurator(configurator);
         contextProvider = mock(SAMLContextProvider.class);
-        controller.setContextProvider(contextProvider);
         metadataManager = mock(MetadataManager.class);
-        controller.setMetadataManager(metadataManager);
         idpSamlAuthenticationSuccessHandler = mock(IdpSamlAuthenticationSuccessHandler.class);
-        controller.setIdpSamlAuthenticationSuccessHandler(idpSamlAuthenticationSuccessHandler);
         webSsoProfile = mock(IdpWebSsoProfile.class);
-        controller.setIdpWebSsoProfile(webSsoProfile);
         authentication = mock(UaaAuthentication.class);
+
+        controller = spy(new IdpInitiatedLoginController(webSsoProfile,
+                metadataManager, configurator, contextProvider, idpSamlAuthenticationSuccessHandler));
+
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         SecurityContextHolder.getContext().setAuthentication(authentication);

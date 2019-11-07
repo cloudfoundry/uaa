@@ -29,6 +29,7 @@ import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.signature.SignatureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -54,11 +55,23 @@ public class IdpInitiatedLoginController {
 
     private static final Logger log = LoggerFactory.getLogger(IdpInitiatedLoginController.class);
 
-    private IdpWebSsoProfile idpWebSsoProfile;
-    private MetadataManager metadataManager;
-    private SamlServiceProviderConfigurator configurator;
-    private SAMLContextProvider contextProvider;
-    private IdpSamlAuthenticationSuccessHandler idpSamlAuthenticationSuccessHandler;
+    private final IdpWebSsoProfile idpWebSsoProfile;
+    private final MetadataManager metadataManager;
+    private final SamlServiceProviderConfigurator configurator;
+    private final SAMLContextProvider contextProvider;
+    private final IdpSamlAuthenticationSuccessHandler idpSamlAuthenticationSuccessHandler;
+
+    public IdpInitiatedLoginController(IdpWebSsoProfile idpWebSsoProfile,
+                                       @Qualifier("idpMetadataManager") MetadataManager metadataManager,
+                                       SamlServiceProviderConfigurator configurator,
+                                       @Qualifier("idpContextProvider") SAMLContextProvider contextProvider,
+                                       IdpSamlAuthenticationSuccessHandler idpSamlAuthenticationSuccessHandler) {
+        this.idpWebSsoProfile = idpWebSsoProfile;
+        this.metadataManager = metadataManager;
+        this.configurator = configurator;
+        this.contextProvider = contextProvider;
+        this.idpSamlAuthenticationSuccessHandler = idpSamlAuthenticationSuccessHandler;
+    }
 
     @RequestMapping("/saml/idp/initiate")
     public void initiate(@RequestParam(value = "sp", required = false) String sp,
@@ -133,27 +146,6 @@ public class IdpInitiatedLoginController {
         options.setAssertionsSigned(false);
         return options;
     }
-
-    public void setIdpWebSsoProfile(IdpWebSsoProfile idpWebSsoProfile) {
-        this.idpWebSsoProfile = idpWebSsoProfile;
-    }
-
-    public void setMetadataManager(MetadataManager metadataManager) {
-        this.metadataManager = metadataManager;
-    }
-
-    public void setConfigurator(SamlServiceProviderConfigurator configurator) {
-        this.configurator = configurator;
-    }
-
-    public void setContextProvider(SAMLContextProvider contextProvider) {
-        this.contextProvider = contextProvider;
-    }
-
-    public void setIdpSamlAuthenticationSuccessHandler(IdpSamlAuthenticationSuccessHandler idpSamlAuthenticationSuccessHandler) {
-        this.idpSamlAuthenticationSuccessHandler = idpSamlAuthenticationSuccessHandler;
-    }
-
 
     @ExceptionHandler
     public String handleException(AuthenticationException ae, HttpServletRequest request, HttpServletResponse response) {
