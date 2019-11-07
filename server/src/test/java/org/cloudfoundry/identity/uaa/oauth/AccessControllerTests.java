@@ -9,7 +9,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -31,34 +32,38 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AccessControllerTests {
+class AccessControllerTests {
 
-    private AccessController controller = new AccessController();
+    private AccessController controller;
+    private BaseClientDetails client;
 
-    @Test
-    public void testSunnyDay() {
+    @BeforeEach
+    void setUp() {
+        client = new BaseClientDetails();
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
-        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
+        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
+
+        controller = new AccessController();
         controller.setClientDetailsService(clientDetailsService);
         controller.setApprovalStore(mock(ApprovalStore.class));
+    }
+
+    @Test
+    void testSunnyDay() {
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         String result = controller.confirm(new ModelMap(), new MockHttpServletRequest(), auth,
-                        new SimpleSessionStatus());
+                new SimpleSessionStatus());
         assertEquals("access_confirmation", result);
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testSchemePreserved() {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
-        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client", new BaseClientDetails()));
-        controller.setClientDetailsService(clientDetailsService);
-        controller.setApprovalStore(mock(ApprovalStore.class));
+    void testSchemePreserved() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("https");
         request.addHeader("Host", "foo");
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new AuthorizationRequest("client", null));
+        model.put("authorizationRequest", new AuthorizationRequest("client-id", null));
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         controller.confirm(model, request, auth, new SimpleSessionStatus());
         Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
@@ -67,14 +72,9 @@ public class AccessControllerTests {
     }
 
     @Test
-    public void testClientDisplayName() {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
-        BaseClientDetails client = new BaseClientDetails();
+    void testClientDisplayName() {
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
-        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
-        controller.setClientDetailsService(clientDetailsService);
 
-        controller.setApprovalStore(mock(ApprovalStore.class));
 
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 
@@ -87,41 +87,36 @@ public class AccessControllerTests {
     }
 
     @Test
-    public void approvedScopes_doNotShowUpForApproval() throws Exception {
-        performAutoApprovedScopeTest(Arrays.asList("resource.scope1","resource.scope2"));
+    void approvedScopes_doNotShowUpForApproval() throws Exception {
+        performAutoApprovedScopeTest(Arrays.asList("resource.scope1", "resource.scope2"));
     }
 
     @Test
-    public void approvedScopes_doNotShowUpForApproval_ifAutoApprovedHasTrue() throws Exception {
+    void approvedScopes_doNotShowUpForApproval_ifAutoApprovedHasTrue() throws Exception {
         performAutoApprovedScopeTest(Collections.singletonList("true"));
     }
 
     private void performAutoApprovedScopeTest(List<String> autoApprovedScopes) {
-        InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
-        BaseClientDetails client = new BaseClientDetails();
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
         client.setAutoApproveScopes(autoApprovedScopes);
-        client.setScope(Arrays.asList("resource.scope1","resource.scope2"));
-        clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
+        client.setScope(Arrays.asList("resource.scope1", "resource.scope2"));
 
         ScimGroupProvisioning provisioning = mock(JdbcScimGroupProvisioning.class);
         ScimGroup scimGroup1 = new ScimGroup("resource.scope1");
         ScimGroup scimGroup2 = new ScimGroup("resource.scope2");
         when(provisioning.query(any(), any()))
-            .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup1)))
-            .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup2)));
-        controller.setClientDetailsService(clientDetailsService);
+                .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup1)))
+                .thenReturn(new ArrayList<>(Collections.singletonList(scimGroup2)));
         controller.setGroupProvisioning(provisioning);
 
-        controller.setApprovalStore(mock(ApprovalStore.class));
 
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new AuthorizationRequest("client-id", Arrays.asList("resource.scope1","resource.scope2")));
+        model.put("authorizationRequest", new AuthorizationRequest("client-id", Arrays.asList("resource.scope1", "resource.scope2")));
 
         controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
-        List<Map<String,String>> undecidedScopeDetails = (List<Map<String, String>>) model.get("undecided_scopes");
+        List<Map<String, String>> undecidedScopeDetails = (List<Map<String, String>>) model.get("undecided_scopes");
         assertThat(undecidedScopeDetails, not(Matchers.hasItem(hasEntry("text", "resource.scope1"))));
         assertThat(undecidedScopeDetails, not(Matchers.hasItem(hasEntry("text", "resource.scope2"))));
     }
