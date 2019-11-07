@@ -21,37 +21,37 @@ class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void methodNotAllowedReturnsError_PUT() throws Exception {
         String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
         mockMvc.perform(
-            put("/oauth/token")
-                .param("client_id", CLIENTID)
-                .param("client_secret", CLIENTSECRET)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
-                .param("username", username)
-                .param("password", SECRET)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-                .param("response_type", "id_token")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_FORM_URLENCODED))
-            .andExpect(status().isMethodNotAllowed())
-            .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+                put("/oauth/token")
+                        .param("client_id", CLIENTID)
+                        .param("client_secret", CLIENTSECRET)
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                        .param("username", username)
+                        .param("password", SECRET)
+                        .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                        .param("response_type", "id_token")
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.error").value("method_not_allowed"))
+                .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
     }
 
     @Test
     void methodNotAllowedReturnsError_DELETE() throws Exception {
         String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
         mockMvc.perform(
-            delete("/oauth/token")
-                .param("client_id", CLIENTID)
-                .param("client_secret", CLIENTSECRET)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
-                .param("username", username)
-                .param("password", SECRET)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-                .param("response_type", "id_token")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_FORM_URLENCODED))
-            .andExpect(status().isMethodNotAllowed())
-            .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+                delete("/oauth/token")
+                        .param("client_id", CLIENTID)
+                        .param("client_secret", CLIENTSECRET)
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                        .param("username", username)
+                        .param("password", SECRET)
+                        .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                        .param("response_type", "id_token")
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.error").value("method_not_allowed"))
+                .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
     }
 }

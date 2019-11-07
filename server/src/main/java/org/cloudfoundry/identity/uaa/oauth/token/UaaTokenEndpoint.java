@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice;
@@ -38,7 +23,6 @@ import java.util.Set;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
-
 
 @Controller
 @RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
@@ -84,7 +68,6 @@ public class UaaTokenEndpoint extends TokenEndpoint {
     public void methodsNotAllowed(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         throw new HttpRequestMethodNotSupportedException(request.getMethod());
     }
-
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @Override
