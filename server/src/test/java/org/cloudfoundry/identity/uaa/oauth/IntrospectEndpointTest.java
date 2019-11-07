@@ -27,8 +27,7 @@ class IntrospectEndpointTest {
 
     @BeforeEach
     void setUp() {
-        introspectEndpoint = new IntrospectEndpoint();
-        introspectEndpoint.setTokenServices(resourceServerTokenServices);
+        introspectEndpoint = new IntrospectEndpoint(resourceServerTokenServices);
     }
 
     @Test

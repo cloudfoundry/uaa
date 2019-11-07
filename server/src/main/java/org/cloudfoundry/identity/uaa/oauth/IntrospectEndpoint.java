@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
@@ -22,7 +23,12 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 public class IntrospectEndpoint {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ResourceServerTokenServices resourceServerTokenServices;
+    private final ResourceServerTokenServices resourceServerTokenServices;
+
+    public IntrospectEndpoint(
+            final @Qualifier("tokenServices") ResourceServerTokenServices resourceServerTokenServices) {
+        this.resourceServerTokenServices = resourceServerTokenServices;
+    }
 
     @RequestMapping(value = "/introspect", method = POST)
     @ResponseBody
@@ -67,9 +73,5 @@ public class IntrospectEndpoint {
         }
 
         return claims;
-    }
-
-    public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
-        this.resourceServerTokenServices = resourceServerTokenServices;
     }
 }
