@@ -140,9 +140,6 @@
         <property name="tokenGranter"
                   ref="oauth2TokenGranter"/> <!--this bean created by <oauth:authorization-server/> -->
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
-        <property name="hybridTokenGranterForAuthCode" ref="hybridTokenGranterForAuthCodeGrant"/>
-        <property name="openIdSessionStateCalculator" ref="openIdSessionStateCalculator"/>
     </bean>
 
     <bean id="hybridTokenGranterForAuthCodeGrant"

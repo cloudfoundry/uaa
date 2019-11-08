@@ -35,6 +35,7 @@ import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
@@ -111,22 +112,28 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private final UserApprovalHandler userApprovalHandler;
     private final OAuth2RequestValidator oauth2RequestValidator;
     private final AuthorizationCodeServices authorizationCodeServices;
+    private final HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
+    private final OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     private final SessionAttributeStore sessionAttributeStore;
     private final Object implicitLock;
-
-    private HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
-    private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
     UaaAuthorizationEndpoint(
             final RedirectResolver redirectResolver,
             final @Qualifier("userManagedApprovalHandler") UserApprovalHandler userApprovalHandler,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oauth2RequestValidator,
-            final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices) {
+            final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices,
+            final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            final @Qualifier("hybridTokenGranterForAuthCodeGrant") HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode,
+            final @Qualifier("openIdSessionStateCalculator") OpenIdSessionStateCalculator openIdSessionStateCalculator) {
         this.redirectResolver = redirectResolver;
         this.userApprovalHandler = userApprovalHandler;
         this.oauth2RequestValidator = oauth2RequestValidator;
         this.authorizationCodeServices = authorizationCodeServices;
+        this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
+        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
+
+        super.setOAuth2RequestFactory(oAuth2RequestFactory);
 
         this.sessionAttributeStore = new DefaultSessionAttributeStore();
         this.implicitLock = new Object();
@@ -524,7 +531,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
                 case GRANT_TYPE_IMPLICIT:
                     return getTokenGranter().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
                 case GRANT_TYPE_AUTHORIZATION_CODE:
-                    return getHybridTokenGranterForAuthCode().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
+                    return hybridTokenGranterForAuthCode.grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
                 default:
                     throw new OAuth2Exception(OAuth2Exception.INVALID_GRANT);
             }
@@ -793,21 +800,5 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         super.setClientDetailsService(clientDetailsService);
-    }
-
-    public HybridTokenGranterForAuthorizationCode getHybridTokenGranterForAuthCode() {
-        return hybridTokenGranterForAuthCode;
-    }
-
-    public void setHybridTokenGranterForAuthCode(HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode) {
-        this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
-    }
-
-    public OpenIdSessionStateCalculator getOpenIdSessionStateCalculator() {
-        return openIdSessionStateCalculator;
-    }
-
-    public void setOpenIdSessionStateCalculator(OpenIdSessionStateCalculator openIdSessionStateCalculator) {
-        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
     }
 }

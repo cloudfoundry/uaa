@@ -58,14 +58,15 @@ public class UaaAuthorizationEndpointTest {
     public void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
+        openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
         uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(
                 null,
                 new DefaultUserApprovalHandler(),
                 null,
-                authorizationCodeServices);
-        uaaAuthorizationEndpoint.setOAuth2RequestFactory(oAuth2RequestFactory);
-        openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
-        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
+                authorizationCodeServices,
+                oAuth2RequestFactory,
+                null,
+                openIdSessionStateCalculator);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
