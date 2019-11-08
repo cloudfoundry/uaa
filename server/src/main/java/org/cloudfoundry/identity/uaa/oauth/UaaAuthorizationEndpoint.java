@@ -97,35 +97,33 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_
  * https://github.com/fhanik/spring-security-oauth/compare/feature/extendable-redirect-generator?expand=1
  */
 @Controller
-@SessionAttributes({UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST})
+@SessionAttributes({
+        UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST,
+        UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST
+})
 public class UaaAuthorizationEndpoint extends AbstractEndpoint implements AuthenticationEntryPoint {
 
     static final String AUTHORIZATION_REQUEST = "authorizationRequest";
     static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
-    private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
+    private static final String userApprovalPage = "forward:/oauth/confirm_access";
+    private static final String errorPage = "forward:/oauth/error";
+    private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
 
     private final RedirectResolver redirectResolver;
+    private final Object implicitLock;
+    private final SessionAttributeStore sessionAttributeStore;
 
+    private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
     private UserApprovalHandler userApprovalHandler = new DefaultUserApprovalHandler();
-
-    private SessionAttributeStore sessionAttributeStore = new DefaultSessionAttributeStore();
-
     private OAuth2RequestValidator oauth2RequestValidator = new DefaultOAuth2RequestValidator();
-
-    private String userApprovalPage = "forward:/oauth/confirm_access";
-
-    private String errorPage = "forward:/oauth/error";
-
-    private Object implicitLock = new Object();
-
     private HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
-
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
-
-    private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
 
     UaaAuthorizationEndpoint(final RedirectResolver redirectResolver) {
         this.redirectResolver = redirectResolver;
+
+        this.sessionAttributeStore = new DefaultSessionAttributeStore();
+        this.implicitLock = new Object();
     }
 
     @RequestMapping(value = "/oauth/authorize")
@@ -139,7 +137,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String clientId;
         try {
             clientId = parameters.get("client_id");
-            client = getClientServiceExtention().loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            client = loadClientByClientId(clientId);
         } catch (NoSuchClientException x) {
             throw new InvalidClientException(x.getMessage());
         }
@@ -258,7 +256,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         ClientDetails client;
         try {
-            client = getClientServiceExtention().loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            client = loadClientByClientId(clientId);
         } catch (ClientRegistrationException e) {
             logger.debug("[prompt=none] Unable to look up client for client_id=" + clientId, e);
             response.setStatus(HttpStatus.BAD_REQUEST.value());
@@ -698,10 +696,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     }
 
-    public void setUserApprovalPage(String userApprovalPage) {
-        this.userApprovalPage = userApprovalPage;
-    }
-
     public void setAuthorizationCodeServices(AuthorizationCodeServices authorizationCodeServices) {
         this.authorizationCodeServices = authorizationCodeServices;
     }
@@ -759,7 +753,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             String requestedRedirect =
                     redirectResolver.resolveRedirect(
                             requestedRedirectParam,
-                            getClientServiceExtention().loadClientByClientId(authorizationRequest.getClientId(), IdentityZoneHolder.get().getId()));
+                            loadClientByClientId(authorizationRequest.getClientId()));
             authorizationRequest.setRedirectUri(requestedRedirect);
             String redirect = getUnsuccessfulRedirect(authorizationRequest, translate.getBody(), authorizationRequest
                     .getResponseTypes().contains("token"));
@@ -770,7 +764,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             // response.
             return new ModelAndView(errorPage, Collections.singletonMap("error", translate.getBody()));
         }
-
     }
 
     private AuthorizationRequest getAuthorizationRequestForError(ServletWebRequest webRequest) {
@@ -799,10 +792,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     }
 
-    protected MultitenantClientServices getClientServiceExtention() {
-        return (MultitenantClientServices) super.getClientDetailsService();
+    private ClientDetails loadClientByClientId(String clientId) {
+        return ((MultitenantClientServices) super.getClientDetailsService())
+                .loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
     }
-
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         super.setClientDetailsService(clientDetailsService);
@@ -815,15 +808,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     public void setHybridTokenGranterForAuthCode(HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode) {
         this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
     }
-
-    public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {
-        this.sessionAttributeStore = sessionAttributeStore;
-    }
-
-    public void setErrorPage(String errorPage) {
-        this.errorPage = errorPage;
-    }
-
 
     public OpenIdSessionStateCalculator getOpenIdSessionStateCalculator() {
         return openIdSessionStateCalculator;
