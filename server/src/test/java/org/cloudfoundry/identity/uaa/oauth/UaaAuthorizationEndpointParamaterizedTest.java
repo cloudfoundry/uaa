@@ -75,7 +75,11 @@ public class UaaAuthorizationEndpointParamaterizedTest {
         when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(null));
         when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionstate.salt");
 
-        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(redirectResolver);
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(
+                redirectResolver,
+                null,
+                null,
+                null);
         uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
         uaaAuthorizationEndpoint.setClientDetailsService(clientDetailsService);
 

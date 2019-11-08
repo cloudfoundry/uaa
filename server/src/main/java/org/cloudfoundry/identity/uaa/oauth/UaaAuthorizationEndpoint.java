@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,14 +37,11 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
-import org.springframework.security.oauth2.provider.code.InMemoryAuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.endpoint.AbstractEndpoint;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.oauth2.provider.implicit.ImplicitTokenRequest;
-import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestValidator;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
@@ -110,17 +108,25 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
 
     private final RedirectResolver redirectResolver;
-    private final Object implicitLock;
-    private final SessionAttributeStore sessionAttributeStore;
+    private final UserApprovalHandler userApprovalHandler;
+    private final OAuth2RequestValidator oauth2RequestValidator;
+    private final AuthorizationCodeServices authorizationCodeServices;
 
-    private AuthorizationCodeServices authorizationCodeServices = new InMemoryAuthorizationCodeServices();
-    private UserApprovalHandler userApprovalHandler = new DefaultUserApprovalHandler();
-    private OAuth2RequestValidator oauth2RequestValidator = new DefaultOAuth2RequestValidator();
+    private final SessionAttributeStore sessionAttributeStore;
+    private final Object implicitLock;
+
     private HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
 
-    UaaAuthorizationEndpoint(final RedirectResolver redirectResolver) {
+    UaaAuthorizationEndpoint(
+            final RedirectResolver redirectResolver,
+            final @Qualifier("userManagedApprovalHandler") UserApprovalHandler userApprovalHandler,
+            final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oauth2RequestValidator,
+            final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices) {
         this.redirectResolver = redirectResolver;
+        this.userApprovalHandler = userApprovalHandler;
+        this.oauth2RequestValidator = oauth2RequestValidator;
+        this.authorizationCodeServices = authorizationCodeServices;
 
         this.sessionAttributeStore = new DefaultSessionAttributeStore();
         this.implicitLock = new Object();
@@ -694,18 +700,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         return template.build(true).toUriString();
 
-    }
-
-    public void setAuthorizationCodeServices(AuthorizationCodeServices authorizationCodeServices) {
-        this.authorizationCodeServices = authorizationCodeServices;
-    }
-
-    public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {
-        this.userApprovalHandler = userApprovalHandler;
-    }
-
-    public void setOAuth2RequestValidator(OAuth2RequestValidator oauth2RequestValidator) {
-        this.oauth2RequestValidator = oauth2RequestValidator;
     }
 
     @SuppressWarnings("deprecation")

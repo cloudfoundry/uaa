@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
@@ -56,18 +57,20 @@ public class UaaAuthorizationEndpointTest {
     @Before
     public void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
-        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(null);
-        uaaAuthorizationEndpoint.setOAuth2RequestFactory(oAuth2RequestFactory);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(
+                null,
+                new DefaultUserApprovalHandler(),
+                null,
+                authorizationCodeServices);
+        uaaAuthorizationEndpoint.setOAuth2RequestFactory(oAuth2RequestFactory);
         openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
-        uaaAuthorizationEndpoint.setAuthorizationCodeServices(authorizationCodeServices);
         uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
         when(authorizationCodeServices.createAuthorizationCode(any(OAuth2Authentication.class))).thenReturn("code");
     }
-
 
     @Test
     public void testGetGrantType_id_token_only_is_implicit() {
