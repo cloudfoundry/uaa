@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.httpclient.util.URIUtil;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -18,10 +19,28 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
-import org.cloudfoundry.identity.uaa.oauth.token.*;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -30,11 +49,17 @@ import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -53,6 +78,8 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -69,7 +96,20 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils.getClaimsForToken;
@@ -79,32 +119,67 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInt
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.*;
-import static org.springframework.http.HttpHeaders.*;
-import static org.springframework.http.MediaType.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.HOST;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.*;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private String BADSECRET = "badsecret";
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private static SamlTestUtils samlTestUtils = new SamlTestUtils();
-    private boolean allowQueryString;
 
     @BeforeAll
     static void initializeSamlUtils() {
@@ -114,13 +189,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @BeforeEach
     void setup() {
         webApplicationContext.getEnvironment();
-        allowQueryString = webApplicationContext.getBean(UaaTokenEndpoint.class).isAllowQueryString();
         IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
-    }
-
-    @AfterEach
-    void resetAllowQueryString() {
-        webApplicationContext.getBean(UaaTokenEndpoint.class).setAllowQueryString(allowQueryString);
     }
 
     @AfterEach
@@ -134,13 +203,59 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         try_token_with_non_post(get("/oauth/token"), status().isOk(), APPLICATION_JSON_UTF8_VALUE);
     }
 
-    @Test
-    void token_endpoint_get() throws Exception {
-        webApplicationContext.getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
-        try_token_with_non_post(get("/oauth/token"), status().isMethodNotAllowed(), APPLICATION_JSON_VALUE)
-                .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = {
+            "jwt.token.queryString.enabled=false"
+    })
+    class WithDisallowedQueryString {
 
+        @Autowired
+        private MockMvc mockMvc;
+
+        private String username;
+
+        @BeforeEach
+        void setUp(
+                final @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning,
+                final @Autowired JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager,
+                final @Autowired JdbcScimGroupProvisioning jdbcScimGroupProvisioning) {
+            username = createUserForPasswordGrant(
+                    jdbcScimUserProvisioning,
+                    jdbcScimGroupMembershipManager,
+                    jdbcScimGroupProvisioning,
+                    generator);
+        }
+
+        @Test
+        void token_endpoint_get() throws Exception {
+            mockMvc.perform(
+                    get("/oauth/token")
+                            .param("client_id", "cf")
+                            .param("client_secret", "")
+                            .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                            .param("username", username)
+                            .param("password", SECRET)
+                            .accept(APPLICATION_JSON)
+                            .contentType(APPLICATION_FORM_URLENCODED))
+                    .andDo(print())
+                    .andExpect(status().isMethodNotAllowed())
+                    .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE))
+                    .andExpect(jsonPath("$.error").value("method_not_allowed"))
+                    .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+        }
+
+        @Test
+        void token_endpoint_post_query_string() throws Exception {
+            mockMvc.perform(
+                    post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
+                            .accept(APPLICATION_JSON)
+                            .contentType(APPLICATION_FORM_URLENCODED))
+                    .andExpect(status().isNotAcceptable())
+                    .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE))
+                    .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
+                    .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
+        }
     }
 
     @Test
@@ -173,21 +288,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void token_endpoint_post_query_string() throws Exception {
-        webApplicationContext.getBean(UaaTokenEndpoint.class).setAllowQueryString(false);
-        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
-
-        mockMvc.perform(
-                post("/oauth/token?client_id=cf&client_secret=&grant_type=password&username={username}&password=secret", username)
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isNotAcceptable())
-                .andExpect(header().string(CONTENT_TYPE, APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
 
     @Test

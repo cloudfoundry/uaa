@@ -10,8 +10,6 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
@@ -31,29 +29,26 @@ import static org.springframework.http.HttpMethod.POST;
 
 class UaaTokenEndpointTests {
 
-    private HashSet<HttpMethod> allowedRequestMethods;
     private UaaTokenEndpoint endpoint;
 
-    private ResponseEntity response;
+    private ResponseEntity mockResponseEntity;
 
     @BeforeEach
     void setup() {
-        allowedRequestMethods = new HashSet<>(Arrays.asList(POST, GET));
-        endpoint = spy(new UaaTokenEndpoint(null, null, null, null));
-        endpoint.setAllowedRequestMethods(allowedRequestMethods);
-        response = mock(ResponseEntity.class);
+        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, null));
+        mockResponseEntity = mock(ResponseEntity.class);
     }
 
     @Test
     void allowsGetByDefault() throws Exception {
-        doReturn(response).when(endpoint).postAccessToken(any(), any());
+        doReturn(mockResponseEntity).when(endpoint).postAccessToken(any(), any());
         ResponseEntity<OAuth2AccessToken> result = endpoint.doDelegateGet(mock(Principal.class), emptyMap());
-        assertSame(response, result);
+        assertSame(mockResponseEntity, result);
     }
 
     @Test
     void getIsDisabled() throws Exception {
-        endpoint.setAllowQueryString(false);
+        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, false));
         ResponseEntity response = mock(ResponseEntity.class);
         doReturn(response).when(endpoint).postAccessToken(any(), any());
         assertThrows(HttpRequestMethodNotSupportedException.class,
@@ -64,9 +59,9 @@ class UaaTokenEndpointTests {
     void postAllowsQueryStringByDefault() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getQueryString()).thenReturn("some-parameter=some-value");
-        doReturn(response).when(endpoint).postAccessToken(any(), any());
+        doReturn(mockResponseEntity).when(endpoint).postAccessToken(any(), any());
         ResponseEntity<OAuth2AccessToken> result = endpoint.doDelegatePost(mock(Principal.class), emptyMap(), request);
-        assertSame(response, result);
+        assertSame(mockResponseEntity, result);
     }
 
     @Test
@@ -79,9 +74,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsSuperMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null);
-        endpoint.setAllowedRequestMethods(allowedRequestMethods);
-        endpoint.setAllowQueryString(false);
+        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null, false);
 
         HttpRequestMethodNotSupportedException e =
                 assertThrows(
@@ -92,9 +85,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsOverrideMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null);
-        endpoint.setAllowedRequestMethods(allowedRequestMethods);
-        endpoint.setAllowQueryString(false);
+        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null, false);
 
         HttpRequestMethodNotSupportedException e =
                 assertThrows(
