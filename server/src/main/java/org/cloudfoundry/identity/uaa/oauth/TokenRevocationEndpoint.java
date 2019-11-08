@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -42,17 +43,26 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
-    private final ScimUserProvisioning userProvisioning;
+
     private final MultitenantJdbcClientDetailsService clientDetailsService;
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private final ScimUserProvisioning userProvisioning;
     private final RevocableTokenProvisioning tokenProvisioning;
+
+    private final WebResponseExceptionTranslator exceptionTranslator;
+    private final RandomValueStringGenerator generator;
+
     private ApplicationEventPublisher eventPublisher;
 
-    public TokenRevocationEndpoint(MultitenantJdbcClientDetailsService clientDetailsService, ScimUserProvisioning userProvisioning, RevocableTokenProvisioning tokenProvisioning) {
+    public TokenRevocationEndpoint(
+            final @Qualifier("jdbcClientDetailsService") MultitenantJdbcClientDetailsService clientDetailsService,
+            final @Qualifier("scimUserProvisioning") ScimUserProvisioning userProvisioning,
+            final @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning tokenProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.userProvisioning = userProvisioning;
         this.tokenProvisioning = tokenProvisioning;
+
+        this.exceptionTranslator = new DefaultWebResponseExceptionTranslator();
+        this.generator = new RandomValueStringGenerator(8);
     }
 
     @RequestMapping("/oauth/token/revoke/user/{userId}")
