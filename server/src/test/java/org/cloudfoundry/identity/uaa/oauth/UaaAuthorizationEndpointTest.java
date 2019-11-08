@@ -21,7 +21,13 @@ import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
@@ -178,7 +184,7 @@ public class UaaAuthorizationEndpointTest {
         View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
         assertThat(view, notNullValue());
         assertThat(view, instanceOf(RedirectView.class));
-        assertThat(((RedirectView)view).getUrl(), not(containsString("error=invalid_scope")));
+        assertThat(((RedirectView) view).getUrl(), not(containsString("error=invalid_scope")));
     }
 
     @Test(expected = InvalidRequestException.class)
@@ -188,7 +194,7 @@ public class UaaAuthorizationEndpointTest {
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
 
-        authorizationRequest.setScope(Arrays.asList("read", "write"));		// Modify authorization request
+        authorizationRequest.setScope(Arrays.asList("read", "write"));        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -201,7 +207,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setClientId("bar");		// Modify authorization request
+        authorizationRequest.setClientId("bar");        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -214,7 +220,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setState("state-5678");		// Modify authorization request
+        authorizationRequest.setState("state-5678");        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -227,7 +233,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setRedirectUri("http://somewhere.com");		// Modify authorization request
+        authorizationRequest.setRedirectUri("http://somewhere.com");        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -240,7 +246,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setResponseTypes(Collections.singleton("implicit"));		// Modify authorization request
+        authorizationRequest.setResponseTypes(Collections.singleton("implicit"));        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -254,7 +260,7 @@ public class UaaAuthorizationEndpointTest {
         authorizationRequest.setApproved(false);
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setApproved(true);		// Modify authorization request
+        authorizationRequest.setApproved(true);        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -267,7 +273,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setResourceIds(Collections.singleton("resource-other"));		// Modify authorization request
+        authorizationRequest.setResourceIds(Collections.singleton("resource-other"));        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -280,7 +286,7 @@ public class UaaAuthorizationEndpointTest {
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put("authorizationRequest", authorizationRequest);
         model.put("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));		// Modify authorization request
+        authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));        // Modify authorization request
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
 
@@ -302,7 +308,7 @@ public class UaaAuthorizationEndpointTest {
         View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
 
         assertThat(view, instanceOf(RedirectView.class));
-        assertThat(((RedirectView)view).getUrl(), containsString("error=invalid_scope"));
+        assertThat(((RedirectView) view).getUrl(), containsString("error=invalid_scope"));
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
