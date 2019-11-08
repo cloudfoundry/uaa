@@ -64,9 +64,11 @@ public class UaaAuthorizationEndpointTest {
                 new DefaultUserApprovalHandler(),
                 null,
                 authorizationCodeServices,
+                null,
+                openIdSessionStateCalculator,
                 oAuth2RequestFactory,
                 null,
-                openIdSessionStateCalculator);
+                null);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");

@@ -37,6 +37,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
+import org.springframework.security.oauth2.provider.TokenGranter;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
@@ -118,14 +119,19 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private final SessionAttributeStore sessionAttributeStore;
     private final Object implicitLock;
 
+    /**
+     * @param tokenGranter created by <oauth:authorization-server/>
+     */
     UaaAuthorizationEndpoint(
             final RedirectResolver redirectResolver,
             final @Qualifier("userManagedApprovalHandler") UserApprovalHandler userApprovalHandler,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oauth2RequestValidator,
             final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices,
-            final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
             final @Qualifier("hybridTokenGranterForAuthCodeGrant") HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode,
-            final @Qualifier("openIdSessionStateCalculator") OpenIdSessionStateCalculator openIdSessionStateCalculator) {
+            final @Qualifier("openIdSessionStateCalculator") OpenIdSessionStateCalculator openIdSessionStateCalculator,
+            final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter) {
         this.redirectResolver = redirectResolver;
         this.userApprovalHandler = userApprovalHandler;
         this.oauth2RequestValidator = oauth2RequestValidator;
@@ -134,6 +140,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         this.openIdSessionStateCalculator = openIdSessionStateCalculator;
 
         super.setOAuth2RequestFactory(oAuth2RequestFactory);
+        super.setClientDetailsService(clientDetailsService);
+        super.setTokenGranter(tokenGranter);
 
         this.sessionAttributeStore = new DefaultSessionAttributeStore();
         this.implicitLock = new Object();
@@ -796,9 +804,5 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private ClientDetails loadClientByClientId(String clientId) {
         return ((MultitenantClientServices) super.getClientDetailsService())
                 .loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-    }
-
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
-        super.setClientDetailsService(clientDetailsService);
     }
 }
