@@ -132,9 +132,7 @@
         </property>
     </bean>
 
-    <bean id="uaaTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint">
-        <property name="allowQueryString" ref="allowQueryStringForTokens"/>
-    </bean>
+    <bean id="uaaTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint" />
 
     <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint" />
 
