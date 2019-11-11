@@ -5,7 +5,6 @@ ext {
 
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.2.0"
-ext["jackson.version"] = "2.10.0" //Can be removed when we bump to spring boot 2.2.0
 ext["flyway.version"] = "5.2.4"
 
 def versions = [:]
