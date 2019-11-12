@@ -511,7 +511,7 @@
     <dependency>
       <groupId>org.springframework.security.extensions</groupId>
       <artifactId>spring-security-saml2-core</artifactId>
-      <version>1.0.9.RELEASE</version>
+      <version>1.0.10.RELEASE</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
