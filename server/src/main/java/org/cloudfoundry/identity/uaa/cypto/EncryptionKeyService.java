@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
 import org.apache.directory.api.util.Strings;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,11 +16,20 @@ public class EncryptionKeyService {
     private final List<EncryptionKey> encryptionKeys;
 
     public EncryptionKeyService(String activeKeyLabel, List<EncryptionKey> encryptionKeys) {
-        if (Strings.isEmpty(activeKeyLabel)) {
+        this(new EncryptionProperties(activeKeyLabel, encryptionKeys));
+    }
+
+    @Autowired
+    public EncryptionKeyService(
+            final EncryptionProperties encryptionProperties
+    ) {
+        if (Strings.isEmpty(encryptionProperties.getActiveKeyLabel())) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
             );
         }
+
+        this.encryptionKeys = encryptionProperties.getEncryptionKeys();
 
         List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream().filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase())).collect(Collectors.toList());
         if (!keysWithoutPassphrase.isEmpty()) {
@@ -56,14 +66,13 @@ public class EncryptionKeyService {
             );
         }
 
-        this.encryptionKeys = encryptionKeys;
-        activeKey =
+        this.activeKey =
           encryptionKeys.stream()
-            .filter(v -> v.getLabel().equals(activeKeyLabel))
+            .filter(v -> v.getLabel().equals(encryptionProperties.getActiveKeyLabel()))
             .findFirst()
             .orElseGet(() -> {
                 throw new NoActiveEncryptionKeyProvided(
-                  String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel)
+                  String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", encryptionProperties.getActiveKeyLabel())
                 );
             });
     }

@@ -188,8 +188,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints"/>
-
     <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
           pattern="/password_*" xmlns="http://www.springframework.org/schema/security" use-expressions="true">
