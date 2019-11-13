@@ -25,7 +25,6 @@
             <param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.spring</param-value>
         </init-param>
     </filter>
-    
     <filter>
         <filter-name>backwardsCompatibleScopeParameter</filter-name>
         <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>

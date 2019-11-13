@@ -4,7 +4,8 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ImportResource;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.security.web.FilterChainProxy;
@@ -34,8 +35,10 @@ import java.lang.annotation.Target;
 public @interface DefaultTestContext {
 }
 
-@ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml"})
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
+@ComponentScan(excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = WebConfiguration.class),
+})
 class SpringServletTestConfig {
     @Bean
     public static PropertySourcesPlaceholderConfigurer properties() {
@@ -46,7 +49,7 @@ class SpringServletTestConfig {
 class TestClientAndMockMvcTestConfig {
     @Bean
     public MockMvc mockMvc(
-            WebApplicationContext webApplicationContext,
+            final WebApplicationContext webApplicationContext,
             @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") FilterChainProxy springSecurityFilterChain
     ) {
         return MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -56,7 +59,7 @@ class TestClientAndMockMvcTestConfig {
 
     @Bean
     public TestClient testClient(
-            MockMvc mockMvc
+            final MockMvc mockMvc
     ) {
         return new TestClient(mockMvc);
     }

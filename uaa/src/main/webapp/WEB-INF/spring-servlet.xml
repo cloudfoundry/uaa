@@ -12,7 +12,6 @@
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <context:annotation-config />
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>

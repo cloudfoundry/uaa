@@ -1,0 +1,13 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  http:
+    encoding:
+      enabled: false
+  mvc:
+    formcontent:
+      filter:
+        enabled: false
+    hiddenmethod:
+      filter:
+        enabled: false

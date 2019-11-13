@@ -6,8 +6,6 @@
         http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <sec:global-method-security pre-post-annotations="enabled"/>
-
     <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore">
         <constructor-arg ref="jdbcTemplate"/>
     </bean>

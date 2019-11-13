@@ -6,11 +6,15 @@
         xmlns:mvc="http://www.springframework.org/schema/mvc"
         xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
         xmlns:util="http://www.springframework.org/schema/util"
+        xmlns:context="http://www.springframework.org/schema/context"
         xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
     http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
     http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
     http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
+    http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
     http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd">
+
+    <context:annotation-config />
 
     <authentication-manager xmlns="http://www.springframework.org/schema/security"/>
 
@@ -425,8 +429,6 @@
     <!-- Handler deciding where to redirect user after successful login -->
     <bean id="successRedirectHandler"
           class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
-
-    <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
     <mvc:resources mapping="/resources/**" location="/resources/"/>
     <mvc:default-servlet-handler/>
