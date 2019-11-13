@@ -6,16 +6,13 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
 import org.cloudfoundry.identity.uaa.extensions.SystemPropertiesCleanupExtension;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -23,29 +20,22 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import java.io.File;
 import java.net.URI;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -60,8 +50,6 @@ class YamlServletProfileInitializerTest {
     private ConfigurableWebApplicationContext mockConfigurableWebApplicationContext;
     @Mock
     private ServletConfig mockServletConfig;
-    @Mock
-    private ServletContext mockServletContext;
 
     @RegisterExtension
     @SuppressWarnings("unused")
@@ -76,7 +64,6 @@ class YamlServletProfileInitializerTest {
         environment = new StandardServletEnvironment();
 
         when(mockConfigurableWebApplicationContext.getServletConfig()).thenReturn(mockServletConfig);
-        when(mockConfigurableWebApplicationContext.getServletContext()).thenReturn(mockServletContext);
         when(mockConfigurableWebApplicationContext.getEnvironment()).thenReturn(environment);
         when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(null);
     }
@@ -90,18 +77,6 @@ class YamlServletProfileInitializerTest {
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
-    }
-
-    @Test
-    void loadSessionEventPublisher() {
-        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
-                new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
-
-        initializer.initialize(mockConfigurableWebApplicationContext);
-
-        ArgumentCaptor<HttpSessionEventPublisher> httpSessionEventPublisherArgumentCaptor = ArgumentCaptor.forClass(HttpSessionEventPublisher.class);
-        verify(mockServletContext, atLeastOnce()).addListener(httpSessionEventPublisherArgumentCaptor.capture());
-        assertNotNull(httpSessionEventPublisherArgumentCaptor.getValue());
     }
 
     @Test
@@ -230,7 +205,6 @@ class YamlServletProfileInitializerTest {
     void ignoreDashDTomcatLoggingConfigVariable() {
         final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
         System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
-        ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
         environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
@@ -255,14 +229,6 @@ class YamlServletProfileInitializerTest {
         });
         initializer.initialize(mockConfigurableWebApplicationContext);
         assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
-        Mockito.verify(mockServletContext, atLeastOnce()).log(servletLogCaptor.capture());
-        boolean logEntryFound = false;
-        for (String s : servletLogCaptor.getAllValues()) {
-            if (s.startsWith("Ignoring Log Config Location") && s.contains("Tomcat startup script environment variable")) {
-                logEntryFound = true;
-            }
-        }
-        assertTrue("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found.", logEntryFound);
     }
 
     @ExtendWith(PollutionPreventionExtension.class)
@@ -280,13 +246,11 @@ class YamlServletProfileInitializerTest {
                 "spring.profiles.active");
 
         private MockEnvironment environment;
-        private MockServletContext context;
 
         @BeforeEach
         void setup() {
             initializer = new YamlServletProfileInitializer();
             environment = new MockEnvironment();
-            context = new MockServletContext();
             reset(mockConfigurableWebApplicationContext);
         }
 
@@ -307,21 +271,21 @@ class YamlServletProfileInitializerTest {
         @Test
         void ifNoProfilesAreSetUseHsqldb() {
             System.clearProperty("spring.profiles.active");
-            initializer.applySpringProfiles(environment, context);
+            initializer.applySpringProfiles(environment);
             assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
         }
 
         @Test
         void ifProfilesAreSetUseThem() {
             System.setProperty("spring.profiles.active", "hsqldb,default");
-            initializer.applySpringProfiles(environment, context);
+            initializer.applySpringProfiles(environment);
             assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
         }
 
         @Test
         void defaultProfileUnset() {
             System.setProperty("spring.profiles.active", "hsqldb");
-            initializer.applySpringProfiles(environment, context);
+            initializer.applySpringProfiles(environment);
             assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
             assertArrayEquals(new String[0], environment.getDefaultProfiles());
         }
@@ -330,7 +294,7 @@ class YamlServletProfileInitializerTest {
         void yamlConfiguredProfilesAreUsed() {
             System.setProperty("spring.profiles.active", "hsqldb,default");
             environment.setProperty("spring_profiles", "mysql,default");
-            initializer.applySpringProfiles(environment, context);
+            initializer.applySpringProfiles(environment);
             assertArrayEquals(new String[]{"mysql", "default"}, environment.getActiveProfiles());
         }
     }

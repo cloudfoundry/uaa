@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -137,6 +138,7 @@ abstract class BaseSamlServiceProviderEndpointsMockMvcTests {
                 zoneSwitching,
                 zone,
                 delete)
+                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("Provider not found."));
     }

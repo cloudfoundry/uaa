@@ -19,6 +19,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -59,6 +60,7 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
     private final CommonLoginPolicy mfaPolicy;
 
     public TotpMfaEndpoint(
+            final ApplicationContext applicationContext,
             final UserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final MfaProviderProvisioning mfaProviderProvisioning,
             final @Qualifier("mfaCompleteUrl") String mfaCompleteUrl,

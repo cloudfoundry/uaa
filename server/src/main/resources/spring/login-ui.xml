@@ -364,8 +364,6 @@
         <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
     </bean>
 
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.home"/>
-
     <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>
 
     <!--apply the oauth client context -->
@@ -452,7 +450,6 @@
           class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
 
     <context:annotation-config/>
-    <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
     <bean id="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController" />
     <bean id="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint" />
@@ -513,8 +510,6 @@
         <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.account" />
-
     <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource">
         <constructor-arg value="messages.properties"/>
     </bean>
@@ -535,10 +530,7 @@
         <constructor-arg ref="codeStore"/>
     </bean>
 
-    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
-        <constructor-arg index="0" value="${encryption.active_key_label}"/>
-        <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
-    </bean>
+    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService" />
 
     <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
         <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
@@ -552,12 +544,10 @@
 
     <bean id="userGoogleMfaCredentialsProvisioning"
           class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
-        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
+        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning" />
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
-
-    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint" />
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
         <constructor-arg value="/login/mfa/completed"/>

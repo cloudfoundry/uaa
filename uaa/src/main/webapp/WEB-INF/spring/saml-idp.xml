@@ -41,15 +41,11 @@
 
     <bean id="idpMetadataManager"
           class="org.cloudfoundry.identity.uaa.provider.saml.idp.NonSnarlIdpMetadataManager"
-          depends-on="spMetaDataProviders" destroy-method="destroy">
+          depends-on="spMetaDataProviders identityZoneConfigurationBootstrap identityZoneHolderInitializer" destroy-method="destroy">
         <constructor-arg name="configurator" ref="spMetaDataProviders"/>
         <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:0}"/>
         <property name="generator" ref="zoneAwareIdpMetadataGenerator"/>
-
     </bean>
-
-    <bean id="idpInitiatedLogin"
-          class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpInitiatedLoginController" />
 
     <bean id="idpWebSsoProfileImpl"
           class="org.cloudfoundry.identity.uaa.provider.saml.idp.IdpWebSsoProfileImpl">
@@ -131,8 +127,6 @@
     <bean id="samlIdpEntityID" class="java.lang.String">
         <constructor-arg value="${login.idp.entityID:${login.entityID:unit-test-idp}}"/>
     </bean>
-
-    <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig"/>
 
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider">
         <property name="trustingRestTemplate" ref="trustingRestTemplate"/>

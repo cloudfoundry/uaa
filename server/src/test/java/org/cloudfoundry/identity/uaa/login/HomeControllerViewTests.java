@@ -15,7 +15,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
@@ -183,7 +182,6 @@ class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(header().string("Location", customHomePage));
     }
 
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration extends WebMvcConfigurerAdapter {

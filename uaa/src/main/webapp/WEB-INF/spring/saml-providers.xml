@@ -305,7 +305,7 @@
     <bean id="bootstrapMetaDataProviders"
           class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData">
         <property name="identityProviders"
-                  value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}"/>
+                  value="${login.saml.providers:#{null}}"/>
         <property name="legacyIdpMetaData" ref="metaDataUrl"/>
         <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>
         <property name="legacyNameId"

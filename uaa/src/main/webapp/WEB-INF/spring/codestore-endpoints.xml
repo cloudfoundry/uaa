@@ -6,8 +6,6 @@
 
     <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
 
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.codestore" />
-
     <http name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"
           entry-point-ref="oauthAuthenticationEntryPoint"
