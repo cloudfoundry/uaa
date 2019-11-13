@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -40,7 +42,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
         try {
             String normalizedRequestedRedirect = normalizeUri(requestedRedirect);
-            String normalizedClientRedirect = normalizeUri(clientRedirect);
+            String normalizedClientRedirect = normalizeWildcardUri(clientRedirect);
 
             URI requestedRedirectURI = URI.create(normalizedRequestedRedirect);
             ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(normalizedClientRedirect);
@@ -109,6 +111,25 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                 );
     }
 
+    private static String normalizeWildcardUri(String uriClient) {
+        boolean hasWildcarPort = uriClient.contains(":*");
+        String uri = hasWildcarPort ? uriClient.replace(":*", StringUtils.EMPTY) : uriClient;
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
+        UriComponents nonNormalizedUri = uriComponentsBuilder.build();
+
+        try {
+            uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
+            uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+            if(hasWildcarPort) {
+                uriComponentsBuilder.port(99999);
+            }
+        } catch (NullPointerException e) {
+            throw new IllegalArgumentException("URI host and scheme must not be null");
+        }
+
+        return uriComponentsBuilder.build().toString();
+    }
+
     private static String redactSensitiveInformation(String uri) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(uri);
         redactQueryParams(builder);
@@ -167,9 +188,12 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                 Pattern.compile("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?");
 
         private static final int URI_EXTRACTOR_AUTHORITY_GROUP = 4; // "Authority" means "user:password@example.com"
+        private static final String WILDCARD_PORT = "99999";
+        private static final String WILDCARD_PORT_PATTERN = ":" + WILDCARD_PORT;
 
         private Matcher redirectMatcher;
         private boolean isValidRedirect = true;
+        private boolean hasWildcardPort = false;
         private AntPathMatcher matcher;
         private String redirectUri;
 
@@ -184,6 +208,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             if (!redirectMatcher.matches()) {
                 isValidRedirect = false;
             }
+            this.hasWildcardPort = isWildcardPort(redirectUri);
         }
 
         boolean isSafeRedirect(URI requestedRedirect) {
@@ -208,11 +233,22 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         }
 
         boolean match(URI requestedRedirect) {
+            if(hasWildcardPort) {
+                 if(requestedRedirect.getPort() > 0) {
+                     return matcher.match(redirectUri, requestedRedirect.toString().replace(String.valueOf(requestedRedirect.getPort()), WILDCARD_PORT));
+                 } else {
+                     return matcher.match(redirectUri.replace(WILDCARD_PORT_PATTERN, StringUtils.EMPTY), requestedRedirect.toString());
+                 }
+            }
             return matcher.match(redirectUri, requestedRedirect.toString());
         }
 
         private boolean isWildcard(String configuredRedirectPattern) {
-            return configuredRedirectPattern.contains("*");
+            return configuredRedirectPattern.contains("*") || hasWildcardPort;
+        }
+
+        private boolean isWildcardPort(String configuredRedirectPattern) {
+            return configuredRedirectPattern.contains(WILDCARD_PORT_PATTERN);
         }
 
         private String getHost() {
