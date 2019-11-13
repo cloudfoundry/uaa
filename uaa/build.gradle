@@ -13,8 +13,6 @@ processResources {
 
 apply plugin: "eclipse-wtp"
 apply plugin: "org.springframework.boot"
-bootWar { enabled = false }
-war { enabled = true }
 
 eclipse {
     wtp {
@@ -45,6 +43,7 @@ dependencies {
     implementation libraries.javaxXmlBindImpl
 
     providedCompile libraries.tomcatEmbed
+    providedRuntime libraries.springBootStarterTomcat
 
     testCompile identityServer.configurations.testCompile.dependencies
     testCompile identityServer.sourceSets.test.output
@@ -146,4 +145,26 @@ integrationTest {
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")
+}
+
+task (copyResources, type: Copy) {
+    into 'build/resources/main'
+    from 'src/main/webapp/resources'
+    from 'src/main/webapp/WEB-INF'
+
+    into ('vendor') {
+        from 'src/main/webapp/vendor'
+    }
+}
+
+bootRun {
+    dependsOn copyResources
+}
+
+bootJar {
+    dependsOn copyResources
+}
+
+bootWar {
+    dependsOn copyResources
 }

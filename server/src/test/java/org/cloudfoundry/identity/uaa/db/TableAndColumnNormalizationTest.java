@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ImportResource(locations = {
         "classpath:spring/env.xml",
         "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
+        "classpath:spring/jdbc-test-base-add-flyway.xml",
         "classpath:spring/data-source.xml",
 })
 class TableAndColumnNormalizationTestConfiguration {
@@ -58,13 +59,6 @@ class TableAndColumnNormalizationTest {
                 Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("mysql") ||
                         Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("postgresql")
         );
-    }
-
-    public String[] getWebApplicationContextConfigFiles() {
-        return new String[]{
-                "classpath:spring/env.xml",
-                "classpath:spring/data-source.xml"
-        };
     }
 
     @Test

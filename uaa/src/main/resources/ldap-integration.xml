@@ -40,6 +40,4 @@
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
-
-
 </beans>

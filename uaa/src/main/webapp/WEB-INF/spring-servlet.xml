@@ -17,13 +17,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
-        <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor"/>
-        </constructor-arg>
-        <property name="yaml" value="${environmentYamlKey}"/>
-    </bean>
-
     <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
         <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
     </bean>
@@ -43,7 +36,9 @@
         <property name="order" value="1"/>
     </bean>
 
-    <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+    <bean name="contentNegotiationManager"
+          primary="true"
+          class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
         <property name="favorPathExtension" value="false"/>
         <property name="favorParameter" value="true"/>
         <property name="mediaTypes">
@@ -351,7 +346,6 @@
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.web.beans"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">
@@ -441,7 +435,6 @@
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint" />
 
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />
     <context:annotation-config/>
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
@@ -461,9 +454,7 @@
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
-                         value="#{@config['login']==null ? null :
-                           @config['login']['oauth']==null ? null :
-                           @config['login']['oauth']['providers']}"/>
+                         value="${login.oauth.providers:#{null}}"/>
     </bean>
 
     <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders"/>
@@ -481,23 +472,17 @@
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}"/>
         <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}"/>
         <property name="logoutRedirectWhitelist"
-                  value="#{@config['logout']==null ? null :
-                           @config['logout']['redirect']==null ? null :
-                           @config['logout']['redirect']['parameter']==null ? null :
-                           @config['logout']['redirect']['parameter']['whitelist']}"/>
+                  value="${logout.redirect.parameter.whitelist:#{null}}"/>
         <property name="logoutRedirectParameterName" value="redirect"/>
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}"/>
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
-        <property name="branding" value="#{@config['login']['branding']}"/>
+        <property name="branding" value="${login.branding:#{null}}"/>
         <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}"/>
         <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}"/>
         <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}"/>
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
-        <property name="samlKeys"
-                  value="#{@config['login']==null ? null :
-                           @config['login']['saml']==null ? null :
-                           @config['login']['saml']['keys']}"/>
+        <property name="samlKeys" value="${login.saml.keys:#{null}}"/>
         <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>

@@ -33,7 +33,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -56,7 +55,6 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.net.URL;
 import java.sql.Timestamp;
@@ -756,7 +754,6 @@ public class InvitationsControllerTest {
         defaultZone.getConfig().setBranding(null);
     }
 
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {

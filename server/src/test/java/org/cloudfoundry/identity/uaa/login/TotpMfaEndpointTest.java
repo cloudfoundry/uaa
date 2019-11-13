@@ -115,7 +115,7 @@ public class TotpMfaEndpointTest {
         mockMfaPolicy = mock(CommonLoginPolicy.class);
         when(mockMfaPolicy.isAllowed(anyString())).thenReturn(new LoginPolicy.Result(true, 0));
 
-        endpoint = new TotpMfaEndpoint(
+        endpoint = new TotpMfaEndpoint(null,
                 userGoogleMfaCredentialsProvisioning,
                 mfaProviderProvisioning,
                 "/login/mfa/completed",

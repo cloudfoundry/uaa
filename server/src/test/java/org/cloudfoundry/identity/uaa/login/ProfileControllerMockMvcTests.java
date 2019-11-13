@@ -20,7 +20,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -58,7 +57,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = ProfileControllerMockMvcTests.ContextConfiguration.class)
 class ProfileControllerMockMvcTests {
 
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration extends WebMvcConfigurerAdapter {
