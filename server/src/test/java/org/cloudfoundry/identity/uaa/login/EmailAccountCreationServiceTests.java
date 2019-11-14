@@ -34,7 +34,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.thymeleaf.spring4.SpringTemplateEngine;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -42,13 +42,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -188,7 +186,11 @@ class EmailAccountCreationServiceTests {
     void beginActivationWithExistingUser() {
         setUpForSuccess(null);
         user.setVerified(true);
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
 
         assertThrows(UaaException.class,
@@ -201,7 +203,11 @@ class EmailAccountCreationServiceTests {
         user.setId("existing-user-id");
         user.setVerified(false);
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -337,10 +343,8 @@ class EmailAccountCreationServiceTests {
 
         when(mockCodeStore.retrieveCode(eq("the_secret_code"), anyString())).thenReturn(code);
 
-        HttpClientErrorException httpClientErrorException = assertThrows(HttpClientErrorException.class,
-                () -> emailAccountCreationService.completeActivation("the_secret_code"));
-
-        assertThat(httpClientErrorException.getMessage(), containsString("400 BAD_REQUEST"));
+        assertThrowsWithMessageThat(HttpClientErrorException.class,
+                () -> emailAccountCreationService.completeActivation("the_secret_code"), containsString("400 BAD_REQUEST"));
     }
 
     private String setUpForSuccess(String redirectUri) {

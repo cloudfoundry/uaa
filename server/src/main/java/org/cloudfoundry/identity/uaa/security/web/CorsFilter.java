@@ -201,10 +201,10 @@ public class CorsFilter extends OncePerRequestFilter {
         }
 
         if (isPreflightRequest) {
-            logger.debug(String.format("Request is a pre-flight request"));
+            logger.debug("Request is a pre-flight request");
             buildCorsPreFlightResponse(request, response, configuration);
         } else {
-            logger.debug(String.format("Request cross origin request has passed validation."));
+            logger.debug("Request cross origin request has passed validation.");
             filterChain.doFilter(request, response);
         }
 

@@ -26,6 +26,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import javax.servlet.FilterChain;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -73,7 +74,7 @@ public class LimitedModeUaaFilterTests {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         statusFile.delete();
     }
 
@@ -104,7 +105,7 @@ public class LimitedModeUaaFilterTests {
     public void enabled_no_whitelist_get() throws Exception {
         request.setMethod(GET.name());
         filter.setStatusFile(statusFile);
-        filter.setPermittedMethods(new HashSet<>(Arrays.asList(GET.toString())));
+        filter.setPermittedMethods(new HashSet<>(Collections.singletonList(GET.toString())));
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
     }
@@ -112,7 +113,7 @@ public class LimitedModeUaaFilterTests {
     @Test
     public void enabled_matching_url_post() throws Exception {
         request.setMethod(POST.name());
-        filter.setPermittedEndpoints(new HashSet(Arrays.asList("/oauth/token/**")));
+        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
         filter.setStatusFile(statusFile);
         for (String pathInfo : Arrays.asList("/oauth/token", "/oauth/token/alias/something")) {
             setPathInfo(pathInfo);
@@ -125,7 +126,7 @@ public class LimitedModeUaaFilterTests {
     @Test
     public void enabled_not_matching_post() throws Exception {
         request.setMethod(POST.name());
-        filter.setPermittedEndpoints(new HashSet(Arrays.asList("/oauth/token/**")));
+        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
         filter.setStatusFile(statusFile);
         for (String pathInfo : Arrays.asList("/url", "/other/url")) {
             response = new MockHttpServletResponse();
@@ -139,7 +140,7 @@ public class LimitedModeUaaFilterTests {
 
     @Test
     public void error_is_json() throws Exception {
-        filter.setPermittedEndpoints(new HashSet(Arrays.asList("/oauth/token/**")));
+        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
         filter.setStatusFile(statusFile);
         for (String accept : Arrays.asList("application/json", "text/html,*/*")) {
             request = new MockHttpServletRequest();
@@ -155,7 +156,7 @@ public class LimitedModeUaaFilterTests {
 
     @Test
     public void error_is_not() throws Exception {
-        filter.setPermittedEndpoints(new HashSet(Arrays.asList("/oauth/token/**")));
+        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
         filter.setStatusFile(statusFile);
         for (String accept : Arrays.asList("text/html", "text/plain")) {
             request = new MockHttpServletRequest();
@@ -170,7 +171,7 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void disable_enable_uses_cache_to_avoid_file_access() throws Exception {
+    public void disable_enable_uses_cache_to_avoid_file_access() {
         File spy = spy(statusFile);
         doCallRealMethod().when(spy).exists();
         filter.setTimeService(timeService);

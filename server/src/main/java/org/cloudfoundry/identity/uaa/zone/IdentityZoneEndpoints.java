@@ -52,7 +52,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -110,7 +109,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
-        List<IdentityZone> result = filterForCurrentZone(Arrays.asList(zoneDao.retrieveIgnoreActiveFlag(id)));
+        List<IdentityZone> result = filterForCurrentZone(Collections.singletonList(zoneDao.retrieveIgnoreActiveFlag(id)));
         if (result.size() == 0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
@@ -124,12 +123,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
-            identityZone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-                entry -> {
-                    entry.getValue().setPassphrase(null);
-                    entry.getValue().setKey(null);
-                }
-            );
+            identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+                value.setPassphrase(null);
+                value.setKey(null);
+            });
         }
         return identityZone;
     }

@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 
 public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
@@ -28,7 +27,7 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
     protected static final String dataFormat = "id=%s; type=%s; origin=%s; zone=%s";
 
-    public IdentityProviderModifiedEvent(IdentityProvider identityProvider, Authentication authentication, AuditEventType type, String zoneId) {
+    IdentityProviderModifiedEvent(IdentityProvider identityProvider, Authentication authentication, AuditEventType type, String zoneId) {
         super(identityProvider, authentication, zoneId);
         eventType = type;
     }
@@ -47,12 +46,12 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
         );
     }
 
-    public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider) {
-        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent, IdentityZoneHolder.getCurrentZoneId());
+    public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider, String zoneId) {
+        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent, zoneId);
     }
 
-    public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider) {
-        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent, IdentityZoneHolder.getCurrentZoneId());
+    public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider, String zoneId) {
+        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent, zoneId);
     }
 
 }

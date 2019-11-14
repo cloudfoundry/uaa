@@ -6,8 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 
-import java.io.IOException;
-
 public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslator {
 
     @Override
@@ -19,17 +17,15 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
         return super.translate(e);
     }
 
-    private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) throws IOException {
+    private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) {
 
         int status = e.getHttpErrorCode();
         HttpHeaders headers = new HttpHeaders();
         headers.set("Cache-Control", "no-store");
         headers.set("Pragma", "no-cache");
 
-        ResponseEntity<OAuth2Exception> response = new ResponseEntity<OAuth2Exception>(e, headers,
+        return new ResponseEntity<OAuth2Exception>(e, headers,
             HttpStatus.valueOf(status));
-
-        return response;
 
     }
 

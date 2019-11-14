@@ -87,7 +87,7 @@ class TokenKeyEndpointMockMvcTests {
     private WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    void setSigningKeyAndDefaultClient() throws Exception {
+    void setSigningKeyAndDefaultClient() {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
@@ -273,7 +273,7 @@ class TokenKeyEndpointMockMvcTests {
         validateKeys(keys);
     }
 
-    private void setSigningKeyAndDefaultClient(String signKey) throws Exception {
+    private void setSigningKeyAndDefaultClient(String signKey) {
         String subdomain = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         testZone = new IdentityZone();

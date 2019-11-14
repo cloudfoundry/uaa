@@ -53,7 +53,7 @@ public class ResetPasswordAuthenticationEntryPointTests {
     private RequestDispatcher requestDispatcher;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
         requestDispatcher = mock(RequestDispatcher.class);

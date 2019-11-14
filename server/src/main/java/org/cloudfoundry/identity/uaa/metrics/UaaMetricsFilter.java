@@ -70,7 +70,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
         urlGroups = new LinkedHashMap<>();
         List<UrlGroup> groups = getUrlGroups();
-        groups.stream().forEach(
+        groups.forEach(
             group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
         );
     }
@@ -160,7 +160,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     @ManagedMetric(category = "performance", displayName = "Server Requests for all URI Groups")
     public Map<String, String> getSummary() {
         Map<String, String> data = new HashMap<>();
-        perUriMetrics.entrySet().stream().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue())));
+        perUriMetrics.entrySet().forEach(entry -> data.put(entry.getKey(), JsonUtils.writeValueAsString(entry.getValue())));
         return data;
     }
 

@@ -36,7 +36,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
     }
 
     @Test
-    public void testOnAuthenticationSuccess() throws IOException, ServletException, MetadataProviderException,
+    public void testOnAuthenticationSuccess() throws ServletException, MetadataProviderException,
             MessageEncodingException, SAMLException, SecurityException, MarshallingException, SignatureException {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
@@ -65,7 +65,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
 
     @Test(expected = ServletException.class)
     public void testOnAuthenticationSuccessFailureIfIdpExtendedMetadataMissing()
-            throws IOException, ServletException, MetadataProviderException {
+            throws ServletException, MetadataProviderException {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
@@ -83,7 +83,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
 
     @Test(expected = ServletException.class)
     public void testOnAuthenticationSuccessFailureIfIdpPeerEntityIdNull()
-            throws IOException, ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
+            throws ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
             SecurityException, MarshallingException, SignatureException {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
@@ -113,7 +113,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
 
     @Test(expected = ServletException.class)
     public void testOnAuthenticationSuccessFailureIfIdpPeerEntityMetadataNull()
-            throws IOException, ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
+            throws ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
             SecurityException, MarshallingException, SignatureException {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
@@ -141,7 +141,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
 
     @Test(expected = ServletException.class)
     public void testOnAuthenticationSuccessFailureIfIdpPeerRoleDescriptorNull()
-            throws IOException, ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
+            throws ServletException, MetadataProviderException, MessageEncodingException, SAMLException,
             SecurityException, MarshallingException, SignatureException {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 

@@ -32,7 +32,7 @@ public class DynamicLdapAuthenticationManagerTest {
         true);
 
     @Test
-    public void testGetLdapAuthenticationManager() throws Exception {
+    public void testGetLdapAuthenticationManager() {
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
         ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
         LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);

@@ -71,19 +71,17 @@ public class IdpInitiatedLoginControllerTests {
     private IdpWebSsoProfile webSsoProfile;
 
     @Before
-    public void setUp() throws Exception {
-        controller = spy(new IdpInitiatedLoginController());
+    public void setUp() {
         configurator = mock(SamlServiceProviderConfigurator.class);
-        controller.setConfigurator(configurator);
         contextProvider = mock(SAMLContextProvider.class);
-        controller.setContextProvider(contextProvider);
         metadataManager = mock(MetadataManager.class);
-        controller.setMetadataManager(metadataManager);
         idpSamlAuthenticationSuccessHandler = mock(IdpSamlAuthenticationSuccessHandler.class);
-        controller.setIdpSamlAuthenticationSuccessHandler(idpSamlAuthenticationSuccessHandler);
         webSsoProfile = mock(IdpWebSsoProfile.class);
-        controller.setIdpWebSsoProfile(webSsoProfile);
         authentication = mock(UaaAuthentication.class);
+
+        controller = spy(new IdpInitiatedLoginController(webSsoProfile,
+                metadataManager, configurator, contextProvider, idpSamlAuthenticationSuccessHandler));
+
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -92,20 +90,20 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void missing_sp_parameter() throws Exception {
+    public void missing_sp_parameter() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Missing sp request parameter.");
         controller.initiate(null, request, response);
     }
 
     @Test
-    public void invalid_sp_parameter() throws Exception {
+    public void invalid_sp_parameter() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Invalid sp entity ID.");
         request.setParameter("sp", "invalid");
@@ -134,12 +132,12 @@ public class IdpInitiatedLoginControllerTests {
         provider.setActive(true);
         provider.setEntityId(entityID);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
         controller.initiate(entityID, request, response);
     }
 
     @Test
-    public void disabled_provider() throws Exception {
+    public void disabled_provider() {
         exception.expect(ProviderNotFoundException.class);
         exception.expectMessage("Service provider is disabled.");
         String entityID = "validEntityID";
@@ -147,7 +145,7 @@ public class IdpInitiatedLoginControllerTests {
         provider.setEntityId(entityID);
         provider.setActive(false);
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
         controller.initiate(entityID, request, response);
     }
 
@@ -180,7 +178,7 @@ public class IdpInitiatedLoginControllerTests {
         SamlServiceProviderHolder holder = new SamlServiceProviderHolder(null, provider);
 
         doReturn(responseUrl).when(controller).getAssertionConsumerURL(anyString());
-        when(configurator.getSamlServiceProviders()).thenReturn(Arrays.asList(holder));
+        when(configurator.getSamlServiceProviders()).thenReturn(Collections.singletonList(holder));
 
 
         when(webSsoProfile.buildIdpInitiatedAuthnRequest(
@@ -218,7 +216,7 @@ public class IdpInitiatedLoginControllerTests {
     }
 
     @Test
-    public void handle_exception() throws Exception {
+    public void handle_exception() {
         String view = controller.handleException(new ProviderNotFoundException("message"), request, response);
         assertEquals(400, response.getStatus());
         assertEquals("message", request.getAttribute("saml_error"));

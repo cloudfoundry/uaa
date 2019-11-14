@@ -13,11 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import java.util.List;
-import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -27,6 +22,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.AbstractView;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * @author Dave Syer
@@ -59,8 +58,7 @@ public class ForwardAwareInternalResourceViewResolver extends InternalResourceVi
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         Assert.isInstanceOf(ServletRequestAttributes.class, attrs);
         HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
-        MediaType requestedMediaType = getMediaTypes(request);
-        return requestedMediaType;
+        return getMediaTypes(request);
     }
 
     private MediaType getMediaTypes(HttpServletRequest request) {

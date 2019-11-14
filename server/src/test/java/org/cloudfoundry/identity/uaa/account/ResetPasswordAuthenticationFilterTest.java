@@ -76,7 +76,7 @@ public class ResetPasswordAuthenticationFilterTest {
     }
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         codeStore = new InMemoryExpiringCodeStore();
         code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "", IdentityZoneHolder.get().getId()).getCode();
 

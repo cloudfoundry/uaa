@@ -71,7 +71,7 @@ public class ApiController {
     }
 
     @RequestMapping("/info")
-    public View info(Map<String, Object> model, Principal principal) throws Exception {
+    public View info(Map<String, Object> model, Principal principal) {
         model.put("loginUrl", loginUrl);
         model.put("uaaUrl", uaaUrl);
         if (principal != null) {
@@ -98,13 +98,10 @@ public class ApiController {
             this.template = template;
             this.context.addPropertyAccessor(new MapAccessor());
             this.helper = new PropertyPlaceholderHelper("${", "}");
-            this.resolver = new PlaceholderResolver() {
-                @Override
-                public String resolvePlaceholder(String name) {
-                    Expression expression = parser.parseExpression(name);
-                    Object value = expression.getValue(context);
-                    return value == null ? null : value.toString();
-                }
+            this.resolver = name -> {
+                Expression expression = parser.parseExpression(name);
+                Object value = expression.getValue(context);
+                return value == null ? null : value.toString();
             };
         }
 

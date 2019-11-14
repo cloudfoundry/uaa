@@ -48,12 +48,7 @@ import org.springframework.mock.env.MockEnvironment;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
@@ -173,7 +168,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(LDAP, ldapProvider.getType());
         assertThat(ldapProvider.getConfig().getEmailDomain(), containsInAnyOrder("test.domain"));
-        assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
+        assertEquals(Collections.singletonList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
         assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
         assertEquals(idpDescription, ldapProvider.getConfig().getProviderDescription());
         assertFalse(ldapProvider.getConfig().isStoreCustomAttributes());
@@ -182,7 +177,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     private HashMap<String, Object> getGenericLdapConfig(String idpDescription) {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
-        ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
+        ldapConfig.put(EMAIL_DOMAIN_ATTR, Collections.singletonList("test.domain"));
         ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
         ldapConfig.put(PROVIDER_DESCRIPTION, idpDescription);
         List<String> attrMap = new ArrayList<>();
@@ -335,7 +330,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             try {
                 provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
                 fail(String.format("Provider '%s' should not exist.", provider.getKey()));
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException ignored) {
             }
 
         }
@@ -345,7 +340,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         List<IdentityProviderWrapper> wrappers = new LinkedList<>();
         oauthProviderConfig
             .entrySet()
-            .stream()
             .forEach(
                 p -> {
                     IdentityProvider provider = new IdentityProvider();

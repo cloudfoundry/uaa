@@ -79,7 +79,7 @@ public class SocialClientUserDetailsSourceTests{
     }
 
     @Test
-    public void testGetPrincipalUsername() throws Exception {
+    public void testGetPrincipalUsername() {
         assertEquals(USERNAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
         map.remove(USERNAME);
         assertEquals(EMAIL, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
@@ -95,14 +95,14 @@ public class SocialClientUserDetailsSourceTests{
     }
 
     @Test
-    public void testGetPrincipalUserId() throws Exception {
+    public void testGetPrincipalUserId() {
         assertEquals(ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
         source.setUserInfoUrl("run.pivotal.io");
         assertEquals(USER_ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
     }
 
     @Test
-    public void testGetPrincipalFullname() throws Exception {
+    public void testGetPrincipalFullname() {
         assertEquals(NAME, ((SocialClientUserDetails)source.getPrincipal()).getFullName());
         map.remove(NAME);
         assertEquals(FORMATTED_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
@@ -120,7 +120,7 @@ public class SocialClientUserDetailsSourceTests{
     }
 
     @Test
-    public void testGetPrincipalFields() throws Exception {
+    public void testGetPrincipalFields() {
         assertEquals(EMAIL, ((SocialClientUserDetails) source.getPrincipal()).getEmail());
         assertEquals(USERNAME, source.getPrincipal().getName());
         assertEquals(USERNAME, source.getPrincipal().getPrincipal());

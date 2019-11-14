@@ -19,12 +19,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -65,8 +63,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieve(String id) {
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }
@@ -75,8 +72,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieveIgnoreActiveFlag(String id) {
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }
@@ -92,31 +88,27 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         if (subdomain==null) {
             throw new EmptyResultDataAccessException("Subdomain cannot be null", 1);
         }
-        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
-        return identityZone;
+        return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
     }
 
     @Override
     public IdentityZone create(final IdentityZone identityZone) {
 
         try {
-            jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, identityZone.getId().trim());
-                    ps.setInt(2, identityZone.getVersion());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(4, new Timestamp(new Date().getTime()));
-                    ps.setString(5, identityZone.getName());
-                    ps.setString(6, identityZone.getSubdomain().toLowerCase());
-                    ps.setString(7, identityZone.getDescription());
-                    ps.setString(8,
-                                 identityZone.getConfig() != null ?
-                                     JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                     null
-                    );
-                    ps.setBoolean(9, identityZone.isActive());
-                }
+            jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, ps -> {
+                ps.setString(1, identityZone.getId().trim());
+                ps.setInt(2, identityZone.getVersion());
+                ps.setTimestamp(3, new Timestamp(new Date().getTime()));
+                ps.setTimestamp(4, new Timestamp(new Date().getTime()));
+                ps.setString(5, identityZone.getName());
+                ps.setString(6, identityZone.getSubdomain().toLowerCase());
+                ps.setString(7, identityZone.getDescription());
+                ps.setString(8,
+                             identityZone.getConfig() != null ?
+                                 JsonUtils.writeValueAsString(identityZone.getConfig()) :
+                                 null
+                );
+                ps.setBoolean(9, identityZone.isActive());
             });
         } catch (DuplicateKeyException e) {
             throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
@@ -129,22 +121,19 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     public IdentityZone update(final IdentityZone identityZone) {
 
         try {
-            jdbcTemplate.update(UPDATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setInt(1, identityZone.getVersion() + 1);
-                    ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-                    ps.setString(3, identityZone.getName());
-                    ps.setString(4, identityZone.getSubdomain().toLowerCase());
-                    ps.setString(5, identityZone.getDescription());
-                    ps.setString(6,
-                                 identityZone.getConfig() != null ?
-                                     JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                     null
-                    );
-                    ps.setBoolean(7, identityZone.isActive());
-                    ps.setString(8, identityZone.getId().trim());
-                }
+            jdbcTemplate.update(UPDATE_IDENTITY_ZONE_SQL, ps -> {
+                ps.setInt(1, identityZone.getVersion() + 1);
+                ps.setTimestamp(2, new Timestamp(new Date().getTime()));
+                ps.setString(3, identityZone.getName());
+                ps.setString(4, identityZone.getSubdomain().toLowerCase());
+                ps.setString(5, identityZone.getDescription());
+                ps.setString(6,
+                             identityZone.getConfig() != null ?
+                                 JsonUtils.writeValueAsString(identityZone.getConfig()) :
+                                 null
+                );
+                ps.setBoolean(7, identityZone.isActive());
+                ps.setString(8, identityZone.getId().trim());
             });
         } catch (DuplicateKeyException e) {
             //duplicate subdomain

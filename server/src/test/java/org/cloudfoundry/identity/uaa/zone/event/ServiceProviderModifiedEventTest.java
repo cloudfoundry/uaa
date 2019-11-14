@@ -41,12 +41,12 @@ public class ServiceProviderModifiedEventTest {
 
     }
     @Test
-    public void serviceProviderCreated() throws Exception {
+    public void serviceProviderCreated() {
         evaludateAuditEventData(ServiceProviderModifiedEvent.serviceProviderCreated(provider));
     }
 
     @Test
-    public void serviceProviderModified() throws Exception {
+    public void serviceProviderModified() {
         evaludateAuditEventData(ServiceProviderModifiedEvent.serviceProviderModified(provider));
     }
 

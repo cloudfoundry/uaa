@@ -38,7 +38,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -80,24 +79,24 @@ public class PasswordChangeEndpointIntegrationTests {
     }
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
         client = serverRunning.getRestTemplate();
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
 
     @BeforeOAuth2Context
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
-    public void createAccount() throws Exception {
+    public void createAccount() {
         client = serverRunning.getRestTemplate();
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
         joe = response.getBody();
@@ -110,7 +109,7 @@ public class PasswordChangeEndpointIntegrationTests {
     // http://localhost:8080/uaa/User/{id}/password
     @Test
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
-    public void testChangePasswordSucceeds() throws Exception {
+    public void testChangePasswordSucceeds() {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("Newpasswo3d");
 
@@ -138,7 +137,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(resource = OAuth2ContextConfiguration.Implicit.class, initialize = false)
-    public void testUserChangesOwnPassword() throws Exception {
+    public void testUserChangesOwnPassword() {
 
         MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
         parameters.set("source", "credentials");
@@ -160,7 +159,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(resource = OAuth2ContextConfiguration.Implicit.class, initialize = false)
-    public void testUserMustSupplyOldPassword() throws Exception {
+    public void testUserMustSupplyOldPassword() {
 
         MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
         parameters.set("source", "credentials");
@@ -181,7 +180,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(resource = OAuth2ContextConfiguration.ClientCredentials.class, initialize = false)
-    public void testUserAccountGetsUnlockedAfterPasswordChange() throws Exception {
+    public void testUserAccountGetsUnlockedAfterPasswordChange() {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));

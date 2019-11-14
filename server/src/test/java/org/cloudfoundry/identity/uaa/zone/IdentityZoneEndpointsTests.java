@@ -26,7 +26,6 @@ import org.mockito.Mockito;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -62,14 +61,14 @@ public class IdentityZoneEndpointsTests {
     }
 
     @Test
-    public void create_zone() throws Exception {
+    public void create_zone() {
         zone = createZone();
         endpoints.createIdentityZone(zone, mock(BindingResult.class));
         verify(zoneDao, times(1)).create(same(zone));
     }
 
     @Test
-    public void groups_are_created() throws Exception {
+    public void groups_are_created() {
         zone = createZone();
         endpoints.createUserGroups(zone);
         ArgumentCaptor<ScimGroup> captor = ArgumentCaptor.forClass(ScimGroup.class);
@@ -78,17 +77,15 @@ public class IdentityZoneEndpointsTests {
         assertEquals(defaultGroups.size(), captor.getAllValues().size());
         assertThat(defaultGroups,
                    containsInAnyOrder(
-                       captor.getAllValues().stream().map(
-                           g -> g.getDisplayName()
-                       )
-                           .collect(Collectors.toList())
-                           .toArray(new String[0])
+                           captor.getAllValues().stream().map(
+                                   ScimGroup::getDisplayName
+                           ).toArray(String[]::new)
                    )
         );
     }
 
     @Test
-    public void group_creation_called_on_create() throws Exception {
+    public void group_creation_called_on_create() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         zone = createZone();
         spy.createIdentityZone(zone, mock(BindingResult.class));
@@ -96,7 +93,7 @@ public class IdentityZoneEndpointsTests {
     }
 
     @Test
-    public void group_creation_called_on_update() throws Exception {
+    public void group_creation_called_on_update() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         zone = createZone();
         when(zoneDao.retrieveIgnoreActiveFlag(zone.getId())).thenReturn(zone);
@@ -113,12 +110,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNull(entry.getValue().getKey());
-                assertNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNull(value.getKey());
+            assertNull(value.getPassphrase());
+        });
     }
 
     private IdentityZone createZone() {
@@ -132,12 +127,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNotNull(entry.getValue().getKey());
-                assertNotNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNotNull(value.getKey());
+            assertNotNull(value.getPassphrase());
+        });
         return zone;
     }
 
@@ -150,12 +143,10 @@ public class IdentityZoneEndpointsTests {
 
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
         assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-            entry -> {
-                assertNotNull(entry.getValue().getKey());
-                assertNotNull(entry.getValue().getPassphrase());
-            }
-        );
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNotNull(value.getKey());
+            assertNotNull(value.getPassphrase());
+        });
 
     }
 }

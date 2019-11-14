@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * An authority that contains at least a DN and a role name for an LDAP entry
@@ -84,7 +85,7 @@ public class LdapAuthority implements GrantedAuthority {
         LdapAuthority that = (LdapAuthority) o;
 
         if (!dn.equals(that.dn)) return false;
-        if (role != null ? !role.equals(that.role) : that.role != null) return false;
+        if (!Objects.equals(role, that.role)) return false;
 
         return true;
     }

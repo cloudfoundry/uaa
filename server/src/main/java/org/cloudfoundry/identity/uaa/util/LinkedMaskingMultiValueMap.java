@@ -105,12 +105,22 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
 
     @Override
     public void add(K key, V value) {
-        List<V> values = this.targetMap.get(key);
-        if (values == null) {
-            values = new LinkedList<V>();
-            this.targetMap.put(key, values);
-        }
+        List<V> values = this.targetMap.computeIfAbsent(key, k -> new LinkedList<>());
         values.add(value);
+    }
+
+    @Override
+    public void addAll(K key, List<? extends V> values) {
+        for (V value : values) {
+            add(key, value);
+        }
+    }
+
+    @Override
+    public void addAll(MultiValueMap<K, V> values) {
+        for (Entry<K, List<V>> entry : values.entrySet()) {
+            addAll(entry.getKey(), entry.getValue());
+        }
     }
 
     @Override
@@ -212,10 +222,8 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
     @Override
     public int hashCode() {
         int h = 0;
-        Iterator<Entry<K, List<V>>> i = entrySet().iterator();
-        while (i.hasNext()) {
+        for (Entry<K, List<V>> entry : entrySet()) {
             int keyHash = 1;
-            Entry<K, List<V>> entry = i.next();
             if (entry.getKey() == null || entry.getKey() == this) {
                 // no op - don't modify the hash
             } else {

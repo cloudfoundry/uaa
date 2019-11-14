@@ -32,7 +32,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     private OIDCIdentityProviderDefinition providerDefinition;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         factoryBean = new OauthIDPWrapperFactoryBean(null);
         providerDefinition = new OIDCIdentityProviderDefinition();
         idpDefinitionMap = new HashMap<>();
@@ -46,33 +46,33 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
-    public void as_configured() throws Exception {
+    public void as_configured() {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertFalse(providerDefinition.isClientAuthInBody());
     }
 
     @Test
-    public void client_auth_in_body() throws Exception {
+    public void client_auth_in_body() {
         idpDefinitionMap.put("clientAuthInBody", true);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(providerDefinition.isClientAuthInBody());
     }
 
     @Test
-    public void store_custom_attributes_default() throws Exception {
+    public void store_custom_attributes_default() {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(providerDefinition.isStoreCustomAttributes());
     }
 
     @Test
-    public void store_custom_attributes_set_to_true() throws Exception {
+    public void store_custom_attributes_set_to_true() {
         idpDefinitionMap.put(STORE_CUSTOM_ATTRIBUTES_NAME, true);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(providerDefinition.isStoreCustomAttributes());
     }
 
     @Test
-    public void store_custom_attributes_set_to_false() throws Exception {
+    public void store_custom_attributes_set_to_false() {
         idpDefinitionMap.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertFalse(providerDefinition.isStoreCustomAttributes());

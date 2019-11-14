@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.sql.Timestamp;
+import java.util.Objects;
 
 @JsonSerialize
 @JsonDeserialize
@@ -88,11 +89,11 @@ public class ExpiringCode {
 
         ExpiringCode that = (ExpiringCode) o;
 
-        if (code != null ? !code.equals(that.code) : that.code != null)
+        if (!Objects.equals(code, that.code))
             return false;
-        if (data != null ? !data.equals(that.data) : that.data != null)
+        if (!Objects.equals(data, that.data))
             return false;
-        if (expiresAt != null ? !expiresAt.equals(that.expiresAt) : that.expiresAt != null)
+        if (!Objects.equals(expiresAt, that.expiresAt))
             return false;
 
         return true;

@@ -20,4 +20,9 @@ public class IdentityZoneManagerImpl implements IdentityZoneManager {
     public boolean isCurrentZoneUaa() {
         return IdentityZoneHolder.isUaa();
     }
+
+    @Override
+    public void setCurrentIdentityZone(final IdentityZone identityZone) {
+        IdentityZoneHolder.set(identityZone);
+    }
 }

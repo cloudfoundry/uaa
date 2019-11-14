@@ -15,66 +15,39 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
-import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.*;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
@@ -82,19 +55,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
@@ -149,8 +112,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
 
     private static final int LDAP_PORT = 23389;
-    private static final int LDAPS_PORT = 23636;
-    private final String ldapServerUrl = "ldap://localhost:" + LDAP_PORT;
 
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -177,17 +138,17 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
 
-    private static ApacheDsSSLContainer apacheDS;
+    private static InMemoryLdapServer ldapContainer;
 
     @AfterAll
     static void afterClass() throws Exception {
-        apacheDS.stop();
+        ldapContainer.stop();
         Thread.sleep(1500);
     }
 
     @BeforeAll
-    static void startApacheDS() throws Exception {
-        apacheDS = ApacheDSHelper.start(LDAP_PORT, LDAPS_PORT);
+    static void startLdapContainer() {
+        ldapContainer = InMemoryLdapServer.startLdap(LDAP_PORT);
     }
 
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
@@ -452,7 +413,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         ));
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php")
+                .setMetaDataLocation(IntegrationTestUtils.EXAMPLE_DOT_COM_SAML_IDP_METADATA)
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:transient")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
                 .setZoneId(IdentityZone.getUaaZoneId());
@@ -561,7 +522,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
-        definition.setExternalGroupsWhitelist(Arrays.asList("uaa.user"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
         List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
                 new Prompt("password", "password", "Password"),
                 new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
@@ -590,6 +551,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
+                fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
                 fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
                 fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),
@@ -637,7 +599,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
         providerDefinition.setUserDNPatternDelimiter(";");
         providerDefinition.setMailAttributeName("mail");
@@ -657,7 +619,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -686,7 +648,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
-        providerDefinition.setBaseUrl(ldapServerUrl);
+        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -861,7 +823,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.passwordPolicy.requireLowerCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of lowercase characters required for password to be considered valid (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.expireInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
+                fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
                 fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
                 fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
                 fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),

@@ -56,6 +56,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 /**
@@ -666,11 +667,7 @@ public class IdpMetadataGenerator {
      *            bindings for web single sign-on
      */
     public void setBindingsSSO(Collection<String> bindingsSSO) {
-        if (bindingsSSO == null) {
-            this.bindingsSSO = Collections.emptyList();
-        } else {
-            this.bindingsSSO = bindingsSSO;
-        }
+        this.bindingsSSO = Objects.requireNonNullElse(bindingsSSO, Collections.emptyList());
     }
 
     public Collection<String> getBindingsSLO() {
@@ -690,11 +687,7 @@ public class IdpMetadataGenerator {
      *            bindings for single logout
      */
     public void setBindingsSLO(Collection<String> bindingsSLO) {
-        if (bindingsSLO == null) {
-            this.bindingsSLO = Collections.emptyList();
-        } else {
-            this.bindingsSLO = bindingsSLO;
-        }
+        this.bindingsSLO = Objects.requireNonNullElse(bindingsSLO, Collections.emptyList());
     }
 
     public Collection<String> getBindingsHoKSSO() {
@@ -714,11 +707,7 @@ public class IdpMetadataGenerator {
      *            bindings for web single sign-on holder-of-key
      */
     public void setBindingsHoKSSO(Collection<String> bindingsHoKSSO) {
-        if (bindingsHoKSSO == null) {
-            this.bindingsHoKSSO = Collections.emptyList();
-        } else {
-            this.bindingsHoKSSO = bindingsHoKSSO;
-        }
+        this.bindingsHoKSSO = Objects.requireNonNullElse(bindingsHoKSSO, Collections.emptyList());
     }
 
     public boolean isIncludeDiscoveryExtension() {

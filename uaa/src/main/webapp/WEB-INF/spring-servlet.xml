@@ -1,30 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xmlns:sec="http://www.springframework.org/schema/security"
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
-        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
-
-    <bean id="sessionIdleTimeoutSetter" class="org.cloudfoundry.identity.uaa.web.SessionIdleTimeoutSetter">
-        <property name="timeout" value="${servlet.idle-timeout:1800}"/>
-    </bean>
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+       http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
@@ -34,31 +19,22 @@
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor" />
+            <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor"/>
         </constructor-arg>
-        <property name="yaml" value="${environmentYamlKey}" />
+        <property name="yaml" value="${environmentYamlKey}"/>
     </bean>
 
     <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
         <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
     </bean>
 
-    <bean id ="identityZoneConfigValidator" class ="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
+    <bean id="identityZoneConfigValidator"
+          class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
         <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
     </bean>
 
     <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
-    </bean>
-
-    <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
-        <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
-        <property name="domain" value="${servlet.session-cookie.domain:#{null}}"/>
-        <property name="httpOnly" value="${servlet.session-cookie.http-only:true}"/>
-        <property name="maxAge" value="${servlet.session-cookie.max-age:#{T(java.lang.Integer).MIN_VALUE}}"/>
-        <property name="name" value="${servlet.session-cookie.name:#{null}}"/>
-        <property name="path" value="${servlet.session-cookie.path:#{null}}"/>
-        <property name="secure" value="${servlet.session-cookie.secure:${require_https:false}}"/>
     </bean>
 
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
@@ -79,8 +55,10 @@
         </property>
     </bean>
 
-    <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
-    <bean id="disableIdTokenResponseFilter" class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
+    <bean id="backwardsCompatibleScopeParameter"
+          class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
+    <bean id="disableIdTokenResponseFilter"
+          class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
         <constructor-arg index="0" value="${oauth.id_token.disable:false}"/>
         <constructor-arg index="1">
             <list>
@@ -90,35 +68,36 @@
         </constructor-arg>
     </bean>
 
-    <import resource="classpath:spring/data-source.xml" />
-    <import resource="classpath:spring/env.xml" />
-    <import resource="spring/audit.xml" />
+    <import resource="classpath:spring/data-source.xml"/>
+    <import resource="classpath:spring/env.xml"/>
+    <import resource="spring/audit.xml"/>
 
-    <sec:http name="secFilterOpen01" pattern="/resources/**" security="none" />
-    <sec:http name="secFilterOpen02" pattern="/square-logo.png" security="none" />
-    <sec:http name="secFilterOpen03" pattern="/info" security="none" />
-    <sec:http name="secFilterOpen04" pattern="/password/**" security="none" />
-    <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none" />
-    <sec:http name="secFilterOpen06" pattern="/saml/web/**" security="none" />
-    <sec:http name="secFilterOpen07" pattern="/vendor/**" security="none" />
+    <sec:http name="secFilterOpen01" pattern="/resources/**" security="none"/>
+    <sec:http name="secFilterOpen02" pattern="/square-logo.png" security="none"/>
+    <sec:http name="secFilterOpen03" pattern="/info" security="none"/>
+    <sec:http name="secFilterOpen04" pattern="/password/**" security="none"/>
+    <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none"/>
+    <sec:http name="secFilterOpen06" pattern="/saml/web/**" security="none"/>
+    <sec:http name="secFilterOpen07" pattern="/vendor/**" security="none"/>
     <!--<sec:http pattern="/login" security="none" />-->
-    <sec:http name="secFilterOpen08" pattern="/error" security="none" />
-    <sec:http name="secFilterOpen11" pattern="/email_sent" security="none" />
+    <sec:http name="secFilterOpen08" pattern="/error" security="none"/>
+    <sec:http name="secFilterOpen11" pattern="/email_sent" security="none"/>
 
-    <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none" />
-    <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
-    <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
-    <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
-    <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
-    <sec:http name="secFilterOpen18" pattern="/session" security="none" />
-    <sec:http name="secFilterOpen21" pattern="/session_management" security="none" />
-    <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none" />
-    <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none" />
+    <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none"/>
+    <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none"/>
+    <sec:http name="secFilterOpen15" pattern="/saml_error" security="none"/>
+    <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none"/>
+    <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none"/>
+    <sec:http name="secFilterOpen18" pattern="/session" security="none"/>
+    <sec:http name="secFilterOpen21" pattern="/session_management" security="none"/>
+    <sec:http name="secFilterWellKnownOpen19" pattern="/oauth/token/.well-known/openid-configuration" security="none"/>
+    <sec:http name="secFilterWellKnownOpen20" pattern="/.well-known/openid-configuration" security="none"/>
     <!--<sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />-->
     <!--<sec:http name="secFilterIdpDiscovery21" pattern="/login/idp_discovery" security="none" create-session="ifRequired"/>-->
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
-        <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
+        <constructor-arg
+                value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
     <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
@@ -212,11 +191,12 @@
     </bean>
 
     <bean id="sessionFixationProtectionStrategy"
-          class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy" />
+          class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy"/>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
-        <property name="requireHttps" value="${require_https:false}" />
-        <property name="dumpRequests" value="${dump_requests:false}" />
+        <property name="dumpRequests" value="${dump_requests:false}"/>
+        <property name="requireHttps" value="${require_https:false}"/>
+        <property name="httpsPort" value="${https_port:443}"/>
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
@@ -229,26 +209,26 @@
         </property>
         <property name="errorMap">
             <map>
-              <entry key="org.springframework.dao.NonTransientDataAccessException">
-                  <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
-                      <constructor-arg index="0" value="503"/>
-                      <constructor-arg index="1" value="Database unavailable. Retry later."/>
-                  </bean>
-              </entry>
+                <entry key="org.springframework.dao.NonTransientDataAccessException">
+                    <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
+                        <constructor-arg index="0" value="503"/>
+                        <constructor-arg index="1" value="Database unavailable. Retry later."/>
+                    </bean>
+                </entry>
             </map>
         </property>
         <property name="additionalFilters">
             <map>
                 <entry value-ref="metricsFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}"/>
                 <entry value-ref="headerFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
                 <entry value-ref="utf8ConversionFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}" />
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
                 <entry value-ref="corsFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}" />
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <entry value-ref="limitedModeUaaFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}" />
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
                 <entry value-ref="identityZoneResolvingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
@@ -261,7 +241,8 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
-                <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
+                <entry value-ref="sessionResetFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
     </bean>
@@ -275,7 +256,8 @@
     </util:list>
 
     <bean id="headerFilter" class="org.cloudfoundry.identity.uaa.web.HeaderFilter">
-        <constructor-arg value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
+        <constructor-arg
+                value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
     <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
@@ -283,24 +265,22 @@
         <property name="perRequestMetrics" value="${metrics.perRequestMetrics:false}"/>
     </bean>
 
-    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
-        <constructor-arg ref="identityProviderProvisioning"/>
-    </bean>
+    <bean id="userManagementSecurityFilter"
+          class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter"/>
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter">
-        <constructor-arg ref="identityProviderProvisioning"/>
-    </bean>
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter"/>
 
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="defaultInternalHostnames">
-           <set>
+            <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
                 <value>localhost</value>
-           </set>
+            </set>
         </property>
-        <property name="additionalInternalHostnames" value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
+        <property name="additionalInternalHostnames"
+                  value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
     </bean>
 
     <bean id="sessionResetFilter" class="org.cloudfoundry.identity.uaa.authentication.SessionResetFilter">
@@ -322,76 +302,89 @@
     </bean>
 
 
-
-
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
         <constructor-arg name="minLength" value="${oauth.client.secret.policy.global.minLength:0}"/>
-        <constructor-arg name="maxLength"  value="${oauth.client.secret.policy.global.maxLength:255}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter"
+                         value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter"
+                         value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
         <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.global.requireDigit:0}"/>
-        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg name="requireSpecialCharacter"
+                         value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
         <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
     <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
-        <constructor-arg name="minLength" value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
-        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
-        <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
-        <constructor-arg name="requireSpecialCharacter" value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="minLength"
+                         value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
+        <constructor-arg name="maxLength"
+                         value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter"
+                         value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter"
+                         value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit"
+                         value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter"
+                         value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
         <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
 
-    <bean id="zoneAwareClientSecretPolicyValidator" class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
+    <bean id="zoneAwareClientSecretPolicyValidator"
+          class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
-    <import resource="spring/oauth-clients.xml" />
+    <import resource="spring/oauth-clients.xml"/>
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
-    <import resource="spring/login-server-security.xml" />
-    <import resource="spring/oauth-endpoints.xml" />
-    <import resource="spring/scim-endpoints.xml" />
-    <import resource="spring/mfa-endpoints.xml" />
-    <import resource="spring/multitenant-endpoints.xml" />
-    <import resource="spring/approvals-endpoints.xml" />
-    <import resource="spring/client-admin-endpoints.xml" />
-    <import resource="spring/resource-endpoints.xml" />
-    <import resource="spring/openid-endpoints.xml" />
-    <import resource="spring/password-endpoints.xml" />
-    <import resource="spring/codestore-endpoints.xml" />
-    <import resource="spring/authentication.xml" />
-    <import resource="spring/identity-zones.xml" />
+    <import resource="spring/login-server-security.xml"/>
+    <import resource="spring/oauth-endpoints.xml"/>
+    <import resource="spring/scim-endpoints.xml"/>
+    <import resource="spring/mfa-endpoints.xml"/>
+    <import resource="spring/multitenant-endpoints.xml"/>
+    <import resource="spring/approvals-endpoints.xml"/>
+    <import resource="spring/client-admin-endpoints.xml"/>
+    <import resource="spring/resource-endpoints.xml"/>
+    <import resource="spring/openid-endpoints.xml"/>
+    <import resource="spring/codestore-endpoints.xml"/>
+    <import resource="spring/authentication.xml"/>
+    <import resource="spring/identity-zones.xml"/>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.web.beans"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
-      <property name="basenames">
-        <list>
-          <value>#{systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
-          <value>classpath:messages</value>
-        </list>
-      </property>
+        <property name="basenames">
+            <list>
+                <value>
+                    #{systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUDFOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}
+                </value>
+                <value>classpath:messages</value>
+            </list>
+        </property>
     </bean>
 
-    <bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
+    <bean id="authenticationDetailsSource"
+          class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource"/>
 
-    <bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-        <property name="realmName" value="UAA/client" />
-        <property name="typeName" value="Basic" />
-        <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator" />
+    <bean id="basicAuthenticationEntryPoint"
+          class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="UAA/client"/>
+        <property name="typeName" value="Basic"/>
+        <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator"/>
     </bean>
 
-    <bean id="accountNotVerifiedExceptionTranslator" class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
+    <bean id="accountNotVerifiedExceptionTranslator"
+          class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
 
     <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
         <constructor-arg>
             <list>
                 <bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
-                    <property name="scopePrefix" value="scope=" />
+                    <property name="scopePrefix" value="scope="/>
                 </bean>
-                <bean class="org.springframework.security.access.vote.RoleVoter" />
-                <bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+                <bean class="org.springframework.security.access.vote.RoleVoter"/>
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter"/>
             </list>
         </constructor-arg>
     </bean>
@@ -400,30 +393,31 @@
     <import resource="spring/saml-idp.xml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
-    <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+    <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint"/>
 
-    <mvc:default-servlet-handler />
+    <mvc:default-servlet-handler/>
 
     <util:list id="prompts">
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
-            <constructor-arg name="name" value="username" />
-            <constructor-arg name="text" value="${login.prompt.username.text:Email}" />
-            <constructor-arg name="type" value="text" />
+            <constructor-arg name="name" value="username"/>
+            <constructor-arg name="text" value="${login.prompt.username.text:Email}"/>
+            <constructor-arg name="type" value="text"/>
         </bean>
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
-            <constructor-arg name="name" value="password" />
-            <constructor-arg name="text" value="${login.prompt.password.text:Password}" />
-            <constructor-arg name="type" value="password" />
+            <constructor-arg name="name" value="password"/>
+            <constructor-arg name="text" value="${login.prompt.password.text:Password}"/>
+            <constructor-arg name="type" value="password"/>
         </bean>
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
-            <constructor-arg name="name" value="passcode" />
+            <constructor-arg name="name" value="passcode"/>
             <constructor-arg name="text"
-                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )" />
-            <constructor-arg name="type" value="password" />
+                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )"/>
+            <constructor-arg name="type" value="password"/>
         </bean>
     </util:list>
 
-    <bean id="xoauthProviderConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
+    <bean id="xoauthProviderConfigurator"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>
@@ -445,71 +439,60 @@
     </bean>
 
     <!--Basic application beans. -->
-    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
-        <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
-        <property name="uaaBaseUrl" ref="uaaUrl" />
-        <property name="entityID" ref="samlEntityID"/>
-        <property name="idpDefinitions" ref="metaDataProviders"/>
-        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="externalLoginUrl" value="${login.url:''}"/>
-        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
-        <property name="xoAuthProviderConfigurator" ref="xoauthProviderConfigurator"/>
-        <property name="globalLinks" ref="globalLinks"/>
-        <property name="mfaChecker" ref="mfaChecker"/>
-    </bean>
+    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint" />
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint">
-        <constructor-arg name="sleepTime" value="${uaa.shutdown.sleep:-1}"/>
-    </bean>
-
-    <context:annotation-config />
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />
+    <context:annotation-config/>
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
-        <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
+        <property name="disableInternalUserManagement"
+                  value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="bootstrapMetaDataProviders"/>
         <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
-        <property name="originsToDelete" value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}" />
+        <property name="originsToDelete"
+                  value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}"/>
     </bean>
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
-                  value="#{@config['login']==null ? null :
+                         value="#{@config['login']==null ? null :
                            @config['login']['oauth']==null ? null :
                            @config['login']['oauth']['providers']}"/>
     </bean>
 
-    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders" />
+    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders"/>
 
-    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap" depends-on="mfaProviderBootstrap">
+    <bean id="identityZoneConfigurationBootstrap"
+          class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap"
+          depends-on="mfaProviderBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
-        <property name="selfServiceLinks" ref="links" />
+        <property name="selfServiceLinks" ref="links"/>
         <property name="homeRedirect" value="${links.homeRedirect:${login.homeRedirect:#{null}}}"/>
-        <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
-        <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
+        <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}"/>
+        <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}"/>
         <property name="logoutRedirectWhitelist"
                   value="#{@config['logout']==null ? null :
                            @config['logout']['redirect']==null ? null :
                            @config['logout']['redirect']['parameter']==null ? null :
                            @config['logout']['redirect']['parameter']['whitelist']}"/>
-        <property name="logoutRedirectParameterName" value="redirect" />
-        <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
+        <property name="logoutRedirectParameterName" value="redirect"/>
+        <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}"/>
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:false}"/>
         <property name="prompts" ref="prompts"/>
-        <property name="branding" value="#{@config['login']['branding']}" />
-        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}" />
-        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}" />
-        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}" />
+        <property name="branding" value="#{@config['login']['branding']}"/>
+        <property name="samlSpPrivateKey" value="${login.serviceProviderKey:#{null}}"/>
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:#{null}}"/>
+        <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}"/>
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
         <property name="samlKeys"
                   value="#{@config['login']==null ? null :
@@ -519,22 +502,24 @@
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
         <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
-        <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}" />
+        <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}"/>
     </bean>
 
-    <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+    <bean id="ldapLoginAuthenticationMgr"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <constructor-arg index="0" ref="identityProviderProvisioning"/>
-        <property name="userDatabase" ref="userDatabase" />
+        <property name="userDatabase" ref="userDatabase"/>
         <property name="origin" value="ldap"/>
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.listener.AuthenticationSuccessListener">
-        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
         <constructor-arg name="checker" ref="mfaChecker"/>
     </bean>
 
-    <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
-        <property name="expiringCodeStore" ref="codeStore" />
+    <bean id="autologinAuthenticationManager"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
+        <property name="expiringCodeStore" ref="codeStore"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="userDatabase" ref="userDatabase"/>
     </bean>

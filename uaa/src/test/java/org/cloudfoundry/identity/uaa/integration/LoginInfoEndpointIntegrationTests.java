@@ -20,16 +20,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author Dave Syer
- */
 public class LoginInfoEndpointIntegrationTests {
 
     @Rule
@@ -39,7 +36,7 @@ public class LoginInfoEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/info</code> endpoint
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/info", Map.class);
@@ -54,10 +51,10 @@ public class LoginInfoEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/login</code> endpoint
      */
     @Test
-    public void testHappyDayHtml() throws Exception {
+    public void testHappyDayHtml() {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
+        headers.setAccept(Collections.singletonList(MediaType.TEXT_HTML));
         ResponseEntity<String> response = serverRunning.getForString("/login", headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         String body = response.getBody();

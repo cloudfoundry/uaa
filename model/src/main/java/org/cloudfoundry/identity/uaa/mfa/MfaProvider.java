@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,7 +28,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -174,7 +172,7 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
     public static class MfaProviderDeserializer extends JsonDeserializer<MfaProvider> {
 
         @Override
-        public MfaProvider deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        public MfaProvider deserialize(JsonParser p, DeserializationContext ctxt) {
             MfaProvider result =  new MfaProvider();
 
             JsonNode node = JsonUtils.readTree(p);
@@ -189,12 +187,8 @@ public class MfaProvider<T extends AbstractMfaProviderConfig> {
             String config = configNode != null ? (configNode.isTextual() ? configNode.textValue() : configNode.toString()) : null;
             AbstractMfaProviderConfig definition = null;
             if(type != null) {
-                switch(type) {
-                    case GOOGLE_AUTHENTICATOR:
-                        definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
-                        break;
-                    default:
-                        break;
+                if (type == MfaProviderType.GOOGLE_AUTHENTICATOR) {
+                    definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
                 }
             }
 

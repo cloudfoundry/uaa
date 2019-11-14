@@ -19,19 +19,19 @@ import org.junit.Test;
 public class PasswordConfirmationValidationTest {
 
     @Test
-    public void testValidWithMatchingPasswords() throws Exception {
+    public void testValidWithMatchingPasswords() {
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation("secret", "secret");
         Assert.assertTrue(validation.valid());
     }
 
     @Test
-    public void testInvalidWithMismatchedPasswords() throws Exception {
+    public void testInvalidWithMismatchedPasswords() {
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation("secret", "mecret");
         Assert.assertFalse(validation.valid());
     }
 
     @Test
-    public void testInvalidWithEmptyPassword() throws Exception {
+    public void testInvalidWithEmptyPassword() {
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation("", "");
         Assert.assertFalse(validation.valid());
     }

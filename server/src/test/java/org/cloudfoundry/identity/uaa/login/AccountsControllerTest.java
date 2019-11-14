@@ -1,18 +1,5 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -47,24 +34,31 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = AccountsControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class AccountsControllerTest extends TestClassNullifier {
+class AccountsControllerTest {
 
     @Autowired
     WebApplicationContext webApplicationContext;
@@ -80,7 +74,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     private boolean selfServiceToReset = false;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() {
         SecurityContextHolder.clearContext();
         selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
@@ -89,13 +83,13 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
     }
 
     @Test
-    public void testNewAccountPage() throws Exception {
+    void newAccountPage() throws Exception {
         mockMvc.perform(get("/create_account").param("client_id", "client-id").param("redirect_uri", "http://example.com/redirect"))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("client_id", "client-id"))
@@ -106,7 +100,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testSendActivationEmail() throws Exception {
+    void sendActivationEmail() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .param("email", "user1@example.com")
             .param("password", "password")
@@ -122,7 +116,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testAttemptCreateAccountWithEmailDomainRestriction() throws Exception {
+    void attemptCreateAccountWithEmailDomainRestriction() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .session(session)
@@ -144,7 +138,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testSendActivationEmailWithUserNameConflict() throws Exception {
+    void sendActivationEmailWithUserNameConflict() throws Exception {
         doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
@@ -162,7 +156,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testInvalidPassword() throws Exception {
+    void invalidPassword() throws Exception {
         doThrow(new InvalidPasswordException(Arrays.asList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
@@ -178,7 +172,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testInvalidEmail() throws Exception {
+    void invalidEmail() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .param("email", "wrong")
             .param("password", "password")
@@ -192,7 +186,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testPasswordMismatch() throws Exception {
+    void passwordMismatch() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .param("email", "user1@example.com")
             .param("password", "pass")
@@ -209,7 +203,7 @@ public class AccountsControllerTest extends TestClassNullifier {
 
 
     @Test
-    public void testVerifyUser() throws Exception {
+    void verifyUser() throws Exception {
         when(accountCreationService.completeActivation("the_secret_code"))
             .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
 
@@ -226,7 +220,7 @@ public class AccountsControllerTest extends TestClassNullifier {
     @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
-    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+    static class ContextConfiguration implements WebMvcConfigurer {
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {

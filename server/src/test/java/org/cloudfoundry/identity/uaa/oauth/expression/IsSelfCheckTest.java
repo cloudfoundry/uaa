@@ -134,7 +134,7 @@ public class IsSelfCheckTest {
     }
 
     @Test
-    public void testSelfUserToken() throws Exception {
+    public void testSelfUserToken() {
         SecurityContextHolder.getContext().setAuthentication(oAuth2AuthenticationWithUser);
         request.setPathInfo("/oauth/token/revoke/user/" + id);
         assertTrue(bean.isUserTokenRevocationForSelf(request, 4));
@@ -149,7 +149,7 @@ public class IsSelfCheckTest {
 
 
     @Test
-    public void testSelfClientToken() throws Exception {
+    public void testSelfClientToken() {
         SecurityContextHolder.getContext().setAuthentication(oAuth2AuthenticationWithUser);
         request.setPathInfo("/oauth/token/revoke/client/" + clientId);
         assertTrue(bean.isClientTokenRevocationForSelf(request, 4));

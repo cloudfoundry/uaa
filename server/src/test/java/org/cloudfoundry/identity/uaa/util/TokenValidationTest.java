@@ -18,7 +18,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -65,14 +64,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -153,7 +147,7 @@ public class TokenValidationTest {
                 entry("jti", "8b14f193-8212-4af2-9927-e3ae903f94a6"),
                 entry("nonce", "04e2e934200b4b9fbe5d4e70ae18ba8e"),
                 entry("sub", "a7f07bf6-e720-4652-8999-e980189cef54"),
-                entry("scope", Arrays.asList("acme.dev")),
+                entry("scope", Collections.singletonList("acme.dev")),
                 entry("client_id", "app"),
                 entry("cid", "app"),
                 entry("azp", "app"),
@@ -179,7 +173,7 @@ public class TokenValidationTest {
 
         inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
-        uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList());
+        uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.emptyList());
         inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
@@ -306,7 +300,7 @@ public class TokenValidationTest {
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group1", "group2"));
         List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList("group1,group2");
 
-        authorities.addAll(AuthorityUtils.createAuthorityList(uaaUserGroups.toArray(new String[uaaUserGroups.size()])));
+        authorities.addAll(AuthorityUtils.createAuthorityList(uaaUserGroups.toArray(new String[0])));
         uaaUser = uaaUser.authorities(authorities);
 
         validation.checkClientAndUser(uaaClient, uaaUser);

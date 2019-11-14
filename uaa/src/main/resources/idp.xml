@@ -2,7 +2,7 @@
 <EntityDescriptor entityID="http://openam.example.com:8181/openam" xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
     <IDPSSODescriptor WantAuthnRequestsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
         <KeyDescriptor use="signing">
-            <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+            <ds:KeyInfo xmlns:ds="https://www.w3.org/2000/09/xmldsig#">
                 <ds:X509Data>
                     <ds:X509Certificate>
 MIICQDCCAakCBEeNB0swDQYJKoZIhvcNAQEEBQAwZzELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNh

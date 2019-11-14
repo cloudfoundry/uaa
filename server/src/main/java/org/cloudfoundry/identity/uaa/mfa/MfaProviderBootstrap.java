@@ -17,7 +17,7 @@ public class MfaProviderBootstrap implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         for(MfaProvider provider : mfaProviders) {
             MfaProvider existing;
             try {

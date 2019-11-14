@@ -35,7 +35,8 @@ class UserInfoEndpointDocs extends EndpointDocs {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";
-        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
+        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"),
+                Collections.singletonList("openid"), Arrays.asList("client_credentials", "password"), authorities);
 
         String userName = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");

@@ -16,10 +16,8 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.springframework.security.authentication.BadCredentialsException;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -33,7 +31,7 @@ import java.util.Map;
 public class LoginClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
 
     @Override
-    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
+    public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
         if (loginInfo.isEmpty()) {
             throw new BadCredentialsException("Request does not contain credentials.");
         } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {

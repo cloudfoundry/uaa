@@ -1,0 +1,17 @@
+{
+  "user_id": "aaaa",
+  "user_name": "bbbb",
+  "given_name": "cccc",
+  "family_name": "dddd",
+  "phone_number": "eeee",
+  "email": "ffff",
+  "email_verified": false,
+  "previous_logon_time": 9876,
+  "user_attributes": {
+    "a": ["b", "c"],
+    "d": ["e", "f"]
+  },
+  "roles": ["x", "y", "z"],
+  "name": "cccc dddd",
+  "sub": "aaaa"
+}

@@ -65,7 +65,7 @@ public class RemoteTokenServicesTests {
     }
 
     @Test
-    public void testTokenRetrieval() throws Exception {
+    public void testTokenRetrieval() {
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
         assertEquals("remote", result.getOAuth2Request().getClientId());
@@ -76,7 +76,7 @@ public class RemoteTokenServicesTests {
     }
 
     @Test
-    public void testTokenRetrievalWithClaims() throws Exception {
+    public void testTokenRetrievalWithClaims() {
         services.setStoreClaims(true);
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
@@ -88,7 +88,7 @@ public class RemoteTokenServicesTests {
     }
 
     @Test
-    public void testTokenRetrievalWithClientAuthorities() throws Exception {
+    public void testTokenRetrievalWithClientAuthorities() {
         body.put("client_authorities", Collections.singleton("uaa.none"));
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
@@ -96,7 +96,7 @@ public class RemoteTokenServicesTests {
     }
 
     @Test
-    public void testTokenRetrievalWithUserAuthorities() throws Exception {
+    public void testTokenRetrievalWithUserAuthorities() {
         body.put("user_authorities", Collections.singleton("uaa.user"));
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
@@ -104,7 +104,7 @@ public class RemoteTokenServicesTests {
     }
 
     @Test
-    public void testTokenRetrievalWithAdditionalAuthorizationAttributes() throws Exception {
+    public void testTokenRetrievalWithAdditionalAuthorizationAttributes() {
         Map additionalAuthorizationAttributesMap = Collections.singletonMap("test", 1);
         body.put(ClaimConstants.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
 

@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.mfa;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.Objects;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig {
@@ -42,7 +44,7 @@ public class GoogleMfaProviderConfig extends AbstractMfaProviderConfig {
 
         GoogleMfaProviderConfig that = (GoogleMfaProviderConfig) o;
 
-        if (providerDescription != null ? !providerDescription.equals(that.providerDescription) : that.providerDescription != null)
+        if (!Objects.equals(providerDescription, that.providerDescription))
             return false;
         return super.equals(that);
     }

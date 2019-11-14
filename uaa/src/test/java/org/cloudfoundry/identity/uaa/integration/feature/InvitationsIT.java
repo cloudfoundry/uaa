@@ -102,12 +102,30 @@ public class InvitationsIT {
     private String testInviteEmail;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
+
+        String userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "user_only_for_invitations_test");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
+
+        userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "testinvite@test.org");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
     }
 
     @Before
@@ -120,7 +138,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.manage().deleteAllCookies();
 
         webDriver.get("http://localhost:8080/app/");
@@ -152,7 +170,7 @@ public class InvitationsIT {
         performInviteUser(userEmail, true);
     }
 
-    public void performInviteUser(String email, boolean isVerified) throws Exception {
+    public void performInviteUser(String email, boolean isVerified) {
         webDriver.get(baseUrl + "/logout.do");
         String redirectUri = baseUrl + "/profile";
         String code = createInvitation(email, email, redirectUri, OriginKeys.UAA);
@@ -165,7 +183,7 @@ public class InvitationsIT {
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         assertEquals(invitedUserId, currentUserId);
 
@@ -230,7 +248,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+    public void testInsecurePasswordDisplaysErrorMessage() {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
@@ -278,7 +296,7 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.uaa-acceptance.cf-app.com/logout.do");
+        webDriver.get(IntegrationTestUtils.OIDC_ACCEPTANCE_URL + "logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 
@@ -306,7 +324,7 @@ public class InvitationsIT {
         try {
             userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
             scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);

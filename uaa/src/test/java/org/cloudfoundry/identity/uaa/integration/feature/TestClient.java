@@ -65,7 +65,7 @@ public class TestClient {
         return exchange.getBody().get("access_token").toString();
     }
 
-    public void createClient(String adminAccessToken, BaseClientDetails clientDetails) throws Exception {
+    public void createClient(String adminAccessToken, BaseClientDetails clientDetails) {
         restfulCreate(
             adminAccessToken,
             JsonUtils.writeValueAsString(clientDetails),
@@ -73,7 +73,7 @@ public class TestClient {
         );
     }
 
-    public void createScimClient(String adminAccessToken, String clientId) throws Exception {
+    public void createScimClient(String adminAccessToken, String clientId) {
         restfulCreate(
                 adminAccessToken,
                 "{" +
@@ -89,7 +89,7 @@ public class TestClient {
         );
     }
 
-    public void createUser(String scimAccessToken, String userName, String email, String password, Boolean verified) throws Exception {
+    public void createUser(String scimAccessToken, String userName, String email, String password, Boolean verified) {
 
         restfulCreate(
                 scimAccessToken,

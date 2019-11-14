@@ -1,22 +1,10 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,10 +16,14 @@ import javax.sql.DataSource;
 
 import static java.util.Collections.emptyList;
 
+/**
+ * @Deprecated. Use {@link WithDatabaseContext} instead.
+ * Don't forget to upgrade the tests to JUnit5.
+ */
+@Deprecated
 public class JdbcTestBase extends TestClassNullifier {
 
     protected XmlWebApplicationContext webApplicationContext;
-    protected Flyway flyway;
     protected JdbcTemplate jdbcTemplate;
     protected DataSource dataSource;
     protected LimitSqlAdapter limitSqlAdapter;
@@ -48,13 +40,12 @@ public class JdbcTestBase extends TestClassNullifier {
         setUp(environment);
     }
 
-    public void setUp(MockEnvironment environment) throws Exception {
+    public void setUp(MockEnvironment environment) {
         this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);
         webApplicationContext.setConfigLocations(getWebApplicationContextConfigFiles());
         webApplicationContext.refresh();
-        flyway = webApplicationContext.getBean(Flyway.class);
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
         dataSource = webApplicationContext.getBean(DataSource.class);
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
@@ -71,7 +62,7 @@ public class JdbcTestBase extends TestClassNullifier {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         TestUtils.restoreToDefaults(webApplicationContext);
 
         ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close(true);

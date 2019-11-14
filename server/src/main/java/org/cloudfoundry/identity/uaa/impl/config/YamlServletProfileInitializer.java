@@ -24,9 +24,15 @@ import javax.servlet.ServletContext;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static org.springframework.util.StringUtils.*;
+import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
+import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
@@ -102,7 +108,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
             factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
 
-            factory.setResources(resources.toArray(new Resource[resources.size()]));
+            factory.setResources(resources.toArray(new Resource[0]));
 
             Map<String, Object> map = factory.getObject();
             String yamlStr = (new Yaml()).dump(map);

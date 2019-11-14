@@ -1,79 +1,63 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.http.HttpStatus.*;
 
 @Controller
 public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;
-    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
-    private ExpiringCodeStore codeStore;
+    private final HttpMessageConverter<?>[] messageConverters;
+    private final ExpiringCodeStore codeStore;
+    private final IdentityZoneManager identityZoneManager;
 
-    public PasswordResetEndpoint(ResetPasswordService resetPasswordService) {
+    public PasswordResetEndpoint(
+            final ResetPasswordService resetPasswordService,
+            final ExpiringCodeStore codeStore,
+            final IdentityZoneManager identityZoneManager) {
         this.resetPasswordService = resetPasswordService;
-    }
-
-    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-        this.messageConverters = messageConverters;
+        this.messageConverters = new HttpMessageConverter[] {
+                new ExceptionReportHttpMessageConverter(),
+                new MappingJackson2HttpMessageConverter()
+        };
+        this.codeStore = codeStore;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
                                                                @RequestParam(required = false, value = "client_id") String clientId,
-                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) throws IOException {
+                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
         if (clientId == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication instanceof OAuth2Authentication) {
@@ -96,7 +80,7 @@ public class PasswordResetEndpoint {
     }
 
     private ExpiringCode getExpiringCode(String code) {
-        ExpiringCode expiringCode = codeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = codeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         if (expiringCode == null) {
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
@@ -139,7 +123,7 @@ public class PasswordResetEndpoint {
         codeData.put("username", username);
         codeData.put(OAuth2Utils.CLIENT_ID, clientId);
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
@@ -152,11 +136,7 @@ public class PasswordResetEndpoint {
     @ExceptionHandler(InvalidCodeException.class)
     public View handleCodeException(InvalidCodeException t) throws ScimException {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
-            t, false), UNPROCESSABLE_ENTITY),
-            messageConverters);
-    }
-
-    public void setCodeStore(ExpiringCodeStore codeStore) {
-        this.codeStore = codeStore;
+                t, false), UNPROCESSABLE_ENTITY),
+                messageConverters);
     }
 }

@@ -1,0 +1,31 @@
+{
+  "email": "olds@vmware.com",
+  "email_verified": true,
+  "name": "Dale Olds",
+  "phone_number": "8505551234",
+  "user_name": "olds",
+  "given_name": "Dale",
+  "family_name": "Olds",
+  "sub": "12345",
+  "user_id": "12345",
+  "number": 123,
+  "origin": "uaa",
+  "zid": "uaa",
+  "user_attributes": {
+    "Key 1": [
+      "Val 11",
+      "Val 12"
+    ],
+    "Key 2": [
+      "Val 21",
+      "Val 22"
+    ]
+  },
+  "roles": [
+    "role12",
+    "role54",
+    "role134",
+    "role812"
+  ],
+  "previous_logon_time": 1000
+}

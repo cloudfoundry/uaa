@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 
@@ -57,7 +56,7 @@ class ExpiringUrlCacheTests {
     @Test
     void correct_method_invoked_on_rest_template() throws URISyntaxException {
         cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
     }
 
     @Test
@@ -77,7 +76,7 @@ class ExpiringUrlCacheTests {
     void calling_twice_uses_cache() throws Exception {
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertSame(c1, c2);
         assertEquals(1, cache.size());
     }
@@ -95,21 +94,11 @@ class ExpiringUrlCacheTests {
                 );
         byte[] c1 = cache.getUrlContent(uri, template);
         byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(2)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+        verify(template, times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertNotSame(c1, c2);
     }
 
-
-    @Test
-    void test_google_returns_same_array() {
-        uri = "https://accounts.google.com/.well-known/openid-configuration";
-        byte[] c1 = cache.getUrlContent(uri, new RestTemplate());
-        byte[] c2 = cache.getUrlContent(uri, new RestTemplate());
-        assertNotNull(c1);
-        assertSame(c1, c2);
-    }
-
-    @Test
+   @Test
     void cache_should_start_empty() {
         assertEquals(0, cache.size());
     }
@@ -130,7 +119,7 @@ class ExpiringUrlCacheTests {
             cache.getUrlContent(uri, template);
         }
         for (String uri : Arrays.asList(uri1, uri2, uri3)) {
-            verify(template, times(1)).getForObject(eq(new URI(uri)), same((new byte[0]).getClass()));
+            verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         }
         assertEquals(2, cache.size());
     }

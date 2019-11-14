@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
@@ -50,10 +49,10 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     @Test
     public void ensure_that_subdomains_get_lower_cased() throws Exception {
         List<String> subdomains = Arrays.asList(
-            "Zone1" + generator.generate(),
-            "Zone2" + generator.generate(),
-            "Zone3" + generator.generate(),
-            "Zone4+generator.generate()"
+                "Zone1" + generator.generate(),
+                "Zone2" + generator.generate(),
+                "Zone3" + generator.generate(),
+                "Zone4+generator.generate()"
         );
 
         for (String subdomain : subdomains) {
@@ -67,12 +66,12 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
         migration.migrate(jdbcTemplate);
         for (String subdomain : subdomains) {
             for (IdentityZone zone :
-                Arrays.asList(
-                    provisioning.retrieve(subdomain),
-                    provisioning.retrieveBySubdomain(subdomain.toLowerCase()),
-                    provisioning.retrieveBySubdomain(subdomain)
-                )
-                ) {
+                    Arrays.asList(
+                            provisioning.retrieve(subdomain),
+                            provisioning.retrieveBySubdomain(subdomain.toLowerCase()),
+                            provisioning.retrieveBySubdomain(subdomain)
+                    )
+            ) {
                 assertNotNull(zone);
                 assertEquals(subdomain, zone.getId());
                 assertEquals(subdomain.toLowerCase(), zone.getSubdomain());
@@ -84,20 +83,20 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     public void test_duplicate_subdomains() throws Exception {
         check_db_is_case_sensitive();
         List<String> ids = Arrays.asList(
-            "id1"+generator.generate().toLowerCase(),
-            "id2"+generator.generate().toLowerCase(),
-            "id3"+generator.generate().toLowerCase(),
-            "id4"+generator.generate().toLowerCase(),
-            "id5"+generator.generate().toLowerCase()
+                "id1" + generator.generate().toLowerCase(),
+                "id2" + generator.generate().toLowerCase(),
+                "id3" + generator.generate().toLowerCase(),
+                "id4" + generator.generate().toLowerCase(),
+                "id5" + generator.generate().toLowerCase()
         );
         List<String> subdomains = Arrays.asList(
-            "domain1",
-            "Domain1",
-            "doMain1",
-            "domain4"+generator.generate().toLowerCase(),
-            "domain5"+generator.generate().toLowerCase()
+                "domain1",
+                "Domain1",
+                "doMain1",
+                "domain4" + generator.generate().toLowerCase(),
+                "domain5" + generator.generate().toLowerCase()
         );
-        for (int i=0; i<ids.size(); i++) {
+        for (int i = 0; i < ids.size(); i++) {
             IdentityZone zone = MultitenancyFixture.identityZone(ids.get(i), subdomains.get(i));
             zone.setSubdomain(subdomains.get(i)); //mixed case
             createIdentityZoneThroughSQL(zone);
@@ -112,28 +111,26 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
             //ensure we converted to lower case
             assertEquals(zone.getSubdomain().toLowerCase(), zone.getSubdomain());
         }
-     }
+    }
 
 
-    public void check_db_is_case_sensitive() throws Exception {
+    public void check_db_is_case_sensitive() {
         String usubdomain = "TEST_UPPER_" + generator.generate();
         String lsubdomain = usubdomain.toLowerCase();
 
         //check if the DB is case sensitive
         for (String subdomain : Arrays.asList(usubdomain, lsubdomain)) {
             try {
-                IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain+generator.generate(), subdomain);
+                IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain + generator.generate(), subdomain);
                 identityZone.setSubdomain(subdomain);
                 createIdentityZoneThroughSQL(identityZone);
-            } catch (SQLException x) {
-                assumeTrue("DB is not case sensitive. No need for this test", false);
             } catch (DuplicateKeyException x) {
                 assumeTrue("DB is not case sensitive. No need for this test", false);
             }
         }
     }
 
-    protected void createIdentityZoneThroughSQL(IdentityZone identityZone) throws SQLException {
+    protected void createIdentityZoneThroughSQL(IdentityZone identityZone) {
         String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
         String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
 import java.util.*;
@@ -40,6 +41,7 @@ public class TestUtils {
     public static void restoreToDefaults(ApplicationContext applicationContext) {
         cleanAndSeedDb(applicationContext);
         resetIdentityZoneHolder(applicationContext);
+        SecurityContextHolder.clearContext();
     }
 
     public static void cleanAndSeedDb(JdbcTemplate jdbcTemplate) {

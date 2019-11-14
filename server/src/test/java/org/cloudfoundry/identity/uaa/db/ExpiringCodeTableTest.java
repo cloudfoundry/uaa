@@ -53,8 +53,7 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
 
     @Test
     public void validate_table() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             int foundColumn = 0;
@@ -65,7 +64,7 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
                 int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
                     String actualColumnType = rs.getString("TYPE_NAME");
-                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
+                    assertTrue("Testing column:" + rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
                     foundTable = true;
                     foundColumn++;
                 }
@@ -75,9 +74,6 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
             assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
 
 
-
-        } finally{
-            connection.close();
         }
     }
 

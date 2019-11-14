@@ -36,7 +36,7 @@ import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -130,11 +130,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
 
     protected boolean evaluateResponse(Authentication authentication, ResponseEntity<Map> response) {
         String userFromUaa = (String) response.getBody().get("username");
-        if (userFromUaa.equals(authentication.getPrincipal().toString())) {
-            return true;
-        } else {
-            return false;
-        }
+        return userFromUaa.equals(authentication.getPrincipal().toString());
     }
 
     protected Object getParameters(String username, String password) {
@@ -147,7 +143,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
     protected HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         return headers;
     }
 

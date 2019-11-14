@@ -17,13 +17,13 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,14 +31,8 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
@@ -53,22 +47,13 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -111,7 +96,7 @@ public class OpenIdTokenGrantsIT {
     private String[] openid = new String[] {"openid"};
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
@@ -145,9 +130,9 @@ public class OpenIdTokenGrantsIT {
     }
 
     @Test
-    public void testImplicitGrant() throws Exception {
+    public void testImplicitGrant() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
@@ -164,20 +149,20 @@ public class OpenIdTokenGrantsIT {
             Void.class
         );
 
-        Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("localhost", locationComponents.getHost());
-        Assert.assertEquals("/redirect/cf", locationComponents.getPath());
+        assertEquals("localhost", locationComponents.getHost());
+        assertEquals("/redirect/cf", locationComponents.getPath());
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);
 
-        Assert.assertThat(params.get("jti"), not(empty()));
-        Assert.assertEquals("bearer", params.getFirst("token_type"));
-        Assert.assertThat(Integer.parseInt(params.getFirst("expires_in")), Matchers.greaterThan(40000));
+        assertThat(params.get("jti"), not(empty()));
+        assertEquals("bearer", params.getFirst("token_type"));
+        assertThat(Integer.parseInt(params.getFirst("expires_in")), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",
@@ -190,27 +175,27 @@ public class OpenIdTokenGrantsIT {
         validateToken("id_token", params.toSingleValueMap(), openid, new String[] {"cf"});
     }
 
-    private void validateToken(String paramName, Map params, String[] scopes, String[] aud) throws java.io.IOException {
+    private void validateToken(String paramName, Map params, String[] scopes, String[] aud) {
         Jwt access_token = JwtHelper.decode((String)params.get(paramName));
 
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat(claims.get("jti"), is(params.get("jti")));
-        Assert.assertThat(claims.get("client_id"), is("cf"));
-        Assert.assertThat(claims.get("cid"), is("cf"));
-        Assert.assertThat(claims.get("user_name"), is(user.getUserName()));
-        Assert.assertThat(((List<String>) claims.get(ClaimConstants.SCOPE)), containsInAnyOrder(scopes));
-        Assert.assertThat(((List<String>) claims.get(ClaimConstants.AUD)), containsInAnyOrder(aud));
+        assertThat(claims.get("jti"), is(params.get("jti")));
+        assertThat(claims.get("client_id"), is("cf"));
+        assertThat(claims.get("cid"), is("cf"));
+        assertThat(claims.get("user_name"), is(user.getUserName()));
+        assertThat(((List<String>) claims.get(ClaimConstants.SCOPE)), containsInAnyOrder(scopes));
+        assertThat(((List<String>) claims.get(ClaimConstants.AUD)), containsInAnyOrder(aud));
     }
 
     @Test
-    public void testPasswordGrant() throws Exception {
+    public void testPasswordGrant() {
         String basicDigestHeaderValue = "Basic "
             + new String(Base64.encodeBase64(("cf:").getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -226,16 +211,16 @@ public class OpenIdTokenGrantsIT {
             new HttpEntity<>(postBody, headers),
             Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
         Map<String, Object> params = responseEntity.getBody();
 
-        Assert.assertTrue(params.get("jti") != null);
-        Assert.assertEquals("bearer", params.get("token_type"));
-        Assert.assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertNotNull(params.get("jti"));
+        assertEquals("bearer", params.get("token_type"));
+        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",
@@ -249,24 +234,24 @@ public class OpenIdTokenGrantsIT {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndCode() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndToken() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndToken() {
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
         doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
     }
 
-    private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) {
 
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -372,7 +357,7 @@ public class OpenIdTokenGrantsIT {
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(redirectUri + responseTypeMatcher.toString()));
+            location.matches(redirectUri + responseTypeMatcher));
 
         formData.clear();
         formData.add("client_id", clientId);

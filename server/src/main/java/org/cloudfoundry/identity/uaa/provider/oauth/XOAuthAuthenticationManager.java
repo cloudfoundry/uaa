@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -42,6 +40,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -62,16 +62,14 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -170,7 +168,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     private boolean idTokenWasIssuedByTheUaa(String issuer) {
-        return issuer.equals(tokenEndpointBuilder.getTokenEndpoint());
+        return issuer.equals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
     }
 
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
@@ -265,7 +263,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                         logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", values, authentication.getPrincipal().getId()));
                     }
                 } else if (acr instanceof String) {
-                    authentication.setAuthContextClassRef(new HashSet(Arrays.asList((String) acr)));
+                    authentication.setAuthContextClassRef(new HashSet(Collections.singletonList((String) acr)));
                 } else {
                     logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
                 }
@@ -469,18 +467,17 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         if ("signed_request".equals(config.getResponseType())) {
-            String signedRequest = idToken;
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: " + signedRequest);
+            logger.debug("Validating signed_request: " + idToken);
             //split request into signature and data
-            String[] signedRequests = signedRequest.split("\\.", 2);
+            String[] signedRequests = idToken.split("\\.", 2);
             //parse signature
             String signature = signedRequests[0];
             //parse data and convert to json object
             String data = signedRequests[1];
             Map<String, Object> jsonData = null;
             try {
-                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), "UTF-8"), new TypeReference<Map<String,Object>>() {});
+                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<Map<String,Object>>() {});
                 //check signature algorithm
                 if(!jsonData.get("algorithm").equals("HMAC-SHA256")) {
                     logger.debug("Unknown algorithm was used to sign request! No claims returned.");
@@ -493,9 +490,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 }
                 //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
                 return jsonData;
-            } catch (UnsupportedEncodingException e) {
-                logger.error("Unsupported encoding", e);
-                return null;
             } catch (Exception e) {
                 logger.error("Exception", e);
                 return null;
@@ -511,9 +505,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    protected String hmacSignAndEncode(String data, String key) throws UnsupportedEncodingException {
+    protected String hmacSignAndEncode(String data, String key) {
         MacSigner macSigner = new MacSigner(key);
-        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes("UTF-8"))), "UTF-8");
+        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
     }
 
     private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -521,7 +515,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         TokenValidation validation;
 
-        if (tokenEndpointBuilder.getTokenEndpoint().equals(config.getIssuer())) {
+        if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
@@ -553,7 +547,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             p.put("value", tokenKey);
             p.put("kty", isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
             logger.debug("Key configured, returning.");
-            return new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(p)));
+            return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
         }
         URL tokenKeyUrl = config.getTokenKeyUrl();
         if (tokenKeyUrl == null || !StringUtils.hasText(tokenKeyUrl.toString())) {
@@ -611,23 +605,19 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        try {
-            logger.debug(String.format("Performing token exchange with url:%s and request:%s", requestUri, body));
-            // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
-            // setup by the bean initializer.
-            ResponseEntity<Map<String, String>> responseEntity =
-                getRestTemplate(config)
-                    .exchange(requestUri,
-                              HttpMethod.POST,
-                              requestEntity,
-                              new ParameterizedTypeReference<Map<String, String>>() {
-                              }
-                    );
-            logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-            return responseEntity.getBody().get(getResponseType(config));
-        } catch (HttpServerErrorException | HttpClientErrorException ex) {
-            throw ex;
-        }
+        logger.debug(String.format("Performing token exchange with url:%s and request:%s", requestUri, body));
+        // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
+        // setup by the bean initializer.
+        ResponseEntity<Map<String, String>> responseEntity =
+            getRestTemplate(config)
+                .exchange(requestUri,
+                          HttpMethod.POST,
+                          requestEntity,
+                          new ParameterizedTypeReference<Map<String, String>>() {
+                          }
+                );
+        logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
+        return responseEntity.getBody().get(getResponseType(config));
     }
 
     private String getClientAuthHeader(AbstractXOAuthIdentityProviderDefinition config) {

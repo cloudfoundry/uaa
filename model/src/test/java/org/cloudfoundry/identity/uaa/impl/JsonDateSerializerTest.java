@@ -16,7 +16,7 @@ public class JsonDateSerializerTest {
     Exception exceptionOccured = null;
 
     @Test
-    public void testFormatting() throws IOException, ParseException {
+    public void testFormatting() throws IOException {
         Date now = new Date();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         JsonGenerator gen = new JsonFactory().createGenerator(bos);
@@ -27,7 +27,7 @@ public class JsonDateSerializerTest {
     }
 
     @Test
-    public void testFormattingParallel() throws IOException, InterruptedException {
+    public void testFormattingParallel() throws InterruptedException {
         Thread[] threadArray = new Thread[1000];
         for (int i = 0; i < 1000; i++) {
 

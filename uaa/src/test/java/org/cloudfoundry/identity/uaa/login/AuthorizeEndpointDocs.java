@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
@@ -54,8 +55,8 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     private final ParameterDescriptor promptParameter = parameterWithName(ID_TOKEN_HINT_PROMPT).description("specifies whether to prompt for user authentication. Only value `" + ID_TOKEN_HINT_PROMPT_NONE + "` is supported.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).attributes(key("constraints").value("Required"), key("type").value(STRING));
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider.");
-    private final ParameterDescriptor codeChallenge = parameterWithName(PkceValidationService.CODE_CHALLENGE).description("<small><mark>UAA 4.27.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Challenge. When `code_challenge` is present also a `code_challenge_method` must be provided. A matching `code_verifier` parameter must be provided in the subsequent request to get an `access_token` from `/oauth/token`").attributes(key("constraints").value("Optional"), key("type").value(STRING));
-    private final ParameterDescriptor codeChallengeMethod = parameterWithName(PkceValidationService.CODE_CHALLENGE_METHOD).description("<small><mark>UAA 4.27.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Challenge Method. `S256` and `plain` methods are supported. `S256` method creates a BASE64 URL encoded SHA256 hash of the `code_verifier`. The `plain` method is intended for constrained devices unable to calculate SHA256. In this case the `code_verifier` equals the `code_challenge`. If possible it is recommended to use `S256`.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor codeChallenge = parameterWithName(PkceValidationService.CODE_CHALLENGE).description("<small><mark>UAA 74.9.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Challenge. When `code_challenge` is present also a `code_challenge_method` must be provided. A matching `code_verifier` parameter must be provided in the subsequent request to get an `access_token` from `/oauth/token`").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor codeChallengeMethod = parameterWithName(PkceValidationService.CODE_CHALLENGE_METHOD).description("<small><mark>UAA 74.9.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Challenge Method. `S256` and `plain` methods are supported. `S256` method creates a BASE64 URL encoded SHA256 hash of the `code_verifier`. The `plain` method is intended for constrained devices unable to calculate SHA256. In this case the `code_verifier` equals the `code_challenge`. If possible it is recommended to use `S256`.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
 
     private UaaAuthentication principal;
 
@@ -63,7 +64,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     private JdbcScimUserProvisioning userProvisioning;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
@@ -83,7 +84,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "login")
                 .param(SCOPE, "openid oauth.approvals")
                 .param(REDIRECT_URI, "http://localhost/app")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
                 .session(session);
@@ -138,8 +139,8 @@ class AuthorizeEndpointDocs extends EndpointDocs {
         mockMvc.perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        requestParameters).snippets(requestHeaders(
-                        headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
+                        requestParameters,
+                        requestHeaders(headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
     }
 
     @Test
@@ -156,7 +157,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -220,7 +221,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -257,7 +258,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -295,7 +296,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(

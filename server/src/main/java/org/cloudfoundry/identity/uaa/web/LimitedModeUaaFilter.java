@@ -87,11 +87,9 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     }
 
     protected Map<String, String> getErrorData() {
-        String error = ERROR_CODE;
-        String description  = ERROR_MESSAGE;
         Map<String, String> json = new HashMap<>();
-        json.put("error", error);
-        json.put("error_description", description);
+        json.put("error", ERROR_CODE);
+        json.put("error_description", ERROR_MESSAGE);
         return json;
     }
 

@@ -161,7 +161,6 @@ public class PkceValidationService {
         if (parameter == null) {
             return false;
         }
-        final Matcher matcher = pattern.matcher(parameter);
-        return matcher.matches();
+        return pattern.matcher(parameter).matches();
     }
 }

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 
@@ -228,8 +227,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
-        return user;
+        return new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     @Override

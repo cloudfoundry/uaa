@@ -15,11 +15,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -97,7 +93,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         if(this.isStoreCustomAttributes() != that.isStoreCustomAttributes()) return false;
         if (getExternalGroupsWhitelist() != null ? !getExternalGroupsWhitelist().equals(that.getExternalGroupsWhitelist()) : that.getExternalGroupsWhitelist() != null)
             return false;
-        return attributeMappings != null ? attributeMappings.equals(that.attributeMappings) : that.attributeMappings == null;
+        return Objects.equals(attributeMappings, that.attributeMappings);
     }
 
     @Override

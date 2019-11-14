@@ -93,7 +93,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         chain.doFilter(req, res);
     }
 
-    public abstract void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException;
+    public abstract void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId);
 
     protected void doClientCredentialLogin(HttpServletRequest req, Map<String, String> loginInfo, String clientId) {
         Authentication clientAuth = performClientAuthentication(req, loginInfo, clientId);
@@ -149,7 +149,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     @Override

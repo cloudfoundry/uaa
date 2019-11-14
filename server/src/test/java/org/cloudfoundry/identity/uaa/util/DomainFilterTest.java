@@ -90,7 +90,7 @@ public class DomainFilterTest {
     private SamlIdentityProviderDefinition samlDef2;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         client = new BaseClientDetails("clientid","", "", "","","");
         uaaDef = new UaaIdentityProviderDefinition(null, null);
         ldapDef = new LdapIdentityProviderDefinition();
@@ -123,7 +123,7 @@ public class DomainFilterTest {
     }
 
     @Test
-    public void test_null_arguments() throws Exception {
+    public void test_null_arguments() {
         assertThat(filter.filter(null,null,null), Matchers.containsInAnyOrder());
         assertThat(filter.filter(null,null,email), Matchers.containsInAnyOrder());
         assertThat(filter.filter(null,client,null), Matchers.containsInAnyOrder());
@@ -137,12 +137,12 @@ public class DomainFilterTest {
     public void test_default_idp_and_client_setup() {
         assertThat(filter.filter(activeProviders,null,email), Matchers.containsInAnyOrder(uaaProvider));
         assertThat(filter.filter(activeProviders,client,email), Matchers.containsInAnyOrder(uaaProvider));
-        assertThat(filter.filter(Arrays.asList(ldapProvider),null,email), Matchers.containsInAnyOrder());
-        assertThat(filter.filter(Arrays.asList(ldapProvider),client,email), Matchers.containsInAnyOrder());
+        assertThat(filter.filter(Collections.singletonList(ldapProvider),null,email), Matchers.containsInAnyOrder());
+        assertThat(filter.filter(Collections.singletonList(ldapProvider),client,email), Matchers.containsInAnyOrder());
         assertThat(filter.filter(Arrays.asList(uaaProvider, samlProvider2),null,email), Matchers.containsInAnyOrder(uaaProvider));
         assertThat(filter.filter(Arrays.asList(uaaProvider, samlProvider2),client,email), Matchers.containsInAnyOrder(uaaProvider));
-        assertThat(filter.filter(Arrays.asList(uaaProvider), null, email), Matchers.containsInAnyOrder(uaaProvider));
-        assertThat(filter.filter(Arrays.asList(uaaProvider),client,email), Matchers.containsInAnyOrder(uaaProvider));
+        assertThat(filter.filter(Collections.singletonList(uaaProvider), null, email), Matchers.containsInAnyOrder(uaaProvider));
+        assertThat(filter.filter(Collections.singletonList(uaaProvider),client,email), Matchers.containsInAnyOrder(uaaProvider));
     }
 
     @Test
@@ -156,7 +156,7 @@ public class DomainFilterTest {
         uaaDef.setEmailDomain(null);
         samlDef1.setEmailDomain(EMPTY_LIST);
         samlDef2.setEmailDomain(EMPTY_LIST);
-        ldapDef.setEmailDomain(Arrays.asList("test.org"));
+        ldapDef.setEmailDomain(Collections.singletonList("test.org"));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(ldapProvider));
         assertThat(filter.filter(activeProviders, client, "some@other.domain"), Matchers.containsInAnyOrder(uaaProvider));
@@ -167,7 +167,7 @@ public class DomainFilterTest {
         uaaDef.setEmailDomain(null);
         samlDef1.setEmailDomain(EMPTY_LIST);
         samlDef2.setEmailDomain(Arrays.asList("test.org","test2.org"));
-        ldapDef.setEmailDomain(Arrays.asList("test.org"));
+        ldapDef.setEmailDomain(Collections.singletonList("test.org"));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(ldapProvider, samlProvider2));
     }
@@ -176,8 +176,8 @@ public class DomainFilterTest {
     public void test_multiple_positive_email_domain_matches_wildcard() {
         uaaDef.setEmailDomain(null);
         samlDef1.setEmailDomain(EMPTY_LIST);
-        samlDef2.setEmailDomain(Arrays.asList("*.org"));
-        ldapDef.setEmailDomain(Arrays.asList("*.org"));
+        samlDef2.setEmailDomain(Collections.singletonList("*.org"));
+        ldapDef.setEmailDomain(Collections.singletonList("*.org"));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(ldapProvider, samlProvider2));
     }
@@ -186,8 +186,8 @@ public class DomainFilterTest {
     public void test_multiple_positive_long_email_domain_matches_wildcard() {
         uaaDef.setEmailDomain(null);
         samlDef1.setEmailDomain(EMPTY_LIST);
-        samlDef2.setEmailDomain(Arrays.asList("*.*.*.com"));
-        ldapDef.setEmailDomain(Arrays.asList("*.*.test2.com"));
+        samlDef2.setEmailDomain(Collections.singletonList("*.*.*.com"));
+        ldapDef.setEmailDomain(Collections.singletonList("*.*.test2.com"));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, "user@test.test1.test2.com"), Matchers.containsInAnyOrder(ldapProvider, samlProvider2));
     }
@@ -197,8 +197,8 @@ public class DomainFilterTest {
         uaaDef.setEmailDomain(null);
         samlDef1.setEmailDomain(EMPTY_LIST);
         samlDef2.setEmailDomain(Arrays.asList("test.org","test2.org"));
-        ldapDef.setEmailDomain(Arrays.asList("test.org"));
-        client.addAdditionalInformation(ALLOWED_PROVIDERS, Arrays.asList(samlProvider2.getOriginKey()));
+        ldapDef.setEmailDomain(Collections.singletonList("test.org"));
+        client.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(samlProvider2.getOriginKey()));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(samlProvider2));
 
@@ -206,17 +206,17 @@ public class DomainFilterTest {
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(samlProvider2));
 
-        client.addAdditionalInformation(ALLOWED_PROVIDERS, Arrays.asList(samlProvider1.getOriginKey()));
+        client.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(samlProvider1.getOriginKey()));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder());
     }
 
     @Test
     public void test_single_client_allowed_provider() {
-        client.addAdditionalInformation(ALLOWED_PROVIDERS, Arrays.asList(ldapProvider.getOriginKey()));
+        client.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(ldapProvider.getOriginKey()));
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder());
 
-        ldapDef.setEmailDomain(Arrays.asList("test.org"));
+        ldapDef.setEmailDomain(Collections.singletonList("test.org"));
         configureTestData();
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(ldapProvider));
     }
@@ -229,7 +229,7 @@ public class DomainFilterTest {
         client.addAdditionalInformation(ALLOWED_PROVIDERS, Arrays.asList(ldapProvider.getOriginKey(), samlProvider2.getOriginKey()));
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder());
 
-        ldapDef.setEmailDomain(Arrays.asList("test.org"));
+        ldapDef.setEmailDomain(Collections.singletonList("test.org"));
         configureTestData();
         client.addAdditionalInformation(ALLOWED_PROVIDERS, Arrays.asList(ldapProvider.getOriginKey(), uaaProvider.getOriginKey()));
         assertThat(filter.filter(activeProviders, client, email), Matchers.containsInAnyOrder(ldapProvider));

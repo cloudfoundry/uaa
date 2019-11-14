@@ -21,7 +21,7 @@ import org.junit.Test;
 
 public class ExpiringCodeTests {
     @Test
-    public void testIsExpired() throws Exception {
+    public void testIsExpired() {
         ExpiringCode expiringCode = new ExpiringCode();
         assertFalse(expiringCode.isExpired());
 

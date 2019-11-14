@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -34,7 +33,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
-import java.io.IOException;
+import javax.validation.constraints.Email;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,7 +47,7 @@ public class AccountsController {
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    public AccountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
+    public AccountsController(final AccountCreationService accountCreationService, final IdentityProviderProvisioning identityProviderProvisioning) {
         this.accountCreationService = accountCreationService;
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
@@ -116,7 +115,7 @@ public class AccountsController {
     @RequestMapping(value = "/verify_user", method = GET)
     public String verifyUser(Model model,
                                 @RequestParam("code") String code,
-                                HttpServletResponse response, HttpSession session) throws IOException {
+                                HttpServletResponse response, HttpSession session) {
 
         AccountCreationService.AccountCreationResponse accountCreation;
         try {

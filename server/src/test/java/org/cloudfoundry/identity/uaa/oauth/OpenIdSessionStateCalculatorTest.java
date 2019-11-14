@@ -16,7 +16,7 @@ public class OpenIdSessionStateCalculatorTest {
     private OpenIdSessionStateCalculator calculator;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         calculator = new OpenIdSessionStateCalculator();
         SecureRandom secureRandom = mock(SecureRandom.class);
         doNothing().when(secureRandom).nextBytes(any());
@@ -24,7 +24,7 @@ public class OpenIdSessionStateCalculatorTest {
     }
 
     @Test
-    public void calculate() throws Exception {
+    public void calculate() {
             String sessionState = calculator.calculate("current-user-id", "client_id", "http://example.com");
         assertEquals("3b501628aea599d810e86e06884fd5a468b91a7a1c05c5a0b7211b553ec4aa02.0000000000000000000000000000000000000000000000000000000000000000", sessionState);
     }

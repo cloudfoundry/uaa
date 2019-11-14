@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.After;
@@ -69,6 +70,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
@@ -102,7 +104,7 @@ public class Saml2TokenGranterTest {
     @Before
     public void setup() {
         try { DefaultBootstrap.bootstrap();
-        } catch (ConfigurationException e) { }
+        } catch (ConfigurationException ignored) { }
         tokenServices = mock(AuthorizationServerTokenServices.class);
         clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -117,7 +119,8 @@ public class Saml2TokenGranterTest {
         granter = new Saml2TokenGranter(
             tokenServices,
             clientDetailsService,
-            requestFactory);
+            requestFactory,
+            new DefaultSecurityContextAccessor());
         samltoken = new SAMLAuthenticationToken(samlcontext);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -140,20 +143,20 @@ public class Saml2TokenGranterTest {
     }
 
     @Test
-    public void test_not_authenticated() throws Exception {
+    public void test_not_authenticated() {
         when(authentication.isAuthenticated()).thenReturn(false);
         granter.validateRequest(tokenRequest);
     }
 
     @Test
-    public void test_not_a_user_authentication() throws Exception {
+    public void test_not_a_user_authentication() {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         granter.validateRequest(tokenRequest);
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void test_no_grant_type() throws Exception {
+    public void test_no_grant_type() {
         missing_parameter(GRANT_TYPE);
     }
 
@@ -243,7 +246,7 @@ public class Saml2TokenGranterTest {
     EntityDescriptor getMetadata(String xml) {
        try {
            return (EntityDescriptor)unmarshallObject(xml);
-       } catch(Exception e) {
+       } catch(Exception ignored) {
        }
        return null;
     }
@@ -251,7 +254,7 @@ public class Saml2TokenGranterTest {
     Assertion getAssertion(String xml) {
         try {
             return (Assertion)unmarshallObject(xml);
-        } catch(Exception e) {
+        } catch(Exception ignored) {
         }
         return null;
     }
@@ -260,9 +263,8 @@ public class Saml2TokenGranterTest {
         try {
             AssertionMarshaller marshaller = new AssertionMarshaller();
             Element plaintextElement = marshaller.marshall(assertion);
-            String serializedElement = XMLHelper.nodeToString(plaintextElement);
-            return serializedElement;
-        } catch(Exception e) {
+            return XMLHelper.nodeToString(plaintextElement);
+        } catch(Exception ignored) {
         }
         return null;
     }
@@ -270,11 +272,11 @@ public class Saml2TokenGranterTest {
 	/*
 	 * Unmarshall XML string to OpenSAML XMLObject
 	 */
-	private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException, UnsupportedEncodingException {
+	private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException {
 		BasicParserPool parser = new BasicParserPool();
 		parser.setNamespaceAware(true);
 		/* Base64URL encoded */
-		byte bytes[] = xmlString.getBytes("utf-8");
+		byte[] bytes = xmlString.getBytes(UTF_8);
 		if (bytes == null || bytes.length == 0)
 			throw new InsufficientAuthenticationException("Invalid assertion encoding");
 		Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));

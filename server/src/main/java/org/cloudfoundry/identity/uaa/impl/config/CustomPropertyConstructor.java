@@ -12,12 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.springframework.util.Assert;
+import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.introspector.Property;
 import org.yaml.snakeyaml.introspector.PropertyUtils;
 import org.yaml.snakeyaml.nodes.NodeId;
 
-import java.beans.IntrospectionException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,12 +32,22 @@ import java.util.Map;
 public class CustomPropertyConstructor extends Constructor {
     private final Map<Class<?>, Map<String, Property>> properties = new HashMap<Class<?>, Map<String, Property>>();
     private final PropertyUtils propertyUtils = new PropertyUtils();
+    private final Map<Class<?>, AliasSupportingTypeDescription> typeDescriptions = new HashMap<>();
 
     public CustomPropertyConstructor(Class<?> theRoot) {
         super(theRoot);
+        TypeDescription typeDescription = createTypeDescription(theRoot);
+        addTypeDescription(typeDescription);
         yamlClassConstructors.put(NodeId.mapping, new CustomPropertyConstructMapping());
     }
 
+    TypeDescription createTypeDescription(Class<?> clazz) {
+        Assert.isTrue(!typeDescriptions.containsKey(clazz), "type description for " + clazz.getSimpleName() + " already exists");
+        AliasSupportingTypeDescription typeDescription = new AliasSupportingTypeDescription(clazz);
+        typeDescriptions.put(clazz, typeDescription);
+        return typeDescription;
+    }
+    
     /**
      * Adds an alias for a Javabean property name on a particular type.
      * The values of YAML keys with the alias name will be mapped to the
@@ -48,24 +59,24 @@ public class CustomPropertyConstructor extends Constructor {
      * @param name the bean property name
      */
     protected final void addPropertyAlias(String alias, Class<?> type, String name) {
-        Map<String, Property> typeMap = properties.get(type);
+        Map<String, Property> typeMap = properties.computeIfAbsent(type, k -> new HashMap<>());
 
-        if (typeMap == null) {
-            typeMap = new HashMap<String, Property>();
-            properties.put(type, typeMap);
-        }
+        Property property = propertyUtils.getProperty(type, name);
+        typeMap.put(alias, property);
+        addAliasToTypeDescription(alias, type, property);
+    }
 
-        try {
-            typeMap.put(alias, propertyUtils.getProperty(type, name));
-        } catch (IntrospectionException e) {
-            throw new RuntimeException(e);
+    private void addAliasToTypeDescription(String alias, Class<?> type, Property property) {
+        AliasSupportingTypeDescription typeDescription = typeDescriptions.get(type);
+        if (typeDescription != null) {
+            typeDescription.put(alias, property);
         }
     }
 
     class CustomPropertyConstructMapping extends ConstructMapping {
 
         @Override
-        protected Property getProperty(Class<?> type, String name) throws IntrospectionException {
+        protected Property getProperty(Class<?> type, String name) {
             Property p = lookupProperty(type, name);
 
             return p != null ? p : super.getProperty(type, name);

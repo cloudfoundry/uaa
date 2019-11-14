@@ -644,17 +644,12 @@ scim:
   - delete-user-2|admin|admin|||foo.bar,uaa.admin|uaa
 require_https: true
 servlet:
+  session-store: memory
   filtered-headers:
     - X-Forwarded-Host
     - Forwarded
   session-cookie:
-    comment: C is for Cookie
-    domain: sesame.com
-    http-only: false
     max-age: 30
-    name: cookiemonster
-    path: /the/path/to/the/jar
-    secure: true
   idle-timeout: 300
 smtp:
   auth: true

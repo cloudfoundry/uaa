@@ -110,7 +110,7 @@ public class ScimGroup extends ScimCore<ScimGroup> {
             Set<String> patchMemberIds = patch
                 .getMembers()
                 .stream()
-                .map(member -> member.getMemberId())
+                .map(ScimGroupMember::getMemberId)
                 .collect(Collectors.toSet());
             List<ScimGroupMember> newMembers = new ArrayList<>(getMembers());
             newMembers.removeIf(member -> patchMemberIds.contains(member.getMemberId()));
@@ -125,8 +125,8 @@ public class ScimGroup extends ScimCore<ScimGroup> {
 
             setMembers(newMembers);
         }
-        ofNullable(patch.getDescription()).ifPresent(d -> setDescription(d));
-        ofNullable(patch.getDisplayName()).ifPresent(d -> setDisplayName(d));
+        ofNullable(patch.getDescription()).ifPresent(this::setDescription);
+        ofNullable(patch.getDisplayName()).ifPresent(this::setDisplayName);
     }
 
     @Override

@@ -1,52 +1,39 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import junit.framework.TestCase;
 import org.junit.Before;
+import org.junit.Test;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ChainedAuthenticationManagerTest extends TestCase {
+public class ChainedAuthenticationManagerTest {
 
-    private Authentication success;
     private Authentication failure;
     private AuthenticationManager authenticateTrue;
     private AuthenticationManager authenticateFalse;
-    private AuthenticationManager authenticateNull;
     private AuthenticationManager authenticateThrow;
     private ChainedAuthenticationManager.AuthenticationManagerConfiguration[] managers;
     private ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
     private AuthenticationManager loginAuthenticationManager;
 
     @Before
-    public void setUp() throws Exception {
-        success = mock(Authentication.class);
+    public void setUp() {
+        Authentication success = mock(Authentication.class);
         failure = mock(Authentication.class);
 
         authenticateTrue = mock(AuthenticationManager.class);
         authenticateFalse = mock(AuthenticationManager.class);
-        authenticateNull = mock(AuthenticationManager.class);
+        AuthenticationManager authenticateNull = mock(AuthenticationManager.class);
         authenticateThrow = mock(AuthenticationManager.class);
         loginAuthenticationManager = mock(AuthenticationManager.class);
 
@@ -59,13 +46,14 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         when(authenticateThrow.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("mock throw"));
 
         managers = new ChainedAuthenticationManager.AuthenticationManagerConfiguration[3];
-        managers[0] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(null,null);
-        managers[1] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(null,ChainedAuthenticationManager.IF_PREVIOUS_FALSE);
-        managers[2] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(loginAuthenticationManager,ChainedAuthenticationManager.IF_PREVIOUS_TRUE);
+        managers[0] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(null, null);
+        managers[1] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(null, ChainedAuthenticationManager.IF_PREVIOUS_FALSE);
+        managers[2] = new ChainedAuthenticationManager.AuthenticationManagerConfiguration(loginAuthenticationManager, ChainedAuthenticationManager.IF_PREVIOUS_TRUE);
         authMgr.setDelegates(managers);
     }
 
-    public void testUaaAuthTrue() throws Exception {
+    @Test
+    public void testUaaAuthTrue() {
         managers[0].setAuthenticationManager(authenticateTrue);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
@@ -76,7 +64,8 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         verify(loginAuthenticationManager, times(0)).authenticate(any(Authentication.class));
     }
 
-    public void testUaaAuthFalseLdapTrue() throws Exception {
+    @Test
+    public void testUaaAuthFalseLdapTrue() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);
@@ -87,7 +76,8 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         verify(loginAuthenticationManager, times(1)).authenticate(any(Authentication.class));
     }
 
-    public void testUaaAuthFalseLdapFalse() throws Exception {
+    @Test
+    public void testUaaAuthFalseLdapFalse() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
@@ -96,13 +86,14 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         verify(loginAuthenticationManager, times(0)).authenticate(any(Authentication.class));
     }
 
-    public void testUaaAuthThrowLdapAuthFalse() throws Exception {
+    @Test
+    public void testUaaAuthThrowLdapAuthFalse() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateFalse);
         try {
-            Authentication result = authMgr.authenticate(failure);
+            authMgr.authenticate(failure);
             fail("Should have thrown exception");
-        }catch (BadCredentialsException x) {
+        } catch (BadCredentialsException ignored) {
         }
 
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
@@ -110,7 +101,8 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         verify(loginAuthenticationManager, times(0)).authenticate(any(Authentication.class));
     }
 
-    public void testUaaAuthThrowLdapAuthTrue() throws Exception {
+    @Test
+    public void testUaaAuthThrowLdapAuthTrue() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);

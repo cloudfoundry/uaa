@@ -92,7 +92,7 @@ public class UaaMapUtilsTest {
     }
 
     @Test
-    public void sort_nested_map() throws Exception {
+    public void sort_nested_map() {
         List<String> expectedOrder = Arrays.asList(
             "secondA",
             "thirdA",
@@ -113,7 +113,7 @@ public class UaaMapUtilsTest {
     }
 
     @Test
-    public void print_sorted_yaml() throws Exception {
+    public void print_sorted_yaml() {
         String expected = "---\n" +
             "secondA:\n" +
             "  thirdA:\n" +
@@ -133,7 +133,7 @@ public class UaaMapUtilsTest {
     }
 
     @Test
-    public void testHideConfigValues() throws Exception {
+    public void testHideConfigValues() {
         String expected = "---\n" +
             "secondA:\n" +
             "  thirdA:\n" +

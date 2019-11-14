@@ -36,7 +36,7 @@ public class Application extends SpringBootServletInitializer implements Schedul
         return application.sources(Application.class);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SpringApplication.run(Application.class);
     }
 

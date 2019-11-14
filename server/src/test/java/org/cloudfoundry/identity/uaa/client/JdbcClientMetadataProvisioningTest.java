@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.URL;
@@ -15,7 +15,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -38,6 +41,9 @@ class JdbcClientMetadataProvisioningTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void createDatasource() {
         randomValueStringGenerator = new RandomValueStringGenerator(8);
@@ -45,7 +51,7 @@ class JdbcClientMetadataProvisioningTest {
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, new FakePasswordEncoder());
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 

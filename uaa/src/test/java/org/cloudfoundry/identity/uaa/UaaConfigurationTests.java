@@ -28,7 +28,7 @@ public class UaaConfigurationTests {
     private YamlConfigurationValidator<UaaConfiguration> validator = new YamlConfigurationValidator<UaaConfiguration>(
                     new UaaConfiguration.UaaConfigConstructor());
 
-    private void createValidator(final String yaml) throws Exception {
+    private void createValidator(final String yaml) {
         validator.setExceptionIfInvalid(true);
         validator.setYaml(yaml);
         validator.afterPropertiesSet();

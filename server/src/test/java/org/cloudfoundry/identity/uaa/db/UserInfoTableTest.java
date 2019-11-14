@@ -38,7 +38,7 @@ public class UserInfoTableTest extends JdbcTestBase {
 
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.active.profiles")!=null) {
             environment.setActiveProfiles(System.getProperty("spring.active.profiles"));
@@ -63,8 +63,7 @@ public class UserInfoTableTest extends JdbcTestBase {
 
     @Test
     public void validate_table() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             int foundColumn = 0;
@@ -74,7 +73,7 @@ public class UserInfoTableTest extends JdbcTestBase {
                 String rscolumnName = rs.getString("COLUMN_NAME");
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
-                    assertTrue("Testing column:"+rscolumnName, testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize));
+                    assertTrue("Testing column:" + rscolumnName, testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize));
                     foundTable = true;
                     foundColumn++;
                 }
@@ -83,15 +82,11 @@ public class UserInfoTableTest extends JdbcTestBase {
             assertTrue("Table " + tableName + " not found!", foundTable);
             assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
 
-
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
             if (!rs.next()) {
                 rs = meta.getIndexInfo(connection.getCatalog(), null, tableName.toUpperCase(), false, false);
                 assertTrue(rs.next());
             }
-
-        } finally{
-            connection.close();
         }
     }
 

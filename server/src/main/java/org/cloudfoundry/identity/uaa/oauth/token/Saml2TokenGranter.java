@@ -14,9 +14,9 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,12 +35,14 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class Saml2TokenGranter extends AbstractTokenGranter {
 
     private static final Logger logger = LoggerFactory.getLogger(Saml2TokenGranter.class);
+    private final SecurityContextAccessor securityContextAccessor;
 
-
-    public Saml2TokenGranter(AuthorizationServerTokenServices tokenServices,
-                             MultitenantClientServices clientDetailsService,
-                             OAuth2RequestFactory requestFactory) {
+    public Saml2TokenGranter(final AuthorizationServerTokenServices tokenServices,
+                             final MultitenantClientServices clientDetailsService,
+                             final OAuth2RequestFactory requestFactory,
+                             final SecurityContextAccessor securityContextAccessor) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_SAML2_BEARER);
+        this.securityContextAccessor = securityContextAccessor;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
             throw new InvalidGrantException("Invalid grant type");
         }
         // parse the XML to Assertion
-        if (new DefaultSecurityContextAccessor().isUser()) {
+        if (securityContextAccessor.isUser()) {
             return SecurityContextHolder.getContext().getAuthentication();
         }
 

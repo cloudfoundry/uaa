@@ -21,7 +21,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class MfaCheckerTests {
@@ -46,7 +45,7 @@ class MfaCheckerTests {
     static class BooleanArgumentsProvider implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(true),
                     Arguments.of(false)

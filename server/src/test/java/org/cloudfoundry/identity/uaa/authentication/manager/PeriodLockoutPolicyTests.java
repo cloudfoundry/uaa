@@ -59,7 +59,7 @@ public class PeriodLockoutPolicyTests {
     private IdentityProviderProvisioning providerProvisioning;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         now = System.currentTimeMillis();
         as = mock(UaaAuditService.class);
         joe = mock(UaaUser.class);
@@ -146,7 +146,7 @@ public class PeriodLockoutPolicyTests {
     }
 
     @Test
-    public void testUseLockoutPolicyFromDbIfPresent() throws Exception {
+    public void testUseLockoutPolicyFromDbIfPresent() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
             new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaaZoneId(), null, null),

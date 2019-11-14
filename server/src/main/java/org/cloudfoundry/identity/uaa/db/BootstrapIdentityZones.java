@@ -17,7 +17,7 @@ import java.util.UUID;
 public class BootstrapIdentityZones implements SpringJdbcMigration {
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         IdentityZone uaa = IdentityZone.getUaa();
         Timestamp t = new Timestamp(uaa.getCreated().getTime());
         jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,?,?,?,?)", uaa.getId(),t,t,uaa.getVersion(),uaa.getSubdomain(),uaa.getName(),uaa.getDescription());

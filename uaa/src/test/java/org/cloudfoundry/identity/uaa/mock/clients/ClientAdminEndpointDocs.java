@@ -47,13 +47,13 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
-    private static final FieldDescriptor lastModifiedField = fieldWithPath("lastModified").description("Epoch (milliseconds) of the moment the client information was last altered");
+    private static final FieldDescriptor lastModifiedField = fieldWithPath("lastModified").optional(null).description("Epoch (milliseconds) of the moment the client information was last altered");
     private static final String clientIdDescription = "Client identifier, unique within identity zone";
 
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
         fieldWithPath("client_id").required().description(clientIdDescription),
-        fieldWithPath("authorized_grant_types").required().description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
-        fieldWithPath("redirect_uri").required().type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
+        fieldWithPath("authorized_grant_types").optional(null).description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
+        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
         fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
@@ -191,7 +191,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         BaseClientDetails updatedClientDetails = new BaseClientDetails();
         updatedClientDetails.setClientId(createdClientDetails.getClientId());
         updatedClientDetails.setScope(Arrays.asList("clients.new", "clients.autoapprove"));
-        updatedClientDetails.setAutoApproveScopes(Arrays.asList("clients.autoapprove"));
+        updatedClientDetails.setAutoApproveScopes(Collections.singletonList("clients.autoapprove"));
         updatedClientDetails.setAuthorizedGrantTypes(createdClientDetails.getAuthorizedGrantTypes());
         updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 

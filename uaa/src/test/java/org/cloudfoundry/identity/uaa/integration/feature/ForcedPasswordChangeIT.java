@@ -83,8 +83,8 @@ public class ForcedPasswordChangeIT {
     }
 
     @Before
-    public void setUp() throws Exception {
-        restTemplate = (RestTemplate)serverRunning.createRestTemplate();
+    public void setUp() {
+        restTemplate = serverRunning.createRestTemplate();
         int randomInt = new SecureRandom().nextInt();
         adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin scim.write scim.read");
         userEmail = "user" + randomInt + "@example.com";
@@ -100,7 +100,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         webDriver.get(baseUrl + "/logout.do");
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer "+adminAccessToken);
@@ -109,7 +109,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForceChangingPassword() throws Exception {
+    public void testHandleForceChangingPassword() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
@@ -118,7 +118,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() throws Exception {
+    public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
@@ -129,7 +129,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeInvalidConfirmation() throws Exception {
+    public void testHandleForcePasswordChangeInvalidConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("invalid");
@@ -140,7 +140,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeEmptyConfirmation() throws Exception {
+    public void testHandleForcePasswordChangeEmptyConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
@@ -150,7 +150,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testRedirectForHandleForcePasswordChange() throws Exception {
+    public void testRedirectForHandleForcePasswordChange() {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminAccessToken, userId);
         webDriver.get(baseUrl+"/profile");
         assertEquals(baseUrl+"/login", webDriver.getCurrentUrl());

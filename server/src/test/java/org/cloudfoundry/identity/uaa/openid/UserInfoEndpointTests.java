@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.openid;
 
 import org.cloudfoundry.identity.uaa.account.UserInfoEndpoint;
@@ -23,8 +11,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -32,34 +20,23 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.EMPTY_MAP;
-import static java.util.Collections.EMPTY_SET;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class UserInfoEndpointTests {
+class UserInfoEndpointTests {
 
-    public static final String MULTI_VALUE = "multi_value";
-    public static final String SINGLE_VALUE = "single_value";
-    private UserInfoEndpoint endpoint = new UserInfoEndpoint();
-    public static final String ID = "12345";
+    private static final String MULTI_VALUE = "multi_value";
+    private static final String SINGLE_VALUE = "single_value";
+    private static final String ID = "12345";
 
-    private final UaaUser user = new UaaUser(new UaaUserPrototype()
+    private static final UaaUser user = new UaaUser(new UaaUserPrototype()
         .withId(ID)
         .withPhoneNumber("8505551234")
         .withUsername("olds")
@@ -78,7 +55,8 @@ public class UserInfoEndpointTests {
         .withPasswordLastModified(new Date())
         .withLastLogonSuccess(1000L)
         .withPreviousLogonSuccess(1000L));
-    private final UaaUser verifiedUser = new UaaUser(new UaaUserPrototype()
+
+    private static final UaaUser verifiedUser = new UaaUser(new UaaUserPrototype()
         .withId(ID + "v")
         .withPhoneNumber("8505551234")
         .withUsername("somename")
@@ -97,17 +75,16 @@ public class UserInfoEndpointTests {
         .withPasswordLastModified(new Date())
         .withLastLogonSuccess(1000L)
         .withPreviousLogonSuccess(1000L));
-    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Arrays.asList(user, verifiedUser));
+
+    private InMemoryUaaUserDatabase userDatabase;
+    private UserInfoEndpoint endpoint;
     private UserInfo info;
-    private OAuth2Request request;
     private List<String> roles;
 
-    public UserInfoEndpointTests() {
-        endpoint.setUserDatabase(userDatabase);
-    }
-
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
+        userDatabase = new InMemoryUaaUserDatabase(Arrays.asList(user, verifiedUser));
+        endpoint = new UserInfoEndpoint(userDatabase);
         MultiValueMap<String, String> customAttributes = new LinkedMultiValueMap<>();
         customAttributes.put(MULTI_VALUE, Arrays.asList("value1", "value2"));
         customAttributes.add(SINGLE_VALUE, "value3");
@@ -119,12 +96,13 @@ public class UserInfoEndpointTests {
     }
 
     @Test
-    public void testSunnyDay() {
+    void sunnyDay() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertEquals("olds", userInfoResponse.getUserName());
         assertEquals("Dale Olds", userInfoResponse.getFullName());
@@ -137,38 +115,40 @@ public class UserInfoEndpointTests {
     }
 
     @Test
-    public void testVerifiedUser() {
+    void verifiedUser() {
         UaaUser user = userDatabase.retrieveUserByName("somename", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "somename",
-            "comr@dstal.in", new HashSet<>(Arrays.asList("openid")));
+            "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertEquals("somename", userInfoResponse.getUserName());
         assertTrue(userInfoResponse.isEmailVerified());
     }
 
     @Test
-    public void testSunnyDay_whenLastLogonNull_displaysNull() {
+    void sunnyDay_whenLastLogonNull_displaysNull() {
         user.setPreviousLogonTime(null);
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Arrays.asList("openid")));
+            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
-        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
+                "openid")), authentication));
 
         assertNull(map.getPreviousLogonSuccess());
     }
 
     @Test
-    public void testSunnyDay_WithCustomAttributes() {
+    void sunnyDay_WithCustomAttributes() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(
             user.getId(),
             "olds",
             "olds@vmware.com"
         );
-        request = createOauthRequest(Arrays.asList(USER_ATTRIBUTES, "openid", ROLES));
+        OAuth2Request request = createOauthRequest(Arrays.asList(USER_ATTRIBUTES, "openid", ROLES));
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
         assertEquals("olds", map.getUserName());
         assertEquals("Dale Olds", map.getFullName());
@@ -187,29 +167,33 @@ public class UserInfoEndpointTests {
         assertThat(infoRoles, containsInAnyOrder(roles.toArray()));
 
         //remove permissions
-        request = createOauthRequest(Arrays.asList("openid"));
+        request = createOauthRequest(Collections.singletonList("openid"));
         map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
         assertNull(map.getUserAttributes());
         assertNull(map.getRoles());
     }
 
-    public OAuth2Request createOauthRequest(List<String> scopes) {
-        return new OAuth2Request(EMPTY_MAP,
-            "clientId",
-            scopes.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList()),
-            true,
-            new HashSet<>(scopes),
-            EMPTY_SET,
-            null,
-            EMPTY_SET,
-            null);
-    }
-
-    @Test(expected = UsernameNotFoundException.class)
-    public void testMissingUser() {
+    @Test
+    void missingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
             "olds@vmware.com");
-        endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Arrays.asList("openid")), authentication));
+        assertThrows(UsernameNotFoundException.class,
+                () -> endpoint.loginInfo(
+                        new OAuth2Authentication(createOauthRequest(
+                                Collections.singletonList("openid")),
+                                authentication)));
+    }
+
+    private static OAuth2Request createOauthRequest(final List<String> scopes) {
+        return new OAuth2Request(Collections.emptyMap(),
+                "clientId",
+                scopes.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList()),
+                true,
+                new HashSet<>(scopes),
+                Collections.emptySet(),
+                null,
+                Collections.emptySet(),
+                null);
     }
 
 }

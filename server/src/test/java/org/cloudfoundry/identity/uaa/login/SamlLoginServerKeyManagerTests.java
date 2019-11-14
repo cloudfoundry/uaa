@@ -63,7 +63,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test
-    public void testWithWorkingCertificate() throws Exception {
+    public void testWithWorkingCertificate() {
 
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(KEY);
@@ -77,7 +77,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testWithWorkingCertificateInvalidPassword() throws Exception {
+    public void testWithWorkingCertificateInvalidPassword() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
                         "Proc-Type: 4,ENCRYPTED\n" +
                         "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
@@ -127,7 +127,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test
-    public void testWithWorkingCertificateNullPassword() throws Exception {
+    public void testWithWorkingCertificateNullPassword() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3\n" +
             "AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU\n" +
@@ -182,7 +182,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testWithWorkingCertificateIllegalKey() throws Exception {
+    public void testWithWorkingCertificateIllegalKey() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
                         "Proc-Type: 4,ENCRYPTED\n" +
                         "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
@@ -223,7 +223,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testWithNonWorkingCertificate() throws Exception {
+    public void testWithNonWorkingCertificate() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
                         "Proc-Type: 4,ENCRYPTED\n" +
                         "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
@@ -274,7 +274,7 @@ public class SamlLoginServerKeyManagerTests {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testKeyPairValidated() throws Exception {
+    public void testKeyPairValidated() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "Proc-Type: 4,ENCRYPTED\n" +
             "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +

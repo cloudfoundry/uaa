@@ -14,11 +14,9 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -52,10 +50,9 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
 
     @Test
     public void checkTables() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet rs = metaData.getTables(null, null, null, new String[] { "TABLE" });
+            ResultSet rs = metaData.getTables(null, null, null, new String[]{"TABLE"});
             int count = 0;
             while (rs.next()) {
                 String name = rs.getString("TABLE_NAME");
@@ -63,23 +60,19 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     count++;
                     logger.info("Validating table [" + name + "]");
-                    assertTrue("Table[" + name + "] is not lower case.", name.toLowerCase().equals(name));
+                    assertEquals(String.format("Table[%s] is not lower case.", name),
+                            name.toLowerCase(),
+                            name);
                 }
             }
             assertEquals("Table count:", DatabaseInformation1_5_3.tableNames.size(), count);
 
-        } finally {
-            try {
-                connection.close();
-            } catch (Exception ignore) {
-            }
         }
     }
 
     @Test
     public void checkColumns() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);
             boolean hadSomeResults = false;
@@ -90,15 +83,10 @@ public class TableAndColumnNormalizationTest extends JdbcTestBase {
                 logger.info("Checking column [" + name + "." + col + "]");
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     logger.info("Validating column [" + name + "." + col + "]");
-                    assertTrue("Column[" + name + "." + col + "] is not lower case.", col.toLowerCase().equals(col));
+                    assertEquals(String.format("Column[%s.%s] is not lower case.", name, col), col.toLowerCase(), col);
                 }
             }
             assertTrue("Getting columns from db metadata should have returned some results", hadSomeResults);
-        } finally {
-            try {
-                connection.close();
-            } catch (Exception ignore) {
-            }
         }
     }
 }

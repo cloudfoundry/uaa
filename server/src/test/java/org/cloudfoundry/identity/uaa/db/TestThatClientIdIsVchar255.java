@@ -60,7 +60,7 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
     }
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if ( springProfile!=null ) {
             environment.setActiveProfiles(springProfile);
@@ -71,8 +71,7 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
 
     @Test
     public void test_That_ClientId_Is_Varchar_255() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             boolean foundColumn = false;
@@ -83,25 +82,19 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && columnName.equalsIgnoreCase(rscolumnName)) {
 
-                    assertEquals("Table:"+rstableName+" Column:"+rscolumnName+" should be 255 in size.", 255, columnSize);
+                    assertEquals("Table:" + rstableName + " Column:" + rscolumnName + " should be 255 in size.", 255, columnSize);
                     foundTable = true;
                     foundColumn = true;
                     String columnType = rs.getString("TYPE_NAME");
                     assertNotNull("Table:" + rstableName + " Column:" + rscolumnName + " should have a column type.", columnType);
-                    assertEquals("Table:" + rstableName + " Column:" + rscolumnName+" should be varchar", "varchar", columnType.toLowerCase());
+                    assertEquals("Table:" + rstableName + " Column:" + rscolumnName + " should be varchar", "varchar", columnType.toLowerCase());
 
                 }
             }
             rs.close();
 
-            assertTrue("["+springProfile+"] I was expecting to find table:" + tableName, foundTable);
-            assertTrue("["+springProfile+"] I was expecting to find column: client_id", foundColumn);
-
-        } finally {
-            connection.close();
+            assertTrue("[" + springProfile + "] I was expecting to find table:" + tableName, foundTable);
+            assertTrue("[" + springProfile + "] I was expecting to find column: client_id", foundColumn);
         }
-
-
     }
-
 }

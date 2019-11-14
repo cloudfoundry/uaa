@@ -9,7 +9,6 @@ import java.util.HashSet;
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -68,7 +67,7 @@ class MfaUiRequiredFilterTests {
     private IdentityZone mfaEnabledZone;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         requestCache = mock(RequestCache.class);
         logoutMatcher = new AntPathRequestMatcher("/logout.do");
         filter = new MfaUiRequiredFilter("/login/mfa/**",

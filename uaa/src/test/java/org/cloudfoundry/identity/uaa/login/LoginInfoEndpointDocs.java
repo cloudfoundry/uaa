@@ -19,7 +19,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -99,7 +99,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
                 parameterWithName("X-Uaa-Csrf").required().type(STRING).description("Automatically configured by the server upon /login. Must match the value of the X-Uaa-Csrf cookie.")
         );
         Snippet requestHeaders = requestHeaders(
-                headerWithName("Cookie").required().type(STRING).description("Must contain the a value for the cookie X-Uaa-Csrf and that must match the request parameter of the same name")
+                headerWithName("Cookie").optional(null).type(STRING).description("*Required* Must contain the a value for the cookie X-Uaa-Csrf and that must match the request parameter of the same name")
         );
 
         mockMvc.perform(
@@ -132,7 +132,8 @@ class LoginInfoEndpointDocs extends EndpointDocs {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal,
+                Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(
@@ -180,7 +181,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
         request.setPassword("koala");
         String body = mockMvc.perform(
                 post("/autologin")
-                        .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                        .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))

@@ -115,7 +115,7 @@ class UaaPasswordPolicyValidatorTests {
     }
 
     @Test
-    void testValidateSpaceNotSpecialCharacter() throws Exception {
+    void testValidateSpaceNotSpecialCharacter() {
         validatePassword("Password123 ", "Password must contain at least 1 special characters.");
     }
 
@@ -131,8 +131,8 @@ class UaaPasswordPolicyValidatorTests {
             if (expectedErrors.length == 0) {
                 fail("Didn't expect InvalidPasswordException, but messages were " + e.getErrorMessages());
             }
-            for (int i = 0; i < expectedErrors.length; i++) {
-                assertTrue("Errors should contain:"+expectedErrors[i], e.getErrorMessages().contains(expectedErrors[i]));
+            for (String expectedError : expectedErrors) {
+                assertTrue("Errors should contain:" + expectedError, e.getErrorMessages().contains(expectedError));
             }
         }
     }
