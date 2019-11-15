@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -44,6 +45,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
 
+    @Value("${database.maxParameters:-1}")
+    private int maxSqlParameters;
+
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
@@ -60,6 +64,14 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
+    }
+
+    public int getMaxSqlParameters() {
+        return maxSqlParameters;
+    }
+
+    public void setMaxSqlParameters(int maxSqlParameters) {
+        this.maxSqlParameters = maxSqlParameters;
     }
 
     @Override
@@ -183,19 +195,25 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
-            List<Map<String, Object>> results;
+            List<Map<String, Object>> results = new LinkedList<>();
             if (memberIdList.size() == 0) {
                 return;
             }
-            StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
-            for (int i = 0; i < memberIdList.size() - 1; i++) {
-                dynamicAuthoritiesQuery.append("?,");
+            List<String> memberList = new ArrayList<>(memberIdList);
+            while (!memberList.isEmpty()) {
+                StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+                int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
+                for (int i = 0; i < size - 1; i++) {
+                    dynamicAuthoritiesQuery.append("?,");
+                }
+                dynamicAuthoritiesQuery.append("?);");
+
+                Object[] parameterList = ArrayUtils.addAll(new Object[] { identityZoneManager.getCurrentIdentityZoneId() }, memberList.subList(0, size).toArray());
+
+                results.addAll(jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList));
+
+                memberList = memberList.subList(size, memberList.size());
             }
-            dynamicAuthoritiesQuery.append("?);");
-
-            Object[] parameterList = ArrayUtils.addAll(new Object[]{identityZoneManager.getCurrentIdentityZoneId()}, memberIdList.toArray());
-
-            results = jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList);
             List<String> newMemberIdList = new ArrayList<>();
 
             for (Map<String, Object> record : results) {
