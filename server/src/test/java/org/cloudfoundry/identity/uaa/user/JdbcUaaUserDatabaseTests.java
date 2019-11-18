@@ -8,12 +8,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
@@ -40,6 +42,7 @@ class JdbcUaaUserDatabaseTests {
     private static final String JOE_ID = UUID.randomUUID().toString();
     private static final String MABEL_ID = UUID.randomUUID().toString();
     private static final String ALICE_ID = UUID.randomUUID().toString();
+    private static final String BOB_ID = UUID.randomUUID().toString();
 
     private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, origin, identity_zone_id, created, lastmodified, passwd_lastmodified, passwd_change_required) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private static final String addSaltSql = "update users set salt=? where id=?";
@@ -78,11 +81,13 @@ class JdbcUaaUserDatabaseTests {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", JOE_ID);
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", MABEL_ID);
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", ALICE_ID);
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", BOB_ID);
         TestUtils.assertNoSuchUser(jdbcTemplate, "userName", "jo@foo.com");
 
         addUser(JOE_ID, "Joe", "joespassword", true, jdbcTemplate, "zone-the-first");
         addUser(MABEL_ID, "mabel", "mabelspassword", false, jdbcTemplate, "zone-the-first");
         addUser(ALICE_ID, "alice", "alicespassword", false, jdbcTemplate, "zone-the-second");
+        addUser(BOB_ID, "bob", "bobspassword", false, jdbcTemplate, "zone-the-bob");
     }
 
     private static void setUpIdentityZone(IdentityZoneManager mockIdentityZoneManager) {
@@ -239,7 +244,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getUserWithExtraAuthorities() {
-        addAuthority("dash.admin", jdbcTemplate, "zone-the-first");
+        addAuthority("dash.admin", jdbcTemplate, "zone-the-first", JOE_ID);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),
                 "authorities does not contain uaa.user");
@@ -249,8 +254,8 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getUserWithMultipleExtraAuthorities() {
-        addAuthority("additional", jdbcTemplate, "zone-the-first");
-        addAuthority("anotherOne", jdbcTemplate, "zone-the-first");
+        addAuthority("additional", jdbcTemplate, "zone-the-first", JOE_ID);
+        addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false, mockIdentityZoneManager);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
@@ -338,6 +343,41 @@ class JdbcUaaUserDatabaseTests {
         assertNull(jdbcUaaUserDatabase.retrieveUserByEmail("alice@test.org", OriginKeys.UAA));
     }
 
+    @Test
+    void testMaxParameters() {
+        int oldValue = jdbcUaaUserDatabase.getMaxSqlParameters();
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("zone-the-bob");
+
+        for (int l: List.of(-1, 10)) {
+            jdbcUaaUserDatabase.setMaxSqlParameters(l);
+            for (int i = 0; i < 5; i++) {
+                addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
+            }
+            validateBob(5, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);
+
+            for (int i = 5; i < 10; i++) {
+                System.out.println(i);
+                addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
+            }
+            validateBob(10, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);
+
+            for (int i = 10; i < 15; i++) {
+                addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
+            }
+            validateBob(15, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);
+        }
+
+        jdbcUaaUserDatabase.setMaxSqlParameters(oldValue);
+    }
+
+    private void validateBob(int numberAuths, UaaUser bob, int prefix) {
+        int count = 0;
+        for (GrantedAuthority s: bob.getAuthorities()) {
+            if (s.getAuthority().startsWith("testAuth" + prefix)) count++;
+        }
+        Assert.assertEquals(count, numberAuths);
+    }
+
     private static boolean isMySQL(Environment environment) {
         for (String s : environment.getActiveProfiles()) {
             if (s.contains("mysql")) {
@@ -386,10 +426,11 @@ class JdbcUaaUserDatabaseTests {
     private static void addAuthority(
             final String authority,
             final JdbcTemplate jdbcTemplate,
-            final String zoneId) {
+            final String zoneId,
+            final String userId) {
         final String id = new RandomValueStringGenerator().generate();
         jdbcTemplate.update(ADD_GROUP_SQL, id, authority, zoneId);
-        jdbcTemplate.update(ADD_MEMBER_SQL, id, JdbcUaaUserDatabaseTests.JOE_ID, "USER", "MEMBER");
+        jdbcTemplate.update(ADD_MEMBER_SQL, id, userId, "USER", "MEMBER");
     }
 
 }
