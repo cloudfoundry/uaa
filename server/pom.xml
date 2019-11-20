@@ -20,6 +20,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -34,6 +38,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -56,6 +64,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -70,6 +82,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -92,6 +108,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -106,6 +126,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -127,6 +151,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -141,6 +169,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -163,6 +195,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -177,6 +213,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -198,6 +238,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -212,6 +256,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -233,6 +281,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -247,6 +299,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -268,6 +324,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -282,6 +342,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -303,6 +367,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -317,6 +385,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -338,6 +410,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -352,6 +428,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -373,6 +453,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -387,6 +471,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -408,6 +496,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -422,6 +514,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -444,6 +540,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -458,6 +558,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -479,6 +583,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -493,6 +601,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -515,6 +627,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -529,6 +645,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -550,6 +670,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -564,6 +688,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -586,6 +714,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>commons-codec</artifactId>
           <groupId>*</groupId>
         </exclusion>
@@ -604,6 +736,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -634,6 +770,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -648,6 +788,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -670,6 +814,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -684,6 +832,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -706,6 +858,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -720,6 +876,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -741,6 +901,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -755,6 +919,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -776,6 +944,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -790,6 +962,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -811,6 +987,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -825,6 +1005,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -846,6 +1030,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -860,6 +1048,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -881,6 +1073,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -895,6 +1091,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -921,6 +1121,10 @@
           <groupId>*</groupId>
         </exclusion>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -929,20 +1133,24 @@
           <groupId>org.hamcrest</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>spring-boot-starter-logging</artifactId>
-          <groupId>org.springframework.boot</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>commons-logging</artifactId>
-          <groupId>*</groupId>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
           <groupId>org.hamcrest</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>spring-boot-starter-logging</artifactId>
+          <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>commons-logging</artifactId>
+          <groupId>*</groupId>
         </exclusion>
         <exclusion>
           <artifactId>apacheds-core</artifactId>
@@ -968,6 +1176,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -982,6 +1194,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1003,6 +1219,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1017,6 +1237,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1038,6 +1262,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1052,6 +1280,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1073,6 +1305,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1087,6 +1323,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1108,6 +1348,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1122,6 +1366,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1143,6 +1391,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1157,6 +1409,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1178,6 +1434,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1192,6 +1452,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1213,6 +1477,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1227,6 +1495,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1253,6 +1525,10 @@
           <groupId>*</groupId>
         </exclusion>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1267,6 +1543,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1289,6 +1569,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1303,6 +1587,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1325,6 +1613,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1339,6 +1631,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1360,6 +1656,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1374,6 +1674,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1395,6 +1699,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1409,6 +1717,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1430,6 +1742,10 @@
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1444,6 +1760,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1466,6 +1786,10 @@
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1480,6 +1804,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1502,6 +1830,10 @@
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1516,6 +1848,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1538,6 +1874,10 @@
       <scope>provided</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1552,6 +1892,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1573,6 +1917,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1587,6 +1935,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1609,6 +1961,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1623,6 +1979,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1644,6 +2004,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1658,6 +2022,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1679,6 +2047,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1693,6 +2065,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1714,6 +2090,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1728,6 +2108,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1749,6 +2133,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1763,6 +2151,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1784,6 +2176,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1798,6 +2194,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1819,6 +2219,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1833,6 +2237,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1854,6 +2262,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1868,6 +2280,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1889,6 +2305,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1903,6 +2323,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1925,6 +2349,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1939,6 +2367,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1961,6 +2393,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -1975,6 +2411,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -1996,6 +2436,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -2010,6 +2454,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -2031,6 +2479,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -2045,6 +2497,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -2066,6 +2522,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -2080,6 +2540,10 @@
         <exclusion>
           <artifactId>bsh-core</artifactId>
           <groupId>org.beanshell</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
