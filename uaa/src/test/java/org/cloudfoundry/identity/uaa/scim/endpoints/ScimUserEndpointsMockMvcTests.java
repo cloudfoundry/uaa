@@ -626,7 +626,8 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/"));
@@ -639,7 +640,8 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().json("{}"));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string("{}"));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/login?error=account_locked"));
@@ -666,7 +668,8 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/"));
@@ -709,7 +712,8 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }

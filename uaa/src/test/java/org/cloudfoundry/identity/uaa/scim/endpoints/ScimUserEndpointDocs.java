@@ -474,7 +474,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
@@ -506,7 +507,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
