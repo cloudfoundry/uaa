@@ -2,8 +2,8 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.SCIMFilter;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.annotations.WithSpring;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -33,7 +33,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
@@ -60,7 +59,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.View;
@@ -102,15 +100,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-@WithSpring
-@ExtendWith(PollutionPreventionExtension.class)
+@DefaultTestContext
 @ExtendWith(ZoneSeederExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
         "groupMaxCount=5",
         "userMaxCount=5"
 })
-// TODO: Stop using @WithSpring. It's messing up UaaTokenServicesTests.
 class ScimUserEndpointsTests {
 
     private static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
@@ -223,7 +218,7 @@ class ScimUserEndpointsTests {
     void validate_password_for_uaa_only() {
         validatePasswordForUaaOriginOnly(times(1), OriginKeys.UAA, "password");
     }
-    
+
     @Test
     void validate_password_not_called_for_non_uaa() {
         validatePasswordForUaaOriginOnly(never(), OriginKeys.LOGIN_SERVER, "");
