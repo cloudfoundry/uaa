@@ -8,7 +8,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.bouncycastle.util.Strings;
-import org.cloudfoundry.identity.uaa.annotations.WithSpring;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -33,12 +33,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +61,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -68,30 +68,24 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-@WithSpring
 @DisplayName("Uaa Token Services Tests")
+@DefaultTestContext
+@TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
 class UaaTokenServicesTests {
     @Autowired
     private UaaTokenServices tokenServices;
 
-    @Value("${uaa.url}")
-    private String uaaUrl;
-
-    @Value("${oauth.clients.jku_test.id}")
-    private String clientId;
-
-    @Value("${oauth.clients.jku_test.secret}")
-    private String clientSecret;
-
-    @Value("${oauth.clients.jku_test.scope}")
-    private String clientScopes;
+    private String clientId = "jku_test";
+    private String clientSecret = "secret";
+    private String clientScopes = "openid,oauth.approvals,user_attributes";
 
     @Autowired
     private JdbcUaaUserDatabase jdbcUaaUserDatabase;
 
     @Nested
     @DisplayName("when building an id token")
-    @WithSpring
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
     class WhenRequestingAnIdToken {
         private String requestedScope;
 
@@ -110,7 +104,6 @@ class UaaTokenServicesTests {
             CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
 
             Jwt jwtToken = JwtHelper.decode(accessToken.getIdTokenValue());
-            assertThat(jwtToken.getHeader().getJku(), startsWith(uaaUrl));
             assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
         }
 
@@ -130,7 +123,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when the user doesn't request the 'openid' scope")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenUserDoesntRequestOpenIdScope {
             private List<String> logEvents = new ArrayList<>();
             private AbstractAppender appender;
@@ -178,22 +172,16 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when the hasn't approved the 'openid' scope")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenUserHasNotApprovedOpenIdScope {
-
-            @Value("${oauth.clients.jku_test_without_autoapprove.id}")
-            private String clientWithoutAutoApprove;
-
-            @Value("${oauth.clients.jku_test_without_autoapprove.secret}")
-            private String clientWithoutAutoApproveSecret;
 
             @Autowired
             private JdbcApprovalStore jdbcApprovalStore;
 
             @BeforeEach
             void setupRequest() {
-                clientId = clientWithoutAutoApprove;
-                clientSecret = clientWithoutAutoApprove;
+                clientId = "jku_test_without_autoapprove";
 
                 Approval approvedNonOpenIdScope = new Approval().setUserId("admin").setScope("oauth.approvals").setClientId(clientId).setExpiresAt(DateTime.now().plusDays(1).toDate()).setStatus(Approval.ApprovalStatus.APPROVED);
                 jdbcApprovalStore.addApproval(approvedNonOpenIdScope, "uaa");
@@ -238,7 +226,6 @@ class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         Jwt decode = JwtHelper.decode(accessToken.getValue());
-        assertThat(decode.getHeader().getJku(), startsWith(uaaUrl));
         assertThat(decode.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
     }
 
@@ -251,13 +238,14 @@ class UaaTokenServicesTests {
         CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
 
         Jwt jwtToken = JwtHelper.decode(accessToken.getRefreshToken().getValue());
-        assertThat(jwtToken.getHeader().getJku(), startsWith(uaaUrl));
         assertThat(jwtToken.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
     }
 
     @Nested
     @DisplayName("when performing the refresh grant type")
-    @WithSpring
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
+    @DirtiesContext
     class WhenRefreshGrant {
         @Autowired
         private RefreshTokenCreator refreshTokenCreator;
@@ -288,7 +276,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when ACR claim is present")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenAcrClaimIsPresent {
 
             void setup(Set<String> acrs) {
@@ -337,7 +326,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when 'openid' scope was not requested in original token grant")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenOpenIdScopeNotRequested {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
@@ -361,7 +351,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when client does not have 'openid' scope")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenClientDoesNotHaveOpenIdScope {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
@@ -386,7 +377,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when scoping down the refresh token to exclude 'openid' scope")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenScopingDownToExcludeOpenIdScope {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
@@ -410,7 +402,8 @@ class UaaTokenServicesTests {
 
         @Nested
         @DisplayName("when AMR claim is present")
-        @WithSpring
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenAmrClaimIsPresent {
 
             public void setup(List<String> amrs) {
