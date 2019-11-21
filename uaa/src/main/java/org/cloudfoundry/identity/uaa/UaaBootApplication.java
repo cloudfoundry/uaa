@@ -28,6 +28,11 @@ public class UaaBootApplication {
         return new PropertySourcesPlaceholderConfigurer();
     }
 
+    @Bean
+    static DisableSpringUaaSpringSecurityFilterRegistrationBean fixIt() {
+        return new DisableSpringUaaSpringSecurityFilterRegistrationBean();
+    }
+
     @Configuration
     public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
