@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -42,7 +27,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -55,7 +40,7 @@ public class LimitedModeUaaFilterTests {
     private LimitedModeUaaFilter filter;
     private File statusFile;
     private final AtomicLong time = new AtomicLong(System.currentTimeMillis());
-    TimeService timeService;
+    private TimeService timeService;
 
     @Before
     public void setup() throws Exception {
@@ -78,13 +63,6 @@ public class LimitedModeUaaFilterTests {
         statusFile.delete();
     }
 
-    public void setPathInfo(String pathInfo) {
-        request.setServletPath("");
-        request.setPathInfo(pathInfo);
-        request.setContextPath("/uaa");
-        request.setRequestURI(request.getContextPath()+request.getPathInfo());
-    }
-
     @Test
     public void disabled() throws Exception {
         filter.doFilterInternal(request, response, chain);
@@ -93,16 +71,16 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void enabled_no_whitelist_post() throws Exception {
+    public void enabledNoWhitelistPost() throws Exception {
         request.setMethod(POST.name());
         filter.setStatusFile(statusFile);
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(chain);
+        verifyNoInteractions(chain);
         assertEquals(SC_SERVICE_UNAVAILABLE, response.getStatus());
     }
 
     @Test
-    public void enabled_no_whitelist_get() throws Exception {
+    public void enabledNoWhitelistGet() throws Exception {
         request.setMethod(GET.name());
         filter.setStatusFile(statusFile);
         filter.setPermittedMethods(new HashSet<>(Collections.singletonList(GET.toString())));
@@ -111,12 +89,12 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void enabled_matching_url_post() throws Exception {
+    public void enabledMatchingUrlPost() throws Exception {
         request.setMethod(POST.name());
-        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
+        filter.setPermittedEndpoints(Collections.singleton("/oauth/token/**"));
         filter.setStatusFile(statusFile);
         for (String pathInfo : Arrays.asList("/oauth/token", "/oauth/token/alias/something")) {
-            setPathInfo(pathInfo);
+            setPathInfo(pathInfo, request);
             reset(chain);
             filter.doFilterInternal(request, response, chain);
             verify(chain, times(1)).doFilter(same(request), same(response));
@@ -124,28 +102,28 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void enabled_not_matching_post() throws Exception {
+    public void enabledNotMatchingPost() throws Exception {
         request.setMethod(POST.name());
-        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
+        filter.setPermittedEndpoints(Collections.singleton("/oauth/token/**"));
         filter.setStatusFile(statusFile);
         for (String pathInfo : Arrays.asList("/url", "/other/url")) {
             response = new MockHttpServletResponse();
-            setPathInfo(pathInfo);
+            setPathInfo(pathInfo, request);
             reset(chain);
             filter.doFilterInternal(request, response, chain);
-            verifyZeroInteractions(chain);
+            verifyNoInteractions(chain);
             assertEquals(SC_SERVICE_UNAVAILABLE, response.getStatus());
         }
     }
 
     @Test
-    public void error_is_json() throws Exception {
-        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
+    public void errorIsJson() throws Exception {
+        filter.setPermittedEndpoints(Collections.singleton("/oauth/token/**"));
         filter.setStatusFile(statusFile);
         for (String accept : Arrays.asList("application/json", "text/html,*/*")) {
             request = new MockHttpServletRequest();
             response = new MockHttpServletResponse();
-            setPathInfo("/not/allowed");
+            setPathInfo("/not/allowed", request);
             request.setMethod(POST.name());
             request.addHeader(ACCEPT, accept);
             filter.doFilterInternal(request, response, chain);
@@ -155,13 +133,13 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void error_is_not() throws Exception {
-        filter.setPermittedEndpoints(new HashSet(Collections.singletonList("/oauth/token/**")));
+    public void errorIsNot() throws Exception {
+        filter.setPermittedEndpoints(Collections.singleton("/oauth/token/**"));
         filter.setStatusFile(statusFile);
         for (String accept : Arrays.asList("text/html", "text/plain")) {
             request = new MockHttpServletRequest();
             response = new MockHttpServletResponse();
-            setPathInfo("/not/allowed");
+            setPathInfo("/not/allowed", request);
             request.setMethod(POST.name());
             request.addHeader(ACCEPT, accept);
             filter.doFilterInternal(request, response, chain);
@@ -171,25 +149,33 @@ public class LimitedModeUaaFilterTests {
     }
 
     @Test
-    public void disable_enable_uses_cache_to_avoid_file_access() {
+    public void disableEnableUsesCacheToAvoidFileAccess() {
         File spy = spy(statusFile);
         doCallRealMethod().when(spy).exists();
         filter.setTimeService(timeService);
         filter.setStatusFile(spy);
         assertTrue(filter.isEnabled());
         statusFile.delete();
-        for (int i=0; i<10; i++) assertTrue(filter.isEnabled());
+        for (int i = 0; i < 10; i++) assertTrue(filter.isEnabled());
         time.set(time.get() + STATUS_INTERVAL_MS + 10);
         assertFalse(filter.isEnabled());
         verify(spy, times(2)).exists();
     }
 
     @Test
-    public void settings_file_changes_cache() throws Exception {
-        disable_enable_uses_cache_to_avoid_file_access();
+    public void settingsFileChangesCache() {
+        disableEnableUsesCacheToAvoidFileAccess();
         filter.setStatusFile(null);
         assertFalse(filter.isEnabled());
         assertEquals(0, filter.getLastFileSystemCheck());
     }
 
+    public static void setPathInfo(
+            final String pathInfo,
+            final MockHttpServletRequest request) {
+        request.setServletPath("");
+        request.setPathInfo(pathInfo);
+        request.setContextPath("/uaa");
+        request.setRequestURI(request.getContextPath() + request.getPathInfo());
+    }
 }
