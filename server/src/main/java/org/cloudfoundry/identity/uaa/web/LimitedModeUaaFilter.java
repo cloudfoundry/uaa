@@ -1,26 +1,13 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.web;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -50,25 +37,26 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     public static final long STATUS_INTERVAL_MS = 5000;
     private static Logger logger = LoggerFactory.getLogger(LimitedModeUaaFilter.class);
 
-    private Set<String> permittedEndpoints = emptySet();
     private Set<String> permittedMethods = emptySet();
     private List<AntPathRequestMatcher> endpoints = emptyList();
     private volatile boolean enabled = false;
     private File statusFile = null;
     private TimeService timeService = new TimeServiceImpl();
-    private AtomicLong lastFileCheck= new AtomicLong(0);
-
+    private AtomicLong lastFileCheck = new AtomicLong(0);
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            final @NonNull HttpServletRequest request,
+            final @NonNull HttpServletResponse response,
+            final @NonNull FilterChain filterChain) throws ServletException, IOException {
         if (isEnabled()) {
-            if ( isMethodAllowed(request) || isEndpointAllowed(request)) {
+            if (isMethodAllowed(request) || isEndpointAllowed(request)) {
                 filterChain.doFilter(request, response);
             } else {
                 logger.debug(format("Operation Not permitted in limited mode for URL:%s and method:%s",
-                                    request.getRequestURI(),
-                                    request.getMethod()
-                             )
+                        request.getRequestURI(),
+                        request.getMethod()
+                        )
                 );
                 Map<String, String> json = getErrorData();
                 if (acceptsJson(request)) {
@@ -93,58 +81,41 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
         return json;
     }
 
-    protected boolean acceptsJson(HttpServletRequest request) {
+    private static boolean acceptsJson(HttpServletRequest request) {
         List<MediaType> mediaTypes = MediaType.parseMediaTypes(request.getHeader(HttpHeaders.ACCEPT));
         return mediaTypes.stream().anyMatch(m -> m.isCompatibleWith(MediaType.APPLICATION_JSON));
     }
 
-    protected boolean isMethodAllowed(HttpServletRequest request) {
-        return getPermittedMethods().contains(request.getMethod().toUpperCase());
+    private boolean isMethodAllowed(HttpServletRequest request) {
+        return permittedMethods.contains(request.getMethod().toUpperCase());
     }
 
-    public boolean isEndpointAllowed(HttpServletRequest request) {
+    private boolean isEndpointAllowed(HttpServletRequest request) {
         return endpoints.stream().anyMatch(m -> m.matches(request));
     }
 
     public void setPermittedEndpoints(Set<String> permittedEndpoints) {
-        this.permittedEndpoints = permittedEndpoints;
-        if (permittedEndpoints==null) {
-            this.endpoints = emptyList();
-        } else {
-            this.endpoints =
-                permittedEndpoints
-                    .stream()
-                    .map(s -> new AntPathRequestMatcher(s))
-                    .collect(toList());
-        }
-    }
-
-
-    public Set<String> getPermittedEndpoints() {
-        return permittedEndpoints;
-    }
-
-    public Set<String> getPermittedMethods() {
-        return permittedMethods;
+        this.endpoints = ofNullable(permittedEndpoints)
+                .orElse(emptySet())
+                .stream()
+                .map(AntPathRequestMatcher::new)
+                .collect(toList());
     }
 
     public void setPermittedMethods(Set<String> permittedMethods) {
         this.permittedMethods = ofNullable(permittedMethods).orElse(emptySet());
     }
 
-    public boolean isTimeToCheckFileSystem() {
+    private boolean isTimeToCheckFileSystem() {
         long time = lastFileCheck.get();
         long now = timeService.getCurrentTimeMillis();
-        if (now - time > STATUS_INTERVAL_MS && lastFileCheck.compareAndSet(time, now)) {
-            return true;
-        }
-        return false;
+        return now - time > STATUS_INTERVAL_MS && lastFileCheck.compareAndSet(time, now);
     }
 
     public boolean isEnabled() {
         if (statusFile == null) {
             enabled = false;
-        } else if (isTimeToCheckFileSystem()){
+        } else if (isTimeToCheckFileSystem()) {
             enabled = statusFile.exists();
         }
         return enabled;
