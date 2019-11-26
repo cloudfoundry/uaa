@@ -42,7 +42,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RequestMapping("/saml/service-providers")
-@RestController
+//@RestController
 public class SamlServiceProviderEndpoints {
 
     protected static Logger logger = LoggerFactory.getLogger(SamlServiceProviderEndpoints.class);

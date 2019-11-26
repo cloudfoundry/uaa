@@ -38,7 +38,7 @@ import org.springframework.web.servlet.View;
  * @author Dave Syer
  * 
  */
-@Controller
+//@Controller
 public class ApiController {
 
     private String infoResource;

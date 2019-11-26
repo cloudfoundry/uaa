@@ -8,7 +8,7 @@
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
-    <sec:global-method-security pre-post-annotations="enabled"/>
+<!--    <sec:global-method-security pre-post-annotations="enabled"/>-->
 
     <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore">
         <constructor-arg ref="jdbcTemplate"/>

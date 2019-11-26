@@ -12,7 +12,7 @@ import java.net.URISyntaxException;
 
 import static org.springframework.http.HttpStatus.OK;
 
-@Controller
+//@Controller
 public class OpenIdConnectEndpoints {
 
     private final String issuer;

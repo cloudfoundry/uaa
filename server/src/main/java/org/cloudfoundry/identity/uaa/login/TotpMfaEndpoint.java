@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-@Controller
+//@Controller
 @SessionAttributes("uaaMfaCredentials")
 @RequestMapping("/login/mfa")
 public class TotpMfaEndpoint implements ApplicationEventPublisherAware {

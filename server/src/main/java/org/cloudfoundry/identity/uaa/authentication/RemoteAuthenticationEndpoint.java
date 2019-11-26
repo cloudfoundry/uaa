@@ -30,7 +30,7 @@ import java.util.Map;
  * A username/password authentication endpoint (only intended) for use by the
  * login server.
  */
-@Controller
+//@Controller
 public class RemoteAuthenticationEndpoint {
     private static final Logger logger = LoggerFactory.getLogger(RemoteAuthenticationEndpoint.class);
 

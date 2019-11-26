@@ -35,7 +35,7 @@ import java.util.Map;
 
 import static org.springframework.util.StringUtils.hasText;
 
-@Controller
+//@Controller
 public class ResetPasswordController {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 

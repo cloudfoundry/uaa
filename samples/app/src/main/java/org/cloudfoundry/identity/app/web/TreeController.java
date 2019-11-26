@@ -24,7 +24,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestOperations;
 
-@Controller
+//@Controller
 public class TreeController {
 
     private RestOperations restTemplate;

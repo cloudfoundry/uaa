@@ -30,7 +30,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 /**
  * OAuth2 token services that produces JWT encoded token values.
  */
-@Controller
+//@Controller
 public class TokenKeyEndpoint {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());

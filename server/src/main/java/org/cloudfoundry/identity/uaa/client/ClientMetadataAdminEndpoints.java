@@ -25,7 +25,7 @@ import org.springframework.web.servlet.View;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
-@Controller
+//@Controller
 public class ClientMetadataAdminEndpoints {
     private static Logger logger = LoggerFactory.getLogger(ClientMetadataAdminEndpoints.class);
     private final ClientMetadataProvisioning clientMetadataProvisioning;

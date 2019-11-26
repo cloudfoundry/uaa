@@ -87,7 +87,7 @@ import static java.lang.String.format;
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
-@Controller
+//@Controller
 @ManagedResource(
     objectName="cloudfoundry.identity:name=ClientEndpoint",
     description = "UAA Oauth Clients API Metrics"

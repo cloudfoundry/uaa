@@ -40,7 +40,7 @@ import java.util.Set;
  * Controller for retrieving the model for and displaying the confirmation page
  * for access to a protected resource.
  */
-@Controller
+//@Controller
 @SessionAttributes("authorizationRequest")
 public class AccessController {
 

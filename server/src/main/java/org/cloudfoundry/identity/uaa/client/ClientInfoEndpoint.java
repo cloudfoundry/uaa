@@ -29,7 +29,7 @@ import java.util.Collections;
  *
  * @author Dave Syer
  */
-@Controller
+//@Controller
 public class ClientInfoEndpoint {
 
     private final MultitenantClientServices clientDetailsService;

@@ -25,7 +25,7 @@ import org.springframework.web.servlet.View;
 
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
-@Controller
+//@Controller
 public class PasswordChangeEndpoint {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

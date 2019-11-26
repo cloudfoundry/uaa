@@ -37,7 +37,7 @@ import java.util.Map;
 
 import static org.springframework.util.StringUtils.hasText;
 
-@Controller
+//@Controller
 public class HomeController {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JdbcClientMetadataProvisioning clientMetadataProvisioning;

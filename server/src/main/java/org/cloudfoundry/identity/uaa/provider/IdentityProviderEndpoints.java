@@ -66,7 +66,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RequestMapping("/identity-providers")
-@RestController
+//@RestController
 public class IdentityProviderEndpoints implements ApplicationEventPublisherAware {
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);

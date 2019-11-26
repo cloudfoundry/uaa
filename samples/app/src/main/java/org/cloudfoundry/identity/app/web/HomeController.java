@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 
-@Controller
+//@Controller
 public class HomeController {
 
     private String userAuthorizationUri = "http://localhost:8080/uaa/oauth/authorize";

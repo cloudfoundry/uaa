@@ -34,7 +34,7 @@ import java.util.*;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
-@Controller
+//@Controller
 public class ApprovalsAdminEndpoints implements InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger(ApprovalsAdminEndpoints.class);

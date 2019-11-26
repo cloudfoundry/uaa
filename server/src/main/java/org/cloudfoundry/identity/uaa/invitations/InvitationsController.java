@@ -62,7 +62,7 @@ import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
-@Controller
+//@Controller
 @RequestMapping("/invitations")
 public class InvitationsController {
 

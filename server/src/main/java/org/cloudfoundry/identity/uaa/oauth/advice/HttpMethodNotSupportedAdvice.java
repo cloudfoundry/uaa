@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 
-@ControllerAdvice(assignableTypes = {CheckTokenEndpoint.class, IntrospectEndpoint.class, UaaTokenEndpoint.class})
+//@ControllerAdvice(assignableTypes = {CheckTokenEndpoint.class, IntrospectEndpoint.class, UaaTokenEndpoint.class})
 public class HttpMethodNotSupportedAdvice {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
