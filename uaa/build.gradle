@@ -148,5 +148,5 @@ war {
 
 bootRun {
     args '--debug'
-    jvmArgs "-DLOGIN_CONFIG_URL=classpath:required_configuration.yml"
+    jvmArgs += ["-DLOGIN_CONFIG_URL=classpath:required_configuration.yml", "-Dspring.profiles.active=${System.getProperty("spring.profiles.active", "default")}"]
 }

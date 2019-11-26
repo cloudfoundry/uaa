@@ -13,15 +13,6 @@
 
 package org.cloudfoundry.identity.api.web;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.io.Resource;
 import org.springframework.expression.Expression;
@@ -34,11 +25,19 @@ import org.springframework.util.PropertyPlaceholderHelper.PlaceholderResolver;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.View;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author Dave Syer
  * 
  */
-//@Controller
+@Controller
 public class ApiController {
 
     private String infoResource;

@@ -33,7 +33,7 @@ import java.util.Map;
 
 import static org.springframework.http.HttpStatus.*;
 
-//@Controller
+@Controller
 public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;

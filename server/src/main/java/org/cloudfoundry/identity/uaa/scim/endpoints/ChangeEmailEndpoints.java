@@ -31,7 +31,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.springframework.http.HttpStatus.*;
 
-//@Controller
+@Controller
 public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
     private static final long EMAIL_CHANGE_LIFETIME = Duration.ofMinutes(30L).toMillis();

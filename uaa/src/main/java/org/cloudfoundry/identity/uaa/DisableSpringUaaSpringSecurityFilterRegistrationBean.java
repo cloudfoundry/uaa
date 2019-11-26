@@ -23,7 +23,7 @@ public class DisableSpringUaaSpringSecurityFilterRegistrationBean implements Bea
         for (String beanName : filterBeanNames) {
             BeanDefinition beanDefinition = registry.getBeanDefinition(beanName);
             String beanClassName = beanDefinition.getBeanClassName();
-            if (beanClassName != null && beanClassName.startsWith("org.cloudfoundry")) {
+            if (beanClassName != null) {
                 BeanDefinitionBuilder filterRegistrationBldr = BeanDefinitionBuilder.rootBeanDefinition(FilterRegistrationBean.class);
                 filterRegistrationBldr.addPropertyReference("filter", beanName);
                 filterRegistrationBldr.addPropertyValue("enabled", false);

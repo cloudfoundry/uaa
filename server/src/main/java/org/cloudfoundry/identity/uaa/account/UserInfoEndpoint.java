@@ -20,7 +20,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 /**
  * Controller that sends user info to clients wishing to authenticate.
  */
-//@Controller
+@Controller
 public class UserInfoEndpoint implements InitializingBean {
 
     private final UaaUserDatabase userDatabase;

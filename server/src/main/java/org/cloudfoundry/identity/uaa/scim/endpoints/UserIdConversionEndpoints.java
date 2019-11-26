@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//@Controller
+@Controller
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

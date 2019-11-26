@@ -557,7 +557,7 @@
         <property name="authenticator" ref="googleAuthenticator"/>
     </bean>
 
-    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint" />
+<!--    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint" />-->
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
         <constructor-arg value="/login/mfa/completed"/>

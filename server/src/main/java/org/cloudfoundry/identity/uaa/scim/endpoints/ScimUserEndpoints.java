@@ -101,7 +101,7 @@ import static org.springframework.util.StringUtils.isEmpty;
  *
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
-//@Controller
+@Controller
 @ManagedResource(
         objectName = "cloudfoundry.identity:name=UserEndpoint",
         description = "UAA User API Metrics"

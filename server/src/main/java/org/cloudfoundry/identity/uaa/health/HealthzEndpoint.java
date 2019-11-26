@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
  * of monitoring health of the application. It also registers a shutdown hook
  * and returns "stopping" and a 503 when the process is shutting down.
  */
-//@Controller
+@Controller
 public class HealthzEndpoint {
     private static Logger logger = LoggerFactory.getLogger(HealthzEndpoint.class);
     private volatile boolean stopping = false;

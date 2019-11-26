@@ -27,7 +27,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.Email;
 import java.util.Map;
 
-//@Controller
+@Controller
 public class ChangeEmailController {
 
     private final ChangeEmailService changeEmailService;

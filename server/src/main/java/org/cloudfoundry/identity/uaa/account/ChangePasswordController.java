@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
-//@Controller
+@Controller
 public class ChangePasswordController {
 
     private final ChangePasswordService changePasswordService;

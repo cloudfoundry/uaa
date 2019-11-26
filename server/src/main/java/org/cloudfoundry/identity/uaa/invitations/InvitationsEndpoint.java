@@ -46,7 +46,7 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.util.StringUtils.hasText;
 
-//@Controller
+@Controller
 public class InvitationsEndpoint {
 
     private static final int INVITATION_EXPIRY_DAYS = 7;

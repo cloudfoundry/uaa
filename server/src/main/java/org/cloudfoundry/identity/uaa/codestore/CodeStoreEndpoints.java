@@ -13,7 +13,7 @@ import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
 
-//@Controller
+@Controller
 public class CodeStoreEndpoints {
 
     private final ExpiringCodeStore expiringCodeStore;

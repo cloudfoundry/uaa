@@ -27,7 +27,7 @@ import java.util.List;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RequestMapping("/mfa-providers")
-//@RestController
+@RestController
 public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     protected static Logger logger = LoggerFactory.getLogger(MfaProviderEndpoints.class);
     private ApplicationEventPublisher publisher;

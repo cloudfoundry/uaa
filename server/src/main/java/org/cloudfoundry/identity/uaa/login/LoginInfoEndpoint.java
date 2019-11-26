@@ -75,7 +75,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
  * Controller that sends login info (e.g. prompts) to clients wishing to
  * authenticate.
  */
-//@Controller
+@Controller
 public class LoginInfoEndpoint {
 
     private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);

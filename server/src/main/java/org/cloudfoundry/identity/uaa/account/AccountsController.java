@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
-//@Controller
+@Controller
 public class AccountsController {
 
     private final AccountCreationService accountCreationService;

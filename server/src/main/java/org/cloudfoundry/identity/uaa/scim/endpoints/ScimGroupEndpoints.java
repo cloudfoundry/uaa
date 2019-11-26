@@ -59,7 +59,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAGING_SCOPE_REGEX;
 import static org.springframework.util.StringUtils.hasText;
 
-//@Controller
+@Controller
 public class ScimGroupEndpoints {
 
     private static final String E_TAG = "ETag";
