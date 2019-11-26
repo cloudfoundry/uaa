@@ -11,7 +11,6 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
@@ -69,8 +68,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         ServletContext servletContext = applicationContext.getServletContext();
 
-        HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
-        servletContext.addListener(publisher);
+//        HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
+//        servletContext.addListener(publisher);
 
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
@@ -98,13 +97,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
 
         if (resources.isEmpty()) {
-            servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            locations = servletContext.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
+//            servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
+//            locations = servletContext.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
+            locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
             resources.addAll(getResource(servletContext, applicationContext, locations));
         }
 
         try {
-            servletContext.log("Loading YAML environment properties from location: " + resources.toString());
+//            servletContext.log("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
             factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
 
@@ -119,7 +119,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             applyLog4jConfiguration(applicationContext.getEnvironment(), servletContext);
 
         } catch (Exception e) {
-            servletContext.log("Error loading YAML environment properties from location: " + resources.toString(), e);
+//            servletContext.log("Error loading YAML environment properties from location: " + resources.toString(), e);
         }
     }
 
@@ -141,7 +141,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .commaDelimitedListToStringArray(locations);
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);
-            servletContext.log("Testing for YAML resources at: " + location);
+//            servletContext.log("Testing for YAML resources at: " + location);
             Resource resource = applicationContext.getResource(location);
             if (resource != null && resource.exists()) {
                 resources.add(resource);
@@ -161,15 +161,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             if (location != null && location.trim().length() > 0) {
                 PropertySource<?> environmentPropertySource = environment.getPropertySources().get(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
                 if ((location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG")))) {
-                    servletContext.log("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
+//                    servletContext.log("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
                 } else {
-                    servletContext.log("Setting Log Config Location: " + location + " based on logging.config setting.");
+//                    servletContext.log("Setting Log Config Location: " + location + " based on logging.config setting.");
                     log4jConfigLocation = environment.getProperty("logging.config");
                 }
             }
         }
 
-        servletContext.log("Loading log4j config from location: " + log4jConfigLocation);
+//        servletContext.log("Loading log4j config from location: " + log4jConfigLocation);
         try {
             String resolvedLocation = SystemPropertyUtils.resolvePlaceholders(log4jConfigLocation);
             URL url = ResourceUtils.getURL(resolvedLocation);
@@ -181,10 +181,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             loggerContext.setConfigLocation(ResourceUtils.toURI(url));
 
         } catch (FileNotFoundException | URISyntaxException e) {
-            servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
+//            servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
         }
 
-        MDC.put("context", servletContext.getContextPath()); // used to fill in %X{context} in our `property.log_pattern` log format
+//        MDC.put("context", servletContext.getContextPath()); // used to fill in %X{context} in our `property.log_pattern` log format
+        MDC.put("context", "/"); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
     void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
@@ -192,7 +193,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         environment.setDefaultProfiles(new String[0]);
         if (environment.containsProperty("spring_profiles")) {
             String profiles = environment.getProperty("spring_profiles");
-            servletContext.log("Setting active profiles: " + profiles);
+//            servletContext.log("Setting active profiles: " + profiles);
             environment.setActiveProfiles(StringUtils.tokenizeToStringArray(profiles, ",", true, true));
         } else {
             if (isEmpty(systemProfiles)) {

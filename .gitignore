@@ -32,6 +32,7 @@ phantomjsdriver.log
 statsd/logs
 server/logs
 uaa/logs
+logs
 
 uaa/node_modules
 # Docs
