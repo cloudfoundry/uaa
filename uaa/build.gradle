@@ -13,8 +13,6 @@ processResources {
 
 apply plugin: "eclipse-wtp"
 apply plugin: "org.springframework.boot"
-bootWar { enabled = false }
-war { enabled = true }
 
 eclipse {
     wtp {
@@ -146,4 +144,8 @@ integrationTest {
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")
+}
+
+bootRun {
+    args '--debug'
 }
