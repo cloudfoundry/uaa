@@ -23,13 +23,9 @@ import javax.servlet.ServletContext;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
@@ -69,14 +65,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
-        List<Resource> resources = Set.of("uaa.yml", "login.yml")
+        List<Resource> resources = List.of("uaa.yml", "login.yml")
                 .stream()
                 .map(ClassPathResource::new)
                 .filter(ClassPathResource::exists)
                 .collect(Collectors.toList());
 
         //add default locations first
-        Set<String> locations = Set.of(
+        List<String> locations = List.of(
                 "${APPLICATION_CONFIG_URL}",
                 "file:${APPLICATION_CONFIG_FILE}",
                 "${LOGIN_CONFIG_URL}",
@@ -126,7 +122,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private List<Resource> getResource(final ServletContext servletContext,
                                        final ConfigurableWebApplicationContext applicationContext,
-                                       final Set<String> configFileLocations) {
+                                       final List<String> configFileLocations) {
         List<Resource> resources = new LinkedList<>();
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);
