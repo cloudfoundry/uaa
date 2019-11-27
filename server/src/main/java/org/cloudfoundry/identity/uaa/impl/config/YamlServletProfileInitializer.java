@@ -51,10 +51,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private static final String PROFILE_CONFIG_FILE_LOCATIONS = "environmentConfigLocations";
 
-    private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[]{
-            "${APPLICATION_CONFIG_URL}",
-            "file:${APPLICATION_CONFIG_FILE}"};
-
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
 
     private static final String YAML_ENVIRONMENT_VARIABLE_NAME = "UAA_CONFIG_YAML";
@@ -133,7 +129,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     private List<Resource> getResource(ServletContext servletContext, ConfigurableWebApplicationContext applicationContext,
                                        String locations) {
         List<Resource> resources = new LinkedList<>();
-        String[] configFileLocations = locations == null ? DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS : StringUtils
+        String[] configFileLocations = locations == null ? new String[] {"file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml"} : StringUtils
                 .commaDelimitedListToStringArray(locations);
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);

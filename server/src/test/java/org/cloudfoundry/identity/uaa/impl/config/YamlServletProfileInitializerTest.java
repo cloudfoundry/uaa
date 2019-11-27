@@ -39,6 +39,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -55,10 +56,6 @@ class YamlServletProfileInitializerTest {
     private StandardServletEnvironment environment;
     private ServletConfig servletConfig;
     private ServletContext servletContext;
-    private String originalApplicationConfigUrl;
-    private String originalApplicationConfigFile;
-    private static final String APPLICATION_CONFIG_URL = "APPLICATION_CONFIG_URL";
-    private static final String APPLICATION_CONFIG_FILE = "APPLICATION_CONFIG_FILE";
 
     @BeforeEach
     void setup() {
@@ -77,31 +74,18 @@ class YamlServletProfileInitializerTest {
         Mockito.doAnswer((Answer<Void>) invocation -> {
             System.err.println(invocation.getArguments()[0]);
             return null;
-        }).when(servletContext).log(ArgumentMatchers.anyString());
+        }).when(servletContext).log(anyString());
         when(servletContext.getContextPath()).thenReturn("/context");
-
-        originalApplicationConfigUrl = System.getProperty(APPLICATION_CONFIG_URL);
-        originalApplicationConfigFile = System.getProperty(APPLICATION_CONFIG_FILE);
     }
 
     @AfterEach
-    void cleanup() {
-        if (originalApplicationConfigUrl == null) {
-            System.clearProperty(APPLICATION_CONFIG_URL);
-        } else {
-            System.setProperty(APPLICATION_CONFIG_URL, originalApplicationConfigUrl);
-        }
-
-        if (originalApplicationConfigFile == null) {
-            System.clearProperty(APPLICATION_CONFIG_FILE);
-        } else {
-            System.setProperty(APPLICATION_CONFIG_FILE, originalApplicationConfigFile);
-        }
+    void tearDown() {
+        System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
     }
 
     @Test
     void loadDefaultResource() {
-        when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -112,7 +96,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadSessionEventPublisher() {
-        when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
+        when(context.getResource(ArgumentMatchers.contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -126,7 +110,7 @@ class YamlServletProfileInitializerTest {
     void activeProfiles() {
         System.setProperty("spring.profiles.active", "foo");
 
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(context);
@@ -136,7 +120,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void activeProfilesFromYaml() {
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(context);
@@ -146,15 +130,15 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void log4jConfigurationFromYaml() {
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("logging:\n  config: bar".getBytes()));
         initializer.initialize(context);
     }
 
     @Test
     void loadServletConfiguredFilename() {
-        when(servletConfig.getInitParameter(APPLICATION_CONFIG_FILE)).thenReturn("/config/path/foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("file:/config/path/foo.yml"))).thenReturn(
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "/config/path");
+        when(context.getResource(ArgumentMatchers.eq("file:/config/path/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -189,7 +173,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResource() {
-        System.setProperty(APPLICATION_CONFIG_URL, "file:foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
 
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -202,7 +186,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResourceFromFileLocation() {
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
 
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -215,7 +199,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loggingConfigVariableWorks() {
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
         initializer.initialize(context);
@@ -249,7 +233,7 @@ class YamlServletProfileInitializerTest {
     @Test
     void ignoreDashDTomcatLoggingConfigVariable() {
         final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
         ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
         when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
@@ -375,8 +359,8 @@ class YamlServletProfileInitializerTest {
 
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);
 
-        System.setProperty(APPLICATION_CONFIG_FILE, "anything");
-        when(context.getResource("file:anything"))
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "anything");
+        when(context.getResource("file:anything/uaa.yml"))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tempFile.getAbsolutePath()).getBytes()));
 
         initializer.initialize(context);
