@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
@@ -52,30 +53,23 @@ import static org.springframework.util.StringUtils.hasText;
 class YamlServletProfileInitializerTest {
 
     private YamlServletProfileInitializer initializer;
-    private ConfigurableWebApplicationContext context;
-    private StandardServletEnvironment environment;
-    private ServletConfig servletConfig;
-    private ServletContext servletContext;
+    private ConfigurableWebApplicationContext mockConfigurableWebApplicationContext;
+    private ConfigurableEnvironment environment;
+    private ServletConfig mockServletConfig;
+    private ServletContext mockServletContext;
 
     @BeforeEach
     void setup() {
         initializer = new YamlServletProfileInitializer();
-        context = mock(ConfigurableWebApplicationContext.class);
+        mockConfigurableWebApplicationContext = mock(ConfigurableWebApplicationContext.class);
         environment = new StandardServletEnvironment();
-        servletConfig = mock(ServletConfig.class);
-        servletContext = mock(ServletContext.class);
+        mockServletConfig = mock(ServletConfig.class);
+        mockServletContext = mock(ServletContext.class);
 
-        when(servletConfig.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
-        when(servletContext.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
-
-        when(context.getServletConfig()).thenReturn(servletConfig);
-        when(context.getServletContext()).thenReturn(servletContext);
-        when(context.getEnvironment()).thenReturn(environment);
-        Mockito.doAnswer((Answer<Void>) invocation -> {
-            System.err.println(invocation.getArguments()[0]);
-            return null;
-        }).when(servletContext).log(anyString());
-        when(servletContext.getContextPath()).thenReturn("/context");
+        when(mockConfigurableWebApplicationContext.getServletConfig()).thenReturn(mockServletConfig);
+        when(mockConfigurableWebApplicationContext.getServletContext()).thenReturn(mockServletContext);
+        when(mockConfigurableWebApplicationContext.getEnvironment()).thenReturn(environment);
+        when(mockServletContext.getContextPath()).thenReturn("/context");
     }
 
     @AfterEach
@@ -85,10 +79,10 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadDefaultResource() {
-        when(context.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
@@ -96,13 +90,13 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadSessionEventPublisher() {
-        when(context.getResource(ArgumentMatchers.contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         ArgumentCaptor<HttpSessionEventPublisher> httpSessionEventPublisherArgumentCaptor = ArgumentCaptor.forClass(HttpSessionEventPublisher.class);
-        verify(servletContext, atLeastOnce()).addListener(httpSessionEventPublisherArgumentCaptor.capture());
+        verify(mockServletContext, atLeastOnce()).addListener(httpSessionEventPublisherArgumentCaptor.capture());
         assertNotNull(httpSessionEventPublisherArgumentCaptor.getValue());
     }
 
@@ -110,38 +104,38 @@ class YamlServletProfileInitializerTest {
     void activeProfiles() {
         System.setProperty("spring.profiles.active", "foo");
 
-        when(context.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getActiveProfiles()[0]);
     }
 
     @Test
     void activeProfilesFromYaml() {
-        when(context.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getActiveProfiles()[0]);
     }
 
     @Test
     void log4jConfigurationFromYaml() {
-        when(context.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
                 new ByteArrayResource("logging:\n  config: bar".getBytes()));
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
     }
 
     @Test
     void loadServletConfiguredFilename() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "/config/path");
-        when(context.getResource(ArgumentMatchers.eq("file:/config/path/uaa.yml"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:/config/path/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
@@ -149,10 +143,10 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadServletConfiguredResource() {
-        when(context.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-config".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz-from-config", environment.getProperty("spam.foo"));
@@ -160,10 +154,10 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadContextConfiguredResource() {
-        when(context.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-context".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz-from-context", environment.getProperty("spam.foo"));
@@ -173,10 +167,10 @@ class YamlServletProfileInitializerTest {
     void loadReplacedResource() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
 
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
@@ -186,10 +180,10 @@ class YamlServletProfileInitializerTest {
     void loadReplacedResourceFromFileLocation() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
 
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
@@ -198,9 +192,9 @@ class YamlServletProfileInitializerTest {
     @Test
     void loggingConfigVariableWorks() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
         assertEquals("/some/path", environment.getProperty("logging.config"));
         assertNull(environment.getProperty("smtp.host"));
         assertNull(environment.getProperty("smtp.port"));
@@ -221,7 +215,7 @@ class YamlServletProfileInitializerTest {
             }
         };
         initializer.setEnvironmentAccessor(env);
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
         assertEquals("mail.server.host", environment.getProperty("smtp.host"));
         assertEquals("3535", environment.getProperty("smtp.port"));
         assertEquals("http://uaa.test-from-env.url/", environment.getProperty("uaa.url"));
@@ -233,7 +227,7 @@ class YamlServletProfileInitializerTest {
         final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
         ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
+        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
         environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
             @Override
@@ -255,9 +249,9 @@ class YamlServletProfileInitializerTest {
 
             }
         });
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
         assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
-        Mockito.verify(servletContext, atLeastOnce()).log(servletLogCaptor.capture());
+        Mockito.verify(mockServletContext, atLeastOnce()).log(servletLogCaptor.capture());
         boolean logEntryFound = false;
         for (String s : servletLogCaptor.getAllValues()) {
             if (s.startsWith("Ignoring Log Config Location") && s.contains("Tomcat startup script environment variable")) {
@@ -341,7 +335,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void appliesDefaultClassPathLogProperties() throws Exception {
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
 
@@ -358,10 +352,10 @@ class YamlServletProfileInitializerTest {
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);
 
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "anything");
-        when(context.getResource("file:anything/uaa.yml"))
+        when(mockConfigurableWebApplicationContext.getResource("file:anything/uaa.yml"))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tempFile.getAbsolutePath()).getBytes()));
 
-        initializer.initialize(context);
+        initializer.initialize(mockConfigurableWebApplicationContext);
 
         LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
 
