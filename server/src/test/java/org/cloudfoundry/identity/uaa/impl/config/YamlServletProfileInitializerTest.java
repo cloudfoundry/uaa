@@ -12,8 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
@@ -42,34 +43,34 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)
 @ExtendWith(LoggerContextCleanupExtension.class)
+@ExtendWith(MockitoExtension.class)
 class YamlServletProfileInitializerTest {
 
     private YamlServletProfileInitializer initializer;
-    private ConfigurableWebApplicationContext mockConfigurableWebApplicationContext;
     private ConfigurableEnvironment environment;
+    @Mock
+    private ConfigurableWebApplicationContext mockConfigurableWebApplicationContext;
+    @Mock
     private ServletConfig mockServletConfig;
+    @Mock
     private ServletContext mockServletContext;
 
     @BeforeEach
     void setup() {
         initializer = new YamlServletProfileInitializer();
-        mockConfigurableWebApplicationContext = mock(ConfigurableWebApplicationContext.class);
         environment = new StandardServletEnvironment();
-        mockServletConfig = mock(ServletConfig.class);
-        mockServletContext = mock(ServletContext.class);
 
         when(mockConfigurableWebApplicationContext.getServletConfig()).thenReturn(mockServletConfig);
         when(mockConfigurableWebApplicationContext.getServletContext()).thenReturn(mockServletContext);
         when(mockConfigurableWebApplicationContext.getEnvironment()).thenReturn(environment);
-        when(mockServletContext.getContextPath()).thenReturn("/context");
+        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(null);
     }
 
     @AfterEach
@@ -275,6 +276,8 @@ class YamlServletProfileInitializerTest {
 
     @ExtendWith(PollutionPreventionExtension.class)
     @ExtendWith(SpringProfileCleanupExtension.class)
+    @ExtendWith(LoggerContextCleanupExtension.class)
+    @ExtendWith(MockitoExtension.class)
     @Nested
     class ApplySpringProfiles {
 
@@ -286,6 +289,7 @@ class YamlServletProfileInitializerTest {
             initializer = new YamlServletProfileInitializer();
             environment = new MockEnvironment();
             context = new MockServletContext();
+            reset(mockConfigurableWebApplicationContext);
         }
 
         @Test
