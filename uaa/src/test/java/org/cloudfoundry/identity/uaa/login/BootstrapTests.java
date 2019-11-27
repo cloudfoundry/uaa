@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
+import org.cloudfoundry.identity.uaa.impl.config.SpringProfileCleanupExtension;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -13,11 +15,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -48,29 +49,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(SpringProfileCleanupExtension.class)
 class BootstrapTests {
+
     private static final String LOGIN_IDP_METADATA = "login.idpMetadata";
     private static final String LOGIN_IDP_ENTITY_ALIAS = "login.idpEntityAlias";
     private static final String LOGIN_IDP_METADATA_URL = "login.idpMetadataURL";
     private static final String LOGIN_SAML_METADATA_TRUST_CHECK = "login.saml.metadataTrustCheck";
-    private static String systemConfiguredProfiles;
     private static Map<String, String> originalSystemProps = new HashMap<>();
 
     private ConfigurableApplicationContext context;
-
-    @BeforeAll
-    static void saveProfiles() {
-        systemConfiguredProfiles = System.getProperty("spring.profiles.active");
-    }
-
-    @AfterAll
-    static void restoreProfiles() {
-        if (systemConfiguredProfiles != null) {
-            System.setProperty("spring.profiles.active", systemConfiguredProfiles);
-        } else {
-            System.clearProperty("spring.profiles.active");
-        }
-    }
 
     @BeforeEach
     void setup() {
@@ -108,7 +97,6 @@ class BootstrapTests {
         assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), defaultConfig.getSamlConfig().getCertificate().trim());
         assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), defaultConfig.getSamlConfig().getPrivateKey().trim());
         assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), defaultConfig.getSamlConfig().getPrivateKeyPassword().trim());
-
     }
 
     @Test
@@ -185,7 +173,6 @@ class BootstrapTests {
                 SamlIdentityProviderDefinition.MetadataLocation.URL,
                 defs.get(defs.size() - 1).getType()
         );
-
     }
 
     private static SamlIdentityProviderDefinition findProvider(
