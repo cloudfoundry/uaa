@@ -206,7 +206,7 @@ class BootstrapTests {
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
             final String uaaYamlPath) {
-        String[] yamlFiles = new String[]{"required_configuration.yml", "login.yml", uaaYamlPath};
+        String[] yamlFiles = new String[]{"required_configuration.yml", uaaYamlPath};
 
         abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
         MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
