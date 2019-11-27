@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.security;
+package org.cloudfoundry.identity.uaa.extensions;
 
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
