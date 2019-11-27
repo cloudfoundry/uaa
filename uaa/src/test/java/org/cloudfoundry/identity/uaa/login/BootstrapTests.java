@@ -13,11 +13,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.flywaydb.core.Flyway;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -41,14 +41,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class BootstrapTests {
+class BootstrapTests {
     private static final String LOGIN_IDP_METADATA = "login.idpMetadata";
     private static final String LOGIN_IDP_ENTITY_ALIAS = "login.idpEntityAlias";
     private static final String LOGIN_IDP_METADATA_URL = "login.idpMetadataURL";
@@ -58,13 +58,13 @@ public class BootstrapTests {
 
     private ConfigurableApplicationContext context;
 
-    @BeforeClass
-    public static void saveProfiles() {
+    @BeforeAll
+    static void saveProfiles() {
         systemConfiguredProfiles = System.getProperty("spring.profiles.active");
     }
 
-    @AfterClass
-    public static void restoreProfiles() {
+    @AfterAll
+    static void restoreProfiles() {
         if (systemConfiguredProfiles != null) {
             System.setProperty("spring.profiles.active", systemConfiguredProfiles);
         } else {
@@ -72,8 +72,8 @@ public class BootstrapTests {
         }
     }
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         System.clearProperty("spring.profiles.active");
         IdentityZoneHolder.clear();
 
@@ -82,8 +82,8 @@ public class BootstrapTests {
         }
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         for (Map.Entry<String, String> entry : originalSystemProps.entrySet()) {
             if (entry.getValue() != null) {
                 System.setProperty(entry.getKey(), entry.getValue());
@@ -94,7 +94,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void xlegacy_test_deprecated_properties() {
+    void xlegacyTestDeprecatedProperties() {
         context = getServletContext(null, "login.yml", "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
@@ -104,7 +104,7 @@ public class BootstrapTests {
         assertEquals("https://deprecated.home_redirect.com", zoneBootstrap.getHomeRedirect());
         IdentityZone defaultZone = context.getBean(IdentityZoneProvisioning.class).retrieve("uaa");
         IdentityZoneConfiguration defaultConfig = defaultZone.getConfig();
-        assertTrue("Legacy SAML keys should be available", defaultConfig.getSamlConfig().getKeys().containsKey(SamlConfig.LEGACY_KEY_ID));
+        assertTrue(defaultConfig.getSamlConfig().getKeys().containsKey(SamlConfig.LEGACY_KEY_ID), "Legacy SAML keys should be available");
         assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), defaultConfig.getSamlConfig().getCertificate().trim());
         assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), defaultConfig.getSamlConfig().getPrivateKey().trim());
         assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), defaultConfig.getSamlConfig().getPrivateKeyPassword().trim());
@@ -112,7 +112,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void legacy_saml_idp_as_top_level_element() {
+    void legacySamlIdpAsTopLevelElement() {
         System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
@@ -133,7 +133,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void legacy_saml_metadata_as_xml() throws Exception {
+    void legacySamlMetadataAsXml() throws Exception {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
@@ -144,9 +144,8 @@ public class BootstrapTests {
                 findProvider(defs, "testIDPData").getType());
     }
 
-
     @Test
-    public void legacy_saml_metadata_as_url() {
+    void legacySamlMetadataAsUrl() {
         System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
@@ -163,11 +162,10 @@ public class BootstrapTests {
                 SamlIdentityProviderDefinition.MetadataLocation.URL,
                 defs.get(defs.size() - 1).getType()
         );
-
     }
 
     @Test
-    public void legacy_saml_url_without_port() {
+    void legacySamlUrlWithoutPort() {
         System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
@@ -190,7 +188,9 @@ public class BootstrapTests {
 
     }
 
-    private SamlIdentityProviderDefinition findProvider(List<SamlIdentityProviderDefinition> defs, String alias) {
+    private static SamlIdentityProviderDefinition findProvider(
+            final List<SamlIdentityProviderDefinition> defs,
+            final String alias) {
         for (SamlIdentityProviderDefinition def : defs) {
             if (alias.equals(def.getIdpEntityAlias())) {
                 return def;
@@ -199,11 +199,25 @@ public class BootstrapTests {
         return null;
     }
 
-    private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
-        return getServletContext(profiles, false, new String[]{"required_configuration.yml", loginYmlPath, uaaYamlPath}, false, resources);
+    private static ConfigurableApplicationContext getServletContext(
+            final String profiles,
+            final String loginYmlPath,
+            final String uaaYamlPath,
+            final String... resources) {
+        return getServletContext(
+                profiles,
+                false,
+                new String[]{"required_configuration.yml", loginYmlPath, uaaYamlPath},
+                false,
+                resources);
     }
 
-    private static ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String[] yamlFiles, boolean cleandb, String... resources) {
+    private static ConfigurableApplicationContext getServletContext(
+            final String profiles,
+            final boolean mergeProfiles,
+            final String[] yamlFiles,
+            final boolean cleandb,
+            final String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
