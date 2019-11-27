@@ -51,8 +51,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private static final String PROFILE_CONFIG_FILE_LOCATIONS = "environmentConfigLocations";
 
-    private static final String PROFILE_CONFIG_FILE_DEFAULT = "environmentConfigDefaults";
-
     private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[]{
             "${APPLICATION_CONFIG_URL}",
             "file:${APPLICATION_CONFIG_FILE}"};
@@ -80,13 +78,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         List<Resource> resources = new ArrayList<>();
 
         //add default locations first
-        Set<String> defaultLocation = StringUtils.commaDelimitedListToSet(servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT));
-        if (defaultLocation != null && defaultLocation.size() > 0) {
-            for (String s : defaultLocation) {
-                Resource defaultResource = new ClassPathResource(s);
-                if (defaultResource.exists()) {
-                    resources.add(defaultResource);
-                }
+        Set<String> defaultLocation = Set.of("uaa.yml", "login.yml");
+        for (String s : defaultLocation) {
+            Resource defaultResource = new ClassPathResource(s);
+            if (defaultResource.exists()) {
+                resources.add(defaultResource);
             }
         }
 
