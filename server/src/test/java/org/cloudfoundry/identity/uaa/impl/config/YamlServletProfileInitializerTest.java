@@ -32,7 +32,6 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.File;
 import java.net.URI;
-import java.util.Enumeration;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -75,12 +74,13 @@ class YamlServletProfileInitializerTest {
 
     @AfterEach
     void tearDown() {
-        System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
+        System.clearProperty("APPLICATION_CONFIG_FILE");
+        System.clearProperty("APPLICATION_CONFIG_URL");
     }
 
     @Test
     void loadDefaultResource() {
-        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -91,7 +91,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadSessionEventPublisher() {
-        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -115,7 +115,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void activeProfilesFromYaml() {
-        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -125,14 +125,14 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void log4jConfigurationFromYaml() {
-        when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("logging:\n  config: bar".getBytes()));
         initializer.initialize(mockConfigurableWebApplicationContext);
     }
 
     @Test
     void loadServletConfiguredFilename() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "/config/path");
+        System.setProperty("APPLICATION_CONFIG_FILE", "/config/path/uaa.yml");
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:/config/path/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -144,7 +144,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadServletConfiguredResource() {
-        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-config".getBytes()));
 
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -155,7 +155,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadContextConfiguredResource() {
-        when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
+        when(mockConfigurableWebApplicationContext.getResource("${APPLICATION_CONFIG_URL}")).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-context".getBytes()));
 
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -166,7 +166,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResource() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
+        System.setProperty("APPLICATION_CONFIG_URL", "file:foo/uaa.yml");
 
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -179,7 +179,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResourceFromFileLocation() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
+        System.setProperty("APPLICATION_CONFIG_URL", "file:foo/uaa.yml");
 
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -192,7 +192,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loggingConfigVariableWorks() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
+        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
         initializer.initialize(mockConfigurableWebApplicationContext);
@@ -226,7 +226,7 @@ class YamlServletProfileInitializerTest {
     @Test
     void ignoreDashDTomcatLoggingConfigVariable() {
         final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
+        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
         ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
         when(mockConfigurableWebApplicationContext.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
@@ -260,18 +260,6 @@ class YamlServletProfileInitializerTest {
             }
         }
         assertTrue("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found.", logEntryFound);
-    }
-
-    private static class EmptyEnumerationOfString implements Enumeration<String> {
-        @Override
-        public boolean hasMoreElements() {
-            return false;
-        }
-
-        @Override
-        public String nextElement() {
-            return null;
-        }
     }
 
     @ExtendWith(PollutionPreventionExtension.class)
@@ -355,7 +343,7 @@ class YamlServletProfileInitializerTest {
 
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);
 
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "anything");
+        System.setProperty("APPLICATION_CONFIG_FILE", "anything/uaa.yml");
         when(mockConfigurableWebApplicationContext.getResource("file:anything/uaa.yml"))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tempFile.getAbsolutePath()).getBytes()));
 

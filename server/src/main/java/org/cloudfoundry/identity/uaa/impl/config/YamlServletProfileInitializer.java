@@ -77,6 +77,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         //add default locations first
         Set<String> locations = Set.of(
+                "${APPLICATION_CONFIG_URL}",
+                "file:${APPLICATION_CONFIG_FILE}",
                 "${LOGIN_CONFIG_URL}",
                 "file:${LOGIN_CONFIG_PATH}/login.yml",
                 "file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml",
