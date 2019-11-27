@@ -101,7 +101,7 @@ class BootstrapTests {
 
     @Test
     void xlegacyTestDeprecatedProperties() {
-        context = getServletContext(null, "test/bootstrap/deprecated_properties_still_work.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(null, "test/bootstrap/deprecated_properties_still_work.yml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
@@ -122,7 +122,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
-        context = getServletContext("default", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -142,7 +142,7 @@ class BootstrapTests {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
-        context = getServletContext("default,saml,configMetadata", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default,saml,configMetadata", "uaa.yml");
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertEquals(
                 SamlIdentityProviderDefinition.MetadataLocation.DATA,
@@ -155,7 +155,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
-        context = getServletContext("default", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -175,7 +175,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
-        context = getServletContext("default", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -205,18 +205,10 @@ class BootstrapTests {
 
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
-            final String uaaYamlPath,
-            final String... resources) {
-        return getServletContext(
-                profiles,
-                new String[]{"required_configuration.yml", "login.yml", uaaYamlPath},
-                resources);
-    }
+            final String uaaYamlPath) {
+        String[] resources = new String[]{"file:./src/main/webapp/WEB-INF/spring-servlet.xml"};
+        String[] yamlFiles = new String[]{"required_configuration.yml", "login.yml", uaaYamlPath};
 
-    private static ConfigurableApplicationContext getServletContext(
-            final String profiles,
-            final String[] yamlFiles,
-            final String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
