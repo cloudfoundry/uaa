@@ -49,8 +49,6 @@ import static org.springframework.util.StringUtils.isEmpty;
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
-    private static final String PROFILE_CONFIG_FILE_LOCATIONS = "environmentConfigLocations";
-
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
 
     private static final String YAML_ENVIRONMENT_VARIABLE_NAME = "UAA_CONFIG_YAML";
@@ -69,8 +67,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
-        ServletConfig servletConfig = applicationContext.getServletConfig();
-        String locations = servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
         List<Resource> resources = new ArrayList<>();
 
         //add default locations first
@@ -82,6 +78,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             }
         }
 
+        String locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
         resources.addAll(getResource(servletContext, applicationContext, locations));
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
@@ -91,7 +88,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         if (resources.isEmpty()) {
             servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            locations = servletContext.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
             resources.addAll(getResource(servletContext, applicationContext, locations));
         }
 

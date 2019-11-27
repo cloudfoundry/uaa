@@ -149,8 +149,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadServletConfiguredResource() {
-        when(servletConfig.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
+        when(context.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-config".getBytes()));
 
         initializer.initialize(context);
@@ -161,8 +160,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadContextConfiguredResource() {
-        when(servletContext.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
+        when(context.getResource(ArgumentMatchers.eq("${LOGIN_CONFIG_URL}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-context".getBytes()));
 
         initializer.initialize(context);
