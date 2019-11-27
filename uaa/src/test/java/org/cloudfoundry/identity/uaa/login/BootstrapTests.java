@@ -206,69 +206,57 @@ class BootstrapTests {
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
             final String uaaYamlPath) {
-        String[] resources = new String[]{"file:./src/main/webapp/WEB-INF/spring-servlet.xml"};
         String[] yamlFiles = new String[]{"required_configuration.yml", "login.yml", uaaYamlPath};
 
-        String[] resourcesToLoad = resources;
-        if (!resources[0].endsWith(".xml")) {
-            resourcesToLoad = new String[resources.length - 1];
-            System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
-        }
-
-        final String[] configLocations = resourcesToLoad;
-
-        AbstractRefreshableWebApplicationContext context = new AbstractRefreshableWebApplicationContext() {
-
-            @Override
-            protected void loadBeanDefinitions(@NonNull DefaultListableBeanFactory beanFactory) throws BeansException {
-                XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
-
-                // Configure the bean definition reader with this context's
-                // resource loading environment.
-                beanDefinitionReader.setEnvironment(this.getEnvironment());
-                beanDefinitionReader.setResourceLoader(this);
-                beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
-
-                for (String configLocation : configLocations) {
-                    beanDefinitionReader.loadBeanDefinitions(configLocation);
-                }
-            }
-        };
-
-        if (profiles != null) {
-            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
-        }
-
-        MockServletContext servletContext = new MockServletContext() {
-            @Override
-            public RequestDispatcher getNamedDispatcher(String path) {
-                return new MockRequestDispatcher("/");
-            }
-
-            @Override
-            public String getVirtualServerName() {
-                return "localhost";
-            }
-
-            @Override
-            public <Type extends EventListener> void addListener(Type t) {
-                //no op
-            }
-        };
-        context.setServletContext(servletContext);
-        MockServletConfig servletConfig = new MockServletConfig(servletContext);
+        abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
+        MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
         servletConfig.addInitParameter("environmentConfigLocations", StringUtils.arrayToCommaDelimitedString(yamlFiles));
-        context.setServletConfig(servletConfig);
+        abstractRefreshableWebApplicationContext.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
-        initializer.initialize(context);
+        initializer.initialize(abstractRefreshableWebApplicationContext);
 
         if (profiles != null) {
-            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+            abstractRefreshableWebApplicationContext.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
         }
 
-        context.refresh();
+        abstractRefreshableWebApplicationContext.refresh();
 
-        return context;
+        return abstractRefreshableWebApplicationContext;
     }
+
+    private final static MockServletContext mockServletContext = new MockServletContext() {
+        @Override
+        public RequestDispatcher getNamedDispatcher(String path) {
+            return new MockRequestDispatcher("/");
+        }
+
+        @Override
+        public String getVirtualServerName() {
+            return "localhost";
+        }
+
+        @Override
+        public <Type extends EventListener> void addListener(Type t) {
+            //no op
+        }
+    };
+
+    private static final AbstractRefreshableWebApplicationContext abstractRefreshableWebApplicationContext = new AbstractRefreshableWebApplicationContext() {
+
+        @Override
+        protected void loadBeanDefinitions(@NonNull DefaultListableBeanFactory beanFactory) throws BeansException {
+            XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+
+            // Configure the bean definition reader with this context's
+            // resource loading environment.
+            beanDefinitionReader.setEnvironment(this.getEnvironment());
+            beanDefinitionReader.setResourceLoader(this);
+            beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+
+            beanDefinitionReader.loadBeanDefinitions("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        }
+    };
+
+
 }
