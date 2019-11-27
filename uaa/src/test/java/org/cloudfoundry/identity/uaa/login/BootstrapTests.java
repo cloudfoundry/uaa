@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
+import org.cloudfoundry.identity.uaa.extensions.SystemPropertiesCleanupExtension;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -15,10 +16,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -36,12 +34,9 @@ import org.springframework.web.servlet.ViewResolver;
 
 import javax.servlet.RequestDispatcher;
 import java.io.File;
-import java.util.Arrays;
 import java.util.EventListener;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,37 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-class SystemPropertiesCleanupExtension implements BeforeAllCallback, AfterAllCallback {
-
-    private final Set<String> properties;
-
-    SystemPropertiesCleanupExtension(String... props) {
-        this.properties = Arrays.stream(props).collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
-    public void beforeAll(ExtensionContext context) {
-        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
-
-        properties.forEach(s -> store.put(s, System.getProperty(s)));
-    }
-
-    @Override
-    public void afterAll(ExtensionContext context) {
-        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
-
-        properties.forEach(key -> {
-                    String value = store.get(key, String.class);
-                    if (value == null) {
-                        System.clearProperty(key);
-                    } else {
-                        System.setProperty(key, value);
-                    }
-                }
-        );
-    }
-}
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)

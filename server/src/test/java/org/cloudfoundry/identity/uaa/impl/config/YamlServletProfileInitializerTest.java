@@ -5,11 +5,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
+import org.cloudfoundry.identity.uaa.extensions.SystemPropertiesCleanupExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
@@ -61,6 +63,12 @@ class YamlServletProfileInitializerTest {
     @Mock
     private ServletContext mockServletContext;
 
+    @RegisterExtension
+    static final SystemPropertiesCleanupExtension systemPropertiesCleanupExtension = new SystemPropertiesCleanupExtension(
+            "APPLICATION_CONFIG_FILE",
+            "APPLICATION_CONFIG_URL");
+
+
     @BeforeEach
     void setup() {
         initializer = new YamlServletProfileInitializer();
@@ -70,12 +78,6 @@ class YamlServletProfileInitializerTest {
         when(mockConfigurableWebApplicationContext.getServletContext()).thenReturn(mockServletContext);
         when(mockConfigurableWebApplicationContext.getEnvironment()).thenReturn(environment);
         when(mockConfigurableWebApplicationContext.getResource(anyString())).thenReturn(null);
-    }
-
-    @AfterEach
-    void tearDown() {
-        System.clearProperty("APPLICATION_CONFIG_FILE");
-        System.clearProperty("APPLICATION_CONFIG_URL");
     }
 
     @Test
