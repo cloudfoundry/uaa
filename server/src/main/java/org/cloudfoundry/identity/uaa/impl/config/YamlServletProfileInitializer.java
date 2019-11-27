@@ -19,16 +19,18 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
 import static org.springframework.util.StringUtils.hasText;
@@ -67,28 +69,26 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
-        List<Resource> resources = new ArrayList<>();
+        List<Resource> resources = Set.of("uaa.yml", "login.yml")
+                .stream()
+                .map(ClassPathResource::new)
+                .filter(ClassPathResource::exists)
+                .collect(Collectors.toList());
 
         //add default locations first
-        Set<String> defaultLocation = Set.of("uaa.yml", "login.yml");
-        for (String s : defaultLocation) {
-            Resource defaultResource = new ClassPathResource(s);
-            if (defaultResource.exists()) {
-                resources.add(defaultResource);
-            }
-        }
-
-        String locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
+        Set<String> locations = Set.of(
+                "${LOGIN_CONFIG_URL}",
+                "file:${LOGIN_CONFIG_PATH}/login.yml",
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml",
+                "${UAA_CONFIG_URL}",
+                "file:${UAA_CONFIG_FILE}",
+                "file:${UAA_CONFIG_PATH}/uaa.yml",
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml");
         resources.addAll(getResource(servletContext, applicationContext, locations));
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {
             resources.add(yamlFromEnv);
-        }
-
-        if (resources.isEmpty()) {
-            servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            resources.addAll(getResource(servletContext, applicationContext, locations));
         }
 
         try {
@@ -122,11 +122,10 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         return null;
     }
 
-    private List<Resource> getResource(ServletContext servletContext, ConfigurableWebApplicationContext applicationContext,
-                                       String locations) {
+    private List<Resource> getResource(final ServletContext servletContext,
+                                       final ConfigurableWebApplicationContext applicationContext,
+                                       final Set<String> configFileLocations) {
         List<Resource> resources = new LinkedList<>();
-        String[] configFileLocations = locations == null ? new String[] {"file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml"} : StringUtils
-                .commaDelimitedListToStringArray(locations);
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);
             servletContext.log("Testing for YAML resources at: " + location);
@@ -177,7 +176,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
         String systemProfiles = System.getProperty("spring.profiles.active");
-        environment.setDefaultProfiles(new String[0]);
+        environment.setDefaultProfiles();
         if (environment.containsProperty("spring_profiles")) {
             String profiles = environment.getProperty("spring_profiles");
             servletContext.log("Setting active profiles: " + profiles);
