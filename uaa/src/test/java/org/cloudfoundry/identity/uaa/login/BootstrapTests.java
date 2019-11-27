@@ -14,10 +14,12 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -34,12 +36,12 @@ import org.springframework.web.servlet.ViewResolver;
 
 import javax.servlet.RequestDispatcher;
 import java.io.File;
+import java.util.Arrays;
 import java.util.EventListener;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,6 +49,38 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class SystemPropertiesCleanupExtension implements BeforeAllCallback, AfterAllCallback {
+
+    private final Set<String> properties;
+
+    SystemPropertiesCleanupExtension(String... props) {
+        this.properties = Arrays.stream(props).collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
+    public void beforeAll(ExtensionContext context) {
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+
+        properties.forEach(s -> store.put(s, System.getProperty(s)));
+    }
+
+    @Override
+    public void afterAll(ExtensionContext context) {
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+
+        properties.forEach(key -> {
+                    String value = store.get(key, String.class);
+                    if (value == null) {
+                        System.clearProperty(key);
+                    } else {
+                        System.setProperty(key, value);
+                    }
+                }
+        );
+    }
+}
+
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)
@@ -56,32 +90,14 @@ class BootstrapTests {
     private static final String LOGIN_IDP_ENTITY_ALIAS = "login.idpEntityAlias";
     private static final String LOGIN_IDP_METADATA_URL = "login.idpMetadataURL";
     private static final String LOGIN_SAML_METADATA_TRUST_CHECK = "login.saml.metadataTrustCheck";
-    private static final Set<String> PROPERTIES = Set.of(LOGIN_IDP_METADATA,
+    @RegisterExtension
+    static final SystemPropertiesCleanupExtension systemPropertiesCleanupExtension = new SystemPropertiesCleanupExtension(
+            LOGIN_IDP_METADATA,
             LOGIN_IDP_ENTITY_ALIAS,
             LOGIN_IDP_METADATA_URL,
             LOGIN_SAML_METADATA_TRUST_CHECK);
-    private static Map<String, String> originalSystemProps;
 
     private ConfigurableApplicationContext context;
-
-    @BeforeEach
-    void setup() {
-        originalSystemProps = new HashMap<>();
-        PROPERTIES.forEach(
-                s -> originalSystemProps.put(s, System.getProperty(s)
-                ));
-    }
-
-    @AfterEach
-    void tearDown() {
-        for (Map.Entry<String, String> entry : originalSystemProps.entrySet()) {
-            if (entry.getValue() != null) {
-                System.setProperty(entry.getKey(), entry.getValue());
-            } else {
-                System.clearProperty(entry.getKey());
-            }
-        }
-    }
 
     @Test
     void xlegacyTestDeprecatedProperties() {
