@@ -94,13 +94,15 @@ class BootstrapTests {
             LOGIN_IDP_METADATA,
             LOGIN_IDP_ENTITY_ALIAS,
             LOGIN_IDP_METADATA_URL,
-            LOGIN_SAML_METADATA_TRUST_CHECK);
+            LOGIN_SAML_METADATA_TRUST_CHECK,
+            "APPLICATION_CONFIG_URL",
+            "LOGIN_CONFIG_URL");
 
     private ConfigurableApplicationContext context;
 
     @Test
     void xlegacyTestDeprecatedProperties() {
-        context = getServletContext(null, "test/bootstrap/deprecated_properties_still_work.yml");
+        context = getServletContext(null, true);
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups, PredicateMatcher.has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
@@ -121,7 +123,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
-        context = getServletContext("default", "uaa.yml");
+        context = getServletContext("default", false);
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -141,7 +143,7 @@ class BootstrapTests {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
-        context = getServletContext("default,saml,configMetadata", "uaa.yml");
+        context = getServletContext("default,saml,configMetadata", false);
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertEquals(
                 SamlIdentityProviderDefinition.MetadataLocation.DATA,
@@ -154,7 +156,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
-        context = getServletContext("default", "uaa.yml");
+        context = getServletContext("default", false);
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -174,7 +176,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
-        context = getServletContext("default", "uaa.yml");
+        context = getServletContext("default", false);
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
@@ -204,12 +206,13 @@ class BootstrapTests {
 
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
-            final String uaaYamlPath) {
-        String[] yamlFiles = new String[]{"required_configuration.yml", uaaYamlPath};
-
+            final boolean useDeprecatedProperties) {
         abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
         MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", StringUtils.arrayToCommaDelimitedString(yamlFiles));
+        System.setProperty("APPLICATION_CONFIG_URL", "classpath:required_configuration.yml");
+        if (useDeprecatedProperties) {
+            System.setProperty("LOGIN_CONFIG_URL", "classpath:test/bootstrap/deprecated_properties_still_work.yml");
+        }
         abstractRefreshableWebApplicationContext.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
