@@ -59,7 +59,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
 
-    private String yamlEnvironmentVariableName = "UAA_CONFIG_YAML";
+    private static final String YAML_ENVIRONMENT_VARIABLE_NAME = "UAA_CONFIG_YAML";
 
     private SystemEnvironmentAccessor environmentAccessor = new SystemEnvironmentAccessor() {
     };
@@ -125,7 +125,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private Resource getYamlFromEnvironmentVariable() {
         if (environmentAccessor != null) {
-            String data = environmentAccessor.getEnvironmentVariable(getYamlEnvironmentVariableName());
+            String data = environmentAccessor.getEnvironmentVariable(YAML_ENVIRONMENT_VARIABLE_NAME);
             if (hasText(data)) {
                 //validate the Yaml? We don't do that for the others
                 return new InMemoryResource(data);
@@ -201,14 +201,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 environment.setActiveProfiles(commaDelimitedListToStringArray(systemProfiles));
             }
         }
-    }
-
-    String getYamlEnvironmentVariableName() {
-        return yamlEnvironmentVariableName;
-    }
-
-    void setYamlEnvironmentVariableName(String yamlEnvironmentVariableName) {
-        this.yamlEnvironmentVariableName = yamlEnvironmentVariableName;
     }
 
     void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {

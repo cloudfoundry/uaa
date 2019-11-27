@@ -225,24 +225,12 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void readingYamlFromEnvironment_WithNullVariableName() {
-        readingYamlFromEnvironment(null);
-    }
-
-    @Test
-    void readingYamlFromEnvironment_WithNonNullVariableName() {
-        readingYamlFromEnvironment("Renaming environment variable");
-    }
-
-    private void readingYamlFromEnvironment(String variableName) {
-        if (hasText(variableName)) {
-            initializer.setYamlEnvironmentVariableName(variableName);
-        }
+    void readingYamlFromEnvironment() {
         SystemEnvironmentAccessor env = new SystemEnvironmentAccessor() {
             @Override
             public String getEnvironmentVariable(String name) {
-                return name.equals(initializer.getYamlEnvironmentVariableName()) ?
-                        "uaa.url: http://uaa.test.url/\n" +
+                return "UAA_CONFIG_YAML".equals(name) ?
+                        "uaa.url: http://uaa.test-from-env.url/\n" +
                                 "login.url: http://login.test.url/\n" +
                                 "smtp:\n" +
                                 "  host: mail.server.host\n" +
@@ -254,7 +242,7 @@ class YamlServletProfileInitializerTest {
         initializer.initialize(context);
         assertEquals("mail.server.host", environment.getProperty("smtp.host"));
         assertEquals("3535", environment.getProperty("smtp.port"));
-        assertEquals("http://uaa.test.url/", environment.getProperty("uaa.url"));
+        assertEquals("http://uaa.test-from-env.url/", environment.getProperty("uaa.url"));
         assertEquals("http://login.test.url/", environment.getProperty("login.url"));
     }
 
