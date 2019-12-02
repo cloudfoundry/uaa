@@ -7,14 +7,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.session.MapSessionRepository;
 import org.springframework.session.config.annotation.web.http.EnableSpringHttpSession;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
 @Conditional(UaaMemorySessionConfig.MemoryConfigured.class)
 @EnableSpringHttpSession
+@EnableScheduling
 public class UaaMemorySessionConfig extends UaaSessionConfig {
 
     private final static Logger logger = LoggerFactory.getLogger(UaaMemorySessionConfig.class);
@@ -29,8 +29,11 @@ public class UaaMemorySessionConfig extends UaaSessionConfig {
     }
 
     @Bean
-    public MapSessionRepository sessionRepository(final @Value("${servlet.idle-timeout:1800}") int idleTimeout) {
-        MapSessionRepository sessionRepository = new MapSessionRepository(new ConcurrentHashMap<>());
+    public MapSessionRepository sessionRepository(
+            final @Value("${servlet.idle-timeout:1800}") int idleTimeout,
+            @Autowired PurgeableSessionMap purgeableSessionMap
+    ) {
+        MapSessionRepository sessionRepository = new MapSessionRepository(purgeableSessionMap);
         sessionRepository.setDefaultMaxInactiveInterval(idleTimeout);
         return sessionRepository;
     }
