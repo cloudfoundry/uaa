@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.extensions;
 
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SystemPropertiesCleanupExtension implements BeforeAllCallback, AfterAllCallback {
+public class SystemPropertiesCleanupExtension implements BeforeEachCallback, AfterEachCallback {
 
     private final Set<String> properties;
 
@@ -17,14 +17,14 @@ public class SystemPropertiesCleanupExtension implements BeforeAllCallback, Afte
     }
 
     @Override
-    public void beforeAll(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) {
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
 
         properties.forEach(s -> store.put(s, System.getProperty(s)));
     }
 
     @Override
-    public void afterAll(ExtensionContext context) {
+    public void afterEach(ExtensionContext context) {
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
 
         properties.forEach(key -> {

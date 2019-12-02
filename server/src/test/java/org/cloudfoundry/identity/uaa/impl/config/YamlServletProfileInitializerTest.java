@@ -64,10 +64,11 @@ class YamlServletProfileInitializerTest {
     private ServletContext mockServletContext;
 
     @RegisterExtension
+    @SuppressWarnings("unused")
     static final SystemPropertiesCleanupExtension systemPropertiesCleanupExtension = new SystemPropertiesCleanupExtension(
             "APPLICATION_CONFIG_FILE",
-            "APPLICATION_CONFIG_URL");
-
+            "APPLICATION_CONFIG_URL",
+            "spring.profiles.active");
 
     @BeforeEach
     void setup() {
@@ -270,6 +271,13 @@ class YamlServletProfileInitializerTest {
     @ExtendWith(MockitoExtension.class)
     @Nested
     class ApplySpringProfiles {
+
+        @RegisterExtension
+        @SuppressWarnings("unused")
+        final SystemPropertiesCleanupExtension systemPropertiesCleanupExtension = new SystemPropertiesCleanupExtension(
+                "APPLICATION_CONFIG_FILE",
+                "APPLICATION_CONFIG_URL",
+                "spring.profiles.active");
 
         private MockEnvironment environment;
         private MockServletContext context;
