@@ -1,15 +1,3 @@
-/*******************************************************************************
-*     Cloud Foundry
-*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
-*
-*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
-*     You may not use this product except in compliance with the License.
-*
-*     This product includes a number of subcomponents with
-*     separate copyright notices and license terms. Your use of these
-*     subcomponents is subject to the terms and conditions of the
-*     subcomponent's license, as noted in the LICENSE file.
-*******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -36,8 +24,6 @@ import static org.junit.Assert.assertNull;
 
 public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
-    private JdbcScimGroupProvisioning gDB;
-
     private ScimGroupExternalMembershipManager eDB;
 
     private ScimExternalGroupBootstrap bootstrap;
@@ -49,7 +35,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         IdentityZoneHolder.set(zone);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
@@ -61,7 +47,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void canAddExternalGroups() throws Exception {
+    public void canAddExternalGroups() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -80,7 +66,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatDoNotExist() throws Exception {
+    public void cannotAddExternalGroupsThatDoNotExist() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -99,7 +85,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatMapToNull() throws Exception {
+    public void cannotAddExternalGroupsThatMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", null);
@@ -111,7 +97,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddOriginMapToNull() throws Exception {
+    public void cannotAddOriginMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         originMap.put(OriginKeys.LDAP, null);
         bootstrap.setExternalGroupMaps(originMap);
