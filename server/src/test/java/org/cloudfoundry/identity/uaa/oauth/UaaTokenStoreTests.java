@@ -1,14 +1,16 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -43,15 +45,16 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UaaTokenStoreTests extends JdbcTestBase {
+@WithDatabaseContext
+class UaaTokenStoreTests {
 
     private UaaTokenStore store;
     private JdbcAuthorizationCodeServices legacyCodeServices;
@@ -61,8 +64,14 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
     private UaaPrincipal principal = new UaaPrincipal("userid", "username", "username@test.org", OriginKeys.UAA, null, IdentityZone.getUaaZoneId());
 
-    @Before
-    public void createTokenStore() {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @BeforeEach
+    void setUp() {
         jdbcTemplate.update("delete from oauth_code");
 
         List<GrantedAuthority> userAuthorities = Collections.singletonList(new SimpleGrantedAuthority(
@@ -89,11 +98,10 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
         UaaAuthentication authentication = new UaaAuthentication(principal, userAuthorities, new UaaAuthenticationDetails(request));
         uaaAuthentication = new OAuth2Authentication(clientRequest.createOAuth2Request(client), authentication);
-
     }
 
     @Test
-    public void deserializationOfUaaAuthentication() {
+    void deserializationOfUaaAuthentication() {
         UaaAuthentication modifiedAuthentication = (UaaAuthentication) uaaAuthentication.getUserAuthentication();
         MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
         userAttributes.put("atest", Arrays.asList("test1", "test2", "test3"));
@@ -121,7 +129,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void consumeClientCredentialsFromOldStore() {
+    void consumeClientCredentialsFromOldStore() {
         String code = legacyCodeServices.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         OAuth2Authentication authentication = store.consumeAuthorizationCode(code);
@@ -131,35 +139,35 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void storeTokenClientCredentials() {
+    void storeTokenClientCredentials() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void storeTokenPasswordGrantUsernamePasswordAuthentication() {
+    void storeTokenPasswordGrantUsernamePasswordAuthentication() {
         String code = store.createAuthorizationCode(usernamePasswordAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void storeTokenPasswordGrantUaaAuthentication() {
+    void storeTokenPasswordGrantUaaAuthentication() {
         String code = store.createAuthorizationCode(uaaAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         assertNotNull(code);
     }
 
     @Test
-    public void deserializeFromOldFormat() {
+    void deserializeFromOldFormat() {
         OAuth2Authentication authentication = store.deserializeOauth2Authentication(UAA_AUTHENTICATION_DATA_OLD_STYLE);
         assertNotNull(authentication);
         assertEquals(principal, authentication.getUserAuthentication().getPrincipal());
     }
 
     @Test
-    public void retrieveToken() {
+    void retrieveToken() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         OAuth2Authentication authentication = store.consumeAuthorizationCode(code);
@@ -179,23 +187,23 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         assertNotNull(authentication);
     }
 
-    @Test(expected = InvalidGrantException.class)
-    public void retrieveExpiredToken() {
+    @Test
+    void retrieveExpiredToken() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
         jdbcTemplate.update("update oauth_code set expiresat = 1");
-        store.consumeAuthorizationCode(code);
-    }
-
-    @Test(expected = InvalidGrantException.class)
-    public void retrieveNonExistentToken() {
-        String code = store.createAuthorizationCode(clientAuthentication);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
-        store.consumeAuthorizationCode("non-existent");
+        assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(code));
     }
 
     @Test
-    public void cleanUpExpiredTokensBasedOnExpiresField() {
+    void retrieveNonExistentToken() {
+        String code = store.createAuthorizationCode(clientAuthentication);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
+        assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
+    }
+
+    @Test
+    void cleanUpExpiredTokensBasedOnExpiresField() {
         int count = 10;
         String lastCode = null;
         for (int i = 0; i < count; i++) {
@@ -205,17 +213,13 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
         jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
 
-        try {
-            store.consumeAuthorizationCode(lastCode);
-            fail();
-        } catch (InvalidGrantException ignored) {
-        }
+        final String finalLastCode = lastCode;
+        assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
-
     }
 
     @Test
-    public void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
+    void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
         int count = 10;
         long oneday = 1000 * 60 * 60 * 24;
         for (int i = 0; i < count; i++) {
@@ -223,29 +227,21 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
-        try {
-            store.consumeAuthorizationCode("non-existent");
-            fail();
-        } catch (InvalidGrantException ignored) {
-        }
+        assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
-        try {
-            store.consumeAuthorizationCode("non-existent");
-            fail();
-        } catch (InvalidGrantException ignored) {
-        }
+        assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 
     @Test
-    public void expiresAtOnCode() {
+    void expiresAtOnCode() {
         UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, new Timestamp(System.currentTimeMillis()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
     @Test
-    public void expiresAtOnCreated() {
+    void expiresAtOnCreated() {
         UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis()), new byte[0]);
         assertFalse(code.isExpired());
 
@@ -254,7 +250,9 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void cleanUpUnusedOldTokensMySQLInAnotherTimezone() throws Exception {
+    void cleanUpUnusedOldTokensMySQLInAnotherTimezone(
+            @Autowired Environment environment
+    ) throws Exception {
         //only run tests for MySQL for now.
         Optional<String> dbProfile = Arrays.stream(environment.getActiveProfiles()).filter(s -> s.contains("sql")).findFirst();
         String db = dbProfile.orElse("hsqldb");
@@ -277,7 +275,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
                     template.update("SET TIME ZONE INTERVAL '-11:00' HOUR TO MINUTE");
                     break;
                 default:
-                    fail("Unknown DB profile:" + db);
+                    throw new RuntimeException("Unknown DB profile:" + db);
             }
 
             store = new UaaTokenStore(sameConnectionDataSource);
@@ -301,7 +299,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void cleanUpExpiredTokensDeadlockLoser() throws Exception {
+    void cleanUpExpiredTokensDeadlockLoser() throws Exception {
         try (Connection con = dataSource.getConnection()) {
             Connection expirationLoser = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class[]{Connection.class},
@@ -326,7 +324,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     public static class SameConnectionDataSource implements DataSource {
         private final Connection con;
 
-        public SameConnectionDataSource(Connection con) {
+        SameConnectionDataSource(Connection con) {
             this.con = con;
         }
 
@@ -377,10 +375,10 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     }
 
     public static class DontCloseConnection implements InvocationHandler {
-        public static final String CLOSE_VAL = "close";
+        static final String CLOSE_VAL = "close";
         private final Connection con;
 
-        public DontCloseConnection(Connection con) {
+        DontCloseConnection(Connection con) {
             this.con = con;
         }
 
