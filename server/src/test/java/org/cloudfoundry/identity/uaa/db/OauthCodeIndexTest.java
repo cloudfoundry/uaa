@@ -1,17 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -45,28 +31,27 @@ public class OauthCodeIndexTest extends JdbcTestBase {
     @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]; name[{2}]; unique[{3}];")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {null, "oauth_code", "oauth_code_uq_idx", true},
-            {null, "oauth_code", "oauth_code_expiresat_idx", false},
+                {null, "oauth_code", "oauth_code_uq_idx", true},
+                {null, "oauth_code", "oauth_code_expiresat_idx", false},
         });
     }
 
     @Override
     public void setUp() {
         MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
+        if (springProfile != null) {
             environment.setActiveProfiles(springProfile);
         }
         setUp(environment);
     }
 
-
     @Test
-    public void test_existing_indicies() throws Exception {
+    public void existingIndicies() throws Exception {
         boolean found = false;
         for (String tableName : Arrays.asList(tableName.toLowerCase(), tableName.toUpperCase())) {
             try (
-                Connection connection = dataSource.getConnection();
-                ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
+                    Connection connection = dataSource.getConnection();
+                    ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
             ) {
                 while (!found && rs.next()) {
                     found = indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"));
