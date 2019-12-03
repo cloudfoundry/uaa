@@ -1,17 +1,3 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -22,6 +8,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
@@ -47,7 +34,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     }
 
     @Test
-    public void ensure_that_subdomains_get_lower_cased() throws Exception {
+    public void ensureThatSubdomainsGetLowerCased() {
         List<String> subdomains = Arrays.asList(
                 "Zone1" + generator.generate(),
                 "Zone2" + generator.generate(),
@@ -80,8 +67,8 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     }
 
     @Test
-    public void test_duplicate_subdomains() throws Exception {
-        check_db_is_case_sensitive();
+    public void duplicateSubdomains() {
+        checkDbIsCaseSensitive(jdbcTemplate, generator);
         List<String> ids = Arrays.asList(
                 "id1" + generator.generate().toLowerCase(),
                 "id2" + generator.generate().toLowerCase(),
@@ -99,7 +86,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
         for (int i = 0; i < ids.size(); i++) {
             IdentityZone zone = MultitenancyFixture.identityZone(ids.get(i), subdomains.get(i));
             zone.setSubdomain(subdomains.get(i)); //mixed case
-            createIdentityZoneThroughSQL(zone);
+            createIdentityZoneThroughSQL(zone, jdbcTemplate);
         }
         IdentityZone lowercase = provisioning.retrieveBySubdomain("domain1");
         IdentityZone mixedcase = provisioning.retrieveBySubdomain("Domain1");
@@ -113,8 +100,9 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
         }
     }
 
-
-    public void check_db_is_case_sensitive() {
+    private static void checkDbIsCaseSensitive(
+            final JdbcTemplate jdbcTemplate,
+            final RandomValueStringGenerator generator) {
         String usubdomain = "TEST_UPPER_" + generator.generate();
         String lsubdomain = usubdomain.toLowerCase();
 
@@ -123,14 +111,16 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
             try {
                 IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain + generator.generate(), subdomain);
                 identityZone.setSubdomain(subdomain);
-                createIdentityZoneThroughSQL(identityZone);
+                createIdentityZoneThroughSQL(identityZone, jdbcTemplate);
             } catch (DuplicateKeyException x) {
                 assumeTrue("DB is not case sensitive. No need for this test", false);
             }
         }
     }
 
-    protected void createIdentityZoneThroughSQL(IdentityZone identityZone) {
+    private static void createIdentityZoneThroughSQL(
+            final IdentityZone identityZone,
+            final JdbcTemplate jdbcTemplate) {
         String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
         String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
