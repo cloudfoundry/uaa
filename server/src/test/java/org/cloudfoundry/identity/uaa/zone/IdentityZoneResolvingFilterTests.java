@@ -1,9 +1,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -18,55 +21,56 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
+@WithDatabaseContext
+class IdentityZoneResolvingFilterTests {
 
     private boolean wasFilterExecuted;
     private IdentityZoneProvisioning dao;
 
-    @Before
-    public void createDao() {
+    @BeforeEach
+    void setUp(@Autowired JdbcTemplate jdbcTemplate) {
         dao = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         wasFilterExecuted = false;
     }
 
     @Test
-    public void holderIsSetWithDefaultIdentityZone() {
+    void holderIsSetWithDefaultIdentityZone() {
         IdentityZoneHolder.clear();
         assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
     }
 
     @Test
-    public void holderIsSetWithMatchingIdentityZone() throws Exception {
+    void holderIsSetWithMatchingIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("myzone", "myzone.uaa.mycf.com", "uaa.mycf.com", "login.mycf.com");
     }
 
     @Test
-    public void holderIsSetWithMatchingIdentityZoneWhenSubdomainContainsUaaHostname() throws Exception {
+    void holderIsSetWithMatchingIdentityZoneWhenSubdomainContainsUaaHostname() throws Exception {
         assertFindsCorrectSubdomain("foo.uaa.mycf.com", "foo.uaa.mycf.com.uaa.mycf.com", "uaa.mycf.com", "login.mycf.com");
     }
 
     @Test
-    public void holderIsSetWithUAAIdentityZone() throws Exception {
+    void holderIsSetWithUAAIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("", "uaa.mycf.com", "uaa.mycf.com", "login.mycf.com");
         assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com", "login.mycf.com");
     }
 
     @Test
-    public void holderIsResolvedWithCaseInsensitiveIdentityZone() throws Exception {
+    void holderIsResolvedWithCaseInsensitiveIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("", "Login.MyCF.COM", "uaa.mycf.com", "login.mycf.com");
     }
 
     @Test
-    public void holderIsSetWithCaseInsensitiveIdentityZone() throws Exception {
+    void holderIsSetWithCaseInsensitiveIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com", "Login.MyCF.COM");
     }
 
     @Test
-    public void doNotThrowException_InCase_RetrievingZoneFails() throws Exception {
+    void doNotThrowException_InCase_RetrievingZoneFails() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String incomingSubdomain = "not_a_zone";
         String uaaHostname = "uaa.mycf.com";
@@ -118,7 +122,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void holderIsNotSetWithNonMatchingIdentityZone() throws Exception {
+    void holderIsNotSetWithNonMatchingIdentityZone() throws Exception {
         String incomingSubdomain = "not_a_zone";
         String uaaHostname = "uaa.mycf.com";
         String incomingHostname = incomingSubdomain + "." + uaaHostname;
@@ -143,21 +147,21 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setDefaultZoneHostNamesWithNull() {
+    void setDefaultZoneHostNamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(null);
         assertTrue(filter.getDefaultZoneHostnames().isEmpty());
     }
 
     @Test
-    public void setAdditionalZoneHostNamesWithNull() {
+    void setAdditionalZoneHostNamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setAdditionalInternalHostnames(null);
         assertTrue(filter.getDefaultZoneHostnames().isEmpty());
     }
 
     @Test
-    public void setRestoreZoneHostNamesWithNull() {
+    void setRestoreZoneHostNamesWithNull() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.restoreDefaultHostnames(null);
@@ -165,7 +169,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setDefaultZoneHostNames() {
+    void setDefaultZoneHostNames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));
@@ -175,7 +179,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setAdditionalZoneHostNames() {
+    void setAdditionalZoneHostNames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setAdditionalInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.setAdditionalInternalHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));
@@ -185,7 +189,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
     }
 
     @Test
-    public void setRestoreZoneHostNames() {
+    void setRestoreZoneHostNames() {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         filter.setDefaultInternalHostnames(new HashSet<>(Collections.singletonList("uaa.mycf.com")));
         filter.restoreDefaultHostnames(new HashSet<>(Collections.singletonList("uaa.MYCF2.com")));
