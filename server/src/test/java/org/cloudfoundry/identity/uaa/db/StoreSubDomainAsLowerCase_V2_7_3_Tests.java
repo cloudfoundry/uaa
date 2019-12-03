@@ -1,12 +1,13 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -16,25 +17,29 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
+@WithDatabaseContext
+class StoreSubDomainAsLowerCase_V2_7_3_Tests {
 
     private IdentityZoneProvisioning provisioning;
     private StoreSubDomainAsLowerCase_V2_7_3 migration;
     private RandomValueStringGenerator generator;
 
-    @Before
-    public void setUpDuplicateZones() {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUpDuplicateZones() {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         migration = new StoreSubDomainAsLowerCase_V2_7_3();
         generator = new RandomValueStringGenerator(6);
     }
 
     @Test
-    public void ensureThatSubdomainsGetLowerCased() {
+    void ensureThatSubdomainsGetLowerCased() {
         List<String> subdomains = Arrays.asList(
                 "Zone1" + generator.generate(),
                 "Zone2" + generator.generate(),
@@ -67,7 +72,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     }
 
     @Test
-    public void duplicateSubdomains() {
+    void duplicateSubdomains() {
         checkDbIsCaseSensitive(jdbcTemplate, generator);
         List<String> ids = Arrays.asList(
                 "id1" + generator.generate().toLowerCase(),
@@ -113,7 +118,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
                 identityZone.setSubdomain(subdomain);
                 createIdentityZoneThroughSQL(identityZone, jdbcTemplate);
             } catch (DuplicateKeyException x) {
-                assumeTrue("DB is not case sensitive. No need for this test", false);
+                assumeTrue(false, "DB is not case sensitive. No need for this test");
             }
         }
     }
