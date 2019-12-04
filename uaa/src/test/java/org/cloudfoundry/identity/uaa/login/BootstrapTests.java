@@ -205,15 +205,17 @@ class BootstrapTests {
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
             final String uaaYamlPath) {
-        String[] yamlFiles = new String[]{"required_configuration.yml", uaaYamlPath};
+        System.setProperty("LOGIN_CONFIG_URL", "classpath:required_configuration.yml");
+        System.setProperty("UAA_CONFIG_URL", "classpath:" + uaaYamlPath);
 
         abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
         MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", StringUtils.arrayToCommaDelimitedString(yamlFiles));
         abstractRefreshableWebApplicationContext.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
         initializer.initialize(abstractRefreshableWebApplicationContext);
+        System.clearProperty("LOGIN_CONFIG_URL");
+        System.clearProperty("UAA_CONFIG_URL");
 
         if (profiles != null) {
             abstractRefreshableWebApplicationContext.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
