@@ -91,7 +91,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 
     private static String DEFAULT_HOST = "localhost";
 
-    private static String DEFAULT_ROOT_PATH = "/uaa";
+    private static String DEFAULT_ROOT_PATH = "/";
 
     private int port;
 

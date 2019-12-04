@@ -74,7 +74,7 @@ public class IdentityProviderEndpointsTest {
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
         config.setStoreCustomAttributes(true);
 
-        String urlBase = "http://localhost:8080/";
+        String urlBase = "http://localhost:8080";
         try {
             config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
             config.setTokenUrl(new URL(urlBase + "/oauth/token"));

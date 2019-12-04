@@ -5,7 +5,7 @@ It assumes that you have a SAML application setup on Okta Preview with admin rig
 
 ##Pivotal Preview and Standalone Login Server
 The UAA comes with with a `sample-okta-metadata.xml` file
-that will redirect your SAML request back to http://localhost:8080/uaa
+that will redirect your SAML request back to http://localhost:8080
 This configuration requires you to have an account on 
 https://pivotal.oktapreview.com
 
@@ -36,7 +36,7 @@ Test SAML authentication
   - a) Go to http://localhost:8080/login
   - b) Click `Okta Preview 1`
   - c) Authenticate on the Okta server
-  - d) You should be redirected to 'localhost:8080/uaa' and be signed in with your credentials (email address)
+  - d) You should be redirected to 'localhost:8080' and be signed in with your credentials (email address)
   
 ##Pivotal Preview - Configure Custom Application
 To configure a custom redirect URL on the https://pivotal.oktapreview.com 
@@ -68,7 +68,7 @@ Configure Okta to have UAA as a service that wishes to authenticate
 
   - a) Go to your Okta application and click on the 'General' tab
   - b) Edit the SAML settings
-  - c) Fill in the 'SingleSignOnURL' field  with 'http://localhost:8080/uaa/saml/SSO/alias/cloudfoundry-saml-login'
+  - c) Fill in the 'SingleSignOnURL' field  with 'http://localhost:8080/saml/SSO/alias/cloudfoundry-saml-login'
        and select 'Use this for Recipient URL and Destination URL'
   - d) Fill in the 'Audience URI' field with 'cloudfoundry-saml-login' which is the entityID for the UAA
        This field can be set using login.entityID or login.saml.entityIDAlias. If the login.entityID is a URL, the alias
@@ -81,7 +81,7 @@ Test SAML authentication
 
   - a) Go to 'My Applications' on Octa Preview
   - b) Click on your SAML application
-  - c) You should be redirected to 'localhost:8080/uaa' and be signed in with your credentials
+  - c) You should be redirected to 'localhost:8080' and be signed in with your credentials
 
 
 

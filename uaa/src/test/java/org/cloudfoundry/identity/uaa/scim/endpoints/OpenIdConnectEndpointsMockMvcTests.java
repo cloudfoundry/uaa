@@ -65,7 +65,7 @@ class OpenIdConnectEndpointsMockMvcTests {
 
                 OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
                 assertNotNull(openIdConfiguration);
-                assertEquals("http://" + host + ":8080/uaa/oauth/token", openIdConfiguration.getIssuer());
+                assertEquals("http://" + host + ":8080/oauth/token", openIdConfiguration.getIssuer());
                 assertEquals("http://" + host + "/oauth/authorize", openIdConfiguration.getAuthUrl());
                 assertEquals("http://" + host + "/oauth/token", openIdConfiguration.getTokenUrl());
                 assertArrayEquals(new String[]{"client_secret_basic", "client_secret_post"}, openIdConfiguration.getTokenAMR());

@@ -167,7 +167,7 @@ cargo {
 
     deployable {
         file = file("uaa/build/libs/cloudfoundry-identity-uaa-" + version + ".war")
-        context = "uaa"
+        context = "/"
     }
 
     local {
@@ -234,7 +234,6 @@ task cleanCargoConfDir {
 task integrationTest(dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
-
 
 // task dependencies
 assemble.dependsOn subprojects.assemble

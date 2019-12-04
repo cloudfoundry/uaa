@@ -9,7 +9,7 @@ resources in the API service.  Run it with `./gradlew run` from the
 The application can operate in multiple different profiles according
 to the location (and presence) of the UAA server and the Login
 application.  By default it will look for a UAA on
-`localhost:8080/uaa`, but you can change this by setting an
+`localhost:8080`, but you can change this by setting an
 environment variable (or System property) called `UAA_PROFILE`.  In
 the application source code (`samples/app/src/main/resources`) you will find
 multiple properties files pre-configured with different likely

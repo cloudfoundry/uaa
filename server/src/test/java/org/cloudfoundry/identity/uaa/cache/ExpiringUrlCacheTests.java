@@ -50,7 +50,7 @@ class ExpiringUrlCacheTests {
         cache = new ExpiringUrlCache(CACHE_EXPIRATION, mockTimeService, 2);
         template = mock(RestTemplate.class);
         when(template.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
-        uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
+        uri = "http://localhost:8080/.well-known/openid-configuration";
     }
 
     @Test

@@ -294,11 +294,11 @@
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
     <bean id="uaaUrl" class="java.lang.String">
-        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
+        <constructor-arg value="${uaa.url:http://localhost:8080}"/>
     </bean>
 
     <bean id="loginUrl" class="java.lang.String">
-        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
+        <constructor-arg value="${login.url:http://localhost:8080}"/>
     </bean>
 
 
@@ -411,7 +411,7 @@
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="passcode"/>
             <constructor-arg name="text"
-                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )"/>
+                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080}/passcode )"/>
             <constructor-arg name="type" value="password"/>
         </bean>
     </util:list>

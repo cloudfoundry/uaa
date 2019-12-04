@@ -1,5 +1,5 @@
 issuer:
-  uri: http://localhost:8080/uaa
+  uri: http://localhost:8080
 
 encryption:
   active_key_label: CHANGE-THIS-KEY
