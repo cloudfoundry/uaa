@@ -60,7 +60,7 @@ public class AuthorizationCodeGrantIntegrationTests {
                 .queryParam("response_type", "code")
                 .queryParam("state", "mystateid")
                 .queryParam("client_id", "clientId")
-                .queryParam("redirect_uri", "http://localhost:8080/uaa");
+                .queryParam("redirect_uri", "http://localhost:8080/");
 
         URI uri = builder.build();
 
@@ -79,12 +79,12 @@ public class AuthorizationCodeGrantIntegrationTests {
         RestTemplate identityClient = IntegrationTestUtils
                 .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
                         new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
-        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/");
         ServerRunning.UriBuilder builder = serverRunning.buildUri(serverRunning.getAuthorizationUri().replace("localhost", "testzoneinactive.localhost"))
                 .queryParam("response_type", "code")
                 .queryParam("state", "mystateid")
                 .queryParam("client_id", "clientId")
-                .queryParam("redirect_uri", "http://localhost:8080/uaa");
+                .queryParam("redirect_uri", "http://localhost:8080/");
 
         URI uri = builder.build();
 
